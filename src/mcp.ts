@@ -7,6 +7,8 @@ import { handleCreateTask, handleUpdateTask, handleGetMyTasks } from "./tools/ta
 import { handlePostArtifact, handleGetArtifact } from "./tools/artifacts";
 import { handleRequestReview, handleSubmitReview } from "./tools/review";
 import { getDb } from "./db/client";
+import { broadcast } from "./dashboard/websocket";
+import { getTaskById } from "./db/queries/tasks";
 
 // 현재 세션 ID (환경변수로 주입, 기본값 "default")
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
@@ -27,6 +29,13 @@ export function createMcpServer(): McpServer {
     thread_id: z.string().optional().describe("스레드 ID (선택)"),
   }, async (input) => {
     const result = await handleSendMessage(getDb(), SESSION_ID, input);
+    if (result.success) {
+      broadcast({
+        type: "message:new",
+        message: result.message,
+        timestamp: Date.now(),
+      });
+    }
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 
@@ -49,6 +58,13 @@ export function createMcpServer(): McpServer {
     priority: z.enum(["critical", "high", "medium", "low"]).describe("우선순위"),
   }, async (input) => {
     const result = await handleCreateTask(getDb(), SESSION_ID, input);
+    if (result.success && result.task_id) {
+      broadcast({
+        type: "task:updated",
+        task: { id: result.task_id, title: input.title, assignee: input.assignee ?? null, status: "todo", priority: input.priority },
+        timestamp: Date.now(),
+      });
+    }
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 
@@ -60,6 +76,16 @@ export function createMcpServer(): McpServer {
     assignee: z.string().optional().describe("새 담당자"),
   }, async (input) => {
     const result = await handleUpdateTask(getDb(), SESSION_ID, input);
+    if (result.success) {
+      const task = getTaskById(getDb(), input.task_id);
+      if (task) {
+        broadcast({
+          type: "task:updated",
+          task: { id: task.id, title: task.title, assignee: task.assignee, status: task.status, priority: task.priority },
+          timestamp: Date.now(),
+        });
+      }
+    }
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 
@@ -82,6 +108,13 @@ export function createMcpServer(): McpServer {
     task_id: z.string().optional().describe("연관 태스크 ID"),
   }, async (input) => {
     const result = await handlePostArtifact(getDb(), SESSION_ID, input);
+    if (result.success && result.artifact_id) {
+      broadcast({
+        type: "artifact:posted",
+        artifact: { id: result.artifact_id, name: input.name, type: input.type, created_by: input.agent_id },
+        timestamp: Date.now(),
+      });
+    }
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 
@@ -103,6 +136,13 @@ export function createMcpServer(): McpServer {
     reviewer: z.string().describe("리뷰어 에이전트 ID (예: fe2, be2)"),
   }, async (input) => {
     const result = await handleRequestReview(getDb(), SESSION_ID, input);
+    if (result.success && result.review_id) {
+      broadcast({
+        type: "review:requested",
+        review: { id: result.review_id, artifact_id: input.artifact_id, reviewer: input.reviewer, requester: input.agent_id },
+        timestamp: Date.now(),
+      });
+    }
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 

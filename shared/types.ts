@@ -2,6 +2,9 @@
 // AgentId는 string — 사용자가 agents.yml에 커스텀 에이전트를 추가할 수 있으므로 닫힌 유니온 불가
 export type AgentId = string;
 
+// 타임스탬프 단위 규칙:
+// - 외부 envelope의 timestamp 필드: 밀리초 (Date.now())
+// - message 페이로드의 created_at 서브필드: 초 (Unix epoch, SQLite unixepoch() 기준)
 export type RelayEvent =
   | { type: "agent:thinking"; agentId: AgentId; chunk: string; timestamp: number }
   | { type: "agent:status"; agentId: AgentId; status: "idle" | "working" | "waiting"; timestamp: number }

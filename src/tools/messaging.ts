@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { insertMessage, getMessagesForAgent } from "../db/queries/messages";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
 
 interface SendMessageInput {
   agent_id: string;

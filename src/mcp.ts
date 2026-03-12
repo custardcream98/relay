@@ -5,6 +5,7 @@ import { z } from "zod";
 import { handleSendMessage, handleGetMessages } from "./tools/messaging";
 import { handleCreateTask, handleUpdateTask, handleGetMyTasks } from "./tools/tasks";
 import { handlePostArtifact, handleGetArtifact } from "./tools/artifacts";
+import { handleRequestReview, handleSubmitReview } from "./tools/review";
 import { getDb } from "./db/client";
 
 // 현재 세션 ID (환경변수로 주입, 기본값 "default")
@@ -90,6 +91,29 @@ export function createMcpServer(): McpServer {
     name: z.string().describe("조회할 아티팩트 이름"),
   }, async (input) => {
     const result = await handleGetArtifact(getDb(), SESSION_ID, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // --- review 툴 등록 ---
+
+  // 리뷰 요청
+  server.tool("request_review", {
+    agent_id: z.string().describe("리뷰를 요청하는 에이전트 ID"),
+    artifact_id: z.string().describe("리뷰 대상 아티팩트 ID"),
+    reviewer: z.string().describe("리뷰어 에이전트 ID (예: fe2, be2)"),
+  }, async (input) => {
+    const result = await handleRequestReview(getDb(), SESSION_ID, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 리뷰 제출
+  server.tool("submit_review", {
+    agent_id: z.string().describe("리뷰를 제출하는 에이전트 ID"),
+    review_id: z.string().describe("리뷰 ID"),
+    status: z.enum(["approved", "changes_requested"]).describe("리뷰 결과"),
+    comments: z.string().optional().describe("리뷰 코멘트"),
+  }, async (input) => {
+    const result = await handleSubmitReview(getDb(), SESSION_ID, input);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 

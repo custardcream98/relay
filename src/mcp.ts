@@ -4,6 +4,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { handleSendMessage, handleGetMessages } from "./tools/messaging";
 import { handleCreateTask, handleUpdateTask, handleGetMyTasks } from "./tools/tasks";
+import { handlePostArtifact, handleGetArtifact } from "./tools/artifacts";
 import { getDb } from "./db/client";
 
 // 현재 세션 ID (환경변수로 주입, 기본값 "default")
@@ -66,6 +67,29 @@ export function createMcpServer(): McpServer {
     agent_id: z.string().describe("조회할 에이전트 ID"),
   }, async (input) => {
     const result = await handleGetMyTasks(getDb(), SESSION_ID, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // --- artifacts 툴 등록 ---
+
+  // 아티팩트 저장
+  server.tool("post_artifact", {
+    agent_id: z.string().describe("아티팩트를 올리는 에이전트 ID"),
+    name: z.string().describe("아티팩트 이름 (예: login-design, cart-fe-pr)"),
+    type: z.enum(["figma_spec", "pr", "report", "analytics_plan", "design"]).describe("아티팩트 종류"),
+    content: z.string().describe("아티팩트 내용 (JSON 또는 Markdown)"),
+    task_id: z.string().optional().describe("연관 태스크 ID"),
+  }, async (input) => {
+    const result = await handlePostArtifact(getDb(), SESSION_ID, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 아티팩트 조회
+  server.tool("get_artifact", {
+    agent_id: z.string().describe("조회하는 에이전트 ID"),
+    name: z.string().describe("조회할 아티팩트 이름"),
+  }, async (input) => {
+    const result = await handleGetArtifact(getDb(), SESSION_ID, input);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 

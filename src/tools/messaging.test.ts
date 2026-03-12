@@ -21,6 +21,10 @@ describe("messaging 툴", () => {
     });
     expect(result.success).toBe(true);
     expect(result.message_id).toBeDefined();
+    expect(result.message).toBeDefined();
+    expect(result.message.from_agent).toBe("pm");
+    expect(result.message.to_agent).toBe("fe");
+    expect(typeof result.message.created_at).toBe("number");
   });
 
   test("get_messages: 수신 메시지 조회", async () => {

@@ -1,0 +1,33 @@
+{
+  "name": "@custardcream/relay",
+  "version": "0.1.0",
+  "description": "Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크",
+  "module": "src/index.ts",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/custardcream98/relay.git"
+  },
+  "homepage": "https://custardcream98.github.io/relay",
+  "license": "MIT",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test",
+    "dashboard:dev": "cd dashboard && bun run dev",
+    "dashboard:build": "cd dashboard && bun run build",
+    "docs:dev": "cd docs-site && bun run dev",
+    "docs:build": "cd docs-site && bun run build",
+    "install:local": "bun run scripts/install.ts",
+    "install:global": "bun run scripts/install.ts --global"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "hono": "^4.12.7",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  }
+}

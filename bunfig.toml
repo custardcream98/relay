@@ -1,0 +1,4 @@
+# bunfig.toml
+[test]
+# 필요 시 테스트 프리로드 설정
+# preload = ["./test-setup.ts"]

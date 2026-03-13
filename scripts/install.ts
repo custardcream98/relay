@@ -32,7 +32,8 @@ const mcpArgs = isGlobal
   ? [
       "mcp",
       "add",
-      "--global",
+      "--scope",
+      "user",
       "--transport",
       "stdio",
       "relay",
@@ -44,6 +45,8 @@ const mcpArgs = isGlobal
   : [
       "mcp",
       "add",
+      "--scope",
+      "local",
       "--transport",
       "stdio",
       "relay",

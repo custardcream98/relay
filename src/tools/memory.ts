@@ -32,22 +32,26 @@ export async function handleReadMemory(
   relayDir: string,
   input: { agent_id?: string }
 ) {
-  // agent_id 없으면 project.md + lessons.md 합쳐서 반환
-  if (!input.agent_id) {
-    const project = existsSync(projectMemoryPath(relayDir))
-      ? readFileSync(projectMemoryPath(relayDir), "utf-8")
-      : null;
-    const lessons = existsSync(lessonsMemoryPath(relayDir))
-      ? readFileSync(lessonsMemoryPath(relayDir), "utf-8")
-      : null;
-    const content =
-      [project, lessons].filter((s): s is string => s !== null).join("\n\n---\n\n") || null;
-    return { success: true, content };
-  }
+  try {
+    // agent_id 없으면 project.md + lessons.md 합쳐서 반환
+    if (!input.agent_id) {
+      const project = existsSync(projectMemoryPath(relayDir))
+        ? readFileSync(projectMemoryPath(relayDir), "utf-8")
+        : null;
+      const lessons = existsSync(lessonsMemoryPath(relayDir))
+        ? readFileSync(lessonsMemoryPath(relayDir), "utf-8")
+        : null;
+      const content =
+        [project, lessons].filter((s): s is string => s !== null).join("\n\n---\n\n") || null;
+      return { success: true, content };
+    }
 
-  const path = agentMemoryPath(relayDir, input.agent_id);
-  if (!existsSync(path)) return { success: true, content: null };
-  return { success: true, content: readFileSync(path, "utf-8") };
+    const path = agentMemoryPath(relayDir, input.agent_id);
+    if (!existsSync(path)) return { success: true, content: null };
+    return { success: true, content: readFileSync(path, "utf-8") };
+  } catch (err) {
+    return { success: false, content: null, error: String(err) };
+  }
 }
 
 /**
@@ -59,23 +63,39 @@ export async function handleWriteMemory(
   relayDir: string,
   input: { agent_id?: string; key: string; content: string }
 ) {
-  ensureDir(relayDir);
-  const path = input.agent_id
-    ? agentMemoryPath(relayDir, input.agent_id)
-    : projectMemoryPath(relayDir);
+  try {
+    ensureDir(relayDir);
+    const path = input.agent_id
+      ? agentMemoryPath(relayDir, input.agent_id)
+      : projectMemoryPath(relayDir);
 
-  const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
+    const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
 
-  // key 섹션 교체 또는 추가
-  const section = `\n## ${input.key}\n\n${input.content}\n`;
-  const checkPattern = new RegExp(`\n## ${input.key}\n`);
-  const replacePattern = new RegExp(`\n## ${input.key}\n[\\s\\S]*?(?=\n## |$)`, "g");
-  const updated = checkPattern.test(existing)
-    ? existing.replace(replacePattern, section)
-    : existing + section;
+    // key 섹션이 있으면 교체, 없으면 추가
+    // 줄 단위로 분리하여 섹션 경계를 정확하게 파악 (정규식 메타문자 문제 방지)
+    const lines = existing.split("\n");
+    const headerLine = `## ${input.key}`;
+    const startIdx = lines.findIndex(l => l === headerLine);
 
-  writeFileSync(path, updated.trim() + "\n");
-  return { success: true };
+    if (startIdx === -1) {
+      // 섹션 없음 — 끝에 추가
+      const suffix = (existing.length > 0 ? "\n" : "") + `## ${input.key}\n\n${input.content}`;
+      writeFileSync(path, (existing.trimEnd() + suffix).trimEnd() + "\n");
+    } else {
+      // 다음 ## 헤더 또는 파일 끝까지 교체
+      let endIdx = lines.findIndex((l, i) => i > startIdx && l.startsWith("## "));
+      if (endIdx === -1) endIdx = lines.length;
+      const before = lines.slice(0, startIdx);
+      const after = lines.slice(endIdx);
+      const newSection = [`## ${input.key}`, "", input.content];
+      const merged = [...before, ...newSection, ...after].join("\n");
+      writeFileSync(path, merged.trimEnd() + "\n");
+    }
+
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 }
 
 /**
@@ -87,16 +107,20 @@ export async function handleAppendMemory(
   relayDir: string,
   input: { agent_id?: string; content: string }
 ) {
-  ensureDir(relayDir);
-  // agent_id 없으면 팀 공유 lessons.md에 누적 (project.md는 write_memory로만 갱신)
-  const path = input.agent_id
-    ? agentMemoryPath(relayDir, input.agent_id)
-    : lessonsMemoryPath(relayDir);
+  try {
+    ensureDir(relayDir);
+    // agent_id 없으면 팀 공유 lessons.md에 누적 (project.md는 write_memory로만 갱신)
+    const path = input.agent_id
+      ? agentMemoryPath(relayDir, input.agent_id)
+      : lessonsMemoryPath(relayDir);
 
-  const timestamp = new Date().toISOString().split("T")[0];
-  const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
+    const timestamp = new Date().toISOString().split("T")[0];
+    const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
 
-  const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
-  writeFileSync(path, existing + entry);
-  return { success: true };
+    const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
+    writeFileSync(path, existing + entry);
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 }

@@ -62,4 +62,20 @@ describe("메모리 툴", () => {
     expect(result.content).toContain("프로젝트 요약");
     expect(result.content).toContain("lessons 내용");
   });
+
+  test("write_memory: 동일 key로 재작성하면 섹션 교체", async () => {
+    await handleWriteMemory(TEST_DIR, { agent_id: "fe", key: "conventions", content: "초기 내용" });
+    await handleWriteMemory(TEST_DIR, { agent_id: "fe", key: "conventions", content: "업데이트된 내용" });
+    const result = await handleReadMemory(TEST_DIR, { agent_id: "fe" });
+    expect(result.content).toContain("업데이트된 내용");
+    expect(result.content).not.toContain("초기 내용");
+  });
+
+  test("write_memory: 다른 key로 작성해도 기존 섹션 보존", async () => {
+    await handleWriteMemory(TEST_DIR, { agent_id: "fe", key: "conventions", content: "컨벤션 내용" });
+    await handleWriteMemory(TEST_DIR, { agent_id: "fe", key: "patterns", content: "패턴 내용" });
+    const result = await handleReadMemory(TEST_DIR, { agent_id: "fe" });
+    expect(result.content).toContain("컨벤션 내용");
+    expect(result.content).toContain("패턴 내용");
+  });
 });

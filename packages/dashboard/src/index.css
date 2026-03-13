@@ -88,3 +88,39 @@ body {
     opacity: 0;
   }
 }
+
+/* AgentCard 아바타 링 pulse — working 상태 */
+@keyframes ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px currentColor;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+    opacity: 0.8;
+  }
+}
+
+/* EventTimeline 이벤트 카드 슬라이드 인 */
+@keyframes slide-in-top {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* AgentCard thinking 텍스트 flash */
+@keyframes accent-flash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

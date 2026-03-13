@@ -1,13 +1,17 @@
 // packages/dashboard/src/App.tsx
+// 새로운 두 존 레이아웃: 왼쪽(AgentArena) + 오른쪽(EventTimeline + TaskBoard/AgentDetailPanel)
+
 import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
-import { useCallback, useReducer } from "react";
-import { AgentStatusBar } from "./components/AgentStatusBar";
-import { AgentThoughts } from "./components/AgentThoughts";
-import { MessageFeed } from "./components/MessageFeed";
+import { useCallback, useReducer, useRef } from "react";
+import { AgentArena } from "./components/AgentArena";
+import { AgentDetailPanel } from "./components/AgentDetailPanel";
+import { AppHeader } from "./components/AppHeader";
+import type { TimelineEntry } from "./components/EventTimeline";
+import { EventTimeline } from "./components/EventTimeline";
 import { TaskBoard } from "./components/TaskBoard";
 import { useRelaySocket } from "./hooks/useRelaySocket";
-import { useResizablePanels } from "./hooks/useResizablePanels";
 
+// 대시보드 전역 상태
 interface DashboardState {
   tasks: Array<{
     id: string;
@@ -26,6 +30,7 @@ interface DashboardState {
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
+  timeline: TimelineEntry[];
 }
 
 type Action =
@@ -38,18 +43,112 @@ const initialState: DashboardState = {
   agentStatuses: {},
   thinkingChunks: {},
   selectedAgent: null,
+  timeline: [],
 };
+
+// 이벤트에서 타임라인 항목 생성
+function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | null {
+  switch (event.type) {
+    case "message:new":
+      return {
+        id,
+        type: event.type,
+        agentId: event.message.from_agent,
+        description: event.message.to_agent
+          ? `Message to ${event.message.to_agent}`
+          : "Broadcast message",
+        detail: event.message.content.slice(0, 120),
+        timestamp: event.timestamp,
+      };
+    case "task:updated":
+      return {
+        id,
+        type: event.type,
+        agentId: event.task.assignee,
+        description: `Task ${event.task.status.replace("_", " ")}: ${event.task.title}`,
+        timestamp: event.timestamp,
+      };
+    case "artifact:posted":
+      return {
+        id,
+        type: event.type,
+        agentId: event.artifact.created_by,
+        description: `Artifact posted: ${event.artifact.name}`,
+        timestamp: event.timestamp,
+      };
+    case "agent:thinking":
+      return {
+        id,
+        type: event.type,
+        agentId: event.agentId,
+        description: "Thinking…",
+        detail: event.chunk.slice(0, 120),
+        timestamp: event.timestamp,
+      };
+    case "review:requested":
+      return {
+        id,
+        type: event.type,
+        agentId: event.review.requester,
+        description: `Review requested from ${event.review.reviewer}`,
+        timestamp: event.timestamp,
+      };
+    case "agent:status":
+      return {
+        id,
+        type: event.type,
+        agentId: event.agentId,
+        description: `Status → ${event.status}`,
+        timestamp: event.timestamp,
+      };
+    case "memory:updated":
+      return {
+        id,
+        type: event.type,
+        agentId: event.agentId,
+        description: "Memory updated",
+        timestamp: event.timestamp,
+      };
+    default:
+      return null;
+  }
+}
+
+let entryCounter = 0;
 
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
       const event = action.event;
+
+      // 타임라인 항목 생성 (thinking 이벤트는 빈도가 너무 높아 마지막 것만 유지)
+      let newTimeline = state.timeline;
+      const entryId = `${event.type}-${entryCounter++}`;
+      const entry = eventToTimelineEntry(event, entryId);
+
+      if (entry) {
+        if (event.type === "agent:thinking") {
+          // thinking 이벤트: 해당 에이전트의 기존 thinking 항목 교체 (스팸 방지)
+          const withoutPrev = state.timeline.filter(
+            (e) => !(e.type === "agent:thinking" && e.agentId === event.agentId)
+          );
+          newTimeline = [...withoutPrev, entry];
+        } else {
+          newTimeline = [...state.timeline, entry];
+        }
+        // 최대 200개 유지
+        if (newTimeline.length > 200) {
+          newTimeline = newTimeline.slice(newTimeline.length - 200);
+        }
+      }
+
       switch (event.type) {
         case "session:snapshot":
           return {
             ...state,
             tasks: event.tasks as DashboardState["tasks"],
             messages: event.messages as DashboardState["messages"],
+            timeline: newTimeline,
           };
         case "agent:status":
           return {
@@ -59,6 +158,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               event.status !== "working"
                 ? { ...state.thinkingChunks, [event.agentId]: "" }
                 : state.thinkingChunks,
+            timeline: newTimeline,
           };
         case "agent:thinking":
           return {
@@ -67,19 +167,24 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               ...state.thinkingChunks,
               [event.agentId]: (state.thinkingChunks[event.agentId] ?? "") + event.chunk,
             },
+            timeline: newTimeline,
           };
         case "message:new":
-          return { ...state, messages: [event.message, ...state.messages] };
+          return {
+            ...state,
+            messages: [event.message, ...state.messages],
+            timeline: newTimeline,
+          };
         case "task:updated": {
           const existing = state.tasks.findIndex((t) => t.id === event.task.id);
           const tasks =
             existing >= 0
               ? state.tasks.map((t) => (t.id === event.task.id ? event.task : t))
               : [...state.tasks, event.task];
-          return { ...state, tasks };
+          return { ...state, tasks, timeline: newTimeline };
         }
         default:
-          return state;
+          return { ...state, timeline: newTimeline };
       }
     }
     case "SELECT_AGENT":
@@ -89,138 +194,63 @@ function reducer(state: DashboardState, action: Action): DashboardState {
   }
 }
 
-// 패널 헤더 높이 (디자인 스펙: 32px)
-const PANEL_HEADER_H = 32;
-
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const handleEvent = useCallback((event: RelayEvent) => {
     dispatch({ type: "EVENT", event });
   }, []);
   const { connected } = useRelaySocket({ onEvent: handleEvent });
-  const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent } = state;
+  const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent, timeline } = state;
 
-  // 3패널 리사이즈 훅
-  const { widths, containerRef, startDrag } = useResizablePanels(3);
+  // 에이전트 수 추적 (AgentArena에서 fetch하지만 헤더에도 표시)
+  const agentCountRef = useRef(0);
 
-  const PANELS = [
-    {
-      label: "Task Board",
-      content: <TaskBoard tasks={tasks} />,
-    },
-    {
-      label: "Message Feed",
-      content: <MessageFeed messages={messages} />,
-    },
-    {
-      label: selectedAgent ? `${selectedAgent} — thoughts` : "Agent Thoughts",
-      content: (
-        <AgentThoughts
-          agentId={selectedAgent}
-          chunks={selectedAgent ? (thinkingChunks[selectedAgent] ?? "") : ""}
-          status={selectedAgent ? (agentStatuses[selectedAgent] ?? "idle") : undefined}
-        />
-      ),
-    },
-  ];
+  const isFocusMode = selectedAgent !== null;
 
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
       style={{ background: "var(--color-surface-root)", color: "var(--color-text-primary)" }}
     >
-      {/* 헤더 — h-10 (40px), surface-base 배경 */}
-      <div
-        className="flex items-center justify-between px-4 h-10 flex-shrink-0"
-        style={{
-          background: "var(--color-surface-base)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-        }}
-      >
-        {/* 왼쪽: relay wordmark + dashboard pill 배지 */}
-        <div className="flex items-center gap-2">
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: "-0.03em",
-              fontFamily: "var(--font-sans)",
-              color: "var(--color-text-primary)",
-            }}
-          >
-            relay
-          </span>
-          <span
-            className="font-mono uppercase"
-            style={{
-              fontSize: 10,
-              background: "var(--color-surface-overlay)",
-              color: "var(--color-text-tertiary)",
-              padding: "1px 6px",
-              borderRadius: 9999,
-            }}
-          >
-            dashboard
-          </span>
-        </div>
-
-        {/* 오른쪽: 연결 상태 도트 (6px) */}
-        {/* biome-ignore lint/a11y/useSemanticElements: <output>은 폼 요소라 부적절; role="status"가 의미상 적합하므로 유지 */}
-        <div
-          className="flex items-center gap-1.5"
-          role="status"
-          aria-label={connected ? "Connected" : "Disconnected"}
-        >
-          <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              flexShrink: 0,
-              display: "inline-block",
-              background: connected
-                ? "var(--color-connection-live)"
-                : "var(--color-connection-dead)",
-              boxShadow: connected ? "0 0 0 2px rgba(52,211,153,0.25)" : undefined,
-            }}
-          />
-          <span
-            style={{
-              fontSize: 11,
-              color: "var(--color-text-disabled)",
-            }}
-          >
-            {connected ? "connected" : "disconnected"}
-          </span>
-        </div>
-      </div>
-
-      {/* 에이전트 상태 바 */}
-      <AgentStatusBar
-        statuses={agentStatuses}
-        selected={selectedAgent}
-        onSelect={(id) => dispatch({ type: "SELECT_AGENT", agentId: id })}
+      {/* 앱 헤더 */}
+      <AppHeader
+        connected={connected}
+        agentCount={agentCountRef.current}
+        selectedAgent={selectedAgent}
+        onClearFocus={() => dispatch({ type: "SELECT_AGENT", agentId: null })}
       />
 
-      {/* 3패널 레이아웃 — 리사이즈 가능 */}
-      <div ref={containerRef} className="flex flex-1 overflow-hidden relative">
-        {PANELS.map((panel, idx) => (
+      {/* 메인 두 존 레이아웃 */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* 왼쪽: Agent Arena (320px 고정) */}
+        <AgentArena
+          statuses={agentStatuses}
+          thinkingChunks={thinkingChunks}
+          tasks={tasks}
+          messages={messages}
+          selectedAgent={selectedAgent}
+          onSelectAgent={(id) => dispatch({ type: "SELECT_AGENT", agentId: id })}
+        />
+
+        {/* 오른쪽: Activity Zone */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* 상단: EventTimeline (55%) */}
           <div
-            key={panel.label}
-            className="flex flex-col overflow-hidden"
-            style={{ width: `${widths[idx]}%` }}
+            style={{
+              height: "55%",
+              flexShrink: 0,
+              borderBottom: "1px solid var(--color-border-subtle)",
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
-            {/* 패널 헤더 — 32px */}
+            {/* 패널 헤더 */}
             <div
+              className="flex items-center justify-between px-4 flex-shrink-0"
               style={{
-                height: PANEL_HEADER_H,
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                paddingLeft: 16,
-                paddingRight: 16,
+                height: 36,
                 borderBottom: "1px solid var(--color-border-subtle)",
-                borderRight: "1px solid var(--color-border-subtle)",
+                background: "var(--color-surface-base)",
               }}
             >
               <span
@@ -230,49 +260,73 @@ export default function App() {
                   color: "var(--color-text-disabled)",
                   textTransform: "uppercase",
                   letterSpacing: "0.07em",
-                  fontFamily: "var(--font-sans)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
                 }}
               >
-                {panel.label}
+                Event Timeline
+              </span>
+              {/* 이벤트 수 배지 */}
+              <span
+                className="font-mono"
+                style={{
+                  fontSize: 10,
+                  background: "var(--color-surface-overlay)",
+                  color: "var(--color-text-tertiary)",
+                  padding: "1px 6px",
+                  borderRadius: 9999,
+                }}
+              >
+                {timeline.length}
               </span>
             </div>
 
-            {/* 패널 바디 */}
-            <div
-              className="overflow-hidden flex-1"
-              style={{
-                height: `calc(100% - ${PANEL_HEADER_H}px)`,
-                borderRight: "1px solid var(--color-border-subtle)",
-              }}
-            >
-              {panel.content}
+            {/* 타임라인 콘텐츠 */}
+            <div className="flex-1 overflow-hidden">
+              <EventTimeline entries={timeline} focusAgent={selectedAgent} />
             </div>
           </div>
-        ))}
 
-        {/* 드래그 핸들 — 패널 경계에 오버레이 */}
-        {[0, 1].map((handleIdx) => (
-          <div
-            key={handleIdx}
-            onMouseDown={(e) => startDrag(handleIdx, e)}
-            style={{
-              position: "absolute",
-              top: 0,
-              bottom: 0,
-              left: `${widths.slice(0, handleIdx + 1).reduce((a, b) => a + b, 0)}%`,
-              width: 6,
-              transform: "translateX(-50%)",
-              cursor: "col-resize",
-              zIndex: 10,
-            }}
-            className="group flex items-center justify-center hover:bg-blue-500/20 transition-colors"
-          >
-            <div className="w-px h-full bg-transparent group-hover:bg-blue-500/50 transition-colors" />
+          {/* 하단: TaskBoard 또는 AgentDetailPanel (45%) */}
+          <div style={{ height: "45%", display: "flex", flexDirection: "column" }}>
+            {/* 패널 헤더 */}
+            <div
+              className="flex items-center px-4 flex-shrink-0"
+              style={{
+                height: 36,
+                borderBottom: "1px solid var(--color-border-subtle)",
+                background: "var(--color-surface-base)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: "var(--color-text-disabled)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                }}
+              >
+                {isFocusMode ? `${selectedAgent} — detail` : "Task Board"}
+              </span>
+            </div>
+
+            {/* 하단 패널 콘텐츠 */}
+            <div className="flex-1 overflow-hidden">
+              {isFocusMode && selectedAgent ? (
+                // Focus Mode: AgentDetailPanel
+                <AgentDetailPanel
+                  agentId={selectedAgent}
+                  status={agentStatuses[selectedAgent] ?? "idle"}
+                  thinkingChunk={thinkingChunks[selectedAgent] ?? ""}
+                  messages={messages}
+                  tasks={tasks}
+                />
+              ) : (
+                // 기본 모드: TaskBoard
+                <TaskBoard tasks={tasks} />
+              )}
+            </div>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

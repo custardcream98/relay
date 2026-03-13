@@ -1,16 +1,50 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,450;0,14..32,500;0,14..32,600;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
+:root {
+  --color-surface-root: #09090b;
+  --color-surface-base: #0d0d10;
+  --color-surface-raised: #111115;
+  --color-surface-overlay: #18181d;
+  --color-surface-inset: #0a0a0d;
+  --color-border-subtle: rgba(255, 255, 255, 0.055);
+  --color-border-default: rgba(255, 255, 255, 0.085);
+  --color-border-strong: rgba(255, 255, 255, 0.13);
+  --color-text-primary: #e8e8ed;
+  --color-text-secondary: #9898a8;
+  --color-text-tertiary: #55555f;
+  --color-text-disabled: #333338;
+  --color-accent-pm: #a78bfa;
+  --color-accent-designer: #f472b6;
+  --color-accent-da: #fbbf24;
+  --color-accent-fe: #60a5fa;
+  --color-accent-be: #34d399;
+  --color-accent-qa: #fb923c;
+  --color-accent-deployer: #f97316;
+  --color-status-working: #34d399;
+  --color-status-waiting: #fbbf24;
+  --color-status-idle: #2d2d35;
+  --color-priority-critical: #ef4444;
+  --color-priority-high: #f97316;
+  --color-priority-medium: #eab308;
+  --color-connection-live: #34d399;
+  --color-connection-dead: #ef4444;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
 body {
-  font-family: "IBM Plex Sans", system-ui, sans-serif;
-  background: #09090b;
-  color: #e4e4e7;
+  font-family: var(--font-sans);
+  background: var(--color-surface-root);
+  color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #27272a transparent;
+  scrollbar-color: var(--color-border-default) transparent;
 }
 ::-webkit-scrollbar {
   width: 4px;
@@ -20,11 +54,37 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: var(--color-border-default);
   border-radius: 2px;
 }
 
-/* Apply IBM Plex Mono to monospace components */
+/* JetBrains Mono를 모노스페이스 컴포넌트에 적용 */
 .font-mono {
-  font-family: "IBM Plex Mono", "Fira Code", monospace;
+  font-family: var(--font-mono);
+}
+
+/* 에이전트 상태 도트 scale pulse 애니메이션 */
+@keyframes scale-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.6);
+  }
+}
+
+/* 커서 깜박임 애니메이션 */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  49% {
+    opacity: 1;
+  }
+  50%,
+  99% {
+    opacity: 0;
+  }
 }

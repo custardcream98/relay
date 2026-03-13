@@ -1,0 +1,241 @@
+<br />
+
+<h1 align="center">relay</h1>
+<p align="center">
+  <strong>Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크.</strong>
+  <br />
+  <span>하나의 태스크. 팀 전체가 움직인다. PM, Designer, DA, FE, BE, QA, Deployer.</span>
+</p>
+
+<p align="center">
+  <a href="./README.md">English</a>
+</p>
+
+<br />
+<br />
+
+## 개념
+
+일반적인 AI 코딩 툴은 에이전트 하나가 모든 걸 처리한다.
+
+relay는 팀을 만든다. 각 에이전트는 자신의 역할만 수행하고, MCP 서버를 통해 서로 직접 소통한다. PM이 기획하면 Designer가 설계하고, DA가 측정 계획을 세운다. FE/BE가 개발하고 서로의 코드를 리뷰한다. QA가 검증하고, Deployer가 배포한다.
+
+```
+사용자: "쇼핑카트 기능 추가해줘"
+
+[PM]       태스크 분해, 이슈 생성
+[Designer] UX 플로우, 컴포넌트 스펙
+[DA]       이벤트 스키마, 성과 지표 정의
+[FE]       UI 구현
+[BE]       API 구현
+[FE] [BE]  서로의 코드 크로스 리뷰
+[QA]       테스트 시나리오, 버그 리포트
+[Deployer] 배포
+```
+
+파이프라인이 아니다. 에이전트들은 MCP 툴을 통해 peer-to-peer로 소통한다 — 중앙 오케스트레이터 없이, 추가 API 과금 없이.
+
+<br />
+
+## 동작 방식
+
+relay는 세 가지 레이어로 구성된 Claude Code 플러그인이다.
+
+```
+relay (plugin)
+├── MCP 서버    통신 인프라
+├── Skills      오케스트레이션 전략 (.md 파일)
+└── Hooks       자동화 트리거
+```
+
+**MCP 서버**는 데이터를 저장하고 라우팅만 한다. Claude API 호출도, 의사결정도 없다. 에이전트들이 읽고 쓰는 메시지 버스, 태스크 보드, 아티팩트 저장소, 리뷰 큐, 메모리 레이어가 전부다.
+
+**Skills**는 오케스트레이팅 Claude Code 세션에게 sub-agent를 어떻게 띄우고, 어떤 MCP 툴을 쓰고, 결과를 어떻게 해석할지를 알려주는 `.md` 파일이다. 오케스트레이션 전략이 코드가 아닌 텍스트로 존재한다. 동작 방식을 바꾸고 싶으면 파일을 수정하면 된다 — 서버 재배포 없이.
+
+**Hooks** — `post-tool-use.sh`는 MCP 툴이 호출될 때마다 실행되어 에이전트 상태를 대시보드에 실시간으로 push한다.
+
+<br />
+
+## 에이전트 툴
+
+모든 에이전트는 MCP 툴을 통해서만 소통한다.
+
+| 카테고리 | 툴 | 설명 |
+|---|---|---|
+| 메시징 | `send_message` | 특정 에이전트에게 메시지 전송 |
+| 메시징 | `get_messages` | 수신 메시지 조회 |
+| 태스크 | `create_task` | 새 이슈 생성 |
+| 태스크 | `update_task` | 태스크 상태/코멘트 업데이트 |
+| 태스크 | `get_my_tasks` | 내 담당 태스크 조회 |
+| 아티팩트 | `post_artifact` | 산출물 공유 (디자인 스펙, PR, 리포트 등) |
+| 아티팩트 | `get_artifact` | 산출물 조회 |
+| 리뷰 | `request_review` | 리뷰 요청 |
+| 리뷰 | `submit_review` | 리뷰 결과 제출 |
+| 메모리 | `read_memory` | 이전 세션 기억 조회 |
+| 메모리 | `write_memory` | 기억 갱신 |
+| 메모리 | `append_memory` | 기억에 누적 추가 |
+| 세션 | `save_session_summary` | 세션 요약 저장 |
+| 세션 | `list_sessions` | 과거 세션 목록 |
+| 세션 | `get_session_summary` | 특정 세션 요약 조회 |
+
+오케스트레이터는 추가로 `list_agents`, `get_workflow`를 사용해 런타임에 페르소나 설정과 워크플로 DAG를 읽는다.
+
+<br />
+
+## 메모리 구조
+
+에이전트의 기억은 수명이 다른 두 레이어로 분리된다.
+
+```
+your-project/
+└── .relay/
+    ├── memory/                  세션 간 영속 기억 (git 커밋 권장)
+    │   ├── project.md           아키텍처, 도메인, 기술 스택 요약
+    │   ├── lessons.md           반복 실수, 중요 의사결정 히스토리
+    │   └── agents/
+    │       ├── pm.md
+    │       ├── fe.md
+    │       ├── be.md
+    │       └── ...
+    └── sessions/                세션별 감사 로그
+        └── 2026-03-13-001/
+            ├── messages.json
+            ├── tasks.json
+            └── summary.md
+```
+
+**세션 시작 시** — `project.md`와 각 에이전트 개인 기억이 system prompt에 자동으로 주입된다.
+
+**세션 종료 시** — 각 에이전트가 `write_memory`로 새로 배운 것과 주요 결정을 기억에 추가한다.
+
+기억은 평범한 Markdown 파일이다. 사람이 직접 편집하거나 git으로 팀 전체가 공유할 수 있다.
+
+<br />
+
+## 대시보드
+
+MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께 서빙한다.
+
+```
++----------------------------------------------------------+
+|  [PM  ]  [Designer -]  [DA -]  [FE  ]  [BE  ]  [QA -]   |
++-------------------+------------------+-------------------+
+|    Task Board     |   Message Feed   |   Agent Thoughts  |
+|    (Kanban)       |   (Slack 스타일)  |   (실시간 스트림)  |
++-------------------+------------------+-------------------+
+```
+
+**Task Board** — 전체 이슈 현황 Kanban. 태스크 상태 변경 시 실시간 업데이트.
+
+**Message Feed** — 에이전트 간 대화를 Slack 스레드 형태로 표시.
+
+**Agent Thoughts** — 선택한 에이전트의 추론 과정을 실시간 스트리밍.
+
+모든 이벤트는 SQLite에 저장된다. 세션 종료 후 전체 과정을 재생(replay)할 수 있다.
+
+<br />
+
+## 시작하기
+
+```bash
+# 의존성 설치
+bun install
+
+# 글로벌 설치 (모든 프로젝트에서 사용 가능, 권장)
+bun run install --global
+
+# 또는 현재 프로젝트에만 설치
+bun run install
+
+# 최초 1회: 팀이 프로젝트 전체를 파악
+/relay-init
+
+# 이후 일반 사용
+/relay "쇼핑카트 기능 추가해줘"
+```
+
+글로벌/로컬 모두 동일한 플러그인 구조다. 로컬이 글로벌을 오버라이드한다.
+
+<br />
+
+## 에이전트 커스터마이징
+
+두 YAML 파일을 런타임에 merge한다.
+
+```yaml
+# agents.default.yml — 수정 비권장
+agents:
+  fe:
+    name: Frontend Engineer
+    systemPrompt: |
+      You are a senior frontend engineer...
+
+# agents.yml — 자유롭게 편집
+agents:
+  fe:
+    systemPrompt: |          # 기본값 오버라이드
+      You are a React specialist...
+  security:                  # 새 에이전트 추가
+    name: Security Reviewer
+    tools: [get_artifact, send_message]
+    systemPrompt: |
+      ...
+  da:
+    disabled: true           # 에이전트 비활성화
+```
+
+<br />
+
+## 프로젝트 구조
+
+```
+relay/
+├── packages/
+│   ├── server/          MCP 서버 + Hono REST + WebSocket
+│   ├── shared/          공유 타입 (AgentId, RelayEvent)
+│   ├── dashboard/       React + Vite 실시간 UI
+│   └── docs/            Astro + Starlight 문서 사이트
+├── skills/
+│   ├── relay.md         /relay — 전체 워크플로 오케스트레이션
+│   ├── relay-init.md    /relay-init — 병렬 프로젝트 스캔
+│   └── relay-agent.md   /relay-agent — 단일 에이전트 직접 호출
+├── hooks/
+│   └── post-tool-use.sh PostToolUse 훅 → 대시보드 상태 push
+├── scripts/
+│   └── install.ts       글로벌/로컬 설치 스크립트
+├── agents.default.yml   기본 에이전트 페르소나 + 워크플로 DAG
+└── agents.yml           사용자 커스텀 (오버라이드, extends, disabled)
+```
+
+<br />
+
+## 기술 스택
+
+| 레이어 | 기술 |
+|---|---|
+| Runtime | Bun |
+| Language | TypeScript (strict) |
+| MCP 서버 | `@modelcontextprotocol/sdk` + `Bun.serve()` |
+| API 서버 | Hono (Bun 네이티브) |
+| 실시간 통신 | Bun 내장 WebSocket |
+| 프론트엔드 | React + Vite |
+| 스타일 | Tailwind CSS |
+| DB | `bun:sqlite` |
+| 메모리 | Markdown 파일 (`.relay/memory/`) |
+| 페르소나 설정 | YAML (`agents.yml`) |
+
+<br />
+
+## 로드맵
+
+- [x] MCP 서버 + 기본 툴 (messaging, tasks)
+- [x] 메모리 툴 + `.relay/memory/` 구조
+- [x] 에이전트 페르소나 YAML 시스템
+- [x] 아티팩트 및 리뷰 툴
+- [x] 실시간 웹 대시보드
+- [x] Skills (relay, relay-init, relay-agent)
+- [x] Init Mode (병렬 프로젝트 스캔)
+- [x] 설치 스크립트 (글로벌/로컬)
+- [ ] 에이전트 thinking 대시보드 스트리밍
+- [ ] 세션 replay UI
+- [ ] 공개 문서 사이트

@@ -1,11 +1,11 @@
 // packages/server/src/mcp.ts
 
-import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getWorkflow, loadAgents } from "./agents/loader";
 import type { AgentPersona } from "./agents/types";
+import { getRelayDir, setProjectRoot, uriToPath } from "./config";
 import { broadcast } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getTaskById } from "./db/queries/tasks";
@@ -291,7 +291,6 @@ export function createMcpServer(): McpServer {
   );
 
   // --- memory tools ---
-  const RELAY_DIR = process.env.RELAY_DIR ?? join(process.cwd(), ".relay");
 
   // Read agent or project memory
   server.tool(
@@ -300,7 +299,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().optional().describe("Agent ID. Omit to return project.md + lessons.md"),
     },
     async (input) => {
-      const result = await handleReadMemory(RELAY_DIR, input);
+      const result = await handleReadMemory(getRelayDir(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -314,7 +313,7 @@ export function createMcpServer(): McpServer {
       content: z.string().describe("Content to store"),
     },
     async (input) => {
-      const result = await handleWriteMemory(RELAY_DIR, input);
+      const result = await handleWriteMemory(getRelayDir(), input);
       if (result.success) {
         broadcast({
           type: "memory:updated",
@@ -334,7 +333,7 @@ export function createMcpServer(): McpServer {
       content: z.string().describe("Content to append"),
     },
     async (input) => {
-      const result = await handleAppendMemory(RELAY_DIR, input);
+      const result = await handleAppendMemory(getRelayDir(), input);
       if (result.success) {
         broadcast({
           type: "memory:updated",
@@ -359,7 +358,7 @@ export function createMcpServer(): McpServer {
       messages: z.array(z.record(z.string(), z.unknown())).describe("All messages in the session"),
     },
     async (input) => {
-      const result = await handleSaveSessionSummary(RELAY_DIR, input);
+      const result = await handleSaveSessionSummary(getRelayDir(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -371,7 +370,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the calling agent"),
     },
     async (_input) => {
-      const result = await handleListSessions(RELAY_DIR);
+      const result = await handleListSessions(getRelayDir());
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -384,7 +383,7 @@ export function createMcpServer(): McpServer {
       session_id: z.string().describe("ID of the session to retrieve"),
     },
     async (input) => {
-      const result = await handleGetSessionSummary(RELAY_DIR, { session_id: input.session_id });
+      const result = await handleGetSessionSummary(getRelayDir(), { session_id: input.session_id });
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -446,5 +445,19 @@ export function createMcpServer(): McpServer {
 export async function startMcpServer(server: McpServer): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // MCP roots/list로 클라이언트(Claude Code)의 워크스페이스 경로를 가져와 PROJECT_ROOT로 설정
+  // bunx 실행 시 CWD가 /tmp가 되는 문제를 MCP 프로토콜 레벨에서 해결
+  try {
+    const { roots } = await server.server.listRoots();
+    if (roots.length > 0) {
+      const projectRoot = uriToPath(roots[0].uri);
+      setProjectRoot(projectRoot);
+      console.error(`[relay] project root: ${projectRoot}`);
+    }
+  } catch {
+    // 클라이언트가 roots 기능을 지원하지 않는 경우 무시 (RELAY_PROJECT_ROOT env var 또는 cwd 사용)
+  }
+
   console.error("[relay] MCP server started (stdio)");
 }

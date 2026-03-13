@@ -5,13 +5,8 @@ import { join } from "node:path";
 import yaml from "js-yaml";
 // Embeds file content as string at build time — no path issues after bundling/npm publish
 import defaultYmlText from "../../../../agents.default.yml" with { type: "text" };
+import { getProjectRoot, getRelayDir } from "../config";
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
-
-// agents.yml allows per-project customization — resolved relative to CWD (user project root)
-// RELAY_PROJECT_ROOT env var를 설정하면 CWD 대신 사용 (bunx 등으로 CWD가 /tmp가 되는 경우 대비)
-const PROJECT_ROOT = process.env.RELAY_PROJECT_ROOT ?? process.cwd();
-// .relay/agents.yml — session-level override (customize without git tracking)
-const RELAY_DIR = process.env.RELAY_DIR ?? join(PROJECT_ROOT, ".relay");
 
 /**
  * Read a YAML file and parse it as AgentsFile.
@@ -39,8 +34,8 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 
   // 2. Load user customizations — .relay/agents.yml takes priority, fallback to root agents.yml
   const customFile = override ??
-    readYml(join(RELAY_DIR, "agents.yml")) ??
-    readYml(join(PROJECT_ROOT, "agents.yml")) ?? { agents: {} };
+    readYml(join(getRelayDir(), "agents.yml")) ??
+    readYml(join(getProjectRoot(), "agents.yml")) ?? { agents: {} };
 
   // 3. Merge defaults with custom overrides
   const defaults = defaultFile.agents;
@@ -139,8 +134,8 @@ export function getWorkflow(override?: AgentsFile): WorkflowConfig {
   const defaultFile = parseDefaultYml();
 
   const customFile = override ??
-    readYml(join(RELAY_DIR, "agents.yml")) ??
-    readYml(join(PROJECT_ROOT, "agents.yml")) ?? { agents: {} };
+    readYml(join(getRelayDir(), "agents.yml")) ??
+    readYml(join(getProjectRoot(), "agents.yml")) ?? { agents: {} };
 
   const defaultJobs = defaultFile.workflow?.jobs ?? {};
   const customJobs = customFile.workflow?.jobs ?? {};

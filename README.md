@@ -4,7 +4,7 @@
 <p align="center">
   <strong>A multi-agent collaboration framework built on Claude Code.</strong>
   <br />
-  <span>One task. A full team. PM, Designer, DA, Frontend, Backend, QA, Deployer.</span>
+  <span>One task. A full team. Any role, any domain.</span>
 </p>
 
 <p align="center">
@@ -18,22 +18,22 @@
 
 Most AI coding tools give you one agent doing everything.
 
-relay gives you a team. Each agent has a role, communicates with the others through an MCP server, and only does what that role demands. The PM plans. The designer specs. Engineers build and review each other's work. QA validates. Deployer ships.
+relay gives you a team. Each agent has a role, communicates with the others in real time, and only does what that role demands. All agents are alive simultaneously from session start — no phases, no turn-taking. They react to each other's messages and tasks organically, like a Slack-first team.
 
 ```
 User: "add a shopping cart"
 
-[PM]       breaks down requirements, creates tasks
+[PM]       breaks down requirements, creates tasks for the team
 [Designer] UX flow, component spec
-[DA]       event schema, success metrics
-[FE]       UI implementation
-[BE]       API implementation
-[FE] [BE]  cross-review each other's work
-[QA]       test scenarios, bug reports
-[Deployer] deployment
+[DA]       event schema, success metrics          ← all running at the same time
+[FE]       claims FE tasks, builds UI
+[BE]       shares API contract early, builds backend
+[FE] [BE]  request peer reviews via broadcast
+[QA]       watches for completed PRs, writes test scenarios
+[Deployer] waits for QA sign-off, then ships
 ```
 
-This is not a pipeline. Agents communicate peer-to-peer through shared MCP tools — no central orchestrator, no hardcoded sequence. No extra API costs.
+Agents are not limited to web development. Configure any team for any domain — research, marketing, legal, education. Define the roles in `agents.yml` and relay handles the rest. No extra API costs.
 
 <br />
 
@@ -67,6 +67,9 @@ Every agent communicates exclusively through MCP tools:
 | Tasks     | `create_task`         | Open a new issue                       |
 | Tasks     | `update_task`         | Update status or add a comment         |
 | Tasks     | `get_my_tasks`        | List tasks assigned to this agent      |
+| Tasks     | `get_all_tasks`       | List all tasks in the session          |
+| Tasks     | `claim_task`          | Atomically claim a task (race-safe)    |
+| Tasks     | `get_team_status`     | Aggregate task counts by status        |
 | Artifacts | `post_artifact`       | Share output (spec, PR, report, ...)   |
 | Artifacts | `get_artifact`        | Retrieve an artifact                   |
 | Review    | `request_review`      | Request a code or design review        |
@@ -78,7 +81,7 @@ Every agent communicates exclusively through MCP tools:
 | Sessions  | `list_sessions`       | List past sessions                     |
 | Sessions  | `get_session_summary` | Retrieve a session summary             |
 
-The orchestrator also has access to `list_agents` and `get_workflow` for reading the active persona configuration and workflow DAG at runtime.
+The orchestrator also has access to `list_agents` for reading the active persona configuration at runtime.
 
 <br />
 
@@ -181,31 +184,36 @@ That's it. The team takes it from there.
 
 <br />
 
-## Customizing agents
+## Configuring your team
 
-Two YAML files, merged at runtime:
+relay ships with no built-in agents. You define your team in `agents.yml`.
 
 ```yaml
-# agents.default.yml — do not edit
+# agents.yml — define any team for any domain
 agents:
-  fe:
-    name: Frontend Engineer
+  pm:
+    name: Project Manager
+    emoji: "📋"
+    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
     systemPrompt: |
-      You are a senior frontend engineer...
+      You are the project manager. Break down requirements into tasks...
 
-# agents.yml — yours to edit
-agents:
-  fe:
-    systemPrompt: |          # override default
-      You are a React specialist...
-  security:                  # add new agents
-    name: Security Reviewer
-    tools: [get_artifact, send_message]
+  researcher:
+    name: Researcher
+    emoji: "🔬"
+    tools: [send_message, get_messages, get_all_tasks, claim_task, get_team_status, post_artifact]
     systemPrompt: |
-      ...
-  da:
-    disabled: true           # disable agents you don't need
+      You are a researcher. Investigate topics and post findings as artifacts...
+
+  reviewer:
+    extends: researcher     # inherit persona, override fields
+    name: Peer Reviewer
+    emoji: "🔍"
 ```
+
+See `agents.example.yml` for a complete web development team (PM, Designer, DA, FE, BE, QA, Deployer). Copy it to `agents.yml` to get started with a web project.
+
+Required fields per agent: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `language`, `disabled`, `extends`.
 
 <br />
 
@@ -227,8 +235,9 @@ relay/
 ├── hooks/
 │   └── hooks.json               PostToolUse hook → dashboard status push
 ├── .mcp.json                    MCP server configuration
-├── agents.default.yml           built-in agent personas + workflow DAG
-└── agents.yml                   your customizations (override, extend, disable)
+├── agents.default.yml           framework defaults (empty — no built-in agents)
+├── agents.example.yml           example: full web-dev team (copy to agents.yml)
+└── agents.yml                   your team definition (required)
 ```
 
 <br />
@@ -260,6 +269,8 @@ relay/
 - [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
 - [x] Init mode (parallel project scan)
 - [x] Claude Code Plugin format (marketplace-ready)
+- [x] Event-driven collaboration (all agents alive simultaneously)
+- [x] Generic agent architecture (any domain, any team)
 - [ ] Streaming agent thoughts to dashboard
 - [ ] Session replay UI
 - [ ] Public documentation site

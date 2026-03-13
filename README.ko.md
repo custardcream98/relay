@@ -4,7 +4,7 @@
 <p align="center">
   <strong>Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크.</strong>
   <br />
-  <span>하나의 태스크. 온 팀이 움직여요. PM, Designer, DA, FE, BE, QA, Deployer.</span>
+  <span>하나의 태스크. 온 팀이 움직여요. 어떤 역할이든, 어떤 도메인이든.</span>
 </p>
 
 <p align="center">
@@ -18,22 +18,22 @@
 
 일반적인 AI 코딩 툴은 에이전트 하나가 모든 걸 처리해요.
 
-relay는 팀을 만들어요. 각 에이전트는 자신의 역할만 수행하고, MCP 서버를 통해 서로 직접 소통해요. PM이 기획하면 Designer가 설계하고, DA가 측정 계획을 세워요. FE/BE가 개발하고 서로의 코드를 리뷰해요. QA가 검증하고, Deployer가 배포해요.
+relay는 팀을 만들어요. 각 에이전트는 자신의 역할만 수행하고, 세션 시작부터 모든 에이전트가 동시에 살아있어요. 순서를 기다리지 않고, 메시지와 태스크에 반응하며 유기적으로 협업해요 — 슬랙에서 일하듯.
 
 ```
 사용자: "쇼핑카트 기능 추가해줘"
 
 [PM]       태스크 분해, 이슈 생성
 [Designer] UX 플로우, 컴포넌트 스펙
-[DA]       이벤트 스키마, 성과 지표 정의
-[FE]       UI 구현
-[BE]       API 구현
-[FE] [BE]  서로의 코드 크로스 리뷰
-[QA]       테스트 시나리오, 버그 리포트
-[Deployer] 배포
+[DA]       이벤트 스키마, 성과 지표 정의   ← 모두 동시에 실행
+[FE]       FE 태스크 클레임 후 UI 구현
+[BE]       API 계약 먼저 공유 후 구현
+[FE] [BE]  브로드캐스트로 피어 리뷰 요청
+[QA]       PR 완료 감지 → 테스트 시나리오 작성
+[Deployer] QA 승인 메시지 확인 후 배포
 ```
 
-파이프라인이 아니에요. 에이전트들은 MCP 툴을 통해 peer-to-peer로 소통해요 — 중앙 오케스트레이터 없이, 추가 API 과금 없이.
+웹개발팀에만 쓸 필요 없어요. 연구팀, 마케팅팀, 법무팀, 교육팀 — `agents.yml` 하나로 어떤 도메인이든 원하는 팀을 구성할 수 있어요. 추가 API 과금 없음.
 
 <br />
 
@@ -67,6 +67,9 @@ relay (plugin)
 | 태스크 | `create_task` | 새 이슈 생성 |
 | 태스크 | `update_task` | 태스크 상태/코멘트 업데이트 |
 | 태스크 | `get_my_tasks` | 내 담당 태스크 조회 |
+| 태스크 | `get_all_tasks` | 세션 전체 태스크 조회 |
+| 태스크 | `claim_task` | 태스크 원자적 클레임 (경쟁 조건 방지) |
+| 태스크 | `get_team_status` | 상태별 태스크 집계 |
 | 아티팩트 | `post_artifact` | 산출물 공유 (디자인 스펙, PR, 리포트 등) |
 | 아티팩트 | `get_artifact` | 산출물 조회 |
 | 리뷰 | `request_review` | 리뷰 요청 |
@@ -78,7 +81,7 @@ relay (plugin)
 | 세션 | `list_sessions` | 과거 세션 목록 |
 | 세션 | `get_session_summary` | 특정 세션 요약 조회 |
 
-오케스트레이터는 추가로 `list_agents`, `get_workflow`를 사용해 런타임에 페르소나 설정과 워크플로 DAG를 읽어요.
+오케스트레이터는 추가로 `list_agents`를 사용해 런타임에 페르소나 설정을 읽어요.
 
 <br />
 
@@ -183,31 +186,36 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께
 
 <br />
 
-## 에이전트 커스터마이징
+## 팀 구성하기
 
-relay는 두 YAML 파일을 런타임에 병합해요.
+relay는 기본 에이전트가 없어요. `agents.yml`에서 내 팀을 직접 정의해요.
 
 ```yaml
-# agents.default.yml — 수정 비권장
+# agents.yml — 어떤 도메인이든 원하는 팀을 구성하세요
 agents:
-  fe:
-    name: Frontend Engineer
+  pm:
+    name: Project Manager
+    emoji: "📋"
+    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
     systemPrompt: |
-      You are a senior frontend engineer...
+      You are the project manager. Break down requirements into tasks...
 
-# agents.yml — 자유롭게 편집하세요
-agents:
-  fe:
-    systemPrompt: |          # 기본값 오버라이드
-      You are a React specialist...
-  security:                  # 새 에이전트 추가
-    name: Security Reviewer
-    tools: [get_artifact, send_message]
+  researcher:
+    name: Researcher
+    emoji: "🔬"
+    tools: [send_message, get_messages, get_all_tasks, claim_task, get_team_status, post_artifact]
     systemPrompt: |
-      ...
-  da:
-    disabled: true           # 에이전트 비활성화
+      You are a researcher. Investigate topics and post findings as artifacts...
+
+  reviewer:
+    extends: researcher     # 다른 에이전트 상속 후 일부만 오버라이드
+    name: Peer Reviewer
+    emoji: "🔍"
 ```
+
+웹개발팀 예시는 `agents.example.yml`을 참고하세요 (PM, Designer, DA, FE, BE, QA, Deployer). 이 파일을 `agents.yml`로 복사하면 바로 시작할 수 있어요.
+
+필수 필드: `name`, `emoji`, `tools`, `systemPrompt`. 선택 필드: `description`, `language`, `disabled`, `extends`.
 
 <br />
 
@@ -229,8 +237,9 @@ relay/
 ├── hooks/
 │   └── hooks.json               PostToolUse 훅 → 대시보드 상태 push
 ├── .mcp.json                    MCP 서버 설정
-├── agents.default.yml           기본 에이전트 페르소나 + 워크플로 DAG
-└── agents.yml                   사용자 커스텀 (오버라이드, extends, disabled)
+├── agents.default.yml           프레임워크 기본값 (빈 파일 — 기본 에이전트 없음)
+├── agents.example.yml           예시: 웹개발팀 전체 구성 (agents.yml로 복사해서 사용)
+└── agents.yml                   내 팀 정의 (필수)
 ```
 
 <br />
@@ -262,6 +271,8 @@ relay/
 - [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
 - [x] Init Mode (병렬 프로젝트 스캔)
 - [x] Claude Code Plugin 형식 (마켓플레이스 배포 가능)
+- [x] 이벤트 드리븐 협업 (모든 에이전트 동시 실행)
+- [x] 범용 에이전트 아키텍처 (어떤 도메인이든)
 - [ ] 에이전트 thinking 대시보드 스트리밍
 - [ ] 세션 replay UI
 - [ ] 공개 문서 사이트

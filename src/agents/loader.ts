@@ -55,10 +55,16 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
     if (config.disabled) continue;
 
     if (config.extends) {
-      const base = merged[config.extends] ?? defaults[config.extends];
-      if (!base) throw new Error(`extends 대상 "${config.extends}"을 찾을 수 없습니다`);
+      // disabled된 에이전트나 존재하지 않는 에이전트를 extends하면 에러
+      const base = merged[config.extends];
+      if (!base) throw new Error(`extends 대상 "${config.extends}"을 찾을 수 없거나 비활성화된 에이전트입니다`);
       merged[id] = { ...base, ...config, id, extends: undefined } as AgentPersona;
     } else {
+      // extends가 없는 신규 커스텀 에이전트는 필수 필드가 모두 있어야 함
+      const { name, emoji, tools, systemPrompt } = config;
+      if (!name || !emoji || !tools || !systemPrompt) {
+        throw new Error(`커스텀 에이전트 "${id}"에 필수 필드(name, emoji, tools, systemPrompt)가 없습니다`);
+      }
       merged[id] = { id, ...config } as AgentPersona;
     }
   }

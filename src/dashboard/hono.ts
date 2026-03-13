@@ -21,11 +21,14 @@ export const app = new Hono();
 // 정적 파일 (빌드된 React 앱)
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
+// 에이전트 목록 — 서버 시작 시 한 번 로드 (변경 반영은 재시작 필요)
+let cachedAgents: ReturnType<typeof loadAgents> | null = null;
+
 // API: 에이전트 목록
 app.get("/api/agents", (c) => {
-  const agents = loadAgents();
+  if (!cachedAgents) cachedAgents = loadAgents();
   return c.json(
-    Object.values(agents).map(a => ({
+    Object.values(cachedAgents).map(a => ({
       id: a.id, name: a.name, emoji: a.emoji, description: a.description,
     }))
   );

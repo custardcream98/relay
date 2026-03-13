@@ -55,6 +55,25 @@ describe("에이전트 loader", () => {
     const agents = loadAgents(custom);
     expect(agents.designer).toBeUndefined();
   });
+
+  test("disabled된 에이전트를 extends하면 에러 발생", () => {
+    const custom: AgentsFile = {
+      agents: {
+        be: { disabled: true },
+        "be-custom": { extends: "be", name: "Custom BE" },
+      },
+    };
+    expect(() => loadAgents(custom)).toThrow();
+  });
+
+  test("extends 없이 필수 필드 누락된 커스텀 에이전트는 에러 발생", () => {
+    const custom: AgentsFile = {
+      agents: {
+        "incomplete-agent": { name: "Missing fields" }, // tools, systemPrompt 누락
+      },
+    };
+    expect(() => loadAgents(custom)).toThrow();
+  });
 });
 
 describe("워크플로 loader", () => {

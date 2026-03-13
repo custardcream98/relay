@@ -22,3 +22,4 @@ packages/docs/.astro/
 
 # OS
 .DS_Store
+docs/

@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getWorkflow, loadAgents } from "./agents/loader";
+import type { AgentPersona } from "./agents/types";
 import { broadcast } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getTaskById } from "./db/queries/tasks";
@@ -390,8 +391,14 @@ export function createMcpServer(): McpServer {
 
   // --- agents tools ---
 
-  // List available agents (used by the orchestrator to discover personas)
-  const agents = loadAgents();
+  // 에이전트 로드 — agents.yml이 없을 경우 빈 배열로 graceful 처리 (서버 crash 방지)
+  // list_agents가 빈 배열을 반환해야 /relay:init Phase 0 (팀 제안)가 동작함
+  let agents: Record<string, AgentPersona>;
+  try {
+    agents = loadAgents();
+  } catch {
+    agents = {};
+  }
 
   server.tool(
     "list_agents",

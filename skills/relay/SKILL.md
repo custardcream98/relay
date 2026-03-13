@@ -1,6 +1,6 @@
 ---
 name: relay
-description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that requires the whole team.
+description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by the full team defined in agents.yml.
 ---
 
 The team collaborates event-driven — all agents are alive from session start and

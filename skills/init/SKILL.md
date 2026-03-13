@@ -74,9 +74,14 @@ Do you want me to:
 
 Write `agents.yml` to the project root with the suggested team.
 Include helpful comments for each agent.
-After writing, re-run `list_agents` to confirm it was loaded, then proceed to Phase 1.
 
-If the user chooses 2, copy `agents.example.yml` content to `agents.yml`, then proceed to Phase 1.
+**Important:** The MCP server loads `agents.yml` once at startup. After creating the file, tell the user:
+> "agents.yml created. Please restart Claude Code (or the MCP server) for the new team to take effect,
+>  then re-run `/relay:init` to scan your codebase."
+
+Then stop — do not proceed to Phase 1 in this session.
+
+If the user chooses 2, copy `agents.example.yml` content to `agents.yml` and give the same restart instruction.
 If the user chooses 3, stop and tell them to create `agents.yml`, then re-run `/relay:init`.
 
 ---

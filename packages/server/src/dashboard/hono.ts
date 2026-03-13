@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { loadAgents } from "../agents/loader";
+import { getRelayDir } from "../config";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
 import { getEventsBySession } from "../db/queries/events";
@@ -64,8 +65,7 @@ app.get("/api/sessions/:id/events", (c) => {
 
 // API: session summary
 app.get("/api/sessions/:id", async (c) => {
-  const relayDir = process.env.RELAY_DIR ?? join(process.cwd(), ".relay");
-  const result = await handleGetSessionSummary(relayDir, { session_id: c.req.param("id") });
+  const result = await handleGetSessionSummary(getRelayDir(), { session_id: c.req.param("id") });
   if (!result.success) return c.json({ error: result.error }, 404);
   return c.json(result);
 });

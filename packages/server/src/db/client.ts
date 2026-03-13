@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { getRelayDir } from "../config";
 import { runMigrations } from "./schema";
 
@@ -12,7 +13,7 @@ export function getDb(): Database {
   if (!_db) {
     const path = process.env.DB_PATH ?? `${getRelayDir()}/relay.db`;
     // DB 파일이 위치할 디렉토리가 없으면 생성
-    const dir = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : ".";
+    const dir = dirname(path);
     if (dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
     _db = new Database(path);
     // Enable WAL mode for improved concurrency

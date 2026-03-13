@@ -390,13 +390,20 @@ export function createMcpServer(): McpServer {
 
   // --- agents tools ---
 
-  // 에이전트 로드 — agents.yml이 없을 경우 빈 배열로 graceful 처리 (서버 crash 방지)
-  // list_agents가 빈 배열을 반환해야 /relay:init Phase 0 (팀 제안)가 동작함
-  let agents: Record<string, AgentPersona>;
-  try {
-    agents = loadAgents();
-  } catch {
-    agents = {};
+  // 에이전트 로드 캐시 — startMcpServer()가 setProjectRoot()를 호출한 후 첫 tool 호출 시 초기화
+  // (createMcpServer() 시점에 loadAgents()를 실행하면 CWD가 /tmp라 경로를 못 찾음)
+  let agents: Record<string, AgentPersona> | null = null;
+
+  function getAgents(): Record<string, AgentPersona> {
+    if (agents === null) {
+      try {
+        agents = loadAgents();
+      } catch {
+        // agents.yml 없는 경우 — /relay:init Phase 0 (팀 제안)이 동작하도록 빈 객체 반환
+        agents = {};
+      }
+    }
+    return agents;
   }
 
   server.tool(
@@ -410,7 +417,7 @@ export function createMcpServer(): McpServer {
           {
             type: "text",
             text: JSON.stringify(
-              Object.values(agents).map((a) => ({
+              Object.values(getAgents()).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,

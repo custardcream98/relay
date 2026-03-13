@@ -8,7 +8,7 @@ import { getAllTasks } from "../db/queries/tasks";
 import { getAllArtifacts } from "../db/queries/artifacts";
 import { loadAgents } from "../agents/loader";
 import { handleGetSessionSummary } from "../tools/sessions";
-// broadcast는 Task 21에서 /api/hook/tool-use 엔드포인트 추가 시 import
+import { broadcast } from "./websocket";
 
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
@@ -50,6 +50,21 @@ app.get("/api/sessions/:id", async (c) => {
   const result = await handleGetSessionSummary(relayDir, { session_id: c.req.param("id") });
   if (!result.success) return c.json({ error: result.error }, 404);
   return c.json(result);
+});
+
+// PostToolUse 훅에서 호출 — agent:status 이벤트를 대시보드에 브로드캐스트
+app.post("/api/hook/tool-use", async (c) => {
+  // Claude Code가 stdin으로 전달하는 페이로드 구조:
+  // { tool_name: "mcp__relay__send_message", tool_input: { agent_id: "pm", ... }, ... }
+  const body = await c.req.json();
+  const agent: string = body.tool_input?.agent_id ?? "unknown";
+  broadcast({
+    type: "agent:status",
+    agentId: agent,
+    status: "working",
+    timestamp: Date.now(),
+  });
+  return c.json({ ok: true });
 });
 
 // SPA fallback: React 앱 라우팅을 위해 모든 경로에서 index.html 반환

@@ -64,9 +64,32 @@ const docsSlug =
       </div>
       <div class="hero__terminal-body">
         <span class="hero__terminal-prompt" aria-hidden="true">$</span>
-        <code class="hero__terminal-code">claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay</code>
+        <code class="hero__terminal-code" id="hero-install-cmd">claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay</code>
+        <button
+          class="hero__copy-btn"
+          aria-label="Copy install command"
+          data-copy="claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay"
+        >
+          <svg class="hero__copy-icon hero__copy-icon--default" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          <svg class="hero__copy-icon hero__copy-icon--done" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </button>
       </div>
     </div>
+
+    <script>
+      const btn = document.querySelector<HTMLButtonElement>(".hero__copy-btn");
+      btn?.addEventListener("click", async () => {
+        const text = btn.dataset.copy ?? "";
+        await navigator.clipboard.writeText(text);
+        btn.classList.add("hero__copy-btn--copied");
+        setTimeout(() => btn.classList.remove("hero__copy-btn--copied"), 2000);
+      });
+    </script>
 
   </div>
 </section>
@@ -273,6 +296,7 @@ const docsSlug =
     align-items: center;
     gap: 0.625rem;
     padding: 0.875rem 1.125rem;
+    padding-right: 0.625rem;
   }
 
   .hero__terminal-prompt {
@@ -289,6 +313,45 @@ const docsSlug =
     color: var(--color-text-primary);
     letter-spacing: 0.01em;
     word-break: break-all;
+    flex: 1;
+  }
+
+  .hero__copy-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-border);
+    background: transparent;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+
+  .hero__copy-btn:hover {
+    color: var(--color-text-primary);
+    border-color: var(--color-border-strong);
+    background: var(--color-bg-surface);
+  }
+
+  .hero__copy-icon--done {
+    display: none;
+  }
+
+  .hero__copy-btn--copied {
+    color: #27C93F;
+    border-color: #27C93F;
+  }
+
+  .hero__copy-btn--copied .hero__copy-icon--default {
+    display: none;
+  }
+
+  .hero__copy-btn--copied .hero__copy-icon--done {
+    display: block;
   }
 
   /* Responsive: narrow screens */

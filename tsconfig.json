@@ -5,9 +5,11 @@
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["bun-types"],
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@relay/shared": ["./packages/shared/index.ts"]
+    }
   },
   "include": ["packages/server/src/**/*", "packages/shared/**/*"]
 }

@@ -24,8 +24,6 @@
     "dashboard:build": "bun run --filter @relay/dashboard build",
     "docs:dev": "bun run --filter @relay/docs dev",
     "docs:build": "bun run --filter @relay/docs build",
-    "install:local": "bun run scripts/install.ts",
-    "install:global": "bun run scripts/install.ts --global",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -1,5 +1,11 @@
 # @custardcream/relay
 
+## 0.2.1
+
+### Patch Changes
+
+- 6e8f3a9: Dashboard redesign: minimal aesthetic, CSS design tokens, Inter + JetBrains Mono fonts, improved visual hierarchy
+
 ## 0.2.0
 
 ### Minor Changes

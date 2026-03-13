@@ -1,6 +1,6 @@
 // packages/dashboard/src/App.tsx
 
-import type { AgentId, RelayEvent } from "@relay/shared";
+import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useReducer } from "react";
 import { AgentStatusBar } from "./components/AgentStatusBar";
 import { AgentThoughts } from "./components/AgentThoughts";

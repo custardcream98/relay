@@ -1,6 +1,6 @@
 // packages/dashboard/src/components/AgentThoughts.tsx
 
-import type { AgentId } from "@relay/shared";
+import type { AgentId } from "@custardcream/relay-shared";
 import { useEffect, useRef } from "react";
 
 interface Props {

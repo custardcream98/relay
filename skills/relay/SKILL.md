@@ -150,36 +150,33 @@ Resume your work. Call get_messages() first to read the full history.
 5. Spawn with their allowed tools.
 6. Collect their new `end:` declaration.
 
-## Reviewer Spawn Pattern (`spawn_reviewer`)
+## Reviewer Spawn Pattern
 
 Triggered when any agent broadcasts "Review requested: {reviewerId}".
 
-```python
-def spawn_reviewer(reviewerId, requesterId, all_agents_cache):
-  if reviewerId in all_agents_cache:
-    # Reviewer has its own defined persona — use it directly
-    persona = all_agents_cache[reviewerId]
-  else:
-    # Not defined — inherit the requester's persona (common: fe2 inherits fe)
-    persona = all_agents_cache[requesterId]
+1. Look up `reviewerId` in the cached `list_agents` result:
+   - **Found**: spawn that agent with their defined persona and agent_id = reviewerId.
+   - **Not found**: spawn using the requester's persona (same systemPrompt) but with agent_id = reviewerId.
+     This handles the common pattern where a reviewer inherits the implementer's persona.
 
-  reviewer_context = """
-## Reviewer Role
-You are acting as a peer reviewer (agent_id: {reviewerId}).
-Call get_messages(agent_id: "{reviewerId}") to find the review request.
-Fetch the artifact, review it thoroughly, and call submit_review.
-IMPORTANT: After submit_review, broadcast the result:
-  send_message(to: null, "Review complete: {requesterId} artifact {artifact_id} approved")
-  or
-  send_message(to: null, "Review complete: {requesterId} artifact {artifact_id} changes_requested — [summary]")
-After reviewing, call get_team_status() and declare end:waiting or end:_done.
-"""
+2. Inject reviewer context into the system prompt:
+   ```
+   ## Reviewer Role
+   You are acting as a peer reviewer (agent_id: {reviewerId}).
+   Call get_messages(agent_id: "{reviewerId}") to find the review request.
+   Fetch the artifact, review it thoroughly, and call submit_review.
+   IMPORTANT: After submit_review, broadcast the result:
+     send_message(to: null, "Review complete: {requesterId} artifact {artifact_id} {approved|changes_requested} — {summary}")
+   After reviewing, call get_team_status() and declare end:waiting or end:_done.
+   ```
 
-  spawn agent with:
-    agent_id = reviewerId
-    system_prompt = persona.systemPrompt + reviewer_context
-    tools = persona.tools
-```
+3. Allowed tools: same as the base persona's tools array.
+4. Collect their `end:` declaration and track in spawned_reviewers.
+
+**Note for teams without explicit reviewer agents:**
+Agents can review each other's work by naming any active agent as reviewer.
+Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
+  send_message(to: null, "Review requested: researcher_b please review paper artifact {id}")
 
 ## Session Wrap-up
 

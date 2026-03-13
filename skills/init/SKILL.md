@@ -1,70 +1,55 @@
 ---
 name: init
-description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. Spawns all agents in parallel to read the codebase and write .relay/memory/ files.
+description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. Spawns all configured agents in parallel to read the codebase and write .relay/memory/ files.
 ---
 
-Run this when using relay for the first time on a project, or when the team needs to re-scan project context.
-If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically suggest running this skill first.
+Run this to initialize project memory for your relay team.
+If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically suggest running this first.
 
-## Pre-flight checks
+## Pre-flight Checks
 
-1. Verify the relay MCP server is connected (call the `list_agents` tool)
-2. Check whether the `.relay/memory/` directory exists
+1. Verify the relay MCP server is connected: call `list_agents`.
+   - If list_agents returns an empty array or error: tell the user
+     "No agents defined. Create agents.yml first. See agents.example.yml for reference."
+     and stop.
+2. Check whether the `.relay/memory/` directory exists.
 3. Tell the user: "Dashboard: http://localhost:3456"
+4. Show the user the loaded agent list: "{emoji} {name}" for each agent.
 
-## Phase 1: Parallel project scan
+## Phase 1: Parallel Codebase Scan
 
-Spawn the agents below **simultaneously** (dispatching-parallel-agents pattern).
-Load each agent's system prompt via the `list_agents` tool.
+Spawn **all agents from list_agents simultaneously**.
 
-Common instruction to send each agent:
-> "This is init mode — you are seeing the project for the first time.
->  Explore the codebase and use the `write_memory` tool to store important information from your role's perspective.
->  When done, send: `send_message(to: null, content: 'init-done')`"
->  (to: null is broadcast — delivered to all agents)
+For each agent, load their persona via `list_agents` and send this common instruction:
 
-**PM** — areas to scan:
-- README.md, CLAUDE.md, package.json
-- Overall directory structure
-- Existing issues/PR context (if any)
-- Memory keys: `domain`, `architecture`, `team-conventions`
+> "This is init mode — you are seeing this project for the first time.
+>  Your role: {agent.name} — {agent.description}
+>
+>  1. Explore the codebase from your role's perspective.
+>     Focus on what matters most for your responsibilities.
+>  2. Use write_memory to store your key findings.
+>     Use descriptive keys (e.g. 'tech-stack', 'api-patterns', 'test-setup').
+>  3. When done, broadcast: send_message(to: null, content: 'init-done')"
 
-**FE** — areas to scan:
-- Frontend code structure (`src/`, `app/`, `components/`, etc.)
-- Framework, state management, and styling approach in use
-- Memory keys: `tech-stack`, `component-patterns`, `conventions`
+Each agent uses their own judgment about what to scan based on their systemPrompt role.
+No need to hardcode scan areas per agent type — the systemPrompt already defines each agent's perspective.
 
-**BE** — areas to scan:
-- Backend code structure
-- API routes, DB schema, external service dependencies
-- Memory keys: `api-structure`, `db-schema`, `external-deps`
+## Phase 2: Collect and Synthesize
 
-**DA** — areas to scan:
-- Existing analytics/metrics code, logging configuration
-- Memory keys: `existing-events`, `metrics-setup`
+Poll `get_messages(agent_id: "orchestrator")` to detect "init-done" broadcasts.
+Wait until all agents have broadcast "init-done", or up to 5 minutes (proceed with partial results).
 
-**Designer** — areas to scan:
-- UI component library usage, design tokens
-- Memory keys: `design-system`, `ui-patterns`
+Find the agent whose description or name suggests a coordinator role (look for keywords like
+"manager", "coordinator", "lead", "pm", "strategist"). If found, use that agent to synthesize.
+Otherwise, use the first agent in the list.
 
-**QA** — areas to scan:
-- Test file coverage, CI/CD configuration, coverage reports
-- Memory keys: `test-setup`, `ci-config`, `coverage`
+The synthesizer agent:
+1. Calls `read_memory(agent_id: "{each_agent_id}")` for all agents.
+2. Writes a unified summary: `write_memory(key: "summary", content: ...)` → saves to `project.md`.
 
-## Phase 2: Cross-validation
+## Phase 3: Completion Report
 
-Collect init-done messages from all agents:
-- Repeatedly call `get_messages()` to detect messages where `content === "init-done"`.
-- Proceed once init-done messages from all agents (per list_agents results) are received.
-- After a maximum wait of 5 minutes, proceed even if some agents have not responded.
-
-PM reads each agent's memory and writes a unified project summary:
-- `read_memory(agent_id: "fe")`, `read_memory(agent_id: "be")`, ... collect each agent's memory.
-- `write_memory(key: "summary", content: ...)` to save the integrated summary to `project.md`.
-
-## Phase 3: Completion report
-
-Report init results to the user:
-- Identified tech stack
-- Notable findings
-- Ready to start with `/relay:relay "task description"`
+Report to the user:
+- Agent team loaded: {list of agents}
+- Memory files written: {list of keys}
+- Ready to start: `/relay:relay "describe your task"`

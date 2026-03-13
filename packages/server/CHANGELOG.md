@@ -1,5 +1,11 @@
 # @custardcream/relay
 
+## 0.3.2
+
+### Patch Changes
+
+- 6466e81: fix: use bunx instead of npx in .mcp.json to correctly run the Bun-native relay-server binary
+
 ## 0.3.1
 
 ### Patch Changes

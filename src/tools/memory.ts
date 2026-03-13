@@ -3,6 +3,16 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
+// agent_id 검증 — 경로 순회(path traversal) 방지
+function isValidId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
+// 메모리 키 검증 — 섹션 헤더 삽입 공격 방지 (줄바꿈 불가)
+function isValidMemoryKey(key: string): boolean {
+  return key.length > 0 && !key.includes("\n") && !key.includes("\r");
+}
+
 // 에이전트별 메모리 파일 경로
 function agentMemoryPath(relayDir: string, agentId: string): string {
   return join(relayDir, "memory", "agents", `${agentId}.md`);
@@ -29,6 +39,10 @@ function ensureDir(relayDir: string): void {
  * agent_id 있으면 해당 에이전트 파일 반환 (없으면 null).
  */
 export async function handleReadMemory(relayDir: string, input: { agent_id?: string }) {
+  // agent_id가 있으면 경로 순회 방지를 위해 검증
+  if (input.agent_id !== undefined && !isValidId(input.agent_id)) {
+    return { success: false, content: null, error: "유효하지 않은 ID 형식" };
+  }
   try {
     // agent_id 없으면 project.md + lessons.md 합쳐서 반환
     if (!input.agent_id) {
@@ -60,6 +74,14 @@ export async function handleWriteMemory(
   relayDir: string,
   input: { agent_id?: string; key: string; content: string }
 ) {
+  // agent_id가 있으면 경로 순회 방지를 위해 검증
+  if (input.agent_id !== undefined && !isValidId(input.agent_id)) {
+    return { success: false, error: "유효하지 않은 ID 형식" };
+  }
+  // key 검증 — 줄바꿈 문자 포함 시 섹션 헤더가 오염될 수 있음
+  if (!isValidMemoryKey(input.key)) {
+    return { success: false, error: "유효하지 않은 key 형식 (줄바꿈 불가)" };
+  }
   try {
     ensureDir(relayDir);
     const path = input.agent_id
@@ -104,6 +126,10 @@ export async function handleAppendMemory(
   relayDir: string,
   input: { agent_id?: string; content: string }
 ) {
+  // agent_id가 있으면 경로 순회 방지를 위해 검증
+  if (input.agent_id !== undefined && !isValidId(input.agent_id)) {
+    return { success: false, error: "유효하지 않은 ID 형식" };
+  }
   try {
     ensureDir(relayDir);
     // agent_id 없으면 팀 공유 lessons.md에 누적 (project.md는 write_memory로만 갱신)

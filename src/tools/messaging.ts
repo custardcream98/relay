@@ -13,7 +13,7 @@ interface GetMessagesInput {
 }
 
 // 메시지를 전송하고 broadcast용 메시지 객체를 반환한다
-export async function handleSendMessage(db: Database, sessionId: string, input: SendMessageInput) {
+export function handleSendMessage(db: Database, sessionId: string, input: SendMessageInput) {
   const id = crypto.randomUUID();
   const msg = {
     id,
@@ -33,7 +33,7 @@ export async function handleSendMessage(db: Database, sessionId: string, input: 
 }
 
 // 에이전트가 수신한 메시지(직접 수신 + 브로드캐스트)를 조회한다
-export async function handleGetMessages(db: Database, sessionId: string, input: GetMessagesInput) {
+export function handleGetMessages(db: Database, sessionId: string, input: GetMessagesInput) {
   const messages = getMessagesForAgent(db, sessionId, input.agent_id);
   return { success: true, messages };
 }

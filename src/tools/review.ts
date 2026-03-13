@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
-import { insertReview, updateReviewStatus } from "../db/queries/reviews";
+import { getReviewById, insertReview, updateReviewStatus } from "../db/queries/reviews";
 
-export async function handleRequestReview(
+export function handleRequestReview(
   db: Database,
   sessionId: string,
   input: {
@@ -23,9 +23,9 @@ export async function handleRequestReview(
   return { success: true, review_id: id };
 }
 
-export async function handleSubmitReview(
+export function handleSubmitReview(
   db: Database,
-  _sessionId: string,
+  sessionId: string,
   input: {
     agent_id: string;
     review_id: string;
@@ -33,6 +33,10 @@ export async function handleSubmitReview(
     comments?: string;
   }
 ) {
+  // 리뷰 존재 여부 및 리뷰어 소유권 검증
+  const review = getReviewById(db, input.review_id, sessionId);
+  if (!review) return { success: false, error: "리뷰를 찾을 수 없음" };
+  if (review.reviewer !== input.agent_id) return { success: false, error: "리뷰 권한 없음" };
   updateReviewStatus(db, input.review_id, input.status, input.comments ?? null);
   return { success: true };
 }

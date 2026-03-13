@@ -44,6 +44,15 @@ export function updateReviewStatus(
   `).run(status, comments, id);
 }
 
+// ID로 리뷰를 조회한다 (소유권 검증용)
+export function getReviewById(db: Database, id: string, sessionId: string): ReviewRow | null {
+  return (
+    db
+      .query<ReviewRow, [string, string]>("SELECT * FROM reviews WHERE id = ? AND session_id = ?")
+      .get(id, sessionId) ?? null
+  );
+}
+
 // 특정 리뷰어가 받은 리뷰 목록을 조회한다
 export function getReviewsByReviewer(
   db: Database,

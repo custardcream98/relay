@@ -85,4 +85,14 @@ app.post("/api/hook/tool-use", async (c) => {
 });
 
 // SPA fallback: React 앱 라우팅을 위해 모든 경로에서 index.html 반환
-app.get("*", (_c) => new Response(Bun.file(join(DASHBOARD_DIST, "index.html"))));
+// 대시보드가 빌드되지 않은 경우 안내 메시지 반환
+app.get("*", async (_c) => {
+  const file = Bun.file(join(DASHBOARD_DIST, "index.html"));
+  if (!(await file.exists())) {
+    return new Response("대시보드가 빌드되지 않았습니다. bun run dashboard:build를 실행하세요.", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
+  }
+  return new Response(file);
+});

@@ -21,8 +21,9 @@ export function broadcast(event: RelayEvent): void {
   // 이벤트 DB 저장 (히스토리 재생용)
   try {
     insertEvent(SESSION_ID, event);
-  } catch {
-    // DB 오류는 브로드캐스트를 막지 않음
+  } catch (err) {
+    // DB 저장 실패는 브로드캐스트를 막지 않지만 로그 기록
+    console.error("[relay] events 저장 실패:", err);
   }
   // 라이브 클라이언트에 전송
   const data = JSON.stringify(event);

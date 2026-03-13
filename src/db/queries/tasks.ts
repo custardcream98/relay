@@ -45,15 +45,13 @@ export function updateTask(
   if (keys.length === 0) return false;
   const fields = keys.map((k) => `${k} = $${k}`).join(", ");
   // bun:sqlite named parameter는 객체 키에 $ prefix가 필요하다
-  const params: Record<string, unknown> = { $id: id };
+  // 값 타입을 SQLQueryBindings 허용 타입으로 명시적으로 지정
+  const params: Record<string, string | number | null> = { $id: id };
   for (const k of keys) {
-    params[`$${k}`] = (updates as Record<string, unknown>)[k];
+    const v = (updates as Record<string, string | number | null>)[k];
+    params[`$${k}`] = v ?? null;
   }
-  // bun:sqlite named binding은 객체를 받지만 타입 시스템이 Record<string, SQLQueryBindings>을 요구함
-  // Record<string, unknown>을 SQLQueryBindings로 강제 캐스팅하여 any 없이 처리
-  db.query(`
-    UPDATE tasks SET ${fields}, updated_at = unixepoch() WHERE id = $id
-  `).run(params as Parameters<typeof db.query>[0] extends string ? never : never);
+  db.query(`UPDATE tasks SET ${fields}, updated_at = unixepoch() WHERE id = $id`).run(params);
   // 실제로 업데이트된 행이 있는지 확인
   const result = db.query("SELECT changes() as n").get() as { n: number };
   return result.n > 0;

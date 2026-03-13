@@ -3,6 +3,11 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
+// session_id 검증 — 경로 순회(path traversal) 방지
+function isValidId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
 /**
  * 세션 요약, 태스크, 메시지를 파일로 저장.
  * .relay/sessions/{session_id}/ 디렉토리에 저장.
@@ -11,6 +16,10 @@ export async function handleSaveSessionSummary(
   relayDir: string,
   input: { session_id: string; summary: string; tasks: unknown[]; messages: unknown[] }
 ) {
+  // session_id 검증 — 경로 순회 방지
+  if (!isValidId(input.session_id)) {
+    return { success: false, error: "유효하지 않은 ID 형식" };
+  }
   try {
     const dir = join(relayDir, "sessions", input.session_id);
     mkdirSync(dir, { recursive: true });
@@ -59,6 +68,10 @@ export async function handleGetSessionSummary(
   relayDir: string,
   input: { session_id: string }
 ): Promise<SessionSummaryResult> {
+  // session_id 검증 — 경로 순회 방지
+  if (!isValidId(input.session_id)) {
+    return { success: false, error: "유효하지 않은 ID 형식" };
+  }
   try {
     const summaryPath = join(relayDir, "sessions", input.session_id, "summary.md");
     if (!existsSync(summaryPath)) return { success: false, error: "세션을 찾을 수 없습니다" };

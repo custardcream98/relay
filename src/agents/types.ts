@@ -1,8 +1,8 @@
 // src/agents/types.ts
 // 에이전트 페르소나 관련 타입 정의
 
-export type AgentId = string; // 기본 제공: pm | designer | da | fe | be | qa | deployer
-// 사용자가 agents.yml에 자유롭게 추가 가능
+// AgentId는 shared/types.ts에서 단일 정의 — 중복 방지
+export type { AgentId } from "../../shared/types.ts";
 
 export interface AgentConfig {
   name: string;

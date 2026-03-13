@@ -57,6 +57,13 @@ export function runMigrations(db: Database): void {
       payload TEXT NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    -- 자주 사용되는 쿼리 패턴에 대한 인덱스 (성능 최적화)
+    CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id, to_agent);
+    CREATE INDEX IF NOT EXISTS idx_tasks_session_assignee ON tasks(session_id, assignee);
+    CREATE INDEX IF NOT EXISTS idx_reviews_session_reviewer ON reviews(session_id, reviewer);
+    CREATE INDEX IF NOT EXISTS idx_events_session ON events(session_id, created_at);
+    CREATE INDEX IF NOT EXISTS idx_artifacts_session ON artifacts(session_id);
   `);
 }
 

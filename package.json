@@ -26,6 +26,7 @@
     "docs:build": "bun run --filter @custardcream/relay-docs build",
     "build:server": "bun run --filter @custardcream/relay build",
     "build:release": "bun run dashboard:build && bun run build:server",
+    "publish:server": "bun run build:release && npm publish --workspace @custardcream/relay",
     "release": "bun run build:release && changeset publish",
     "prepare": "husky"
   },

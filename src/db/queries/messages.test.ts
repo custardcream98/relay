@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
-import { insertMessage, getMessagesForAgent } from "./messages";
+import { getMessagesForAgent, insertMessage } from "./messages";
 
 describe("메시지 쿼리", () => {
   let db: Database;
@@ -39,6 +39,6 @@ describe("메시지 쿼리", () => {
     });
 
     const msgs = getMessagesForAgent(db, "sess-1", "fe");
-    expect(msgs.some(m => m.id === "msg-2")).toBe(true);
+    expect(msgs.some((m) => m.id === "msg-2")).toBe(true);
   });
 });

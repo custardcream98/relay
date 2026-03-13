@@ -14,9 +14,9 @@ if (isGlobal && !HOME) {
 const relayRoot = resolve(import.meta.dir, "..");
 const skillsSrc = join(relayRoot, "skills");
 
-// 설치 대상 디렉토리
+// 설치 대상 디렉토리 (HOME은 위에서 isGlobal 시 검증함)
 const targetDir = isGlobal
-  ? join(HOME!, ".claude", "skills")
+  ? join(HOME as string, ".claude", "skills")
   : join(process.cwd(), ".claude", "skills");
 
 console.log(`[relay] ${isGlobal ? "글로벌" : "로컬"} 설치 시작...`);
@@ -39,16 +39,15 @@ if (mcpResult.exitCode !== 0) {
 }
 
 // 3. .claude/settings.json에 PostToolUse 훅 설정 주입
-const settingsDir = isGlobal
-  ? join(HOME!, ".claude")
-  : join(process.cwd(), ".claude");
+const settingsDir = isGlobal ? join(HOME as string, ".claude") : join(process.cwd(), ".claude");
 const settingsPath = join(settingsDir, "settings.json");
 
 const hookScript = join(relayRoot, "hooks", "post-tool-use.sh");
 // Claude Code는 MCP 툴 이름을 "mcp__relay__send_message" 형식으로 전달한다.
 // matcher는 정규식 substring search이므로 "mcp__relay__"로 relay 툴만 선별적으로 매칭.
 const hookEntry = {
-  matcher: "mcp__relay__(send_message|create_task|update_task|post_artifact|request_review|submit_review)",
+  matcher:
+    "mcp__relay__(send_message|create_task|update_task|post_artifact|request_review|submit_review)",
   command: `bash ${hookScript}`,
 };
 

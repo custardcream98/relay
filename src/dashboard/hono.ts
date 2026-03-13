@@ -1,12 +1,13 @@
 // src/dashboard/hono.ts
+
+import { join } from "node:path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
-import { join } from "path";
+import { loadAgents } from "../agents/loader";
 import { getDb } from "../db/client";
+import { getAllArtifacts } from "../db/queries/artifacts";
 import { getAllMessages } from "../db/queries/messages";
 import { getAllTasks } from "../db/queries/tasks";
-import { getAllArtifacts } from "../db/queries/artifacts";
-import { loadAgents } from "../agents/loader";
 import { handleGetSessionSummary } from "../tools/sessions";
 import { broadcast } from "./websocket";
 
@@ -28,8 +29,11 @@ let cachedAgents: ReturnType<typeof loadAgents> | null = null;
 app.get("/api/agents", (c) => {
   if (!cachedAgents) cachedAgents = loadAgents();
   return c.json(
-    Object.values(cachedAgents).map(a => ({
-      id: a.id, name: a.name, emoji: a.emoji, description: a.description,
+    Object.values(cachedAgents).map((a) => ({
+      id: a.id,
+      name: a.name,
+      emoji: a.emoji,
+      description: a.description,
     }))
   );
 });
@@ -73,4 +77,4 @@ app.post("/api/hook/tool-use", async (c) => {
 });
 
 // SPA fallback: React 앱 라우팅을 위해 모든 경로에서 index.html 반환
-app.get("*", (c) => new Response(Bun.file(join(DASHBOARD_DIST, "index.html"))));
+app.get("*", (_c) => new Response(Bun.file(join(DASHBOARD_DIST, "index.html"))));

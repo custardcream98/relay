@@ -50,7 +50,9 @@ export function getReviewsByReviewer(
   sessionId: string,
   reviewer: string
 ): ReviewRow[] {
-  return db.query<ReviewRow, [string, string]>(
-    "SELECT * FROM reviews WHERE session_id = ? AND reviewer = ? ORDER BY created_at ASC"
-  ).all(sessionId, reviewer);
+  return db
+    .query<ReviewRow, [string, string]>(
+      "SELECT * FROM reviews WHERE session_id = ? AND reviewer = ? ORDER BY created_at ASC"
+    )
+    .all(sessionId, reviewer);
 }

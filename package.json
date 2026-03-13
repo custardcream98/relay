@@ -14,6 +14,9 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "test": "bun test",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome check .",
     "dashboard:dev": "cd dashboard && bun run dev",
     "dashboard:build": "cd dashboard && bun run build",
     "docs:dev": "cd docs-site && bun run dev",
@@ -28,6 +31,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.6",
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
     "typescript": "^5"

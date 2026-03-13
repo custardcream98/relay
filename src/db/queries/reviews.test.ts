@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
-import { insertReview, updateReviewStatus, getReviewsByReviewer } from "./reviews";
+import { getReviewsByReviewer, insertReview, updateReviewStatus } from "./reviews";
 
 describe("리뷰 쿼리", () => {
   let db: Database;

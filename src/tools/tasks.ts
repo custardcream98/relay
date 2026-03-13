@@ -1,13 +1,19 @@
 import type { Database } from "bun:sqlite";
-import { insertTask, updateTask, getTasksByAssignee } from "../db/queries/tasks";
+import { randomUUID } from "node:crypto";
 import type { TaskRow } from "../db/queries/tasks";
-import { randomUUID } from "crypto";
+import { getTasksByAssignee, insertTask, updateTask } from "../db/queries/tasks";
 
 // 태스크를 생성하고 생성된 태스크 ID를 반환한다
 export async function handleCreateTask(
   db: Database,
   sessionId: string,
-  input: { agent_id: string; title: string; description?: string; assignee?: string; priority: string }
+  input: {
+    agent_id: string;
+    title: string;
+    description?: string;
+    assignee?: string;
+    priority: string;
+  }
 ) {
   const id = randomUUID();
   insertTask(db, {
@@ -26,7 +32,7 @@ export async function handleCreateTask(
 // 태스크 상태 또는 담당자를 업데이트한다
 export async function handleUpdateTask(
   db: Database,
-  sessionId: string,
+  _sessionId: string,
   input: { agent_id: string; task_id: string; status?: string; assignee?: string }
 ) {
   const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};

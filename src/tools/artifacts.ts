@@ -1,10 +1,6 @@
 import type { Database } from "bun:sqlite";
-import {
-  insertArtifact,
-  getArtifactByName,
-  type ArtifactRow,
-} from "../db/queries/artifacts";
-import { randomUUID } from "crypto";
+import { randomUUID } from "node:crypto";
+import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
 
 export async function handlePostArtifact(
   db: Database,

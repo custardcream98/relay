@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../db/schema";
-import { handleSendMessage, handleGetMessages } from "./messaging";
+import { handleGetMessages, handleSendMessage } from "./messaging";
 
 describe("messaging 툴", () => {
   let db: Database;
@@ -38,6 +38,6 @@ describe("messaging 툴", () => {
   test("get_messages: 다른 에이전트 메시지는 조회 안 됨", async () => {
     await handleSendMessage(db, "sess-1", { agent_id: "pm", to: "be", content: "BE에게만" });
     const result = await handleGetMessages(db, "sess-1", { agent_id: "fe" });
-    expect(result.messages.filter(m => m.to_agent === "be")).toHaveLength(0);
+    expect(result.messages.filter((m) => m.to_agent === "be")).toHaveLength(0);
   });
 });

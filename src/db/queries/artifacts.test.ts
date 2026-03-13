@@ -1,7 +1,7 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
-import { insertArtifact, getArtifactByName } from "./artifacts";
+import { getArtifactByName, insertArtifact } from "./artifacts";
 
 describe("아티팩트 쿼리", () => {
   let db: Database;

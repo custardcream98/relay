@@ -1,9 +1,9 @@
 // src/agents/loader.ts
 // agents.default.yml + agents.yml(선택적)을 로드하여 merge된 에이전트 페르소나를 반환
-import { readFileSync, existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
-import type { AgentPersona, AgentConfig, AgentsFile, WorkflowConfig } from "./types";
+import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
 // agents.default.yml은 relay 패키지 루트에 위치 (src/agents/../../ = relay/)
 // MCP 서버가 사용자 프로젝트 디렉토리에서 실행될 때도 올바른 경로를 찾기 위해
@@ -51,19 +51,24 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 
   // 커스텀 전용 에이전트 처리 (extends 또는 신규)
   for (const [id, config] of Object.entries(customs)) {
-    if (id in merged) continue;         // 이미 처리됨
+    if (id in merged) continue; // 이미 처리됨
     if (config.disabled) continue;
 
     if (config.extends) {
       // disabled된 에이전트나 존재하지 않는 에이전트를 extends하면 에러
       const base = merged[config.extends];
-      if (!base) throw new Error(`extends 대상 "${config.extends}"을 찾을 수 없거나 비활성화된 에이전트입니다`);
+      if (!base)
+        throw new Error(
+          `extends 대상 "${config.extends}"을 찾을 수 없거나 비활성화된 에이전트입니다`
+        );
       merged[id] = { ...base, ...config, id, extends: undefined } as AgentPersona;
     } else {
       // extends가 없는 신규 커스텀 에이전트는 필수 필드가 모두 있어야 함
       const { name, emoji, tools, systemPrompt } = config;
       if (!name || !emoji || !tools || !systemPrompt) {
-        throw new Error(`커스텀 에이전트 "${id}"에 필수 필드(name, emoji, tools, systemPrompt)가 없습니다`);
+        throw new Error(
+          `커스텀 에이전트 "${id}"에 필수 필드(name, emoji, tools, systemPrompt)가 없습니다`
+        );
       }
       merged[id] = { id, ...config } as AgentPersona;
     }
@@ -76,10 +81,7 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
  * 에이전트 system prompt에 메모리를 자동 주입.
  * 프로젝트 기억(project.md), 팀 회고(lessons.md), 에이전트 개인 기억(agents/{id}.md) 순으로 prepend.
  */
-export function buildSystemPromptWithMemory(
-  persona: AgentPersona,
-  relayDir: string
-): string {
+export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: string): string {
   const memoryPath = join(relayDir, "memory", "agents", `${persona.id}.md`);
   const projectPath = join(relayDir, "memory", "project.md");
   const lessonsPath = join(relayDir, "memory", "lessons.md");

@@ -24,17 +24,21 @@ export function getMessagesForAgent(
   sessionId: string,
   agentId: string
 ): MessageRow[] {
-  return db.query<MessageRow, [string, string]>(`
+  return db
+    .query<MessageRow, [string, string]>(`
     SELECT * FROM messages
     WHERE session_id = ?
       AND (to_agent = ? OR to_agent IS NULL)
     ORDER BY created_at ASC
-  `).all(sessionId, agentId) as MessageRow[];
+  `)
+    .all(sessionId, agentId) as MessageRow[];
 }
 
 // 세션의 모든 메시지를 조회한다
 export function getAllMessages(db: Database, sessionId: string): MessageRow[] {
-  return db.query<MessageRow, [string]>(`
+  return db
+    .query<MessageRow, [string]>(`
     SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC
-  `).all(sessionId) as MessageRow[];
+  `)
+    .all(sessionId) as MessageRow[];
 }

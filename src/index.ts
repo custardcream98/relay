@@ -1,7 +1,8 @@
 // src/index.ts
-import { createMcpServer, startMcpServer } from "./mcp";
+
 import { app } from "./dashboard/hono";
 import { addClient, removeClient } from "./dashboard/websocket";
+import { createMcpServer, startMcpServer } from "./mcp";
 
 const DASHBOARD_PORT = Number(process.env.DASHBOARD_PORT ?? 3456);
 
@@ -19,9 +20,13 @@ Bun.serve({
     return app.fetch(req);
   },
   websocket: {
-    open(ws) { addClient(ws); },
-    close(ws) { removeClient(ws); },
-    message() {},  // 클라이언트 → 서버 메시지는 현재 미사용
+    open(ws) {
+      addClient(ws);
+    },
+    close(ws) {
+      removeClient(ws);
+    },
+    message() {}, // 클라이언트 → 서버 메시지는 현재 미사용
   },
 });
 

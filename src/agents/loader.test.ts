@@ -1,6 +1,6 @@
 // src/agents/loader.test.ts
-import { describe, test, expect } from "bun:test";
-import { loadAgents, getWorkflow } from "./loader";
+import { describe, expect, test } from "bun:test";
+import { getWorkflow, loadAgents } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("에이전트 loader", () => {
@@ -86,9 +86,9 @@ describe("워크플로 loader", () => {
   test("planning job이 시작점으로 감지됨 (어떤 end에도 없음)", () => {
     const workflow = getWorkflow();
     const allTargets = new Set(
-      Object.values(workflow.jobs).flatMap(j => Object.keys(j.end ?? {}))
+      Object.values(workflow.jobs).flatMap((j) => Object.keys(j.end ?? {}))
     );
-    const startJobs = Object.keys(workflow.jobs).filter(id => !allTargets.has(id));
+    const startJobs = Object.keys(workflow.jobs).filter((id) => !allTargets.has(id));
     expect(startJobs).toHaveLength(1);
     expect(startJobs[0]).toBe("planning");
   });

@@ -12,10 +12,7 @@ export interface ArtifactRow {
 }
 
 // 아티팩트를 DB에 저장한다
-export function insertArtifact(
-  db: Database,
-  artifact: Omit<ArtifactRow, "created_at">
-): void {
+export function insertArtifact(db: Database, artifact: Omit<ArtifactRow, "created_at">): void {
   db.query(`
     INSERT INTO artifacts (id, session_id, name, type, content, created_by, task_id)
     VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -37,18 +34,19 @@ export function getArtifactByName(
   name: string
 ): ArtifactRow | null {
   return (
-    db.query<ArtifactRow, [string, string]>(
-      "SELECT * FROM artifacts WHERE session_id = ? AND name = ? ORDER BY created_at DESC LIMIT 1"
-    ).get(sessionId, name) ?? null
+    db
+      .query<ArtifactRow, [string, string]>(
+        "SELECT * FROM artifacts WHERE session_id = ? AND name = ? ORDER BY created_at DESC LIMIT 1"
+      )
+      .get(sessionId, name) ?? null
   );
 }
 
 // 세션 내 모든 아티팩트를 조회한다
-export function getAllArtifacts(
-  db: Database,
-  sessionId: string
-): ArtifactRow[] {
-  return db.query<ArtifactRow, [string]>(
-    "SELECT * FROM artifacts WHERE session_id = ? ORDER BY created_at ASC"
-  ).all(sessionId);
+export function getAllArtifacts(db: Database, sessionId: string): ArtifactRow[] {
+  return db
+    .query<ArtifactRow, [string]>(
+      "SELECT * FROM artifacts WHERE session_id = ? ORDER BY created_at ASC"
+    )
+    .all(sessionId);
 }

@@ -1,6 +1,6 @@
 // src/tools/memory.ts
 // 에이전트 기억(메모리)을 Markdown 파일로 읽고 쓰는 툴
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 // 에이전트별 메모리 파일 경로
@@ -28,10 +28,7 @@ function ensureDir(relayDir: string): void {
  * agent_id 없으면 project.md + lessons.md 합쳐서 반환.
  * agent_id 있으면 해당 에이전트 파일 반환 (없으면 null).
  */
-export async function handleReadMemory(
-  relayDir: string,
-  input: { agent_id?: string }
-) {
+export async function handleReadMemory(relayDir: string, input: { agent_id?: string }) {
   try {
     // agent_id 없으면 project.md + lessons.md 합쳐서 반환
     if (!input.agent_id) {
@@ -75,12 +72,12 @@ export async function handleWriteMemory(
     // 줄 단위로 분리하여 섹션 경계를 정확하게 파악 (정규식 메타문자 문제 방지)
     const lines = existing.split("\n");
     const headerLine = `## ${input.key}`;
-    const startIdx = lines.findIndex(l => l === headerLine);
+    const startIdx = lines.indexOf(headerLine);
 
     if (startIdx === -1) {
       // 섹션 없음 — 끝에 추가
-      const suffix = (existing.length > 0 ? "\n" : "") + `## ${input.key}\n\n${input.content}`;
-      writeFileSync(path, (existing.trimEnd() + suffix).trimEnd() + "\n");
+      const suffix = `${existing.length > 0 ? "\n" : ""}## ${input.key}\n\n${input.content}`;
+      writeFileSync(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
     } else {
       // 다음 ## 헤더 또는 파일 끝까지 교체
       let endIdx = lines.findIndex((l, i) => i > startIdx && l.startsWith("## "));
@@ -89,7 +86,7 @@ export async function handleWriteMemory(
       const after = lines.slice(endIdx);
       const newSection = [`## ${input.key}`, "", input.content];
       const merged = [...before, ...newSection, ...after].join("\n");
-      writeFileSync(path, merged.trimEnd() + "\n");
+      writeFileSync(path, `${merged.trimEnd()}\n`);
     }
 
     return { success: true };

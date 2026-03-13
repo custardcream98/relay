@@ -26,7 +26,7 @@ export function insertTask(db: Database, task: Omit<TaskRow, "created_at" | "upd
     task.assignee,
     task.status,
     task.priority,
-    task.created_by,
+    task.created_by
   );
 }
 
@@ -39,7 +39,7 @@ export function updateTask(
 ): void {
   if (Object.keys(updates).length === 0) return;
   const keys = Object.keys(updates);
-  const fields = keys.map(k => `${k} = $${k}`).join(", ");
+  const fields = keys.map((k) => `${k} = $${k}`).join(", ");
   // bun:sqlite named parameter는 객체 키에 $ prefix가 필요하다
   const params: Record<string, unknown> = { $id: id };
   for (const k of keys) {
@@ -57,14 +57,16 @@ export function getTaskById(db: Database, id: string): TaskRow | null {
 
 // 특정 세션에서 담당자별 태스크를 조회한다
 export function getTasksByAssignee(db: Database, sessionId: string, assignee: string): TaskRow[] {
-  return db.query<TaskRow, [string, string]>(
-    "SELECT * FROM tasks WHERE session_id = ? AND assignee = ? ORDER BY created_at ASC"
-  ).all(sessionId, assignee);
+  return db
+    .query<TaskRow, [string, string]>(
+      "SELECT * FROM tasks WHERE session_id = ? AND assignee = ? ORDER BY created_at ASC"
+    )
+    .all(sessionId, assignee);
 }
 
 // 세션의 모든 태스크를 조회한다
 export function getAllTasks(db: Database, sessionId: string): TaskRow[] {
-  return db.query<TaskRow, [string]>(
-    "SELECT * FROM tasks WHERE session_id = ? ORDER BY created_at ASC"
-  ).all(sessionId);
+  return db
+    .query<TaskRow, [string]>("SELECT * FROM tasks WHERE session_id = ? ORDER BY created_at ASC")
+    .all(sessionId);
 }

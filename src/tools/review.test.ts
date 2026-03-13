@@ -1,5 +1,5 @@
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../db/schema";
 import { handleRequestReview, handleSubmitReview } from "./review";
 
@@ -29,7 +29,7 @@ describe("review 툴", () => {
     });
     const result = await handleSubmitReview(db, "sess-1", {
       agent_id: "fe2",
-      review_id: review_id!,
+      review_id: review_id as string,
       status: "approved",
       comments: "LGTM! 코드가 깔끔합니다.",
     });

@@ -1,6 +1,6 @@
 // src/tools/sessions.ts
 // 세션 요약을 파일로 저장하고 조회하는 툴
-import { writeFileSync, readFileSync, mkdirSync, readdirSync, existsSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -15,7 +15,10 @@ export async function handleSaveSessionSummary(
     const dir = join(relayDir, "sessions", input.session_id);
     mkdirSync(dir, { recursive: true });
 
-    writeFileSync(join(dir, "summary.md"), `# 세션 요약: ${input.session_id}\n\n${input.summary}\n`);
+    writeFileSync(
+      join(dir, "summary.md"),
+      `# 세션 요약: ${input.session_id}\n\n${input.summary}\n`
+    );
     writeFileSync(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
     writeFileSync(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
 
@@ -35,8 +38,8 @@ export async function handleListSessions(relayDir: string) {
     if (!existsSync(sessionsDir)) return { success: true, sessions: [] };
     // withFileTypes로 파일과 디렉토리를 구분 — 디렉토리만 세션으로 인식
     const sessions = readdirSync(sessionsDir, { withFileTypes: true })
-      .filter(d => d.isDirectory())
-      .map(d => d.name)
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
       .sort()
       .reverse(); // 최신순
     return { success: true, sessions };
@@ -46,9 +49,7 @@ export async function handleListSessions(relayDir: string) {
 }
 
 // 세션 요약 조회 결과 타입
-type SessionSummaryResult =
-  | { success: true; summary: string }
-  | { success: false; error: string };
+type SessionSummaryResult = { success: true; summary: string } | { success: false; error: string };
 
 /**
  * 특정 세션의 요약(summary.md) 조회.

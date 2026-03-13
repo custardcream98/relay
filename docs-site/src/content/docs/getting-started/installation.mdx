@@ -1,0 +1,68 @@
+---
+title: 설치
+description: relay 글로벌/로컬 설치 가이드
+---
+
+import { Tabs, TabItem } from "@astrojs/starlight/components";
+
+relay는 **글로벌** 또는 **로컬** 방식으로 설치할 수 있다. 로컬 설치가 글로벌을 오버라이드한다.
+
+## 사전 요구사항
+
+- [Bun](https://bun.sh) v1.0 이상
+- [Claude Code](https://claude.ai/code) 설치 및 로그인
+
+## 설치 방법
+
+<Tabs>
+  <TabItem label="글로벌 설치 (권장)">
+    모든 프로젝트에서 `/relay` 명령어를 사용할 수 있다.
+
+    ```bash
+    # relay 저장소 클론
+    git clone https://github.com/custardcream98/relay.git
+    cd relay
+
+    # 의존성 설치
+    bun install
+
+    # 글로벌 설치 (스킬 + MCP + 훅 한번에)
+    bun run install:global
+    ```
+
+    글로벌 설치 시 다음이 자동으로 처리된다:
+    - `~/.claude/skills/relay*.md` 스킬 설치
+    - `claude mcp add --global relay` MCP 서버 등록
+    - `~/.claude/settings.json`에 PostToolUse 훅 설정
+  </TabItem>
+  <TabItem label="로컬 설치">
+    현재 프로젝트에만 relay를 설치한다.
+
+    ```bash
+    # relay 저장소 클론
+    git clone https://github.com/custardcream98/relay.git
+    cd relay
+
+    # 의존성 설치
+    bun install
+
+    # 로컬 설치 (현재 프로젝트)
+    bun run install:local
+    ```
+
+    로컬 설치 시 다음이 자동으로 처리된다:
+    - `.claude/skills/relay*.md` 스킬 설치
+    - `claude mcp add relay` MCP 서버 등록
+    - `.claude/settings.json`에 PostToolUse 훅 설정
+  </TabItem>
+</Tabs>
+
+## 설치 확인
+
+Claude Code를 재시작한 후 다음 명령어로 설치가 정상인지 확인한다:
+
+```
+/relay-init
+```
+
+relay MCP 서버가 연결되면 설치가 완료된 것이다.

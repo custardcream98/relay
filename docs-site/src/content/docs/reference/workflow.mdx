@@ -1,0 +1,137 @@
+---
+title: 워크플로 스키마
+description: workflow 섹션 전체 스키마 및 실행 메커니즘 레퍼런스
+---
+
+## 스키마
+
+```typescript
+interface WorkflowConfig {
+  jobs: Record<string, JobConfig>;
+}
+
+interface JobConfig {
+  agents: string[];                      // 병렬 실행될 에이전트 ID 목록
+  description: string;                   // job 설명 (에이전트에게 주입)
+  reviewers?: Record<string, string[]>;  // 리뷰어 매핑
+  end: Record<string, string>;           // nextJobId → 조건 설명
+}
+```
+
+## 실행 메커니즘
+
+### 시작 job 자동 감지
+
+```
+모든 end 값(목적지 job ID) 집합을 구한다
+→ jobs 중 이 집합에 없는 job = 시작 job
+```
+
+### job 실행 흐름
+
+```
+1. job.agents의 에이전트들을 병렬 spawn
+2. 각 에이전트에게 주입:
+   - 에이전트 페르소나 (list_agents)
+   - 개인 기억 (read_memory(agent_id))
+   - 프로젝트 기억 (read_memory())
+   - 현재 job 정보 (description + end 조건)
+3. 에이전트들이 작업 후 end 선언:
+   send_message(to: null, content: "end:{nextJobId} | {이유}")
+4. 모든 에이전트의 end 선언 수집
+5. 다음 job 결정 → 반복
+```
+
+### 의견 불일치 처리
+
+에이전트들이 서로 다른 `nextJobId`를 선언하면:
+- 오케스트레이터(Claude)가 `end` 조건 설명과 수집된 이유를 읽고 최종 결정
+
+### `_done` 도달 시
+
+1. 각 에이전트 `append_memory`로 세션 학습 내용 저장
+2. 팀 `lessons.md` 업데이트
+3. `save_session_summary` 호출
+4. 사용자에게 결과 요약 보고
+
+## end 선언 형식
+
+```
+"end:{nextJobId} | {이유}"
+```
+
+예시:
+```
+"end:qa | 모든 PR이 LGTM을 받았습니다."
+"end:development | auth 헤더 처리에 수정이 필요합니다."
+"end:_done | 배포 완료 및 팀 공지 완료."
+```
+
+## reviewers 메커니즘
+
+```yaml
+review:
+  agents: [fe2, be2]
+  reviewers:
+    fe: [fe2]
+    be: [be2]
+```
+
+- `fe2` 에이전트 spawn 시:
+  1. `fe` 에이전트의 페르소나를 로드 (fe2는 fe의 다른 인스턴스)
+  2. `agent_id`는 `fe2`로 설정
+  3. 추가 컨텍스트 주입: "fe가 작성한 fe-pr 아티팩트를 get_artifact로 조회하여 리뷰하세요"
+
+## 제약사항
+
+- job ID는 고유해야 한다
+- `_done`은 예약어로 마지막 목적지에만 사용
+- 순환 참조는 지원하지 않음 (단, `review → development → review` 같은 비순환 백엣지는 허용)
+- 한 job의 `agents` 배열은 최소 1개 이상
+
+## 기본값 (agents.default.yml)
+
+```yaml
+workflow:
+  jobs:
+    planning:
+      agents: [pm]
+      description: "사용자 요구사항을 분석하고 태스크를 분해한다."
+      end:
+        design: "모든 태스크가 생성되고 담당자에게 배정되면"
+
+    design:
+      agents: [designer, da]
+      description: "Designer는 UX 스펙, DA는 분석 계획을 작성한다. 둘 다 완료되어야 한다."
+      end:
+        development: "두 산출물이 모두 post_artifact로 공유되면"
+
+    development:
+      agents: [fe, be]
+      description: "FE는 UI를, BE는 API를 구현하고 PR 아티팩트를 작성한다."
+      end:
+        review: "구현이 완료되어 PR이 준비되면"
+
+    review:
+      agents: [fe2, be2]
+      reviewers:
+        fe: [fe2]
+        be: [be2]
+      description: "PR을 리뷰한다. 품질, 보안, 성능 관점에서 검토한다."
+      end:
+        qa: "모든 PR이 LGTM이면"
+        development: "수정이 필요한 피드백이 있으면"
+
+    qa:
+      agents: [qa]
+      description: "기능을 테스트하고 버그를 발견하면 티켓을 생성한다."
+      end:
+        deploy: "모든 테스트를 통과하고 버그 티켓이 없으면"
+        development: "버그가 발견되어 수정이 필요하면"
+
+    deploy:
+      agents: [deployer]
+      description: "QA를 통과한 기능을 프로덕션에 배포한다."
+      end:
+        _done: "배포가 완료되고 팀에 공지되면"
+```

@@ -1,0 +1,114 @@
+---
+title: 에이전트 커스터마이즈
+description: agents.yml로 에이전트 페르소나를 커스터마이즈하는 방법
+---
+
+relay의 에이전트 페르소나는 YAML 파일로 완전히 커스터마이즈할 수 있다.
+
+## 파일 구조
+
+```
+relay/
+├── agents.default.yml   # 기본 페르소나 (수정 비권장)
+└── agents.yml           # 사용자 커스텀 (이 파일을 편집)
+```
+
+`agents.default.yml`은 수정하지 않는다. 모든 커스텀은 `agents.yml`에서 한다.
+`agents.yml`이 `agents.default.yml`을 오버라이드한다.
+
+## agents.yml 기본 구조
+
+```yaml
+agents:
+  fe:
+    # 오버라이드할 필드만 명시
+    systemPrompt: |
+      당신은 React와 TypeScript 전문가입니다.
+      ...
+```
+
+## 오버라이드
+
+기존 에이전트의 일부 필드만 변경할 때:
+
+```yaml
+agents:
+  fe:
+    name: "Frontend Engineer (React 전문)"
+    systemPrompt: |
+      당신은 스타트업의 Frontend Engineer입니다.
+      React, TypeScript, Tailwind CSS를 주로 사용합니다.
+      ...
+```
+
+## extends
+
+다른 에이전트의 설정을 상속받아 확장할 때:
+
+```yaml
+agents:
+  fe-mobile:
+    extends: fe          # fe 페르소나를 상속
+    name: "Mobile Frontend Engineer"
+    systemPrompt: |
+      당신은 React Native 전문 Frontend Engineer입니다.
+      ...
+```
+
+## disabled
+
+특정 에이전트를 비활성화할 때:
+
+```yaml
+agents:
+  da:
+    disabled: true       # DA 에이전트를 비활성화
+```
+
+비활성화된 에이전트는 `list_agents` 결과에 포함되지 않으며, 워크플로에서도 제외된다.
+
+## 커스텀 에이전트 추가
+
+기본 에이전트 외에 새로운 페르소나를 추가할 수 있다:
+
+```yaml
+agents:
+  security:
+    name: "Security Engineer"
+    emoji: "🔐"
+    description: "보안 취약점 분석 및 개선"
+    tools:
+      - get_messages
+      - get_my_tasks
+      - update_task
+      - get_artifact
+      - post_artifact
+      - send_message
+    systemPrompt: |
+      당신은 보안 전문가입니다.
+      OWASP Top 10 기준으로 코드를 검토하고
+      취약점을 찾아 수정 방향을 제시합니다.
+```
+
+## tools 필드
+
+에이전트가 사용할 수 있는 MCP 툴 목록을 지정한다:
+
+```yaml
+tools:
+  - send_message
+  - get_messages
+  - create_task
+  - update_task
+  - get_my_tasks
+  - post_artifact
+  - get_artifact
+  - request_review
+  - submit_review
+  - read_memory
+  - write_memory
+  - append_memory
+```
+
+에이전트는 `tools` 목록에 없는 MCP 툴은 호출할 수 없다.
+역할에 맞는 최소한의 툴만 부여하는 것을 권장한다.

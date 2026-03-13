@@ -1,0 +1,96 @@
+---
+title: /relay — 전체 워크플로
+description: PM부터 Deployer까지 전체 워크플로를 실행하는 메인 스킬
+---
+
+`/relay`는 사용자의 태스크를 받아 PM → Designer/DA → FE/BE → 코드리뷰 → QA → Deployer까지
+전체 워크플로를 실행하는 메인 스킬이다.
+
+## 사용법
+
+```
+/relay "구현할 기능 설명"
+```
+
+예시:
+```
+/relay "쇼핑카트 기능 추가해줘"
+/relay "유저 프로필 페이지 개선"
+/relay "결제 API 보안 강화"
+```
+
+## 워크플로 실행 과정
+
+### 1. 사전 확인
+
+실행 전 다음을 확인한다:
+- relay MCP 서버 연결 상태 (`list_agents` 호출)
+- `.relay/memory/project.md` 존재 여부 (없으면 `/relay-init` 제안)
+- 새 세션 ID 생성 (`YYYY-MM-DD-NNN` 형식)
+
+### 2. 워크플로 로드
+
+`get_workflow`를 호출하여 `agents.yml`에 정의된 job 구성을 가져온다.
+
+시작 job은 어떤 job의 `end`에도 목적지로 지정되지 않은 job이다.
+
+### 3. Job 실행 루프
+
+현재 job부터 `_done`에 도달할 때까지 반복 실행한다:
+
+1. job에 정의된 에이전트들을 **병렬로** spawn
+2. 각 에이전트에게 페르소나 + 메모리 + 현재 job 정보를 system prompt로 주입
+3. 에이전트들의 `end:{nextJobId}` 선언 수집
+4. 다음 job 결정 후 진행
+
+### 4. 세션 종료
+
+`_done`에 도달하면:
+1. 각 에이전트가 `append_memory`로 이번 세션 학습 내용 저장
+2. `lessons.md`에 팀 회고 업데이트
+3. `save_session_summary`로 세션 아카이브 (tasks + messages)
+4. 사용자에게 결과 요약 보고
+
+## 기본 워크플로 (agents.default.yml)
+
+```
+planning  → PM이 태스크를 분해하고 배정
+  ↓
+design    → Designer(UX 스펙) + DA(분석 계획) 병렬 작성
+  ↓
+development → FE(UI) + BE(API) 병렬 구현
+  ↓
+review    → FE2(FE PR 리뷰) + BE2(BE PR 리뷰)
+  ↓ (수정 필요 시 development로 돌아감)
+qa        → QA가 테스트, 버그 발견 시 development로
+  ↓ (모든 버그 해결 시)
+deploy    → Deployer가 배포 실행
+  ↓
+_done
+```
+
+워크플로는 `agents.yml`의 `workflow` 섹션에서 커스터마이즈할 수 있다.
+
+## 에이전트 Spawn 패턴
+
+각 에이전트 spawn 시 항상 다음이 주입된다:
+
+1. `list_agents`로 해당 에이전트 페르소나 로드
+2. `read_memory(agent_id)`로 개인 기억 로드
+3. `read_memory()`로 프로젝트 기억(`project.md`, `lessons.md`) 로드
+4. system prompt = 페르소나 + 기억 + 현재 job 정보 합성
+
+## reviewers 처리
+
+job에 `reviewers` 필드가 있으면 리뷰어 에이전트에게 추가 컨텍스트가 주입된다:
+
+```yaml
+review:
+  agents: [fe2, be2]
+  reviewers:
+    fe: [fe2]
+    be: [be2]
+```
+
+`fe2`는 FE 페르소나로 spawn되어 `fe-pr` 아티팩트를 리뷰한다.
+`be2`는 BE 페르소나로 spawn되어 `be-pr` 아티팩트를 리뷰한다.

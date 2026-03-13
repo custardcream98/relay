@@ -1,0 +1,75 @@
+---
+title: 빠른 시작
+description: relay를 처음 사용하는 5분 가이드
+---
+
+import { Steps } from "@astrojs/starlight/components";
+
+relay 설치 후 처음 프로젝트에 적용하는 가이드다.
+
+<Steps>
+
+1. **프로젝트 파악 (최초 1회)**
+
+   새 프로젝트에 relay를 처음 사용하거나 팀이 컨텍스트를 새로 파악해야 할 때:
+
+   ```
+   /relay-init
+   ```
+
+   PM, FE, BE, DA, Designer, QA 6명의 에이전트가 병렬로 코드베이스를 탐색하고
+   `.relay/memory/`에 프로젝트 기억을 저장한다.
+
+2. **태스크 실행**
+
+   init이 완료되면 바로 태스크를 요청할 수 있다:
+
+   ```
+   /relay "쇼핑카트 기능 추가해줘"
+   ```
+
+   에이전트들이 워크플로대로 PM → Designer/DA → FE/BE → 코드리뷰 → QA → Deployer 순서로 작업한다.
+
+3. **대시보드 확인 (선택)**
+
+   MCP 서버가 기동되면 웹 대시보드에서 실시간으로 에이전트 활동을 확인할 수 있다:
+
+   ```
+   http://localhost:3000
+   ```
+
+4. **단일 에이전트 호출 (필요 시)**
+
+   특정 에이전트만 단독으로 호출하고 싶을 때:
+
+   ```
+   /relay-agent fe "CartItem 컴포넌트 리팩토링해줘"
+   /relay-agent be "유저 인증 API 보안 검토해줘"
+   ```
+
+</Steps>
+
+## 예시 흐름
+
+```
+사용자: /relay "로그인 기능 구현해줘"
+
+[PM]       → 로그인 기능을 5개 태스크로 분해
+             → FE: UI 구현, BE: API 구현, Designer: 화면 설계, DA: 이벤트 설계
+
+[Designer] → 로그인 화면 스펙 작성 (post_artifact)
+[DA]       → login_success, login_fail 이벤트 설계 (post_artifact)
+
+[FE]       → 로그인 UI 구현, fe-pr 아티팩트 생성
+[BE]       → 인증 API 구현, be-pr 아티팩트 생성
+
+[FE2]      → FE PR 코드리뷰 (request_review → submit_review)
+[BE2]      → BE PR 코드리뷰
+
+[QA]       → 테스트 시나리오 작성, 검증
+           → 버그 발견 시 티켓 생성 → 개발팀 수정
+
+[Deployer] → 배포 완료, 팀에 공지
+
+사용자: ✅ 로그인 기능 배포 완료!
+```

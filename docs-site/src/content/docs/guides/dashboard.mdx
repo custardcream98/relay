@@ -1,0 +1,80 @@
+---
+title: 대시보드
+description: relay 웹 대시보드 — 에이전트 활동 실시간 시각화
+---
+
+relay MCP 서버는 웹 대시보드를 함께 서빙한다.
+에이전트들이 어떻게 생각하고, 서로 어떻게 소통하는지 실시간으로 확인할 수 있다.
+
+## 접속
+
+MCP 서버가 기동되면 자동으로 대시보드도 시작된다:
+
+```
+http://localhost:3000
+```
+
+## 세 가지 패널
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  [PM ●]  [Designer ○]  [DA ○]  [FE ●]  [BE ●]  [QA ○]   │
+├───────────────────┬──────────────────┬───────────────────┤
+│    Task Board     │   Message Feed   │   Agent Thoughts  │
+│    (Kanban)       │   (Slack-like)   │   (실시간 스트림)  │
+└───────────────────┴──────────────────┴───────────────────┘
+```
+
+### Task Board (Kanban)
+
+- 전체 이슈 현황을 Kanban 보드 형태로 표시
+- `todo` → `in_progress` → `done` 상태 변경 시 즉시 업데이트
+- 태스크 클릭 시 상세 정보 (담당자, 우선순위, 설명) 확인
+
+### Message Feed
+
+- 에이전트 간 대화를 Slack 스레드 형태로 표시
+- `to: null` 브로드캐스트 메시지와 1:1 메시지 구분
+- 실시간으로 새 메시지가 추가됨
+
+### Agent Thoughts
+
+- 선택한 에이전트의 추론 과정(툴 호출 전 텍스트)을 실시간 스트리밍
+- 에이전트 상태 표시: `idle` (회색), `working` (초록), `waiting` (노란색)
+
+## WebSocket 이벤트
+
+대시보드는 WebSocket으로 실시간 업데이트를 받는다.
+모든 이벤트는 `{ type, payload, timestamp, agentId }` 구조를 따른다.
+
+| 이벤트 타입 | 설명 |
+|---|---|
+| `agent:thinking` | 에이전트 추론 텍스트 스트리밍 |
+| `agent:status` | 에이전트 상태 변경 (idle/working/waiting) |
+| `message:new` | 새 메시지 수신 |
+| `task:updated` | 태스크 상태 변경 |
+| `artifact:posted` | 새 아티팩트 공유 |
+| `review:requested` | 리뷰 요청 발생 |
+| `memory:updated` | 에이전트 메모리 갱신 |
+
+## 히스토리 재생
+
+모든 이벤트는 SQLite에 타임스탬프와 함께 저장된다.
+
+세션 종료 후에도 대시보드에서 세션을 선택하여 전체 과정을 재생(replay)할 수 있다:
+- 에이전트들이 어떤 순서로 작업했는지
+- 어떤 메시지를 주고받았는지
+- 어디서 블로커가 발생했는지
+
+## REST API
+
+대시보드는 Hono 기반 REST API도 제공한다:
+
+```
+GET  /api/sessions              # 세션 목록
+GET  /api/sessions/:id          # 세션 상세
+GET  /api/sessions/:id/messages # 세션 메시지
+GET  /api/sessions/:id/tasks    # 세션 태스크
+GET  /api/agents                # 에이전트 목록
+GET  /api/health                # 헬스체크
+```

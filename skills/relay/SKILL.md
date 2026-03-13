@@ -1,124 +1,192 @@
 ---
 name: relay
-description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that requires the whole team (PM, Designer, DA, FE, BE, QA, Deployer).
+description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by the full team defined in agents.yml.
 ---
 
-The startup team processes a task from start to finish.
-The workflow is executed dynamically based on the `workflow` section defined in `agents.yml`.
+The team collaborates event-driven — all agents are alive from session start and
+react to messages and tasks organically, like a Slack-first team.
 
-## Pre-flight checks
+## Pre-flight Checks
 
-1. Confirm the relay MCP server is connected (call `list_agents`)
-2. Verify `.relay/memory/project.md` exists
-   - If absent: suggest "init is required. Would you like to run `/relay:init` first?"
-3. Generate a new session ID in `YYYY-MM-DD-NNN` format
+1. Confirm the relay MCP server is connected by calling `list_agents`.
+   - If no agents are returned: tell the user "No agents defined. Create agents.yml first. See agents.example.yml for reference." and stop.
+2. Verify `.relay/memory/project.md` exists.
+   - If absent: suggest running `/relay:init` first.
+3. Generate a new session ID in `YYYY-MM-DD-NNN` format.
 4. Tell the user: "Dashboard: http://localhost:3456"
 
-## Workflow execution
+## Session Startup
 
-### Step 1: Load the workflow
-Call `get_workflow` to fetch the full job configuration.
+### Step 1: Load all agents
 
-Detect the starting job: the job that does not appear as a destination in any other job's `end` map.
+Call `list_agents` to get the full roster. Cache the result — it will be referenced throughout.
+
+Separate agents into:
+- **Base agents**: all agents returned by list_agents
+- **Reviewer agents**: spawned on demand when a "Review requested: {id}" broadcast is detected
+
+### Step 2: Spawn all base agents in parallel
+
+Spawn all base agents simultaneously. For each agent:
+1. Load persona from the cached `list_agents` result.
+2. Load memory: `read_memory(agent_id)` + `read_memory()` (project + lessons).
+3. Build system prompt: persona systemPrompt + memory.
+4. Restrict available tools to the agent's `tools` array from `list_agents`.
+
+**The agent whose name or description suggests a coordinator/PM role** receives the user's original request appended to its system prompt:
 ```
-const allTargets = new Set(all values listed as keys in every job's end map)
-const startJob = the job whose ID is not in allTargets
+## Current Task
+{user's original request}
 ```
 
-### Step 2: Job execution loop
+**All other agents** receive:
+```
+## Session Start
+Session {session_id} has begun. The coordinator is analyzing requirements and will broadcast tasks shortly.
+Start by calling get_messages() to check for any existing context, then get_all_tasks()
+to see if tasks have already been created.
+```
 
-Repeat from the current job until `_done` is reached:
+If no clear coordinator exists, prepend the task to the first agent alphabetically.
+
+### Step 3: Collect first-round declarations
+
+After all agents complete their first run, collect their `end:` messages from broadcasts.
+
+Each agent broadcasts one of:
+- `end:waiting | {reason}` — no current work, but session continues
+- `end:_done | {summary}` — fully done
+- `end:failed | {reason}` — unrecoverable error → abort workflow, report to user
+
+## Main Event Loop
 
 ```
-currentJob = startJob
+dormant_agents = {}        # agentId → reason (declared end:waiting)
+done_agents = {}           # agentId → summary (declared end:_done)
+spawned_reviewers = []     # reviewer agent IDs spawned on demand
+last_seen_msg_id = None    # tracks last processed message to avoid reprocessing
+agent_last_seen = {}       # agentId → last message ID seen at their last spawn
 
-while (currentJob !== "_done"):
-  job = workflow.jobs[currentJob]
+while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
-  # Spawn each agent in the job in parallel
-  for each agentId in job.agents:
-    spawn agent with:
-      - Persona: loaded via list_agents
-      - Memory: read_memory(agent_id) + read_memory() combined
-      - Additional system prompt injected:
-          ## Current Job: {currentJob}
-          {job.description}
+  # 1. Check if any dormant agent has new todo tasks
+  all_tasks = get_all_tasks(agent_id: "orchestrator")
+  for each dormant_agent in dormant_agents:
+    my_tasks = [t for t in all_tasks if t.assignee == dormant_agent AND t.status == 'todo']
+    if my_tasks:
+      re-spawn dormant_agent (see Re-spawn Pattern)
+      remove dormant_agent from dormant_agents
 
-          ## Completion criteria and next step
-          When your work is complete, evaluate the conditions below and declare:
-          send_message(to: null, content: "end:{nextJobId} | {reason}")
-          {list of job.end conditions}
+  # 2. Process new broadcast messages
+  all_messages = get_messages(agent_id: "orchestrator")  # broadcasts + messages to "orchestrator"
+  new_messages = [m for m in all_messages if m.id > last_seen_msg_id]
+  if new_messages:
+    last_seen_msg_id = max(m.id for m in new_messages)
 
-          ## Failure handling
-          If an unrecoverable error occurs (missing required artifact, repeated tool call failures, etc.)
-          stop working and declare failure in this format:
-          send_message(to: null, content: "end:failed | {detailed failure reason}")
-          Do not attempt further work after declaring failure.
+  for each msg in new_messages:
 
-  # Collect end declarations from all agents
-  # Poll get_messages every ~30 seconds and detect messages starting with "end:"
-  # Supported formats:
-  #   "end:{nextJobId} | {reason}"  — success, proceed to nextJobId
-  #   "end:failed | {reason}"       — agent failure, abort workflow
-  #
-  # Timeout: wait up to 10 minutes. If not all agent declarations arrive within 10 minutes,
-  #   report the unresponsive agents to the user and let the user decide how to proceed.
-  #   (The user can continue with partial responses or abort the workflow.)
+    # 2a. End declarations
+    if msg.content starts with "end:waiting":
+      dormant_agents[msg.from_agent] = extract reason after "|"
+    elif msg.content starts with "end:_done":
+      done_agents[msg.from_agent] = extract summary after "|"
+    elif msg.content starts with "end:failed":
+      report failure to user: "{msg.from_agent} failed: {reason}"
+      ask user: abort or continue without this agent?
 
-  expectedAgents = job.agents (+ reviewers list if job has reviewers)
-  startTime = now()
-  declarations = []
+    # 2b. Reviewer spawn trigger
+    # Pattern: "Review requested: {reviewerId}" anywhere in message
+    reviewer_match = regex match r"Review requested:\s*([a-zA-Z0-9_-]+)" in msg.content
+    if reviewer_match:
+      reviewerId = reviewer_match.group(1)
+      if reviewerId not in spawned_reviewers AND reviewerId not in done_agents:
+        spawn_reviewer(reviewerId, msg.from_agent, all_agents_cache)
+        spawned_reviewers.append(reviewerId)
 
-  while declarations count < expectedAgents count:
-    if now() - startTime > 10 minutes:
-      missingAgents = expectedAgents - agents already represented in declarations
-      warn user: "Timeout: {missingAgents} did not respond. Continue with received responses?"
+    # 2c. Review completion trigger — re-spawn the implementer
+    # Pattern: "Review complete: {implementerId} ..."
+    done_match = regex match r"Review complete:\s*([a-zA-Z0-9_-]+)" in msg.content
+    if done_match:
+      implementerId = done_match.group(1)
+      if implementerId in dormant_agents:
+        re-spawn implementerId (see Re-spawn Pattern)
+        remove implementerId from dormant_agents
+
+  # 3. Deadlock detection
+  active_agents = (base_agents + spawned_reviewers) - dormant_agents - done_agents
+  if not active_agents AND len(dormant_agents) > 0:
+    wait 30 seconds
+    re-poll tasks and messages once more
+    if still no new work:
+      warn user: "Possible deadlock. Dormant agents: {list} — {reasons}. Continue or abort?"
       proceed or abort based on user decision
-      break
-
-    check for new messages (get_messages)
-    add any newly received "end:"-prefixed messages to declarations
-
-    # Immediately handle failure declarations
-    if any declaration matches "end:failed":
-      failedAgent = the agent ID in question
-      reason = the {reason} part of the declaration message
-      immediately report to user: "{failedAgent} failed: {reason}"
-      abort workflow (currentJob = "_failed")
-      break
-
-    wait ~30 seconds then retry
-
-  # Decide next job (on normal completion)
-  if all declarations point to the same nextJob:
-    currentJob = nextJob
-  else:
-    # Diverging opinions → prefer the conservative path (loop back over advance)
-    currentJob = decide based on job.end conditions and collected reasons, preferring the most conservative path
 ```
 
-### Step 3: Session wrap-up (when `_done` is reached)
-1. Ask each agent to store session learnings via `append_memory`.
-2. Call `append_memory(agent_id: undefined, content: "team retrospective...")` to update `lessons.md`.
-   - Omitting `agent_id` writes to the shared project memory `lessons.md`.
-3. Call `save_session_summary` to archive the session (tasks + messages included).
-4. Report results to the user.
+## Re-spawn Pattern
 
-## Agent spawn pattern
+When re-spawning a dormant agent:
 
-For each agent spawn:
-1. Load the persona via `list_agents`.
-   - If the agentId is not in list_agents results, do a reverse lookup in the reviewers map:
-     find agentId in any reviewers value list → use the corresponding key agent's persona
-     (e.g. fe2 → reviewers.fe = [fe2] → load fe persona, set agent_id to fe2)
-2. Load personal memory via `read_memory(agent_id)`.
-3. Load project memory via `read_memory()` (no agent_id) → project.md + lessons.md.
-4. Compose: system prompt = persona + memory + current job info.
-5. Allowed MCP tools = the agent's `tools` array.
+1. Load their persona + memory (same as initial spawn).
+2. Fetch all messages: `get_messages(agent_id: "{agentId}")`.
+3. Compute new messages since last spawn:
+   - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
+   - Update: `agent_last_seen[agentId] = max(m.id for m in all_msgs)`
+4. Inject re-spawn context into their system prompt:
+```
+## Re-spawn Context
+You were waiting. Here is what has happened since your last run:
 
-## Handling reviewers
+New events:
+{list of new_msgs}
 
-When a job has a `reviewers` field, inject additional context when spawning reviewer agents:
-- `reviewers.fe: [fe2]` → when spawning fe2: "Review the artifact written by fe (fetch fe-pr via get_artifact)"
-- Reviewers also declare completion with `end:{nextJobId} | {reason}`
-- Collect end declarations from all agents (workers + reviewers) before deciding the next job
+Your current tasks:
+{get_my_tasks result — fetched by orchestrator before spawning}
+
+Team status:
+{get_team_status result — fetched by orchestrator before spawning}
+
+Resume your work. Call get_messages() first to read the full history.
+```
+5. Spawn with their allowed tools.
+6. Collect their new `end:` declaration.
+
+## Reviewer Spawn Pattern
+
+Triggered when any agent broadcasts "Review requested: {reviewerId}".
+
+1. Look up `reviewerId` in the cached `list_agents` result:
+   - **Found**: spawn that agent with their defined persona and agent_id = reviewerId.
+   - **Not found**: spawn using the requester's persona (same systemPrompt) but with agent_id = reviewerId.
+     This handles the common pattern where a reviewer inherits the implementer's persona.
+
+2. Inject reviewer context into the system prompt:
+   ```
+   ## Reviewer Role
+   You are acting as a peer reviewer (agent_id: {reviewerId}).
+   Call get_messages(agent_id: "{reviewerId}") to find the review request.
+   Fetch the artifact, review it thoroughly, and call submit_review.
+   IMPORTANT: After submit_review, broadcast the result:
+     send_message(to: null, "Review complete: {requesterId} artifact {artifact_id} {approved|changes_requested} — {summary}")
+   After reviewing, call get_team_status() and declare end:waiting or end:_done.
+   ```
+
+3. Allowed tools: same as the base persona's tools array.
+4. Collect their `end:` declaration and track in spawned_reviewers.
+
+**Note for teams without explicit reviewer agents:**
+Agents can review each other's work by naming any active agent as reviewer.
+Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
+  send_message(to: null, "Review requested: researcher_b please review paper artifact {id}")
+
+## Session Wrap-up
+
+When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
+
+1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
+2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
+3. Report results to the user.
+
+## Failure Handling
+
+- `end:failed | {reason}` → report to user, ask abort or continue.
+- Agent produces no `end:` message within 15 minutes → warn user, ask re-spawn / skip / abort.

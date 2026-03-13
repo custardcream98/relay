@@ -2,7 +2,8 @@
 
 ## Overview
 
-A multi-agent framework where Claude Code sub-agents collaborate under distinct personas (PM, Designer, DA, FE, BE, QA, Deployer).
+A domain-agnostic multi-agent collaboration framework built on Claude Code.
+Users define any team in `agents.yml` (web-dev, research, marketing, legal — anything).
 Built as a Claude Code plugin with three layers: MCP server + Skills + Hooks.
 Uses only Claude Code's Agent tool — no direct Claude API calls, no extra billing.
 The MCP server handles all inter-agent communication infrastructure.
@@ -41,9 +42,10 @@ The MCP server handles all inter-agent communication infrastructure.
 - Agents update memory at session end via `write_memory` / `append_memory`
 
 ### Personas are configured in YAML
-- `agents.default.yml`: default personas (do not modify)
-- `agents.yml`: user customization (supports override, `extends`, `disabled`)
-- `packages/server/src/agents/loader.ts` handles merging
+- `agents.default.yml`: framework skeleton — ships as `agents: {}` (empty). Do not modify.
+- `agents.example.yml`: complete web-dev team example (pm, designer, da, fe, be, qa, deployer + workflow). Copy to `agents.yml` to get started.
+- `agents.yml`: user's team definition — required; must have at least one agent
+- `packages/server/src/agents/loader.ts` handles merging; throws if 0 agents are loaded
 
 ### Install modes (global / local)
 - Global: install skills to `~/.claude/skills/` + `claude mcp add --scope user`
@@ -104,10 +106,17 @@ hooks/
 
 ## Workflow
 
-1. `/relay:init` — run once; team does a parallel codebase scan and initializes `.relay/memory/`
-2. `/relay:relay "task"` — PM → Designer/DA → FE/BE → code review → QA → Deployer → deploy
+1. `/relay:init` — run once; all configured agents scan in parallel and initialize `.relay/memory/`
+2. `/relay:relay "task"` — all agents spawn simultaneously; react to messages/tasks event-driven; orchestrator re-spawns dormant agents when new work arrives
 3. `/relay:agent {id} "task"` — invoke a single agent in isolation
 4. At session end, agents update memory and archive the session
+
+### Event-driven collaboration model
+- All agents start at the same time (no phases)
+- Agents use `claim_task` to atomically pick up work (race-condition safe)
+- Agents broadcast `end:waiting` or `end:_done` when they have no more work
+- Orchestrator re-spawns dormant agents when new tasks or messages appear
+- Any agent can trigger a reviewer by broadcasting "Review requested: {reviewerId}"
 
 ## Dashboard Requirements
 
@@ -168,7 +177,7 @@ git push
 - Prefer Bun built-in APIs over `node:` prefix modules
 - Agent persona system prompts may be Korean or English, but keep them consistent
 - Commit `.relay/memory/` files to git so the team shares memory
-- Never modify `agents.default.yml`; put customizations in `agents.yml`
+- Never modify `agents.default.yml`; define your team in `agents.yml` (use `agents.example.yml` as reference)
 - Always specify the bin name explicitly in `.mcp.json` npx args using `--package <pkg> <bin>`
   - If the package name differs from the bin name, npx cannot find the binary
   - Correct: `["npx", "-y", "--package", "@custardcream/relay", "relay-server"]`

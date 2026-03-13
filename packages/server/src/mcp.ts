@@ -5,6 +5,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { getWorkflow, loadAgents } from "./agents/loader";
+import type { AgentPersona } from "./agents/types";
 import { broadcast } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getTaskById } from "./db/queries/tasks";
@@ -17,7 +18,14 @@ import {
   handleListSessions,
   handleSaveSessionSummary,
 } from "./tools/sessions";
-import { handleCreateTask, handleGetMyTasks, handleUpdateTask } from "./tools/tasks";
+import {
+  handleClaimTask,
+  handleCreateTask,
+  handleGetAllTasks,
+  handleGetMyTasks,
+  handleGetTeamStatus,
+  handleUpdateTask,
+} from "./tools/tasks";
 
 // Current session ID (injected via environment variable, defaults to "default")
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
@@ -137,6 +145,59 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const result = await handleGetMyTasks(getDb(), SESSION_ID, input);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+  );
+
+  // 두 에이전트가 동일한 태스크를 동시에 가져가지 않도록 원자적으로 클레임
+  server.tool(
+    "claim_task",
+    {
+      agent_id: z.string().describe("ID of the agent claiming the task"),
+      task_id: z.string().describe("ID of the task to claim"),
+    },
+    async (input) => {
+      const result = await handleClaimTask(getDb(), SESSION_ID, input);
+      if (result.claimed) {
+        const task = getTaskById(getDb(), input.task_id);
+        if (task) {
+          broadcast({
+            type: "task:updated",
+            task: {
+              id: task.id,
+              title: task.title,
+              assignee: task.assignee,
+              status: task.status,
+              priority: task.priority,
+            },
+            timestamp: Date.now(),
+          });
+        }
+      }
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+  );
+
+  // 집계된 태스크 수를 반환 — 에이전트가 has_pending_work로 end:waiting vs end:done 결정
+  server.tool(
+    "get_team_status",
+    {
+      agent_id: z.string().describe("ID of the calling agent"),
+    },
+    async (input) => {
+      const result = await handleGetTeamStatus(getDb(), SESSION_ID, input);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+  );
+
+  // 담당자와 무관하게 세션 내 모든 태스크 반환
+  server.tool(
+    "get_all_tasks",
+    {
+      agent_id: z.string().describe("ID of the calling agent"),
+    },
+    async (input) => {
+      const result = await handleGetAllTasks(getDb(), SESSION_ID, input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -330,8 +391,14 @@ export function createMcpServer(): McpServer {
 
   // --- agents tools ---
 
-  // List available agents (used by the orchestrator to discover personas)
-  const agents = loadAgents();
+  // 에이전트 로드 — agents.yml이 없을 경우 빈 배열로 graceful 처리 (서버 crash 방지)
+  // list_agents가 빈 배열을 반환해야 /relay:init Phase 0 (팀 제안)가 동작함
+  let agents: Record<string, AgentPersona>;
+  try {
+    agents = loadAgents();
+  } catch {
+    agents = {};
+  }
 
   server.tool(
     "list_agents",

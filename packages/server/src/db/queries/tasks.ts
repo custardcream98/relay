@@ -76,3 +76,43 @@ export function getAllTasks(db: Database, sessionId: string): TaskRow[] {
     .query<TaskRow, [string]>("SELECT * FROM tasks WHERE session_id = ? ORDER BY created_at ASC")
     .all(sessionId);
 }
+
+// 태스크를 원자적으로 클레임 — 현재 'todo' 상태이고 해당 에이전트에 할당되어 있거나 미할당인 경우에만 'in_progress'로 변경
+// 클레임 성공 시 true, 실패 시 false 반환
+export function claimTask(db: Database, taskId: string, agentId: string): boolean {
+  db.query(`
+    UPDATE tasks
+    SET status = 'in_progress', updated_at = unixepoch()
+    WHERE id = $id
+      AND status = 'todo'
+      AND (assignee = $agentId OR assignee IS NULL)
+  `).run({ $id: taskId, $agentId: agentId });
+  const result = db.query("SELECT changes() as n").get() as { n: number };
+  return result.n > 0;
+}
+
+export interface TeamStatusRow {
+  todo: number;
+  in_progress: number;
+  in_review: number;
+  done: number;
+  total: number;
+}
+
+// 세션의 태스크 상태별 집계 — 에이전트가 작업 완료 시점을 판단하는 데 사용
+export function getTeamStatus(db: Database, sessionId: string): TeamStatusRow {
+  return (
+    db
+      .query<TeamStatusRow, [string]>(`
+        SELECT
+          COUNT(CASE WHEN status = 'todo' THEN 1 END)        AS todo,
+          COUNT(CASE WHEN status = 'in_progress' THEN 1 END) AS in_progress,
+          COUNT(CASE WHEN status = 'in_review' THEN 1 END)   AS in_review,
+          COUNT(CASE WHEN status = 'done' THEN 1 END)        AS done,
+          COUNT(*)                                            AS total
+        FROM tasks
+        WHERE session_id = ?
+      `)
+      .get(sessionId) ?? { todo: 0, in_progress: 0, in_review: 0, done: 0, total: 0 }
+  );
+}

@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { randomUUID } from "node:crypto";
 import { insertReview, updateReviewStatus } from "../db/queries/reviews";
 
 export async function handleRequestReview(
@@ -11,7 +10,7 @@ export async function handleRequestReview(
     reviewer: string;
   }
 ) {
-  const id = randomUUID();
+  const id = crypto.randomUUID();
   insertReview(db, {
     id,
     session_id: sessionId,

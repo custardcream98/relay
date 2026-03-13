@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { randomUUID } from "node:crypto";
 import { getMessagesForAgent, insertMessage } from "../db/queries/messages";
 
 interface SendMessageInput {
@@ -15,7 +14,7 @@ interface GetMessagesInput {
 
 // 메시지를 전송하고 broadcast용 메시지 객체를 반환한다
 export async function handleSendMessage(db: Database, sessionId: string, input: SendMessageInput) {
-  const id = randomUUID();
+  const id = crypto.randomUUID();
   const msg = {
     id,
     session_id: sessionId,

@@ -1,6 +1,10 @@
 // src/dashboard/websocket.ts
 import type { ServerWebSocket } from "bun";
+import { insertEvent } from "../db/queries/events.ts";
 import type { RelayEvent } from "./events";
+
+// 현재 세션 ID (환경변수로 주입, 기본값 "default")
+const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
 // 연결된 클라이언트 집합
 const clients = new Set<ServerWebSocket<unknown>>();
@@ -14,10 +18,17 @@ export function removeClient(ws: ServerWebSocket<unknown>): void {
 }
 
 export function broadcast(event: RelayEvent): void {
-  const payload = JSON.stringify(event);
+  // 이벤트 DB 저장 (히스토리 재생용)
+  try {
+    insertEvent(SESSION_ID, event);
+  } catch {
+    // DB 오류는 브로드캐스트를 막지 않음
+  }
+  // 라이브 클라이언트에 전송
+  const data = JSON.stringify(event);
   for (const client of clients) {
     try {
-      client.send(payload);
+      client.send(data);
     } catch {
       clients.delete(client);
     }

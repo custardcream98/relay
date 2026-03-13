@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { randomUUID } from "node:crypto";
 import type { TaskRow } from "../db/queries/tasks";
 import { getTasksByAssignee, insertTask, updateTask } from "../db/queries/tasks";
 
@@ -15,7 +14,7 @@ export async function handleCreateTask(
     priority: string;
   }
 ) {
-  const id = randomUUID();
+  const id = crypto.randomUUID();
   insertTask(db, {
     id,
     session_id: sessionId,

@@ -52,4 +52,5 @@ export type RelayEvent =
       messages: unknown[];
       artifacts: unknown[];
       timestamp: number;
-    };
+    }
+  | { type: "memory:updated"; agentId: AgentId; timestamp: number };

@@ -6,6 +6,7 @@ import { serveStatic } from "hono/bun";
 import { loadAgents } from "../agents/loader";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
+import { getEventsBySession } from "../db/queries/events";
 import { getAllMessages } from "../db/queries/messages";
 import { getAllTasks } from "../db/queries/tasks";
 import { handleGetSessionSummary } from "../tools/sessions";
@@ -46,6 +47,13 @@ app.get("/api/session", (c) => {
     messages: getAllMessages(db, SESSION_ID),
     artifacts: getAllArtifacts(db, SESSION_ID),
   });
+});
+
+// 세션 이벤트 조회 API (히스토리 재생용)
+app.get("/api/sessions/:id/events", (c) => {
+  const sessionId = c.req.param("id");
+  const events = getEventsBySession(sessionId);
+  return c.json({ success: true, events });
 });
 
 // 세션 요약 조회 API

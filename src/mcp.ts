@@ -251,6 +251,13 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const result = await handleWriteMemory(RELAY_DIR, input);
+      if (result.success) {
+        broadcast({
+          type: "memory:updated",
+          agentId: input.agent_id ?? "unknown",
+          timestamp: Date.now(),
+        });
+      }
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -264,6 +271,13 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const result = await handleAppendMemory(RELAY_DIR, input);
+      if (result.success) {
+        broadcast({
+          type: "memory:updated",
+          agentId: input.agent_id ?? "unknown",
+          timestamp: Date.now(),
+        });
+      }
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );

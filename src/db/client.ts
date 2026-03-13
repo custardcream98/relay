@@ -17,6 +17,13 @@ export function getDb(): Database {
   return _db;
 }
 
+// 테스트용: 주어진 경로(":memory:" 등)로 DB를 초기화한다
+export function initDb(path: string): void {
+  _db?.close();
+  _db = new Database(path);
+  runMigrations(_db);
+}
+
 // DB 연결을 닫고 싱글톤 인스턴스를 초기화한다
 export function closeDb(): void {
   _db?.close();

@@ -1,6 +1,6 @@
 // src/tools/memory.ts
 // 에이전트 기억(메모리)을 Markdown 파일로 읽고 쓰는 툴
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
 // 에이전트별 메모리 파일 경로
@@ -33,10 +33,10 @@ export async function handleReadMemory(relayDir: string, input: { agent_id?: str
     // agent_id 없으면 project.md + lessons.md 합쳐서 반환
     if (!input.agent_id) {
       const project = existsSync(projectMemoryPath(relayDir))
-        ? readFileSync(projectMemoryPath(relayDir), "utf-8")
+        ? await Bun.file(projectMemoryPath(relayDir)).text()
         : null;
       const lessons = existsSync(lessonsMemoryPath(relayDir))
-        ? readFileSync(lessonsMemoryPath(relayDir), "utf-8")
+        ? await Bun.file(lessonsMemoryPath(relayDir)).text()
         : null;
       const content =
         [project, lessons].filter((s): s is string => s !== null).join("\n\n---\n\n") || null;
@@ -45,7 +45,7 @@ export async function handleReadMemory(relayDir: string, input: { agent_id?: str
 
     const path = agentMemoryPath(relayDir, input.agent_id);
     if (!existsSync(path)) return { success: true, content: null };
-    return { success: true, content: readFileSync(path, "utf-8") };
+    return { success: true, content: await Bun.file(path).text() };
   } catch (err) {
     return { success: false, content: null, error: String(err) };
   }
@@ -66,7 +66,7 @@ export async function handleWriteMemory(
       ? agentMemoryPath(relayDir, input.agent_id)
       : projectMemoryPath(relayDir);
 
-    const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
+    const existing = existsSync(path) ? await Bun.file(path).text() : "";
 
     // key 섹션이 있으면 교체, 없으면 추가
     // 줄 단위로 분리하여 섹션 경계를 정확하게 파악 (정규식 메타문자 문제 방지)
@@ -77,7 +77,7 @@ export async function handleWriteMemory(
     if (startIdx === -1) {
       // 섹션 없음 — 끝에 추가
       const suffix = `${existing.length > 0 ? "\n" : ""}## ${input.key}\n\n${input.content}`;
-      writeFileSync(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
+      await Bun.write(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
     } else {
       // 다음 ## 헤더 또는 파일 끝까지 교체
       let endIdx = lines.findIndex((l, i) => i > startIdx && l.startsWith("## "));
@@ -86,7 +86,7 @@ export async function handleWriteMemory(
       const after = lines.slice(endIdx);
       const newSection = [`## ${input.key}`, "", input.content];
       const merged = [...before, ...newSection, ...after].join("\n");
-      writeFileSync(path, `${merged.trimEnd()}\n`);
+      await Bun.write(path, `${merged.trimEnd()}\n`);
     }
 
     return { success: true };
@@ -114,8 +114,8 @@ export async function handleAppendMemory(
     const timestamp = new Date().toISOString().split("T")[0];
     const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
 
-    const existing = existsSync(path) ? readFileSync(path, "utf-8") : "";
-    writeFileSync(path, existing + entry);
+    const existing = existsSync(path) ? await Bun.file(path).text() : "";
+    await Bun.write(path, existing + entry);
     return { success: true };
   } catch (err) {
     return { success: false, error: String(err) };

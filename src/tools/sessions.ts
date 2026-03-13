@@ -1,6 +1,6 @@
 // src/tools/sessions.ts
 // 세션 요약을 파일로 저장하고 조회하는 툴
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -15,12 +15,12 @@ export async function handleSaveSessionSummary(
     const dir = join(relayDir, "sessions", input.session_id);
     mkdirSync(dir, { recursive: true });
 
-    writeFileSync(
+    await Bun.write(
       join(dir, "summary.md"),
       `# 세션 요약: ${input.session_id}\n\n${input.summary}\n`
     );
-    writeFileSync(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
-    writeFileSync(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
+    await Bun.write(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
+    await Bun.write(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
 
     return { success: true };
   } catch (err) {
@@ -62,7 +62,7 @@ export async function handleGetSessionSummary(
   try {
     const summaryPath = join(relayDir, "sessions", input.session_id, "summary.md");
     if (!existsSync(summaryPath)) return { success: false, error: "세션을 찾을 수 없습니다" };
-    return { success: true, summary: readFileSync(summaryPath, "utf-8") };
+    return { success: true, summary: await Bun.file(summaryPath).text() };
   } catch (err) {
     return { success: false, error: String(err) };
   }

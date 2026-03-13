@@ -1,5 +1,4 @@
 import type { Database } from "bun:sqlite";
-import { randomUUID } from "node:crypto";
 import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
 
 export async function handlePostArtifact(
@@ -13,7 +12,7 @@ export async function handlePostArtifact(
     task_id?: string;
   }
 ) {
-  const id = randomUUID();
+  const id = crypto.randomUUID();
   insertArtifact(db, {
     id,
     session_id: sessionId,

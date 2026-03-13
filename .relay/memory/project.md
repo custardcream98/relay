@@ -217,10 +217,9 @@ git push
 `bun run publish:server` 직접 실행 금지.
 
 **설치:**
-- `bun run install:local` — `.claude/skills/`, MCP `--scope local`
-- `bun run install:global` — `~/.claude/skills/`, MCP `--scope user`
-- `.mcp.json` npx args: 반드시 `--package @custardcream/relay relay-server` 명시
-  - 패키지명과 bin명이 다를 때 npx가 바이너리를 찾지 못하는 문제 방지
+- Claude Code 마켓플레이스 플러그인으로 설치 (skills + MCP 자동 등록)
+- `.mcp.json` bunx args: 반드시 `--package @custardcream/relay relay-server` 명시
+  - 패키지명과 bin명이 다를 때 bunx가 바이너리를 찾지 못하는 문제 방지
 - 설치 후 `/reload-plugins` 실행 필요
 
 ## CI/CD

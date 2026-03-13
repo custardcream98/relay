@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "relay": {
-      "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay-server"]
+      "command": "bunx",
+      "args": ["--bun", "--package", "@custardcream/relay", "relay-server"]
     }
   }
 }

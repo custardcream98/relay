@@ -149,8 +149,6 @@ type RelayEvent =
 bun run dev              # dev server (hot reload)
 bun run build            # build
 bun test                 # run tests
-bun run install:local    # local install (skills + MCP registration)
-bun run install:global   # global install
 bun run dashboard:dev    # frontend dev server
 bun run dashboard:build  # frontend build
 ```

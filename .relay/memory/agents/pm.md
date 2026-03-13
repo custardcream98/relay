@@ -77,8 +77,7 @@ relay (plugin)
 - `bun run publish:server` 직접 실행 금지
 
 **설치:**
-- `bun run install:local` — 로컬 설치 (skills + MCP 등록)
-- `bun run install:global` — 글로벌 설치
+- Claude Code 마켓플레이스 플러그인으로 설치 (skills + MCP 자동 등록)
 - `.mcp.json`의 npx args에 반드시 `--package <pkg> <bin>` 명시
 
 **메모리 관리:**

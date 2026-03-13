@@ -1,21 +1,22 @@
-# 의존성
+# Dependencies
 node_modules/
 
-# 빌드 결과
+# Build output
 dist/
-dashboard/dist/
-docs-site/dist/
+packages/dashboard/dist/
+packages/docs/dist/
+packages/docs/.astro/
 
-# 런타임
+# Runtime
 *.db
 *.db-journal
 *.db-shm
 *.db-wal
 
-# 워크트리 (git worktree)
+# Git worktrees
 .worktrees/
 
-# 환경 변수
+# Environment variables
 .env
 .env.local
 

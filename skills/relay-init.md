@@ -1,67 +1,67 @@
 <!-- skills/relay-init.md -->
 # relay-init
 
-프로젝트에 처음 relay를 사용하거나 팀이 프로젝트 컨텍스트를 새로 파악해야 할 때 실행한다.
-`.relay/memory/`가 없으면 `/relay` 실행 시 자동으로 이 스킬 실행을 제안한다.
+Run this when using relay for the first time on a project, or when the team needs to re-scan project context.
+If `.relay/memory/` is absent when `/relay` runs, it will automatically suggest running this skill first.
 
-## 실행 전 확인
+## Pre-flight checks
 
-1. relay MCP 서버가 연결되어 있는지 확인 (`list_agents` 툴 호출)
-2. `.relay/memory/` 디렉토리가 존재하는지 확인
+1. Verify the relay MCP server is connected (call the `list_agents` tool)
+2. Check whether the `.relay/memory/` directory exists
 
-## Phase 1: 병렬 프로젝트 스캔
+## Phase 1: Parallel project scan
 
-아래 에이전트들을 **동시에** spawn한다 (dispatching-parallel-agents 패턴).
-각 에이전트의 system prompt는 `list_agents` 툴로 로드한다.
+Spawn the agents below **simultaneously** (dispatching-parallel-agents pattern).
+Load each agent's system prompt via the `list_agents` tool.
 
-각 에이전트에게 전달할 공통 지시:
-> "프로젝트를 처음 파악하는 init 모드입니다.
->  코드베이스를 탐색하고 당신의 역할 관점에서 중요한 정보를 `write_memory` 툴로 저장하세요.
->  탐색 완료 후 `send_message(to: null, content: 'init-done')`을 보내세요."
->  (to: null은 브로드캐스트 — 모든 에이전트에게 전달됨)
+Common instruction to send each agent:
+> "This is init mode — you are seeing the project for the first time.
+>  Explore the codebase and use the `write_memory` tool to store important information from your role's perspective.
+>  When done, send: `send_message(to: null, content: 'init-done')`"
+>  (to: null is broadcast — delivered to all agents)
 
-**PM** — 탐색 대상:
+**PM** — areas to scan:
 - README.md, CLAUDE.md, package.json
-- 전체 디렉토리 구조
-- 기존 이슈/PR 컨텍스트 (있다면)
-- 저장 키: `domain`, `architecture`, `team-conventions`
+- Overall directory structure
+- Existing issues/PR context (if any)
+- Memory keys: `domain`, `architecture`, `team-conventions`
 
-**FE** — 탐색 대상:
-- 프론트엔드 코드 구조 (`src/`, `app/`, `components/` 등)
-- 사용 중인 프레임워크, 상태관리, 스타일링 방식
-- 저장 키: `tech-stack`, `component-patterns`, `conventions`
+**FE** — areas to scan:
+- Frontend code structure (`src/`, `app/`, `components/`, etc.)
+- Framework, state management, and styling approach in use
+- Memory keys: `tech-stack`, `component-patterns`, `conventions`
 
-**BE** — 탐색 대상:
-- 백엔드 코드 구조
-- API 라우트, DB 스키마, 외부 서비스 의존성
-- 저장 키: `api-structure`, `db-schema`, `external-deps`
+**BE** — areas to scan:
+- Backend code structure
+- API routes, DB schema, external service dependencies
+- Memory keys: `api-structure`, `db-schema`, `external-deps`
 
-**DA** — 탐색 대상:
-- 기존 분석/메트릭 코드, 로깅 설정
-- 저장 키: `existing-events`, `metrics-setup`
+**DA** — areas to scan:
+- Existing analytics/metrics code, logging configuration
+- Memory keys: `existing-events`, `metrics-setup`
 
-**Designer** — 탐색 대상:
-- UI 컴포넌트 라이브러리 여부, 디자인 토큰
-- 저장 키: `design-system`, `ui-patterns`
+**Designer** — areas to scan:
+- UI component library usage, design tokens
+- Memory keys: `design-system`, `ui-patterns`
 
-**QA** — 탐색 대상:
-- 테스트 파일 현황, CI/CD 설정, 커버리지
-- 저장 키: `test-setup`, `ci-config`, `coverage`
+**QA** — areas to scan:
+- Test file coverage, CI/CD configuration, coverage reports
+- Memory keys: `test-setup`, `ci-config`, `coverage`
 
-## Phase 2: 교차 검증
+## Phase 2: Cross-validation
 
-모든 에이전트의 init-done 메시지 수집:
-- `get_messages()` 를 반복 호출하여 `content === "init-done"` 메시지를 탐지
-- 모든 에이전트(list_agents 결과 기준)의 init-done 메시지가 수신되면 다음 단계 진행
-- 최대 5분 대기 후 완료되지 않은 에이전트는 넘어가서 진행
+Collect init-done messages from all agents:
+- Repeatedly call `get_messages()` to detect messages where `content === "init-done"`.
+- Proceed once init-done messages from all agents (per list_agents results) are received.
+- After a maximum wait of 5 minutes, proceed even if some agents have not responded.
 
-PM이 각 에이전트 기억을 읽고 프로젝트 전체 요약 작성:
-- `read_memory(agent_id: "fe")`, `read_memory(agent_id: "be")`, ... 각 에이전트 기억 수집
-- `write_memory(key: "summary", content: ...)` 로 `project.md`에 통합 요약 저장
+PM reads each agent's memory and writes a unified project summary:
+- `read_memory(agent_id: "fe")`, `read_memory(agent_id: "be")`, ... collect each agent's memory.
+- `write_memory(key: "summary", content: ...)` to save the integrated summary to `project.md`.
 
-## Phase 3: 완료 보고
+## Phase 3: Completion report
 
-사용자에게 init 결과 요약:
-- 파악된 기술 스택
-- 주목할 만한 발견사항
-- 이제 `/relay "태스크 설명"` 으로 바로 시작 가능
+Report init results to the user:
+- Identified tech stack
+- Notable findings
+- Ready to start with `/relay "task description"`

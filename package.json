@@ -1,9 +1,12 @@
 {
-  "name": "@custardcream/relay",
-  "version": "0.0.1",
-  "description": "Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크",
-  "module": "src/index.ts",
+  "name": "relay",
+  "version": "0.1.0",
+  "description": "Multi-agent collaboration framework built on Claude Code",
+  "private": true,
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/custardcream98/relay.git"
@@ -11,31 +14,22 @@
   "homepage": "https://custardcream98.github.io/relay",
   "license": "MIT",
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
-    "start": "bun run src/index.ts",
-    "test": "bun test",
+    "dev": "bun run --filter @relay/server dev",
+    "start": "bun run --filter @relay/server start",
+    "test": "bun run --filter @relay/server test",
+    "check": "biome check .",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check .",
-    "dashboard:dev": "cd dashboard && bun run dev",
-    "dashboard:build": "cd dashboard && bun run build",
-    "docs:dev": "cd docs-site && bun run dev",
-    "docs:build": "cd docs-site && bun run build",
+    "dashboard:dev": "bun run --filter @relay/dashboard dev",
+    "dashboard:build": "bun run --filter @relay/dashboard build",
+    "docs:dev": "bun run --filter @relay/docs dev",
+    "docs:build": "bun run --filter @relay/docs build",
     "install:local": "bun run scripts/install.ts",
     "install:global": "bun run scripts/install.ts --global",
     "prepare": "husky"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "hono": "^4.12.7",
-    "js-yaml": "^4.1.1",
-    "zod": "^4.3.6"
-  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
-    "@types/bun": "1.3.10",
-    "@types/js-yaml": "^4.0.9",
-    "husky": "^9.1.7",
-    "typescript": "^5"
+    "husky": "^9.1.7"
   }
 }

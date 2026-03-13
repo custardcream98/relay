@@ -19,7 +19,7 @@ jobs:
       - run: bun run check
 
   test:
-    name: 테스트
+    name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
       - run: bun test
 
   typecheck:
-    name: 타입 체크
+    name: Type Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,13 +41,12 @@ jobs:
       - run: bunx tsc --noEmit
 
   build-dashboard:
-    name: 대시보드 빌드
+    name: Dashboard Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: bun install --frozen-lockfile          # 루트 의존성 (shared types 등)
-      - run: cd dashboard && bun install --frozen-lockfile
-      - run: cd dashboard && bun run build
+      - run: bun install --frozen-lockfile  # installs all workspace packages
+      - run: bun run --filter @relay/dashboard build

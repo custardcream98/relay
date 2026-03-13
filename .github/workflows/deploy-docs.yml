@@ -1,11 +1,11 @@
 # .github/workflows/deploy-docs.yml
-name: 문서 사이트 배포
+name: Deploy Docs Site
 
 on:
   push:
     branches: [main]
     paths:
-      - "docs-site/**"
+      - "packages/docs/**"
       - ".github/workflows/deploy-docs.yml"
   workflow_dispatch:
 
@@ -20,22 +20,22 @@ concurrency:
 
 jobs:
   build:
-    name: 빌드
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: cd docs-site && bun install --frozen-lockfile
-      - run: cd docs-site && bun run build
+      - run: bun install --frozen-lockfile
+      - run: bun run --filter @relay/docs build
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs-site/dist
+          path: packages/docs/dist
 
   deploy:
-    name: 배포
+    name: Deploy
     needs: build
     runs-on: ubuntu-latest
     environment:

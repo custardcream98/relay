@@ -26,18 +26,12 @@
   },
   "files": {
     "includes": [
-      "src/**",
-      "shared/**",
-      "scripts/**",
-      "hooks/**",
-      "skills/**",
-      "*.json",
-      "*.ts",
+      "**",
       "!!**/node_modules",
       "!!**/dist",
-      "!!**/dashboard/dist",
-      "!!**/dashboard/node_modules",
-      "!!**/docs-site",
+      "!!packages/dashboard/dist",
+      "!!packages/docs/dist",
+      "!!packages/docs/.astro",
       "!!**/*.db"
     ]
   }

@@ -1,27 +1,28 @@
 <!-- skills/relay-agent.md -->
 # relay-agent
 
-특정 에이전트 한 명만 단독으로 호출한다.
-예: `/relay-agent fe "CartItem 컴포넌트 리팩토링해줘"`
+Invoke a single agent in isolation.
+Example: `/relay-agent fe "Refactor the CartItem component"`
 
-## 실행
+## Execution
 
-1. `list_agents`로 사용 가능한 에이전트 목록 확인
-2. 지정한 에이전트의 페르소나 + 메모리 로드
-3. 해당 에이전트 단독 spawn
-   - 에이전트에게 허용할 툴은 `list_agents` 결과의 해당 에이전트 `tools` 배열에 명시된 것으로만 제한한다
-   - `tools` 배열 외의 툴은 spawn 시 사용 불가 목록에서 제외하여 불필요한 권한을 부여하지 않는다
-4. 완료 후 `append_memory`로 학습 내용 저장
+1. Call `list_agents` to see the available agents.
+2. Load the specified agent's persona + memory.
+3. Spawn that agent alone.
+   - Restrict tools to those listed in the agent's `tools` array from `list_agents`.
+   - Exclude all other tools to avoid granting unnecessary permissions.
+4. After completion, call `append_memory` to persist learnings.
 
-## 알 수 없는 에이전트 처리
+## Unknown agent handling
 
-지정한 에이전트 ID가 `list_agents` 결과에 없으면:
-- 사용 가능한 에이전트 목록을 사용자에게 보여준다
-- 다시 에이전트를 선택하도록 요청한다
+If the specified agent ID is not found in `list_agents` results:
+- Show the user the list of available agents.
+- Ask the user to select an agent again.
 
-## 메모리 로드 패턴
+## Memory load pattern
 
-2단계에서 메모리를 로드할 때:
-1. `read_memory(agent_id: "{agentId}")` — 해당 에이전트의 개인 기억
-2. `read_memory()` (agent_id 생략) — project.md + lessons.md 프로젝트 기억
-두 결과를 합성하여 system prompt에 prepend한다.
+In step 2, load memory in two passes:
+1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
+2. `read_memory()` (omit agent_id) — project.md + lessons.md shared project memory
+
+Combine both results and prepend them to the agent's system prompt.

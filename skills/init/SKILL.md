@@ -1,6 +1,6 @@
 ---
 name: init
-description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. Spawns all configured agents in parallel to read the codebase and write .relay/memory/ files.
+description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. If no agents.yml exists, analyzes the project and suggests a team. Spawns all configured agents in parallel to read the codebase and write .relay/memory/ files.
 ---
 
 Run this to initialize project memory for your relay team.
@@ -9,12 +9,77 @@ If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically su
 ## Pre-flight Checks
 
 1. Verify the relay MCP server is connected: call `list_agents`.
-   - If list_agents returns an empty array or error: tell the user
-     "No agents defined. Create agents.yml first. See agents.example.yml for reference."
-     and stop.
+   - If list_agents returns agents: proceed to Phase 1.
+   - If list_agents returns an empty list: **run Phase 0 (Team Suggestion)** instead of stopping.
 2. Check whether the `.relay/memory/` directory exists.
 3. Tell the user: "Dashboard: http://localhost:3456"
 4. Show the user the loaded agent list: "{emoji} {name}" for each agent.
+
+## Phase 0: Team Suggestion (runs only when no agents are defined)
+
+When `list_agents` returns an empty list, the user has not set up `agents.yml` yet.
+Analyze the project and suggest a team tailored to it.
+
+### Step 1: Project Analysis
+
+Explore the project directory to understand:
+- **Domain**: What kind of project is this? (web app, research, data pipeline, marketing, content, etc.)
+- **Tech stack**: What languages, frameworks, tools are in use?
+- **Scale**: How many files, how complex?
+- **Existing roles**: Are there any hints about team structure? (e.g., README mentions "data scientists", "writers", etc.)
+
+Look at: `README.md`, `package.json`, `pyproject.toml`, `Cargo.toml`, file structure, main source directories.
+
+### Step 2: Generate team suggestion
+
+Based on the analysis, propose 3–6 agents that fit this project's domain.
+Think beyond web development:
+
+| Domain | Example team |
+|--------|-------------|
+| Web app | pm, designer, da, fe, be, qa, deployer |
+| Research | lead-researcher, researcher, data-analyst, writer, reviewer |
+| Marketing | strategist, copywriter, analyst, brand-manager |
+| Data pipeline | architect, engineer, data-scientist, qa-engineer |
+| Content creation | editor, writer, fact-checker, seo-specialist |
+| Legal/compliance | attorney, paralegal, compliance-officer, reviewer |
+
+For each suggested agent, specify:
+- `id`: snake_case identifier
+- `name`: human-readable name
+- `emoji`: fitting emoji
+- `description`: one sentence role description
+- `tools`: recommended subset from the available tool list
+- `systemPrompt`: 2–4 sentences describing how this agent should work in this project
+
+### Step 3: Present suggestion and ask for confirmation
+
+Show the user:
+```
+Based on your project, I suggest this team:
+
+📋 pm — Product Manager
+   Breaks down requirements into tasks and coordinates the team.
+
+🔬 researcher — Researcher
+   ...
+
+Do you want me to:
+  [1] Create agents.yml with this team (recommended)
+  [2] Use the web-dev example (agents.example.yml)
+  [3] I'll create agents.yml myself
+```
+
+### Step 4: Create agents.yml (if user chooses 1)
+
+Write `agents.yml` to the project root with the suggested team.
+Include helpful comments for each agent.
+After writing, re-run `list_agents` to confirm it was loaded, then proceed to Phase 1.
+
+If the user chooses 2, copy `agents.example.yml` content to `agents.yml`, then proceed to Phase 1.
+If the user chooses 3, stop and tell them to create `agents.yml`, then re-run `/relay:init`.
+
+---
 
 ## Phase 1: Parallel Codebase Scan
 

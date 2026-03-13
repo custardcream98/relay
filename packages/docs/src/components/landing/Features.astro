@@ -1,119 +1,178 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
 const features = [
   {
-    icon: "🔗",
+    index: "A",
     title: "MCP-native communication",
     description:
-      "Agents communicate exclusively through MCP tools — send_message, create_task, post_artifact — keeping every interaction auditable and replayable.",
+      "Agents communicate exclusively through MCP tools — send_message, create_task, post_artifact. Every interaction is auditable and replayable.",
+    detail: "Peer-to-peer. No orchestrator bottleneck.",
   },
   {
-    icon: "💡",
+    index: "B",
     title: "Zero extra billing",
     description:
       "relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond what Claude Code already charges.",
+    detail: "Runs entirely on your existing Claude Code subscription.",
   },
   {
-    icon: "🧠",
+    index: "C",
     title: "Persistent shared memory",
     description:
       "Each session writes Markdown notes to .relay/memory/. Agents start the next session fully aware of prior decisions and patterns.",
+    detail: "Commit .relay/memory/ to git — your whole team shares context.",
   },
   {
-    icon: "📊",
+    index: "D",
     title: "Realtime dashboard",
     description:
-      "A WebSocket-powered Kanban + message feed shows exactly what each agent is thinking and doing as it happens. Full session replay included.",
+      "A WebSocket-powered Kanban + message feed shows exactly what each agent is thinking and doing as it happens.",
+    detail: "Full session replay included. Inspect every decision.",
   },
 ];
 ---
 
 <section class="features">
-  <div class="features__inner">
-    <h2 class="features__title">Why relay?</h2>
-    <p class="features__subtitle">
-      Designed to be transparent, lean, and composable.
-    </p>
-    <div class="features__grid">
-      {
-        features.map((feature) => (
-          <div class="features__card">
-            <span class="features__icon" aria-hidden="true">{feature.icon}</span>
-            <h3 class="features__card-title">{feature.title}</h3>
-            <p class="features__card-desc">{feature.description}</p>
+  <div class="features__header">
+    <span class="features__label" aria-hidden="true">// why relay</span>
+    <h2 class="features__title">Transparent, lean,<br />and composable.</h2>
+  </div>
+
+  <!-- 2×2 그리드 — 컴팩트한 editorial 카드 -->
+  <div class="features__grid">
+    {
+      features.map((f, i) => (
+        <div class="features__cell" style={`animation-delay: ${i * 0.08}s`}>
+          <div class="features__cell-index" aria-hidden="true">{f.index}</div>
+          <div class="features__cell-body">
+            <h3 class="features__cell-title">{f.title}</h3>
+            <p class="features__cell-desc">{f.description}</p>
+            <p class="features__cell-detail">{f.detail}</p>
           </div>
-        ))
-      }
-    </div>
+        </div>
+      ))
+    }
   </div>
 </section>
 
 <style>
   .features {
-    background-color: var(--color-bg-surface);
-    padding: 5rem 0;
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-bg-root);
   }
 
-  .features__inner {
-    max-width: 960px;
+  .features__header {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 5vw, 2rem);
+    padding: 5rem clamp(1.25rem, 5vw, 2.5rem) 3.5rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 3rem;
+    gap: 1.25rem;
+  }
+
+  .features__label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    letter-spacing: 0.06em;
+    font-weight: 500;
   }
 
   .features__title {
-    font-size: clamp(1.75rem, 4vw, 2.25rem);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 400;
     color: var(--color-text-primary);
     letter-spacing: -0.02em;
+    line-height: 1.1;
     margin: 0;
-    text-align: center;
   }
 
-  .features__subtitle {
-    font-size: 1rem;
-    color: var(--color-text-secondary);
-    text-align: center;
-    margin: -2rem 0 0;
-    line-height: 1.7;
-  }
-
+  /* 2×2 격자 */
   .features__grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem) 5rem;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    width: 100%;
-  }
-
-  .features__card {
-    background-color: var(--color-bg-root);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    background-color: var(--color-border);
     border: 1px solid var(--color-border);
     border-radius: 0.75rem;
-    padding: 1.5rem;
+    overflow: hidden;
+  }
+
+  @keyframes cell-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .features__cell {
+    display: flex;
+    gap: 1.25rem;
+    padding: 2rem 1.75rem;
+    background-color: var(--color-bg-root);
+    transition: background-color 0.18s;
+    animation: cell-in 0.4s ease-out both;
+  }
+
+  .features__cell:hover {
+    background-color: var(--color-bg-raised);
+  }
+
+  /* 알파벳 인덱스 */
+  .features__cell-index {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--color-accent);
+    opacity: 0.5;
+    flex-shrink: 0;
+    line-height: 1.4;
+    transition: opacity 0.18s;
+  }
+
+  .features__cell:hover .features__cell-index {
+    opacity: 1;
+  }
+
+  .features__cell-body {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: 0.5rem;
   }
 
-  .features__icon {
-    font-size: 1.5rem;
-    line-height: 1;
-  }
-
-  .features__card-title {
+  .features__cell-title {
+    font-family: var(--font-sans);
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
     color: var(--color-text-primary);
     margin: 0;
+    letter-spacing: -0.01em;
   }
 
-  .features__card-desc {
+  .features__cell-desc {
     font-size: 0.875rem;
     color: var(--color-text-secondary);
     line-height: 1.65;
     margin: 0;
+    font-weight: 300;
+  }
+
+  .features__cell-detail {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-accent);
+    letter-spacing: 0.03em;
+    margin: 0.25rem 0 0;
+    opacity: 0.75;
+  }
+
+  /* 반응형 */
+  @media (max-width: 640px) {
+    .features__grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

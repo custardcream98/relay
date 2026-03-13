@@ -1,31 +1,40 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
 const base = import.meta.env.BASE_URL;
 ---
 
-<nav class="nav">
+<nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav__inner">
-    <a href={base} class="nav__logo">relay</a>
-    <a
-      href="https://github.com/custardcream98/relay"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="nav__github"
-      aria-label="View relay on GitHub"
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="currentColor"
-        aria-hidden="true"
-      >
-        <path
-          d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"
-        ></path>
-      </svg>
+    <!-- 로고: 모노스페이스 + 깜빡이는 커서 -->
+    <a href={base} class="nav__logo" aria-label="relay home">
+      <span class="nav__logo-text">relay</span><span class="nav__cursor" aria-hidden="true">_</span>
     </a>
+
+    <div class="nav__actions">
+      <a href={`${base}getting-started/introduction`} class="nav__docs-link">
+        Docs
+      </a>
+      <a
+        href="https://github.com/custardcream98/relay"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="nav__github"
+        aria-label="View relay on GitHub"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"
+          ></path>
+        </svg>
+      </a>
+    </div>
   </div>
 </nav>
 
@@ -35,34 +44,78 @@ const base = import.meta.env.BASE_URL;
     top: 0;
     left: 0;
     right: 0;
-    height: 56px;
+    height: 60px;
     z-index: 100;
-    background-color: color-mix(in srgb, var(--color-bg-root) 90%, transparent);
+    /* 반투명 배경 + 블러 */
+    background-color: color-mix(in srgb, var(--color-bg-root) 85%, transparent);
     border-bottom: 1px solid var(--color-border);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
   }
 
   .nav__inner {
-    max-width: 960px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 5vw, 2rem);
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem);
     height: 100%;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
 
+  /* 로고 */
   .nav__logo {
-    font-family: var(--font-mono);
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: var(--color-accent);
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0;
     text-decoration: none;
+    font-family: var(--font-mono);
+    font-size: 1.0625rem;
+    font-weight: 500;
     letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    transition: opacity 0.15s;
   }
 
   .nav__logo:hover {
-    opacity: 0.85;
+    opacity: 0.75;
+  }
+
+  .nav__logo-text {
+    color: var(--color-text-primary);
+  }
+
+  /* 깜빡이는 커서 */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .nav__cursor {
+    color: var(--color-accent);
+    animation: blink 1.1s step-end infinite;
+    font-weight: 400;
+  }
+
+  /* 우측 액션 영역 */
+  .nav__actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .nav__docs-link {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color 0.15s;
+  }
+
+  .nav__docs-link:hover {
+    color: var(--color-text-primary);
   }
 
   .nav__github {
@@ -73,6 +126,6 @@ const base = import.meta.env.BASE_URL;
   }
 
   .nav__github:hover {
-    color: var(--color-text-primary);
+    color: var(--color-accent);
   }
 </style>

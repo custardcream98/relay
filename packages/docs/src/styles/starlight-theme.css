@@ -1,0 +1,328 @@
+/**
+ * Starlight 커스텀 테마 — relay 디자인 시스템
+ *
+ * 랜딩 페이지의 "Terminal Editorial" 미학과 일치:
+ * - 크림/오프화이트 베이스 (라이트), 딥 잉크 베이스 (다크)
+ * - 앰버/골드 강조색
+ * - DM Mono + DM Serif Display + DM Sans 폰트 트리오
+ */
+
+/* 폰트 임포트 */
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap");
+
+/* ─── Starlight CSS 변수 오버라이드 ─── */
+
+:root,
+[data-theme="light"] {
+  /* 배경 */
+  --sl-color-bg: #f5f0e8;
+  --sl-color-bg-sidebar: #ede8df;
+  --sl-color-bg-nav: color-mix(in srgb, #f5f0e8 90%, transparent);
+  --sl-color-bg-inline-code: #ede8df;
+  --sl-color-bg-accent: rgba(193, 127, 36, 0.1);
+
+  /* 텍스트 */
+  --sl-color-text: #1a1410;
+  --sl-color-text-accent: #c17f24;
+  --sl-color-text-invert: #f5f0e8;
+  --sl-color-white: #f5f0e8;
+  --sl-color-black: #1a1410;
+  --sl-color-gray-1: #3a2e22;
+  --sl-color-gray-2: #5c5043;
+  --sl-color-gray-3: #7d6f5e;
+  --sl-color-gray-4: #9a8e7e;
+  --sl-color-gray-5: #c4b8a6;
+  --sl-color-gray-6: #d4c9b8;
+  --sl-color-gray-7: #ede8df;
+
+  /* 강조색 */
+  --sl-color-accent-low: rgba(193, 127, 36, 0.15);
+  --sl-color-accent: #c17f24;
+  --sl-color-accent-high: #8b5a18;
+
+  /* 보더 */
+  --sl-color-hairline: #d4c9b8;
+  --sl-color-hairline-light: #e6dfd4;
+  --sl-color-hairline-shade: #b8aa96;
+
+  /* 배지 */
+  --sl-color-blue-low: rgba(70, 130, 180, 0.12);
+  --sl-color-blue: #4682b4;
+  --sl-color-blue-high: #2c5f82;
+  --sl-color-green-low: rgba(46, 139, 87, 0.12);
+  --sl-color-green: #2e8b57;
+  --sl-color-green-high: #1d5e3a;
+  --sl-color-orange-low: rgba(193, 127, 36, 0.15);
+  --sl-color-orange: #c17f24;
+  --sl-color-orange-high: #8b5a18;
+  --sl-color-purple-low: rgba(107, 70, 193, 0.12);
+  --sl-color-purple: #6b46c1;
+  --sl-color-purple-high: #4c2e8c;
+  --sl-color-red-low: rgba(185, 28, 28, 0.12);
+  --sl-color-red: #b91c1c;
+  --sl-color-red-high: #7f1d1d;
+
+  /* 폰트 */
+  --sl-font: "DM Sans", system-ui, sans-serif;
+  --sl-font-mono: "DM Mono", "JetBrains Mono", monospace;
+  --sl-font-system: var(--sl-font);
+
+  /* 타이포그래피 */
+  --sl-text-xs: 0.6875rem;
+  --sl-text-sm: 0.8125rem;
+  --sl-text-base: 0.9375rem;
+  --sl-text-lg: 1.0625rem;
+  --sl-text-xl: 1.25rem;
+  --sl-text-2xl: 1.5rem;
+  --sl-text-3xl: 1.875rem;
+  --sl-text-4xl: 2.25rem;
+  --sl-text-5xl: 3rem;
+
+  /* 사이드바 너비 */
+  --sl-sidebar-width: 16rem;
+  --sl-content-width: 50rem;
+
+  /* 그림자 */
+  --sl-shadow-sm: 0 1px 3px rgba(26, 20, 16, 0.06), 0 1px 2px rgba(26, 20, 16, 0.04);
+  --sl-shadow-md: 0 4px 12px rgba(26, 20, 16, 0.08), 0 2px 6px rgba(26, 20, 16, 0.05);
+  --sl-shadow-lg: 0 8px 24px rgba(26, 20, 16, 0.1), 0 4px 12px rgba(26, 20, 16, 0.06);
+}
+
+[data-theme="dark"] {
+  /* 배경 */
+  --sl-color-bg: #0f0d0a;
+  --sl-color-bg-sidebar: #181410;
+  --sl-color-bg-nav: color-mix(in srgb, #0f0d0a 88%, transparent);
+  --sl-color-bg-inline-code: #1e1a14;
+  --sl-color-bg-accent: rgba(232, 168, 58, 0.08);
+
+  /* 텍스트 */
+  --sl-color-text: #f0e8d8;
+  --sl-color-text-accent: #e8a83a;
+  --sl-color-text-invert: #0f0d0a;
+  --sl-color-white: #f0e8d8;
+  --sl-color-black: #0f0d0a;
+  --sl-color-gray-1: #f0e8d8;
+  --sl-color-gray-2: #d8ccb8;
+  --sl-color-gray-3: #b8a888;
+  --sl-color-gray-4: #8a7a64;
+  --sl-color-gray-5: #5a4e3e;
+  --sl-color-gray-6: #2a2318;
+  --sl-color-gray-7: #181410;
+
+  /* 강조색 */
+  --sl-color-accent-low: rgba(232, 168, 58, 0.1);
+  --sl-color-accent: #e8a83a;
+  --sl-color-accent-high: #f5c860;
+
+  /* 보더 */
+  --sl-color-hairline: #2a2318;
+  --sl-color-hairline-light: #221d13;
+  --sl-color-hairline-shade: #3d3428;
+
+  /* 그림자 */
+  --sl-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --sl-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.25);
+  --sl-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── 글로벌 타이포그래피 ─── */
+
+body {
+  font-family: var(--sl-font);
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 제목: Serif Display */
+h1,
+h2,
+h3 {
+  font-family: "DM Serif Display", Georgia, serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.02em;
+}
+
+h4,
+h5,
+h6 {
+  font-family: var(--sl-font) !important;
+  font-weight: 500 !important;
+  letter-spacing: -0.01em;
+}
+
+/* ─── 코드 블록 스타일링 ─── */
+
+code:not(pre > code) {
+  font-family: var(--sl-font-mono) !important;
+  font-size: 0.875em;
+  background-color: var(--sl-color-bg-inline-code);
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+}
+
+pre {
+  border: 1px solid var(--sl-color-hairline-shade) !important;
+  border-radius: 0.5rem !important;
+}
+
+/* ─── Starlight 사이드바 ─── */
+
+.sidebar-pane {
+  background-color: var(--sl-color-bg-sidebar) !important;
+  border-right: 1px solid var(--sl-color-hairline) !important;
+}
+
+/* 사이드바 그룹 레이블 */
+.group-label span {
+  font-family: var(--sl-font-mono) !important;
+  font-size: 0.6875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--sl-color-text-accent) !important;
+  opacity: 0.8;
+}
+
+/* 사이드바 링크 */
+.sidebar-content a {
+  font-size: 0.875rem;
+  font-weight: 300;
+  border-radius: 0.375rem;
+}
+
+.sidebar-content a[aria-current="page"] {
+  background-color: var(--sl-color-bg-accent) !important;
+  color: var(--sl-color-text-accent) !important;
+  font-weight: 400 !important;
+}
+
+/* ─── 상단 네비게이션 ─── */
+
+.site-title {
+  font-family: var(--sl-font-mono) !important;
+  font-weight: 500 !important;
+  font-size: 1.0625rem !important;
+  letter-spacing: -0.02em !important;
+  color: var(--sl-color-text) !important;
+}
+
+/* ─── 콘텐츠 영역 ─── */
+
+.content-panel {
+  padding-top: 2.5rem;
+}
+
+/* 산문 텍스트 */
+.sl-markdown-content p {
+  line-height: 1.8;
+  color: var(--sl-color-gray-2);
+  font-weight: 300;
+}
+
+.sl-markdown-content strong {
+  font-weight: 500;
+  color: var(--sl-color-text);
+}
+
+/* ─── 히어로 (docs/index.mdx splash) ─── */
+
+.hero {
+  background: linear-gradient(
+    160deg,
+    var(--sl-color-bg) 0%,
+    color-mix(in srgb, var(--sl-color-bg) 85%, var(--sl-color-accent)) 100%
+  ) !important;
+}
+
+.hero h1 {
+  font-family: "DM Serif Display", Georgia, serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.03em !important;
+}
+
+.hero .tagline {
+  font-weight: 300 !important;
+  color: var(--sl-color-gray-2) !important;
+}
+
+/* ─── 카드 컴포넌트 ─── */
+
+.card {
+  border-color: var(--sl-color-hairline) !important;
+  background-color: var(--sl-color-bg-sidebar) !important;
+  border-radius: 0.625rem !important;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s !important;
+}
+
+.card:hover {
+  border-color: var(--sl-color-accent) !important;
+  box-shadow: var(--sl-shadow-md) !important;
+}
+
+.card .icon {
+  color: var(--sl-color-text-accent) !important;
+}
+
+/* ─── 페이지 타이틀 강조선 ─── */
+
+.page-title {
+  border-bottom: 2px solid var(--sl-color-accent) !important;
+  padding-bottom: 0.625rem !important;
+}
+
+/* ─── 테이블 ─── */
+
+.sl-markdown-content table {
+  font-size: 0.875rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.sl-markdown-content th {
+  background-color: var(--sl-color-bg-sidebar);
+  font-family: var(--sl-font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--sl-color-text-accent);
+}
+
+.sl-markdown-content td {
+  border-top: 1px solid var(--sl-color-hairline);
+  color: var(--sl-color-gray-2);
+  font-weight: 300;
+}
+
+/* ─── 페이지 페이드인 ─── */
+
+@keyframes docs-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+main {
+  animation: docs-fade-in 0.35s ease-out both;
+}
+
+/* ─── "이전/다음" 페이지 링크 ─── */
+
+.pagination-links a {
+  border: 1px solid var(--sl-color-hairline) !important;
+  border-radius: 0.5rem !important;
+  transition: border-color 0.15s !important;
+}
+
+.pagination-links a:hover {
+  border-color: var(--sl-color-accent) !important;
+}

@@ -8,7 +8,8 @@ import defaultYmlText from "../../../../agents.default.yml" with { type: "text" 
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
 // agents.yml allows per-project customization — resolved relative to CWD (user project root)
-const PROJECT_ROOT = process.cwd();
+// RELAY_PROJECT_ROOT env var를 설정하면 CWD 대신 사용 (bunx 등으로 CWD가 /tmp가 되는 경우 대비)
+const PROJECT_ROOT = process.env.RELAY_PROJECT_ROOT ?? process.cwd();
 // .relay/agents.yml — session-level override (customize without git tracking)
 const RELAY_DIR = process.env.RELAY_DIR ?? join(PROJECT_ROOT, ".relay");
 

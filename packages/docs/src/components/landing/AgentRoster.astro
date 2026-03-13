@@ -1,155 +1,232 @@
 ---
-// Colors match the dashboard agent color coding exactly
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+// 에이전트 색상은 대시보드 색상 코딩과 정확히 일치
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
 const agents = [
   {
     id: "pm",
     label: "PM",
-    color: "#C084FC", // purple-400
+    color: "#C17F24",
     description: "Breaks down requirements, creates tasks, and coordinates the team.",
+    tools: ["create_task", "send_message", "get_messages"],
   },
   {
     id: "designer",
     label: "Designer",
-    color: "#F472B6", // pink-400
+    color: "#A0522D",
     description: "Produces design specs, component structures, and visual guidelines.",
+    tools: ["post_artifact", "get_artifact", "send_message"],
   },
   {
     id: "da",
     label: "DA",
-    color: "#FACC15", // yellow-400
+    color: "#6B8E23",
     description: "Analyses data requirements, schemas, and analytics instrumentation.",
+    tools: ["post_artifact", "read_memory", "send_message"],
   },
   {
     id: "fe",
     label: "FE",
-    color: "#60A5FA", // blue-400
+    color: "#4682B4",
     description: "Implements UI components and integrates with backend APIs.",
+    tools: ["claim_task", "post_artifact", "request_review"],
   },
   {
     id: "be",
     label: "BE",
-    color: "#34D399", // emerald-400
+    color: "#2E8B57",
     description: "Builds APIs, services, and database interactions.",
+    tools: ["claim_task", "post_artifact", "request_review"],
   },
   {
     id: "qa",
     label: "QA",
-    color: "#FB923C", // orange-400
+    color: "#8B6914",
     description: "Writes tests, finds edge cases, and validates agent output.",
+    tools: ["get_artifact", "submit_review", "create_task"],
   },
   {
     id: "deployer",
     label: "Deployer",
-    color: "#FB923C", // orange-400
+    color: "#607080",
     description: "Handles CI/CD, environment config, and final deployment.",
+    tools: ["get_my_tasks", "update_task", "send_message"],
   },
 ];
 ---
 
 <section class="roster">
-  <div class="roster__inner">
-    <h2 class="roster__title">The team</h2>
+  <div class="roster__header">
+    <span class="roster__label" aria-hidden="true">// the team</span>
+    <h2 class="roster__title">Seven specialists.<br />One codebase.</h2>
     <p class="roster__subtitle">
-      Seven specialised agents — all powered by Claude Code, zero extra API costs.
+      All powered by Claude Code's Agent tool — fully customisable via <code class="roster__inline-code">agents.yml</code>.
     </p>
-    <ul class="roster__list" role="list">
-      {
-        agents.map((agent) => (
-          <li class="roster__item">
+  </div>
+
+  <ul class="roster__grid" role="list">
+    {
+      agents.map((agent) => (
+        <li class="roster__card">
+          <!-- 색상 마커 -->
+          <div class="roster__card-header">
             <span
-              class="roster__dot"
+              class="roster__indicator"
               style={`background-color: ${agent.color}`}
               aria-hidden="true"
             />
-            <div class="roster__info">
-              <span class="roster__id">{agent.label}</span>
-              <span class="roster__desc">{agent.description}</span>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
-  </div>
+            <span class="roster__id">{agent.label}</span>
+          </div>
+
+          <p class="roster__desc">{agent.description}</p>
+
+          <!-- 대표 MCP 툴 태그 -->
+          <div class="roster__tools" aria-label={`${agent.label} tools`}>
+            {agent.tools.map((tool) => (
+              <span class="roster__tool-tag">{tool}</span>
+            ))}
+          </div>
+        </li>
+      ))
+    }
+  </ul>
 </section>
 
 <style>
   .roster {
-    padding: 5rem 0;
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
   }
 
-  .roster__inner {
-    max-width: 960px;
+  /* 헤더 */
+  .roster__header {
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 5vw, 2rem);
+    padding: 5rem clamp(1.25rem, 5vw, 2.5rem) 3.5rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 3rem;
+    gap: 1.25rem;
+  }
+
+  .roster__label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    letter-spacing: 0.06em;
+    font-weight: 500;
   }
 
   .roster__title {
-    font-size: clamp(1.75rem, 4vw, 2.25rem);
-    font-weight: 700;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 400;
     color: var(--color-text-primary);
     letter-spacing: -0.02em;
+    line-height: 1.1;
     margin: 0;
-    text-align: center;
   }
 
   .roster__subtitle {
     font-size: 1rem;
     color: var(--color-text-secondary);
-    text-align: center;
-    max-width: 480px;
-    margin: -2rem 0 0;
     line-height: 1.7;
+    max-width: 440px;
+    margin: 0;
+    font-weight: 300;
   }
 
-  .roster__list {
+  .roster__inline-code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background-color: var(--color-bg-root);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.25rem;
+    padding: 0.1rem 0.375rem;
+    color: var(--color-text-primary);
+  }
+
+  /* 에이전트 카드 그리드 */
+  .roster__grid {
     list-style: none;
-    padding: 0;
-    margin: 0;
-    width: 100%;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem) 5rem;
+    margin: 0 auto;
+    max-width: 1100px;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-  }
-
-  .roster__item {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.875rem;
-    padding: 1rem 1.25rem;
+    gap: 1px;
+    /* 그리드 갭 대신 1px 보더 효과 */
+    background-color: var(--color-border);
     border: 1px solid var(--color-border);
-    border-radius: 0.625rem;
-    background-color: var(--color-bg-root);
+    border-radius: 0.75rem;
+    overflow: hidden;
   }
 
-  .roster__dot {
+  /* 카드 */
+  .roster__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    padding: 1.5rem;
+    background-color: var(--color-bg-surface);
+    transition: background-color 0.15s;
+  }
+
+  .roster__card:hover {
+    background-color: var(--color-bg-raised);
+  }
+
+  .roster__card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  /* 에이전트 색상 표시 */
+  .roster__indicator {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
-    margin-top: 0.35rem;
-  }
-
-  .roster__info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    box-shadow: 0 0 8px currentColor;
   }
 
   .roster__id {
     font-family: var(--font-mono);
-    font-size: 0.8125rem;
-    font-weight: 700;
+    font-size: 0.9375rem;
+    font-weight: 500;
     color: var(--color-text-primary);
+    letter-spacing: 0.02em;
   }
 
   .roster__desc {
     font-size: 0.875rem;
     color: var(--color-text-secondary);
-    line-height: 1.55;
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 300;
+    flex: 1;
+  }
+
+  /* MCP 툴 태그 */
+  .roster__tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .roster__tool-tag {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    color: var(--color-text-muted);
+    background-color: var(--color-bg-root);
+    border: 1px solid var(--color-border);
+    border-radius: 0.25rem;
+    padding: 0.1875rem 0.4375rem;
+    letter-spacing: 0.03em;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .roster__card:hover .roster__tool-tag {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
   }
 </style>

@@ -11,7 +11,7 @@ relay MCP 서버는 웹 대시보드를 함께 서빙한다.
 MCP 서버가 기동되면 자동으로 대시보드도 시작된다:
 
 ```
-http://localhost:3000
+http://localhost:3456
 ```
 
 ## 세 가지 패널
@@ -28,7 +28,7 @@ http://localhost:3000
 ### Task Board (Kanban)
 
 - 전체 이슈 현황을 Kanban 보드 형태로 표시
-- `todo` → `in_progress` → `done` 상태 변경 시 즉시 업데이트
+- `todo` → `in_progress` → `in_review` → `done` 상태 변경 시 즉시 업데이트
 - 태스크 클릭 시 상세 정보 (담당자, 우선순위, 설명) 확인
 
 ### Message Feed
@@ -45,7 +45,7 @@ http://localhost:3000
 ## WebSocket 이벤트
 
 대시보드는 WebSocket으로 실시간 업데이트를 받는다.
-모든 이벤트는 `{ type, payload, timestamp, agentId }` 구조를 따른다.
+모든 이벤트는 `{ type, timestamp, ...페이로드 }` 구조를 따른다. 별도의 `payload` 래퍼 필드는 없다.
 
 | 이벤트 타입 | 설명 |
 |---|---|
@@ -71,10 +71,9 @@ http://localhost:3000
 대시보드는 Hono 기반 REST API도 제공한다:
 
 ```
-GET  /api/sessions              # 세션 목록
-GET  /api/sessions/:id          # 세션 상세
-GET  /api/sessions/:id/messages # 세션 메시지
-GET  /api/sessions/:id/tasks    # 세션 태스크
+GET  /api/session               # 현재 세션 스냅샷 (tasks, messages, artifacts)
+GET  /api/sessions/:id          # 특정 세션 요약 (summary.md)
+GET  /api/sessions/:id/events   # 세션 이벤트 목록 (히스토리 재생용)
 GET  /api/agents                # 에이전트 목록
-GET  /api/health                # 헬스체크
+POST /api/hook/tool-use         # PostToolUse 훅 수신 엔드포인트 (내부용)
 ```

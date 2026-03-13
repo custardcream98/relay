@@ -1,139 +1,354 @@
 ---
 const base = import.meta.env.BASE_URL;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
-const docsUrl = `${base}/getting-started/introduction`;
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+const docsUrl = `${base}getting-started/introduction`;
 ---
 
 <section class="hero">
+  <!-- 장식용 격자 배경 -->
+  <div class="hero__grid-bg" aria-hidden="true"></div>
+
   <div class="hero__inner">
-    <span class="hero__badge">Claude Code Plugin</span>
+    <!-- 배지 -->
+    <div class="hero__meta">
+      <span class="hero__badge">
+        <span class="hero__badge-dot" aria-hidden="true"></span>
+        Claude Code Plugin
+      </span>
+      <span class="hero__version">v0.3</span>
+    </div>
+
+    <!-- 헤드라인: 세리프 디스플레이 폰트 -->
     <h1 class="hero__headline">
-      Your codebase,<br />worked by a team.
+      Your codebase,<br />
+      <em class="hero__headline-em">worked by a team.</em>
     </h1>
+
+    <!-- 서브헤드라인 -->
     <p class="hero__subheadline">
-      relay spins up a crew of AI agents — PM, Designer, FE, BE, QA, Deployer —
+      relay spawns a crew of AI agents — PM, Designer, FE, BE, QA, Deployer —
       that collaborate inside Claude Code to ship features end-to-end.
+      No extra API costs. No orchestrator.
     </p>
+
+    <!-- CTA 버튼 -->
     <div class="hero__cta">
-      <a href={docsUrl} class="btn btn--primary">Get Started</a>
+      <a href={docsUrl} class="btn btn--primary">
+        Get started
+        <span class="btn__arrow" aria-hidden="true">→</span>
+      </a>
       <a
         href="https://github.com/custardcream98/relay"
         target="_blank"
         rel="noopener noreferrer"
         class="btn btn--secondary"
       >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 21.795 24 17.295 24 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
         GitHub
       </a>
     </div>
-    <p class="hero__install">
-      <span class="hero__install-label">Quick install:</span>
-      <code class="hero__install-code">claude mcp add --npm @custardcream/relay relay-server</code>
-    </p>
+
+    <!-- 설치 커맨드 — 터미널 스타일 -->
+    <div class="hero__terminal" role="region" aria-label="Quick install command">
+      <div class="hero__terminal-bar" aria-hidden="true">
+        <span class="hero__terminal-dot" style="background:#FF5F56"></span>
+        <span class="hero__terminal-dot" style="background:#FFBD2E"></span>
+        <span class="hero__terminal-dot" style="background:#27C93F"></span>
+        <span class="hero__terminal-title">terminal</span>
+      </div>
+      <div class="hero__terminal-body">
+        <span class="hero__terminal-prompt" aria-hidden="true">$</span>
+        <code class="hero__terminal-code">claude mcp add --npm @custardcream/relay relay-server</code>
+      </div>
+    </div>
+
+    <!-- 수치 지표 -->
+    <div class="hero__stats" role="list" aria-label="Key metrics">
+      <div class="hero__stat" role="listitem">
+        <span class="hero__stat-num">7</span>
+        <span class="hero__stat-label">agents</span>
+      </div>
+      <div class="hero__stat-divider" aria-hidden="true"></div>
+      <div class="hero__stat" role="listitem">
+        <span class="hero__stat-num">3</span>
+        <span class="hero__stat-label">commands</span>
+      </div>
+      <div class="hero__stat-divider" aria-hidden="true"></div>
+      <div class="hero__stat" role="listitem">
+        <span class="hero__stat-num">$0</span>
+        <span class="hero__stat-label">extra API cost</span>
+      </div>
+    </div>
   </div>
 </section>
 
 <style>
+  /* ─── 히어로 섹션 ─── */
   .hero {
-    padding-top: calc(56px + 5rem);
-    padding-bottom: 5rem;
-    text-align: center;
+    position: relative;
+    padding-top: calc(60px + 6rem);
+    padding-bottom: 6rem;
+    overflow: hidden;
+  }
+
+  /* 격자 배경 패턴 */
+  .hero__grid-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(var(--color-border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.4;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 80%);
   }
 
   .hero__inner {
-    max-width: 960px;
+    position: relative;
+    max-width: 900px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 5vw, 2rem);
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  /* 메타 배지 줄 */
+  .hero__meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .hero__badge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.875rem;
     border-radius: 9999px;
     border: 1px solid var(--color-accent);
+    background-color: var(--color-accent-glow);
     color: var(--color-accent);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.75); }
+  }
+
+  .hero__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  .hero__version {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  /* 헤드라인 */
   .hero__headline {
-    font-size: clamp(2.25rem, 6vw, 3.75rem);
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: clamp(2.75rem, 7vw, 5rem);
+    font-weight: 400;
     color: var(--color-text-primary);
-    line-height: 1.1;
-    letter-spacing: -0.03em;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
     margin: 0;
   }
 
+  .hero__headline-em {
+    font-style: italic;
+    color: var(--color-accent);
+  }
+
+  /* 서브헤드라인 */
   .hero__subheadline {
-    font-size: clamp(1rem, 2.5vw, 1.125rem);
+    font-size: clamp(1rem, 2.2vw, 1.125rem);
     color: var(--color-text-secondary);
-    line-height: 1.7;
+    line-height: 1.75;
     max-width: 560px;
     margin: 0;
+    font-weight: 300;
   }
 
+  /* CTA 버튼 그룹 */
   .hero__cta {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.875rem;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
   }
 
   .btn {
     display: inline-flex;
     align-items: center;
-    padding: 0.625rem 1.5rem;
-    border-radius: 0.5rem;
+    gap: 0.5rem;
+    padding: 0.6875rem 1.625rem;
+    border-radius: 0.375rem;
+    font-family: var(--font-sans);
     font-size: 0.9375rem;
-    font-weight: 600;
+    font-weight: 400;
     text-decoration: none;
-    transition: opacity 0.15s, transform 0.1s;
-  }
-
-  .btn:hover {
-    opacity: 0.88;
-    transform: translateY(-1px);
+    transition: all 0.18s ease;
+    letter-spacing: 0.01em;
   }
 
   .btn--primary {
     background-color: var(--color-accent);
-    color: #fff;
+    color: var(--color-bg-root);
+    border: 1px solid var(--color-accent);
+  }
+
+  .btn--primary:hover {
+    background-color: var(--color-accent-light);
+    border-color: var(--color-accent-light);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--color-accent-glow);
   }
 
   .btn--secondary {
     background-color: transparent;
     color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-strong);
   }
 
-  .hero__install {
+  .btn--secondary:hover {
+    border-color: var(--color-text-muted);
+    background-color: var(--color-bg-surface);
+    transform: translateY(-1px);
+  }
+
+  .btn__arrow {
+    display: inline-block;
+    transition: transform 0.18s ease;
+  }
+
+  .btn--primary:hover .btn__arrow {
+    transform: translateX(3px);
+  }
+
+  /* 터미널 블록 */
+  .hero__terminal {
+    width: 100%;
+    max-width: 600px;
+    border-radius: 0.625rem;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-bg-raised);
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  .hero__terminal-bar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
+  }
+
+  .hero__terminal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    opacity: 0.85;
+  }
+
+  .hero__terminal-title {
+    flex: 1;
+    text-align: center;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
     color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .hero__terminal-body {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.875rem 1.125rem;
+  }
+
+  .hero__terminal-prompt {
+    font-family: var(--font-mono);
     font-size: 0.875rem;
-    margin: 0;
-  }
-
-  .hero__install-label {
+    color: var(--color-accent);
     font-weight: 500;
+    user-select: none;
   }
 
-  .hero__install-code {
+  .hero__terminal-code {
     font-family: var(--font-mono);
     font-size: 0.8125rem;
-    background-color: var(--color-bg-surface);
-    border: 1px solid var(--color-border);
-    border-radius: 0.375rem;
-    padding: 0.125rem 0.5rem;
-    color: var(--color-text-secondary);
+    color: var(--color-text-primary);
+    letter-spacing: 0.01em;
+    word-break: break-all;
+  }
+
+  /* 수치 지표 줄 */
+  .hero__stats {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    padding-top: 0.5rem;
+  }
+
+  .hero__stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .hero__stat-num {
+    font-family: var(--font-display);
+    font-size: 1.625rem;
+    font-weight: 400;
+    color: var(--color-text-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .hero__stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .hero__stat-divider {
+    width: 1px;
+    height: 2rem;
+    background-color: var(--color-border-strong);
+  }
+
+  /* 반응형: 좁은 화면 */
+  @media (max-width: 480px) {
+    .hero__stats {
+      gap: 1.5rem;
+    }
+    .hero__stat-num {
+      font-size: 1.25rem;
+    }
   }
 </style>

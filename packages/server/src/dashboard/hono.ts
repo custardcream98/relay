@@ -30,15 +30,19 @@ let cachedAgents: ReturnType<typeof loadAgents> | null = null;
 
 // API: agent list
 app.get("/api/agents", (c) => {
-  if (!cachedAgents) cachedAgents = loadAgents();
-  return c.json(
-    Object.values(cachedAgents).map((a) => ({
-      id: a.id,
-      name: a.name,
-      emoji: a.emoji,
-      description: a.description,
-    }))
-  );
+  try {
+    if (!cachedAgents) cachedAgents = loadAgents();
+    return c.json(
+      Object.values(cachedAgents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji,
+        description: a.description,
+      }))
+    );
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
 });
 
 // API: session snapshot (used for initial dashboard load)

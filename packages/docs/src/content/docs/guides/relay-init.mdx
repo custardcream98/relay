@@ -1,47 +1,44 @@
 ---
-title: /relay-init — 프로젝트 파악
+title: /relay:init — 프로젝트 파악
 description: 팀이 코드베이스를 병렬로 스캔하고 프로젝트 기억을 초기화하는 스킬
 ---
 
-`/relay-init`은 프로젝트에 처음 relay를 사용하거나 팀이 프로젝트 컨텍스트를 새로 파악해야 할 때 실행한다.
+`/relay:init`은 프로젝트에 처음 relay를 사용하거나 팀이 프로젝트 컨텍스트를 새로 파악해야 할 때 실행한다.
 
-`.relay/memory/`가 없으면 `/relay` 실행 시 자동으로 이 스킬 실행을 제안한다.
+`.relay/memory/`가 없으면 `/relay:relay` 실행 시 자동으로 이 스킬 실행을 제안한다.
 
 ## 실행 조건
 
 - relay MCP 서버가 연결되어 있어야 한다
 - 최초 1회 필수, 이후 프로젝트 구조가 크게 바뀌었을 때 재실행 권장
 
+## Phase 0: 팀 제안 (agents.yml 없을 때)
+
+`list_agents`가 빈 배열을 반환하면 아직 `agents.yml`이 없는 상태다.
+프로젝트를 분석하여 도메인에 맞는 팀을 제안하고, `agents.yml`을 자동 생성한다.
+
+생성 후에는 MCP 서버를 재시작한 다음 `/relay:init`을 다시 실행해야 한다.
+
 ## Phase 1: 병렬 프로젝트 스캔
 
-6명의 에이전트가 **동시에** spawn되어 각자의 관점에서 코드베이스를 탐색한다.
+`list_agents`에서 반환된 **모든 에이전트가 동시에** spawn되어 각자의 관점에서 코드베이스를 탐색한다.
 
-| 에이전트 | 탐색 대상 | 저장 키 |
-|---|---|---|
-| PM | README.md, CLAUDE.md, 전체 구조 | `domain`, `architecture`, `team-conventions` |
-| FE | 프론트엔드 코드, 프레임워크, 상태관리 | `tech-stack`, `component-patterns`, `conventions` |
-| BE | 백엔드 코드, API, DB 스키마 | `api-structure`, `db-schema`, `external-deps` |
-| DA | 분석/메트릭 코드, 로깅 설정 | `existing-events`, `metrics-setup` |
-| Designer | UI 컴포넌트 라이브러리, 디자인 토큰 | `design-system`, `ui-patterns` |
-| QA | 테스트 파일, CI/CD, 커버리지 | `test-setup`, `ci-config`, `coverage` |
-
-각 에이전트는 탐색 완료 후 `write_memory` 툴로 기억을 저장하고 브로드캐스트 메시지를 보낸다.
+각 에이전트는 자신의 `systemPrompt`에 정의된 역할 관점에서 탐색하고,
+완료 후 `write_memory` 툴로 기억을 저장한 다음 브로드캐스트 메시지 `"init-done"`을 보낸다.
 
 ## Phase 2: 교차 검증
 
-PM이 모든 에이전트의 기억을 읽고 프로젝트 전체 요약을 작성한다:
+모든 에이전트의 `"init-done"` 브로드캐스트가 수집되거나 최대 5분 경과 시 다음 단계로 진행한다.
 
-- `read_memory(agent_id: "fe")`, `read_memory(agent_id: "be")` 등으로 개별 기억 수집
-- `write_memory(key: "summary", ...)` 로 `project.md`에 통합 요약 저장
-
-모든 에이전트의 완료 신호(`init-done`)가 수집되거나 최대 5분 경과 시 다음 단계로 진행한다.
+코디네이터 역할 에이전트(설명이나 이름에 "manager", "coordinator", "pm" 등 포함)가
+각 에이전트의 기억을 읽고 `write_memory(key: "summary", ...)`로 `project.md`에 통합 요약을 저장한다.
 
 ## Phase 3: 완료 보고
 
 사용자에게 init 결과를 요약 보고한다:
-- 파악된 기술 스택
-- 주목할 만한 발견사항
-- 이후 `/relay "태스크"` 로 바로 시작 가능
+- 로드된 에이전트 목록
+- 저장된 메모리 키 목록
+- 이후 `/relay:relay "태스크"` 로 바로 시작 가능
 
 ## 출력 결과
 
@@ -50,14 +47,10 @@ init 완료 후 `.relay/memory/` 디렉토리가 생성된다:
 ```
 .relay/
 └── memory/
-    ├── project.md           # PM이 작성한 통합 요약
+    ├── project.md               # 코디네이터가 작성한 통합 요약
     └── agents/
-        ├── pm.md
-        ├── fe.md
-        ├── be.md
-        ├── da.md
-        ├── designer.md
-        └── qa.md
+        ├── {agentId}.md         # 각 에이전트의 개인 기억 (agents.yml에 정의된 에이전트 수만큼)
+        └── ...
 ```
 
 이 파일들은 git에 커밋하여 팀이 공유하는 것을 권장한다.

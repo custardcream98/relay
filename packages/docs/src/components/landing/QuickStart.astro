@@ -1,33 +1,62 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+const base = import.meta.env.BASE_URL;
+
+// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
 const snippets = [
   {
-    label: "1. Install",
+    step: "01",
+    label: "Install the MCP server",
     code: `claude mcp add --npm @custardcream/relay relay-server`,
+    comment: "# adds relay to Claude Code globally",
   },
   {
-    label: "2. Initialise memory",
+    step: "02",
+    label: "Initialise project memory",
     code: `/relay:init`,
+    comment: "# agents scan the codebase in parallel",
   },
   {
-    label: "3. Ship a feature",
+    step: "03",
+    label: "Ship a feature",
     code: `/relay:relay "add OAuth login with Google"`,
+    comment: "# PM → Designer → FE/BE → QA → Deployer",
   },
 ];
 ---
 
 <section class="qs">
   <div class="qs__inner">
-    <h2 class="qs__title">Quick start</h2>
-    <p class="qs__subtitle">
-      Up and running in under two minutes.
-    </p>
-    <div class="qs__snippets">
+    <!-- 좌: 타이틀 + 링크 -->
+    <div class="qs__copy">
+      <span class="qs__label" aria-hidden="true">// quick start</span>
+      <h2 class="qs__title">Up and running<br />in two minutes.</h2>
+      <p class="qs__desc">
+        Three commands take you from installation to a fully deployed feature
+        with a real multi-agent team doing the work.
+      </p>
+      <a href={`${base}getting-started/installation`} class="qs__link">
+        Full installation guide
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+
+    <!-- 우: 터미널 스니펫 스택 -->
+    <div class="qs__snippets" role="list" aria-label="Quick start steps">
       {
-        snippets.map((snippet) => (
-          <div class="qs__block">
-            <p class="qs__label">{snippet.label}</p>
-            <pre class="qs__pre"><code>{snippet.code}</code></pre>
+        snippets.map((s, i) => (
+          <div class="qs__block" role="listitem" style={`animation-delay: ${i * 0.12}s`}>
+            <div class="qs__block-header">
+              <span class="qs__block-step">{s.step}</span>
+              <span class="qs__block-title">{s.label}</span>
+            </div>
+            <div class="qs__block-terminal">
+              <span class="qs__prompt" aria-hidden="true">$</span>
+              <div class="qs__code-wrap">
+                <code class="qs__code">{s.code}</code>
+                <span class="qs__comment" aria-hidden="true">{s.comment}</span>
+              </div>
+            </div>
           </div>
         ))
       }
@@ -37,72 +66,163 @@ const snippets = [
 
 <style>
   .qs {
+    border-top: 1px solid var(--color-border);
     background-color: var(--color-bg-surface);
-    padding: 5rem 0;
+    padding: 5.5rem 0;
   }
 
   .qs__inner {
-    max-width: 960px;
+    max-width: 1100px;
     margin: 0 auto;
-    padding: 0 clamp(1rem, 5vw, 2rem);
-    display: flex;
-    flex-direction: column;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem);
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 5rem;
     align-items: center;
-    gap: 3rem;
   }
 
-  .qs__title {
-    font-size: clamp(1.75rem, 4vw, 2.25rem);
-    font-weight: 700;
-    color: var(--color-text-primary);
-    letter-spacing: -0.02em;
-    margin: 0;
-    text-align: center;
-  }
-
-  .qs__subtitle {
-    font-size: 1rem;
-    color: var(--color-text-secondary);
-    text-align: center;
-    margin: -2rem 0 0;
-    line-height: 1.7;
-  }
-
-  .qs__snippets {
+  /* 왼쪽 카피 */
+  .qs__copy {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
-    width: 100%;
-    max-width: 720px;
-  }
-
-  .qs__block {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
   }
 
   .qs__label {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+
+  .qs__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.875rem, 3.5vw, 2.625rem);
+    font-weight: 400;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
     margin: 0;
+  }
+
+  .qs__desc {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.75;
+    margin: 0;
+    font-weight: 300;
+  }
+
+  .qs__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: gap 0.18s;
+  }
+
+  .qs__link:hover {
+    gap: 0.625rem;
+  }
+
+  /* 오른쪽 스니펫 스택 */
+  .qs__snippets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  @keyframes block-in {
+    from { opacity: 0; transform: translateX(10px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  .qs__block {
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background-color: var(--color-bg-raised);
+    animation: block-in 0.35s ease-out both;
+    transition: border-color 0.18s, box-shadow 0.18s;
+  }
+
+  .qs__block:hover {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 1px var(--color-accent-glow);
+  }
+
+  .qs__block-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5625rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
+  }
+
+  .qs__block-step {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: var(--color-accent);
+    letter-spacing: 0.1em;
+    opacity: 0.7;
+  }
+
+  .qs__block-title {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.03em;
+  }
+
+  .qs__block-terminal {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.875rem 0.875rem 0.875rem;
+  }
+
+  .qs__prompt {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+    font-weight: 500;
+    user-select: none;
+    padding-top: 0.0625rem;
+  }
+
+  .qs__code-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .qs__code {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-text-primary);
+    letter-spacing: 0.01em;
+    word-break: break-all;
+  }
+
+  .qs__comment {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
     letter-spacing: 0.02em;
   }
 
-  .qs__pre {
-    margin: 0;
-    padding: 0.875rem 1.125rem;
-    background-color: var(--color-bg-root);
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    overflow-x: auto;
-  }
-
-  .qs__pre code {
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--color-text-primary);
-    white-space: pre;
+  /* 반응형 */
+  @media (max-width: 768px) {
+    .qs__inner {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
   }
 </style>

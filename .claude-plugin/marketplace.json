@@ -1,0 +1,18 @@
+{
+  "name": "relay",
+  "owner": {
+    "name": "relay contributors"
+  },
+  "metadata": {
+    "description": "relay plugin marketplace"
+  },
+  "plugins": [
+    {
+      "name": "relay",
+      "source": "./",
+      "description": "Multi-agent collaboration framework for Claude Code",
+      "version": "0.1.0",
+      "license": "MIT"
+    }
+  ]
+}

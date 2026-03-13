@@ -1,40 +1,50 @@
+# yaml-language-server: $schema=https://custardcream98.github.io/relay/agents.schema.json
 # agents.yml
-# 이 파일에서 에이전트 페르소나를 자유롭게 커스터마이즈하세요.
-# 명시하지 않은 필드는 agents.default.yml의 값이 사용됩니다.
+# Customize agent personas freely in this file.
+# Any fields not specified here fall back to agents.default.yml.
 #
-# 사용 예시:
+# Examples:
 #
-# 1. 기존 에이전트 systemPrompt 오버라이드:
+# 1. Override an existing agent's systemPrompt:
 #   agents:
 #     fe:
 #       systemPrompt: |
-#         당신은 Next.js 전문 FE 엔지니어입니다...
+#         You are a Next.js specialist FE engineer...
 #
-# 2. 기존 에이전트 비활성화:
+# 2. Disable an existing agent:
 #   agents:
 #     designer:
 #       disabled: true
 #
-# 3. 커스텀 에이전트 추가 (extends로 기존 상속):
+# 3. Add a custom agent (inherit from an existing one via extends):
 #   agents:
 #     security-reviewer:
 #       name: "Security Reviewer"
 #       emoji: "🔐"
 #       extends: "be"
 #       systemPrompt: |
-#         당신은 보안 전문가입니다. OWASP Top 10 관점에서 리뷰합니다...
+#         You are a security expert. Review from the OWASP Top 10 perspective...
 #
-# 4. workflow job 오버라이드 (QA 루프를 hotfix job으로 분리):
+# 4. Override a workflow job (e.g. split the QA loop into a hotfix job):
 #   workflow:
 #     jobs:
 #       qa:
 #         end:
-#           deploy: "모든 테스트를 통과하면"
-#           hotfix: "크리티컬 버그가 발견되면"
+#           deploy: "when all tests pass"
+#           hotfix: "when a critical bug is found"
 #       hotfix:
 #         agents: [be]
-#         description: "크리티컬 버그만 긴급 수정한다."
+#         description: "Emergency fix for critical bugs only."
 #         end:
-#           qa: "수정이 완료되어 재검증이 필요하면"
+#           qa: "when the fix is complete and needs re-validation"
+#
+# 5. Set response language for all agents (global):
+#   language: Korean
+#
+# 6. Use different languages per agent (per-agent override):
+#   language: Korean      # global default
+#   agents:
+#     be:
+#       language: English # BE responds in English only
 
 agents: {}

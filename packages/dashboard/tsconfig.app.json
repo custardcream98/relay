@@ -24,7 +24,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["../shared/*"],
+      "@custardcream/relay-shared": ["../shared/index.ts"]
     }
   },
   "include": ["src"]

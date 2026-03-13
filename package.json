@@ -28,6 +28,8 @@
     "build:release": "bun run dashboard:build && bun run build:server",
     "publish:server": "bun run build:release && npm publish --workspace @custardcream/relay",
     "release": "bun run build:release && changeset publish",
+    "install:local": "bun run scripts/install.ts",
+    "install:global": "bun run scripts/install.ts --global",
     "prepare": "husky"
   },
   "devDependencies": {

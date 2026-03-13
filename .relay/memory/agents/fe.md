@@ -1,101 +1,84 @@
+# FE Agent Memory
+
 ## tech-stack
 
-# 프론트엔드 기술 스택 (packages/dashboard/)
+- **React**: 19.2.4 (latest, with `useReducer`, `useCallback`, `useEffect`, `useRef`, `useState`, `useMemo`)
+- **Vite**: 8.x with `@vitejs/plugin-react` 6.x
+- **Tailwind CSS**: 4.x via `@tailwindcss/vite` plugin (v4 API — no `tailwind.config.js`, imported directly in CSS via `@import "tailwindcss"`)
+- **TypeScript**: ~5.9.3, strict mode, separate `tsconfig.app.json` / `tsconfig.node.json`
+- **No routing library** — single-page dashboard, no React Router
+- **No state management library** — uses React's built-in `useReducer` for global state
+- **No external component library** — all UI built from scratch
+- **Fonts**: Inter (sans) + JetBrains Mono (mono) via Google Fonts
+- **Shared types**: `@custardcream/relay-shared` (workspace package, path-aliased in vite config)
+- **Dev proxy**: Vite proxies `/api` and `/ws` to `http://localhost:3456` (relay server)
+- **Build output**: `dist/` (served by Hono in packages/server)
 
-## 핵심 라이브러리
-- **React 19** + **Vite 8** (SPA)
-- **TypeScript** (strict mode, tsconfig.app.json + tsconfig.node.json)
-- **Tailwind CSS v4** — `@tailwindcss/vite` 플러그인 방식으로 통합 (별도 설정 파일 없음, `@import "tailwindcss"` 한 줄)
-
-## 빌드 / 번들러
-- Vite + `@vitejs/plugin-react`
-- 빌드 결과물: `packages/dashboard/dist/` (서버의 `DASHBOARD_DIST` 경로와 일치)
-
-## 개발 서버 Proxy
-- `/api` → `http://localhost:3456` (Hono REST)
-- `/ws` → `ws://localhost:3456` (Bun WebSocket)
-
-## 공유 타입
-- `@custardcream/relay-shared` (workspace:*) — `AgentId`, `RelayEvent` 등 공용 타입 정의
-- Vite alias로 `../shared/index.ts`를 직접 참조 (빌드 시 번들 포함)
-
-## 린터
-- ESLint 9 + typescript-eslint + eslint-plugin-react-hooks + eslint-plugin-react-refresh
-- Biome도 일부 사용 (biome-ignore 주석 존재)
 ## component-patterns
 
-# 컴포넌트 패턴 (packages/dashboard/src/)
-
-## 디렉토리 구조
+### File structure
 ```
 src/
-├── App.tsx              # 루트 컴포넌트 — useReducer로 전체 상태 관리
-├── main.tsx             # React 진입점 (StrictMode)
-├── index.css            # Tailwind import 한 줄
-├── types.ts             # @custardcream/relay-shared 타입 re-export
+├── App.tsx              # Root component — layout + global state
+├── main.tsx             # Entry point (StrictMode)
+├── index.css            # CSS variables + Tailwind + global styles
+├── types.ts             # Re-exports from @custardcream/relay-shared
+├── components/
+│   ├── AgentStatusBar.tsx   # Horizontal agent chip bar (fetches /api/agents on mount)
+│   ├── AgentThoughts.tsx    # Streaming thought panel with auto-scroll + cursor
+│   ├── MessageFeed.tsx      # Slack-style message list with markdown rendering
+│   ├── TaskBoard.tsx        # 4-column Kanban board (todo/in_progress/in_review/done)
+│   └── MarkdownContent.tsx  # Dependency-free inline markdown renderer
 ├── hooks/
-│   └── useRelaySocket.ts  # WebSocket 커스텀 훅
-└── components/
-    ├── AgentStatusBar.tsx  # 에이전트 목록 + 상태 표시 바
-    ├── AgentThoughts.tsx   # 선택된 에이전트의 실시간 thinking 스트림
-    ├── MessageFeed.tsx     # Slack 스타일 메시지 피드
-    └── TaskBoard.tsx       # Kanban 보드 (todo/in_progress/in_review/done)
+│   ├── useRelaySocket.ts    # WebSocket hook with exponential back-off reconnect
+│   └── useResizablePanels.ts # Drag-to-resize 3-panel layout hook
+└── constants/
+    └── agents.ts            # AGENT_ACCENT_HEX color map per agent ID
 ```
 
-## 상태 관리
-- **전역 상태**: `App.tsx`에서 `useReducer` + discriminated union Action 패턴
-- 외부 라이브러리(Redux, Zustand 등) 없음 — 순수 React
-- WebSocket 이벤트 → `dispatch({ type: "EVENT", event })` 로 상태 갱신
+### State architecture
+- Global dashboard state managed in `App.tsx` via `useReducer`
+- `DashboardState`: tasks[], messages[], agentStatuses, thinkingChunks, selectedAgent
+- Actions: `EVENT` (maps RelayEvent union to state updates) + `SELECT_AGENT`
+- WebSocket events drive all state updates — no polling
 
-## useRelaySocket 훅 패턴
-- `onEvent` 콜백을 `useRef`로 래핑해 stale closure 방지
-- 지수 백오프 재연결: `[1000, 2000, 4000, 8000, 16000]ms`
-- 컴포넌트 언마운트 시 `activeRef.current = false`로 클린업
+### Component style
+- All components receive typed props interfaces (no default exports except App)
+- Inline styles used extensively for design-token values (CSS custom properties)
+- Tailwind utility classes used for layout/spacing/flex
+- Hover effects done via `onMouseEnter`/`onMouseLeave` handlers (not Tailwind hover:)
+- No CSS modules, no styled-components
 
-## 컴포넌트 설계 원칙
-- 함수형 컴포넌트만 사용
-- Props 인터페이스를 컴포넌트 파일 상단에 로컬 정의 (공용 타입은 relay-shared에서)
-- `useMemo`로 파생 데이터 캐싱 (예: TaskBoard의 tasksByStatus)
-- Auto-scroll: `useRef<HTMLDivElement>` + `scrollIntoView` 패턴
+### Key patterns
+- `useRelaySocket`: manages WebSocket lifecycle, exponential back-off (1s→2s→4s→8s→16s), uses `useRef` for stable callbacks
+- `useResizablePanels`: tracks drag state with refs, normalizes panel widths to 100%, min panel width 12%
+- `MarkdownContent`: custom parser supporting code blocks, H1-H3, tables, lists, bold/italic/inline-code — no dependencies
+- `AgentThoughts`: auto-scroll with "user scrolled up" detection (pauses auto-scroll when >60px from bottom)
 
-## 레이아웃
-- 전체 화면: `h-screen flex flex-col` (헤더 고정 + 본문 flex-1)
-- 3분할 패널: `w-1/3` 균등 분할, `divide-x divide-gray-800`
-- 다크 테마: `bg-gray-950` 베이스, `bg-gray-800/900` 카드/패널
 ## conventions
 
-# 프론트엔드 코딩 컨벤션
+### Styling system
+- Dark theme only — CSS custom properties defined in `:root` in `index.css`
+- Token naming: `--color-surface-{root|base|raised|overlay|inset}`, `--color-text-{primary|secondary|tertiary|disabled}`, `--color-border-{subtle|default|strong}`
+- Per-agent accent colors: `--color-accent-{pm|designer|da|fe|be|qa|deployer}` (also in `AGENT_ACCENT_HEX` constant)
+- Status colors: `--color-status-{working|waiting|idle}` + `--color-connection-{live|dead}`
+- Shadows: `--shadow-card` / `--shadow-card-hover`
+- Animations: `scale-pulse` (working status dot), `blink` (idle cursor)
 
-## 언어 / 타입
-- TypeScript strict mode 필수
-- `interface`로 Props 타입 정의 (로컬 컴포넌트 파일 내 선언)
-- 공용 타입은 `@custardcream/relay-shared`에서 import — 대시보드 자체에 타입 중복 금지
-- `types.ts`는 shared 타입의 단순 re-export 용도로만 사용
+### Component conventions
+- Named exports for all components (except `App` which is default export)
+- Local `interface Props` or inline prop types per component
+- Korean comments for layout/design intent annotations
+- Each file has a `// path/to/file.ts` header comment
+- `biome-ignore` lint suppressions with explanation when needed
 
-## 스타일링
-- Tailwind CSS v4 유틸리티 클래스만 사용 (커스텀 CSS 최소화)
-- 다크 테마 기준: gray-950(배경), gray-800(카드), gray-400(서브 텍스트), white(주 텍스트)
-- 에이전트별 컬러 코드: pm=purple, designer=pink, da=yellow, fe=blue, be=green, qa/deployer=orange
-- 상태 표시: working=green, idle=gray, 연결=green-900, 끊김=red-900
+### API integration
+- REST: `/api/agents` → agent metadata (id, name, emoji)
+- WebSocket: `/ws` → `RelayEvent` JSON stream
+- Types imported from `@custardcream/relay-shared`
 
-## 파일 명명
-- 컴포넌트: PascalCase (`TaskBoard.tsx`)
-- 훅: camelCase with `use` prefix (`useRelaySocket.ts`)
-- 일반 모듈: camelCase
-
-## 패키지 매니저
-- **bun** 전용 (npm/yarn/pnpm 사용 금지)
-- 패키지 추가: `bun add <pkg>` (devDependencies: `bun add -d <pkg>`)
-
-## 코멘트
-- 소스 파일 최상단에 파일 경로 주석 (예: `// packages/dashboard/src/App.tsx`)
-- 인라인 주석은 한국어
-
-## API 통신
-- REST: `fetch("/api/...")` (Vite proxy → Hono 서버)
-- 실시간: `useRelaySocket` 훅 (WebSocket `/ws` 엔드포인트)
-- 에러 처리: `.catch`로 에러 상태 플래그 설정, UI에 에러 메시지 표시
-
-## 빌드 / 개발
-- 개발: `bun run dashboard:dev` (루트) 또는 `bun run dev` (패키지 내)
-- 빌드: `tsc -b && vite build` (타입 체크 선행 필수)
+### No external UI dependencies
+- No icon library (SVG inline in JSX)
+- No markdown library (custom `MarkdownContent` component)
+- No date/time library (`toLocaleTimeString` native)
+- No drag-and-drop library (custom mouse event handling)

@@ -25,6 +25,20 @@
     }
   },
   "files": {
-    "includes": ["src/**", "shared/**", "scripts/**", "hooks/**", "skills/**", "*.json", "*.ts"]
+    "includes": [
+      "src/**",
+      "shared/**",
+      "scripts/**",
+      "hooks/**",
+      "skills/**",
+      "*.json",
+      "*.ts",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!**/dashboard/dist",
+      "!!**/dashboard/node_modules",
+      "!!**/docs-site",
+      "!!**/*.db"
+    ]
   }
 }

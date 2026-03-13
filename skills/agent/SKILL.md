@@ -1,8 +1,10 @@
-<!-- skills/relay-agent.md -->
-# relay-agent
+---
+name: agent
+description: Invoke a single relay agent in isolation. Use when you want one specific agent (e.g. fe, be, qa) to work on a focused task without running the full workflow.
+---
 
 Invoke a single agent in isolation.
-Example: `/relay-agent fe "Refactor the CartItem component"`
+Example: `/relay:agent fe "Refactor the CartItem component"`
 
 ## Execution
 

@@ -1,0 +1,11 @@
+{
+  "name": "relay",
+  "version": "0.1.0",
+  "description": "Multi-agent collaboration framework for Claude Code. PM, Designer, DA, FE, BE, QA, and Deployer work as a team.",
+  "author": {
+    "name": "relay contributors"
+  },
+  "repository": "https://github.com/your-org/relay",
+  "license": "MIT",
+  "keywords": ["multi-agent", "mcp", "collaboration", "pm", "engineering"]
+}

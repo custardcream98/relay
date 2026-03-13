@@ -1,8 +1,10 @@
-<!-- skills/relay-init.md -->
-# relay-init
+---
+name: init
+description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. Spawns all agents in parallel to read the codebase and write .relay/memory/ files.
+---
 
 Run this when using relay for the first time on a project, or when the team needs to re-scan project context.
-If `.relay/memory/` is absent when `/relay` runs, it will automatically suggest running this skill first.
+If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically suggest running this skill first.
 
 ## Pre-flight checks
 
@@ -64,4 +66,4 @@ PM reads each agent's memory and writes a unified project summary:
 Report init results to the user:
 - Identified tech stack
 - Notable findings
-- Ready to start with `/relay "task description"`
+- Ready to start with `/relay:relay "task description"`

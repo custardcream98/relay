@@ -135,59 +135,48 @@ All events are persisted to SQLite. You can replay an entire session after the f
 
 ### Prerequisites
 
-- [Claude Code](https://claude.ai/download) — the CLI must be installed and authenticated
+- [Claude Code](https://claude.ai/download) — CLI must be installed and authenticated
 - [Bun](https://bun.sh) — relay's runtime
 
-### 1. Clone and install relay
+### 1. Add the marketplace
 
-```bash
-git clone https://github.com/your-org/relay.git
-cd relay
-bun install
+```
+/plugin marketplace add https://github.com/your-org/relay
 ```
 
 ### 2. Install the plugin
 
-**Global install** — makes `/relay` available in every project:
-
-```bash
-bun run install:global
+```
+/plugin install relay
 ```
 
-This installs three things:
-- Skills (`/relay`, `/relay-init`, `/relay-agent`) → `~/.claude/skills/`
-- MCP server → registered via `claude mcp add --scope user`
-- PostToolUse hook → `~/.claude/settings.json`
-
-**Local install** — scoped to one project only (run from your project root):
-
-```bash
-bun run --cwd /path/to/relay install:local
-```
-
-Local overrides global when both are installed.
+This sets up everything automatically:
+- Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
+- MCP server (via `.mcp.json`)
+- PostToolUse hook (via `hooks/hooks.json`)
 
 ### 3. Use it in your project
 
-Open Claude Code in any project and run:
+First time on a new project:
 
 ```
-/relay-init
+/relay:init
 ```
 
-This spawns all agents in parallel to scan your codebase. Each agent reads the parts relevant to their role and writes their findings to `.relay/memory/`. Takes a few minutes. Run it once per project, or again after major changes.
+This spawns all agents in parallel to scan your codebase. Each agent reads the parts relevant to their role and writes their findings to `.relay/memory/`. Run it once per project, or again after major changes.
+
+Then just describe what you want:
 
 ```
-/relay "add a shopping cart"
+/relay:relay "add a shopping cart"
 ```
 
 That's it. The team takes it from there.
 
-### Verify the setup
+### Call a single agent directly
 
-```bash
-claude mcp list
-# relay: bun run /path/to/relay/packages/server/src/index.ts - ✓ Connected
+```
+/relay:agent fe "Refactor the CartItem component"
 ```
 
 <br />
@@ -224,21 +213,22 @@ agents:
 
 ```
 relay/
+├── .claude-plugin/
+│   └── plugin.json              plugin manifest
 ├── packages/
-│   ├── server/          MCP server + Hono REST + WebSocket
-│   ├── shared/          shared types (AgentId, RelayEvent)
-│   ├── dashboard/       React + Vite real-time UI
-│   └── docs/            Astro + Starlight documentation site
+│   ├── server/                  MCP server + Hono REST + WebSocket
+│   ├── shared/                  shared types (AgentId, RelayEvent)
+│   ├── dashboard/               React + Vite real-time UI
+│   └── docs/                    Astro + Starlight documentation site
 ├── skills/
-│   ├── relay.md         /relay — full workflow orchestration
-│   ├── relay-init.md    /relay-init — parallel project scan
-│   └── relay-agent.md   /relay-agent — invoke a single agent directly
+│   ├── relay/SKILL.md           /relay:relay — full workflow orchestration
+│   ├── init/SKILL.md            /relay:init — parallel project scan
+│   └── agent/SKILL.md           /relay:agent — invoke a single agent directly
 ├── hooks/
-│   └── post-tool-use.sh PostToolUse hook → dashboard status push
-├── scripts/
-│   └── install.ts       global/local installer
-├── agents.default.yml   built-in agent personas + workflow DAG
-└── agents.yml           your customizations (override, extend, disable)
+│   └── hooks.json               PostToolUse hook → dashboard status push
+├── .mcp.json                    MCP server configuration
+├── agents.default.yml           built-in agent personas + workflow DAG
+└── agents.yml                   your customizations (override, extend, disable)
 ```
 
 <br />
@@ -267,9 +257,9 @@ relay/
 - [x] Agent persona YAML system
 - [x] Artifact and review tools
 - [x] Real-time web dashboard
-- [x] Skills (relay, relay-init, relay-agent)
+- [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
 - [x] Init mode (parallel project scan)
-- [x] Install script (global/local)
+- [x] Claude Code Plugin format (marketplace-ready)
 - [ ] Streaming agent thoughts to dashboard
 - [ ] Session replay UI
 - [ ] Public documentation site

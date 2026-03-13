@@ -1,5 +1,7 @@
-<!-- skills/relay.md -->
-# relay
+---
+name: relay
+description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that requires the whole team (PM, Designer, DA, FE, BE, QA, Deployer).
+---
 
 The startup team processes a task from start to finish.
 The workflow is executed dynamically based on the `workflow` section defined in `agents.yml`.
@@ -8,7 +10,7 @@ The workflow is executed dynamically based on the `workflow` section defined in 
 
 1. Confirm the relay MCP server is connected (call `list_agents`)
 2. Verify `.relay/memory/project.md` exists
-   - If absent: suggest "init is required. Would you like to run `/relay-init` first?"
+   - If absent: suggest "init is required. Would you like to run `/relay:init` first?"
 3. Generate a new session ID in `YYYY-MM-DD-NNN` format
 
 ## Workflow execution
@@ -69,7 +71,7 @@ while (currentJob !== "_done"):
   while declarations count < expectedAgents count:
     if now() - startTime > 10 minutes:
       missingAgents = expectedAgents - agents already represented in declarations
-      warn user: "⚠️ Timeout: {missingAgents} did not respond. Continue with received responses?"
+      warn user: "Timeout: {missingAgents} did not respond. Continue with received responses?"
       proceed or abort based on user decision
       break
 
@@ -80,7 +82,7 @@ while (currentJob !== "_done"):
     if any declaration matches "end:failed":
       failedAgent = the agent ID in question
       reason = the {reason} part of the declaration message
-      immediately report to user: "❌ {failedAgent} failed: {reason}"
+      immediately report to user: "{failedAgent} failed: {reason}"
       abort workflow (currentJob = "_failed")
       break
 

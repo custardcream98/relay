@@ -52,7 +52,7 @@ relay (plugin)
 
 **Skills**는 오케스트레이팅 Claude Code 세션에게 sub-agent를 어떻게 띄우고, 어떤 MCP 툴을 쓰고, 결과를 어떻게 해석할지를 알려주는 `.md` 파일이다. 오케스트레이션 전략이 코드가 아닌 텍스트로 존재한다. 동작 방식을 바꾸고 싶으면 파일을 수정하면 된다 — 서버 재배포 없이.
 
-**Hooks** — `post-tool-use.sh`는 MCP 툴이 호출될 때마다 실행되어 에이전트 상태를 대시보드에 실시간으로 push한다.
+**Hooks** — `hooks/hooks.json`이 PostToolUse 이벤트를 감지해 에이전트 상태를 대시보드에 실시간으로 push한다.
 
 <br />
 
@@ -142,56 +142,43 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 - [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 한다
 - [Bun](https://bun.sh) — relay의 런타임
 
-### 1. relay 클론 및 설치
+### 1. 마켓플레이스 추가
 
-```bash
-git clone https://github.com/your-org/relay.git
-cd relay
-bun install
+```
+/plugin marketplace add https://github.com/your-org/relay
 ```
 
 ### 2. 플러그인 설치
 
-**글로벌 설치** — 모든 프로젝트에서 `/relay` 사용 가능 (권장):
-
-```bash
-bun run install:global
+```
+/plugin install relay
 ```
 
-다음 세 가지가 설치된다:
-- Skills (`/relay`, `/relay-init`, `/relay-agent`) → `~/.claude/skills/`
-- MCP 서버 → `claude mcp add --scope user`로 등록
-- PostToolUse 훅 → `~/.claude/settings.json`에 주입
-
-**로컬 설치** — 특정 프로젝트에만 적용 (프로젝트 루트에서 실행):
-
-```bash
-bun run --cwd /path/to/relay install:local
-```
-
-글로벌/로컬 모두 설치된 경우 로컬이 글로벌을 오버라이드한다.
+다음이 자동으로 설정된다:
+- Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
+- MCP 서버 (`.mcp.json` 기반)
+- PostToolUse 훅 (`hooks/hooks.json` 기반)
 
 ### 3. 프로젝트에서 사용
 
-프로젝트 루트에서 Claude Code를 열고 실행:
+프로젝트 최초 사용 시:
 
 ```
-/relay-init
+/relay:init
 ```
 
 전체 에이전트가 병렬로 코드베이스를 스캔한다. 각 에이전트는 자신의 역할에 맞는 부분을 파악하고 `.relay/memory/`에 기록한다. 최초 1회, 또는 프로젝트가 크게 바뀐 후 다시 실행한다.
 
+이후 태스크 실행:
+
 ```
-/relay "쇼핑카트 기능 추가해줘"
+/relay:relay "쇼핑카트 기능 추가해줘"
 ```
 
-이후는 팀이 알아서 한다.
+특정 에이전트만 단독 호출:
 
-### 설치 확인
-
-```bash
-claude mcp list
-# relay: bun run /path/to/relay/packages/server/src/index.ts - ✓ Connected
+```
+/relay:agent fe "CartItem 컴포넌트 리팩토링해줘"
 ```
 
 <br />
@@ -228,21 +215,22 @@ agents:
 
 ```
 relay/
+├── .claude-plugin/
+│   └── plugin.json              플러그인 매니페스트
 ├── packages/
-│   ├── server/          MCP 서버 + Hono REST + WebSocket
-│   ├── shared/          공유 타입 (AgentId, RelayEvent)
-│   ├── dashboard/       React + Vite 실시간 UI
-│   └── docs/            Astro + Starlight 문서 사이트
+│   ├── server/                  MCP 서버 + Hono REST + WebSocket
+│   ├── shared/                  공유 타입 (AgentId, RelayEvent)
+│   ├── dashboard/               React + Vite 실시간 UI
+│   └── docs/                    Astro + Starlight 문서 사이트
 ├── skills/
-│   ├── relay.md         /relay — 전체 워크플로 오케스트레이션
-│   ├── relay-init.md    /relay-init — 병렬 프로젝트 스캔
-│   └── relay-agent.md   /relay-agent — 단일 에이전트 직접 호출
+│   ├── relay/SKILL.md           /relay:relay — 전체 워크플로 오케스트레이션
+│   ├── init/SKILL.md            /relay:init — 병렬 프로젝트 스캔
+│   └── agent/SKILL.md           /relay:agent — 단일 에이전트 직접 호출
 ├── hooks/
-│   └── post-tool-use.sh PostToolUse 훅 → 대시보드 상태 push
-├── scripts/
-│   └── install.ts       글로벌/로컬 설치 스크립트
-├── agents.default.yml   기본 에이전트 페르소나 + 워크플로 DAG
-└── agents.yml           사용자 커스텀 (오버라이드, extends, disabled)
+│   └── hooks.json               PostToolUse 훅 → 대시보드 상태 push
+├── .mcp.json                    MCP 서버 설정
+├── agents.default.yml           기본 에이전트 페르소나 + 워크플로 DAG
+└── agents.yml                   사용자 커스텀 (오버라이드, extends, disabled)
 ```
 
 <br />
@@ -271,9 +259,9 @@ relay/
 - [x] 에이전트 페르소나 YAML 시스템
 - [x] 아티팩트 및 리뷰 툴
 - [x] 실시간 웹 대시보드
-- [x] Skills (relay, relay-init, relay-agent)
+- [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
 - [x] Init Mode (병렬 프로젝트 스캔)
-- [x] 설치 스크립트 (글로벌/로컬)
+- [x] Claude Code Plugin 형식 (마켓플레이스 배포 가능)
 - [ ] 에이전트 thinking 대시보드 스트리밍
 - [ ] 세션 replay UI
 - [ ] 공개 문서 사이트

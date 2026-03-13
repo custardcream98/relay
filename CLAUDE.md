@@ -80,16 +80,18 @@ packages/
 ├── dashboard/            # @relay/dashboard — React + Vite 실시간 UI
 └── docs/                 # @relay/docs — Astro + Starlight 문서 사이트
 
-skills/                   # Claude Code 스킬 파일
-├── relay.md              # /relay - 전체 워크플로 (Deployer까지 포함)
-├── relay-init.md         # /relay-init - 프로젝트 파악
-└── relay-agent.md        # /relay-agent - 단일 에이전트 호출
+skills/                   # Claude Code Plugin 스킬 파일
+├── relay/SKILL.md        # /relay:relay - 전체 워크플로
+├── init/SKILL.md         # /relay:init - 프로젝트 파악
+└── agent/SKILL.md        # /relay:agent - 단일 에이전트 호출
 
 hooks/
-└── post-tool-use.sh      # PostToolUse 훅: MCP 툴 호출 → 대시보드 상태 갱신
+└── hooks.json            # PostToolUse 훅: MCP 툴 호출 → 대시보드 상태 갱신
 
-scripts/
-└── install.ts            # 글로벌/로컬 설치 스크립트 (스킬 + MCP + 훅 한번에)
+.claude-plugin/
+└── plugin.json           # 플러그인 매니페스트
+
+.mcp.json                 # MCP 서버 설정 (${CLAUDE_PLUGIN_ROOT} 사용)
 ```
 
 ## MCP 툴 스키마 원칙
@@ -101,9 +103,10 @@ scripts/
 
 ## 워크플로 순서
 
-1. `/relay-init` — 최초 1회, 팀이 프로젝트 병렬 스캔 후 `.relay/memory/` 초기화
-2. `/relay "태스크"` — PM → Designer/DA → FE/BE → 코드리뷰 → QA → Deployer → 배포
-3. 각 세션 종료 시 에이전트가 기억 갱신, 세션 아카이브 저장
+1. `/relay:init` — 최초 1회, 팀이 프로젝트 병렬 스캔 후 `.relay/memory/` 초기화
+2. `/relay:relay "태스크"` — PM → Designer/DA → FE/BE → 코드리뷰 → QA → Deployer → 배포
+3. `/relay:agent {id} "태스크"` — 특정 에이전트 단독 호출
+4. 각 세션 종료 시 에이전트가 기억 갱신, 세션 아카이브 저장
 
 ## 대시보드 요구사항
 

@@ -11,8 +11,8 @@ const ui = {
     "nav.langHref.suffix": "/ko-KR/",
 
     // Hero
-    "hero.headline1": "A whole team.",
-    "hero.headlineEm": "One YAML file.",
+    "hero.headline1": "You think it.",
+    "hero.headlineEm": "Your team builds it.",
     "hero.subheadline":
       "Write a YAML file. Get a collaborating team of Claude agents — peer-to-peer, event-driven, no orchestrator code. Works inside Claude Code. No new API keys. No extra billing.",
     "hero.cta": "Get started",
@@ -91,8 +91,8 @@ const ui = {
     "nav.langHref.suffix": "/",
 
     // Hero
-    "hero.headline1": "하나의 YAML 파일.",
-    "hero.headlineEm": "완전한 팀.",
+    "hero.headline1": "지시 한 번.",
+    "hero.headlineEm": "완전한 팀으로.",
     "hero.subheadline":
       "YAML 파일 하나로 충분합니다. Claude 에이전트들이 P2P로 협업합니다 — 이벤트 기반, 오케스트레이터 불필요. Claude Code 안에서 동작하며, 새 API 키도 추가 요금도 없습니다.",
     "hero.cta": "시작하기",

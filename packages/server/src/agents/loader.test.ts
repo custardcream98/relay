@@ -21,8 +21,8 @@ describe("loadAgents", () => {
       },
     };
     const result = loadAgents(customFile);
-    expect(result["researcher"]).toBeDefined();
-    expect(result["researcher"].name).toBe("Researcher");
+    expect(result.researcher).toBeDefined();
+    expect(result.researcher.name).toBe("Researcher");
   });
 
   test("extends로 다른 에이전트를 상속할 수 있다", () => {
@@ -41,8 +41,8 @@ describe("loadAgents", () => {
       },
     };
     const result = loadAgents(customFile);
-    expect(result["peer_reviewer"].emoji).toBe("🔬"); // inherited
-    expect(result["peer_reviewer"].name).toBe("Peer Reviewer"); // overridden
+    expect(result.peer_reviewer.emoji).toBe("🔬"); // inherited
+    expect(result.peer_reviewer.name).toBe("Peer Reviewer"); // overridden
   });
 
   test("disabled 에이전트는 결과에서 제외된다", () => {
@@ -58,8 +58,8 @@ describe("loadAgents", () => {
       },
     };
     const agents = loadAgents(custom);
-    expect(agents["writer"]).toBeDefined();
-    expect(agents["editor"]).toBeUndefined();
+    expect(agents.writer).toBeDefined();
+    expect(agents.editor).toBeUndefined();
   });
 
   test("disabled 에이전트를 extends하면 에러를 던진다", () => {
@@ -102,8 +102,8 @@ describe("language setting", () => {
       },
     };
     const agents = loadAgents(custom);
-    expect(agents["writer"].language).toBe("Korean");
-    expect(agents["analyst"].language).toBeUndefined();
+    expect(agents.writer.language).toBe("Korean");
+    expect(agents.analyst.language).toBeUndefined();
   });
 
   test("글로벌 language는 모든 에이전트에 적용된다", () => {
@@ -125,8 +125,8 @@ describe("language setting", () => {
       language: "English",
     };
     const agents = loadAgents(custom);
-    expect(agents["writer"].language).toBe("English");
-    expect(agents["analyst"].language).toBe("English");
+    expect(agents.writer.language).toBe("English");
+    expect(agents.analyst.language).toBe("English");
   });
 
   test("에이전트별 language가 글로벌 language보다 우선한다", () => {
@@ -149,8 +149,8 @@ describe("language setting", () => {
       language: "English",
     };
     const agents = loadAgents(custom);
-    expect(agents["writer"].language).toBe("Korean");
-    expect(agents["analyst"].language).toBe("English");
+    expect(agents.writer.language).toBe("Korean");
+    expect(agents.analyst.language).toBe("English");
   });
 
   test("buildSystemPromptWithMemory에 language 지시문이 포함된다", () => {
@@ -200,7 +200,7 @@ describe("workflow loader", () => {
       },
     };
     const workflow = getWorkflow(custom);
-    expect(workflow.jobs["research"]).toBeDefined();
-    expect(workflow.jobs["research"].description).toBe("Research phase");
+    expect(workflow.jobs.research).toBeDefined();
+    expect(workflow.jobs.research.description).toBe("Research phase");
   });
 });

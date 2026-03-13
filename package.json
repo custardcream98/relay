@@ -22,7 +22,8 @@
     "docs:dev": "cd docs-site && bun run dev",
     "docs:build": "cd docs-site && bun run build",
     "install:local": "bun run scripts/install.ts",
-    "install:global": "bun run scripts/install.ts --global"
+    "install:global": "bun run scripts/install.ts --global",
+    "prepare": "husky"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
@@ -34,6 +35,7 @@
     "@biomejs/biome": "^2.4.6",
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
+    "husky": "^9.1.7",
     "typescript": "^5"
   }
 }

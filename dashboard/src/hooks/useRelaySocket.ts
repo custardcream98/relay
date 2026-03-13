@@ -8,20 +8,25 @@ export function useRelaySocket(url: string) {
   const ws = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    ws.current = new WebSocket(url);
+    // 로컬 변수에 캡처 — cleanup이 항상 이 effect의 소켓을 닫도록
+    const socket = new WebSocket(url);
+    ws.current = socket;
 
-    ws.current.onopen = () => setConnected(true);
-    ws.current.onclose = () => setConnected(false);
-    ws.current.onmessage = (e) => {
+    socket.onopen = () => setConnected(true);
+    socket.onclose = () => setConnected(false);
+    socket.onmessage = (e) => {
       try {
-        const event: RelayEvent = JSON.parse(e.data) as RelayEvent;
-        setEvents((prev) => [...prev, event]);
+        const event: RelayEvent = JSON.parse(e.data);
+        setEvents(prev => [...prev, event]);
       } catch (err) {
         console.warn("[relay] WebSocket 메시지 파싱 실패:", err);
       }
     };
 
-    return () => ws.current?.close();
+    return () => {
+      socket.close();
+      ws.current = null;
+    };
   }, [url]);
 
   return { events, connected };

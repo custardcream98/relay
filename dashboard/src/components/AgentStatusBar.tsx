@@ -2,11 +2,7 @@
 import { useEffect, useState } from "react";
 import type { AgentId } from "../types";
 
-interface AgentMeta {
-  id: AgentId;
-  name: string;
-  emoji: string;
-}
+interface AgentMeta { id: AgentId; name: string; emoji: string }
 
 interface Props {
   statuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
@@ -16,12 +12,22 @@ interface Props {
 
 export function AgentStatusBar({ statuses, selected, onSelect }: Props) {
   const [agents, setAgents] = useState<AgentMeta[]>([]);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetch("/api/agents")
-      .then((r) => r.json())
-      .then((data) => setAgents(data as AgentMeta[]));
+      .then(r => r.json())
+      .then(setAgents)
+      .catch(() => setError(true));
   }, []);
+
+  if (error) {
+    return (
+      <div className="flex items-center gap-2 p-3 bg-gray-900 border-b border-gray-700">
+        <span className="text-xs text-red-400">에이전트 목록 로드 실패</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-3 p-3 bg-gray-900 border-b border-gray-700">
@@ -39,9 +45,7 @@ export function AgentStatusBar({ statuses, selected, onSelect }: Props) {
           >
             <span>{emoji}</span>
             <span>{name}</span>
-            <span
-              className={`w-2 h-2 rounded-full ${isWorking ? "bg-green-400 animate-pulse" : "bg-gray-600"}`}
-            />
+            <span className={`w-2 h-2 rounded-full ${isWorking ? "bg-green-400 animate-pulse" : "bg-gray-600"}`} />
           </button>
         );
       })}

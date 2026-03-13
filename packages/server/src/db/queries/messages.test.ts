@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
 import { getMessagesForAgent, insertMessage } from "./messages";
 
-describe("메시지 쿼리", () => {
+describe("message queries", () => {
   let db: Database;
 
   beforeEach(() => {
@@ -13,28 +13,28 @@ describe("메시지 쿼리", () => {
 
   afterEach(() => db.close());
 
-  test("메시지 삽입 및 조회", () => {
+  test("insert and fetch messages", () => {
     insertMessage(db, {
       id: "msg-1",
       session_id: "sess-1",
       from_agent: "pm",
       to_agent: "fe",
-      content: "PR 리뷰 부탁해",
+      content: "Please review the PR",
       thread_id: null,
     });
 
     const msgs = getMessagesForAgent(db, "sess-1", "fe");
     expect(msgs).toHaveLength(1);
-    expect(msgs[0].content).toBe("PR 리뷰 부탁해");
+    expect(msgs[0].content).toBe("Please review the PR");
   });
 
-  test("브로드캐스트 메시지 (to_agent=null) 전체 조회", () => {
+  test("fetch broadcast messages (to_agent=null)", () => {
     insertMessage(db, {
       id: "msg-2",
       session_id: "sess-1",
       from_agent: "pm",
       to_agent: null,
-      content: "전체 공지",
+      content: "Broadcast announcement",
       thread_id: null,
     });
 

@@ -7,7 +7,7 @@ describe("events queries", () => {
     initDb(":memory:");
   });
 
-  test("이벤트를 저장하고 조회할 수 있다", () => {
+  test("can store and retrieve events", () => {
     const event = {
       type: "message:new" as const,
       message: {
@@ -26,7 +26,7 @@ describe("events queries", () => {
     expect(events[0].type).toBe("message:new");
   });
 
-  test("세션별로 이벤트를 분리해서 저장한다", () => {
+  test("events are stored separately per session", () => {
     const makeEvent = (agentId: string) => ({
       type: "agent:status" as const,
       agentId,

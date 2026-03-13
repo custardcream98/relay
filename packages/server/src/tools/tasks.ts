@@ -56,7 +56,7 @@ export function handleGetMyTasks(db: Database, sessionId: string, input: { agent
   return { success: true, tasks };
 }
 
-// 태스크를 원자적으로 클레임. 'todo' 상태이고 해당 에이전트에 할당되어 있거나 미할당인 경우에만 claimed: true 반환
+// Atomically claim a task. Returns claimed: true only if the task is 'todo' and assigned to (or unassigned from) the agent.
 export function handleClaimTask(
   db: Database,
   _sessionId: string,
@@ -73,16 +73,16 @@ export function handleClaimTask(
   return { success: true, claimed: true };
 }
 
-// 세션 전체 태스크 집계 반환.
-// has_pending_work를 통해 에이전트가 end:waiting 또는 end:done을 선언할 시점을 결정
+// Returns aggregated task counts for the session.
+// Agents use has_pending_work to decide when to broadcast end:waiting or end:done.
 export function handleGetTeamStatus(db: Database, sessionId: string, _input: { agent_id: string }) {
   const status = getTeamStatus(db, sessionId);
   const has_pending_work = status.todo + status.in_progress + status.in_review > 0;
   return { success: true, ...status, has_pending_work };
 }
 
-// assignee 무관하게 세션 내 모든 태스크 반환.
-// 에이전트가 팀 전체의 작업 현황을 파악하는 데 사용
+// Returns all tasks in the session regardless of assignee.
+// Used by agents to get an overview of the entire team's work status.
 export function handleGetAllTasks(db: Database, sessionId: string, _input: { agent_id: string }) {
   const tasks = getAllTasks(db, sessionId);
   return { success: true, tasks };

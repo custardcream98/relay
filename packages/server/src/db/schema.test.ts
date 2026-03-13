@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "./schema";
 
-describe("DB 스키마 마이그레이션", () => {
+describe("DB schema migrations", () => {
   let db: Database;
 
   beforeEach(() => {
@@ -12,35 +12,35 @@ describe("DB 스키마 마이그레이션", () => {
 
   afterEach(() => db.close());
 
-  test("messages 테이블 생성", () => {
+  test("creates messages table", () => {
     const row = db
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'")
       .get();
     expect(row).toBeTruthy();
   });
 
-  test("tasks 테이블 생성", () => {
+  test("creates tasks table", () => {
     const row = db
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
       .get();
     expect(row).toBeTruthy();
   });
 
-  test("artifacts 테이블 생성", () => {
+  test("creates artifacts table", () => {
     const row = db
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='artifacts'")
       .get();
     expect(row).toBeTruthy();
   });
 
-  test("reviews 테이블 생성", () => {
+  test("creates reviews table", () => {
     const row = db
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'")
       .get();
     expect(row).toBeTruthy();
   });
 
-  test("events 테이블 생성", () => {
+  test("creates events table", () => {
     const row = db
       .query("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
       .get();

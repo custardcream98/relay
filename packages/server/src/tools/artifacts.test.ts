@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../db/schema";
 import { handleGetArtifact, handlePostArtifact } from "./artifacts";
 
-describe("artifacts 툴", () => {
+describe("artifacts tool", () => {
   let db: Database;
   beforeEach(() => {
     db = new Database(":memory:");
@@ -11,7 +11,7 @@ describe("artifacts 툴", () => {
   });
   afterEach(() => db.close());
 
-  test("post_artifact: 아티팩트 저장", async () => {
+  test("post_artifact: saves artifact", async () => {
     const result = await handlePostArtifact(db, "sess-1", {
       agent_id: "designer",
       name: "login-design",
@@ -23,7 +23,7 @@ describe("artifacts 툴", () => {
     expect(result.artifact_id).toBeDefined();
   });
 
-  test("get_artifact: 이름으로 조회", async () => {
+  test("get_artifact: retrieves by name", async () => {
     await handlePostArtifact(db, "sess-1", {
       agent_id: "designer",
       name: "login-design",

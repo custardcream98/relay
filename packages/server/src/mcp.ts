@@ -149,7 +149,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // 두 에이전트가 동일한 태스크를 동시에 가져가지 않도록 원자적으로 클레임
+  // Atomically claim a task so two agents cannot pick up the same task concurrently
   server.tool(
     "claim_task",
     {
@@ -178,7 +178,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // 집계된 태스크 수를 반환 — 에이전트가 has_pending_work로 end:waiting vs end:done 결정
+  // Returns aggregated task counts — agents use has_pending_work to decide end:waiting vs end:done
   server.tool(
     "get_team_status",
     {
@@ -190,7 +190,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // 담당자와 무관하게 세션 내 모든 태스크 반환
+  // Returns all tasks in the session regardless of assignee
   server.tool(
     "get_all_tasks",
     {
@@ -390,8 +390,8 @@ export function createMcpServer(): McpServer {
 
   // --- agents tools ---
 
-  // 에이전트 로드 캐시 — startMcpServer()가 setProjectRoot()를 호출한 후 첫 tool 호출 시 초기화
-  // (createMcpServer() 시점에 loadAgents()를 실행하면 CWD가 /tmp라 경로를 못 찾음)
+  // Lazy agent cache — populated on first list_agents call, after setProjectRoot() has been set.
+  // Loading at createMcpServer() time would use CWD=/tmp (bunx behavior) and always return [].
   let agents: Record<string, AgentPersona> | null = null;
 
   function getAgents(): Record<string, AgentPersona> {
@@ -399,7 +399,7 @@ export function createMcpServer(): McpServer {
       try {
         agents = loadAgents();
       } catch {
-        // agents.yml 없는 경우 — /relay:init Phase 0 (팀 제안)이 동작하도록 빈 객체 반환
+        // No agents.yml — return empty so /relay:init phase 0 (team suggestion) can run
         agents = {};
       }
     }
@@ -453,17 +453,24 @@ export async function startMcpServer(server: McpServer): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  // MCP roots/list로 클라이언트(Claude Code)의 워크스페이스 경로를 가져와 PROJECT_ROOT로 설정
-  // bunx 실행 시 CWD가 /tmp가 되는 문제를 MCP 프로토콜 레벨에서 해결
+  // Ask the MCP client (Claude Code) for workspace roots to resolve the project directory.
+  // This fixes the bunx CWD=/tmp problem without requiring any per-project configuration.
   try {
     const { roots } = await server.server.listRoots();
     if (roots.length > 0) {
       const projectRoot = uriToPath(roots[0].uri);
       setProjectRoot(projectRoot);
       console.error(`[relay] project root: ${projectRoot}`);
+    } else {
+      console.error(
+        "[relay] roots/list returned empty — falling back to RELAY_PROJECT_ROOT or cwd"
+      );
     }
   } catch {
-    // 클라이언트가 roots 기능을 지원하지 않는 경우 무시 (RELAY_PROJECT_ROOT env var 또는 cwd 사용)
+    // Client does not support roots — fall back to RELAY_PROJECT_ROOT env var or process.cwd()
+    console.error(
+      "[relay] roots/list not supported by client — falling back to RELAY_PROJECT_ROOT or cwd"
+    );
   }
 
   console.error("[relay] MCP server started (stdio)");

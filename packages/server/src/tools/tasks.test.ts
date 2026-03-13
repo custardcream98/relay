@@ -10,7 +10,7 @@ import {
   handleUpdateTask,
 } from "./tasks";
 
-describe("tasks 툴", () => {
+describe("tasks tool", () => {
   let db: Database;
 
   beforeEach(() => {
@@ -20,11 +20,11 @@ describe("tasks 툴", () => {
 
   afterEach(() => db.close());
 
-  test("create_task: 태스크 생성", async () => {
+  test("create_task: creates a task", async () => {
     const result = await handleCreateTask(db, "sess-1", {
       agent_id: "pm",
-      title: "쇼핑카트 API 설계",
-      description: "REST API 엔드포인트 명세 작성",
+      title: "Design shopping cart API",
+      description: "Write REST API endpoint specification",
       assignee: "be",
       priority: "high",
     });
@@ -32,10 +32,10 @@ describe("tasks 툴", () => {
     expect(result.task_id).toBeDefined();
   });
 
-  test("update_task: 상태 변경", async () => {
+  test("update_task: updates status", async () => {
     const { task_id } = await handleCreateTask(db, "sess-1", {
       agent_id: "pm",
-      title: "테스트",
+      title: "test task",
       assignee: "fe",
       priority: "medium",
     });
@@ -47,30 +47,30 @@ describe("tasks 툴", () => {
     expect(result.success).toBe(true);
   });
 
-  test("get_my_tasks: 내 태스크만 조회", async () => {
+  test("get_my_tasks: returns only own tasks", async () => {
     await handleCreateTask(db, "sess-1", {
       agent_id: "pm",
-      title: "FE 작업",
+      title: "FE task",
       assignee: "fe",
       priority: "low",
     });
     await handleCreateTask(db, "sess-1", {
       agent_id: "pm",
-      title: "BE 작업",
+      title: "BE task",
       assignee: "be",
       priority: "low",
     });
 
     const result = await handleGetMyTasks(db, "sess-1", { agent_id: "fe" });
     expect(result.tasks).toHaveLength(1);
-    expect(result.tasks[0].title).toBe("FE 작업");
+    expect(result.tasks[0].title).toBe("FE task");
   });
 
   describe("claim_task", () => {
-    test("todo 상태의 내 태스크 클레임 성공", async () => {
+    test("succeeds when claiming own todo task", async () => {
       const { task_id } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "FE 구현",
+        title: "FE implementation",
         assignee: "fe",
         priority: "high",
       });
@@ -82,10 +82,10 @@ describe("tasks 툴", () => {
       expect(result.claimed).toBe(true);
     });
 
-    test("이미 in_progress인 태스크 재클레임 실패", async () => {
+    test("fails when re-claiming an already in_progress task", async () => {
       const { task_id } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "FE 구현",
+        title: "FE implementation",
         assignee: "fe",
         priority: "high",
       });
@@ -98,10 +98,10 @@ describe("tasks 툴", () => {
       expect(result.claimed).toBe(false);
     });
 
-    test("다른 에이전트 소유 태스크 클레임 실패", async () => {
+    test("fails when claiming another agent's task", async () => {
       const { task_id } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "BE 구현",
+        title: "BE implementation",
         assignee: "be",
         priority: "medium",
       });
@@ -113,10 +113,10 @@ describe("tasks 툴", () => {
       expect(result.claimed).toBe(false);
     });
 
-    test("assignee 없는 태스크는 누구든 클레임 가능", async () => {
+    test("any agent can claim an unassigned task", async () => {
       const { task_id } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "공통 작업",
+        title: "shared task",
         priority: "low",
       });
       const result = await handleClaimTask(db, "sess-1", {
@@ -129,7 +129,7 @@ describe("tasks 툴", () => {
   });
 
   describe("get_team_status", () => {
-    test("빈 세션 → 전부 0, has_pending_work false", async () => {
+    test("empty session → all zeros, has_pending_work false", async () => {
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "pm" });
       expect(result.success).toBe(true);
       expect(result.todo).toBe(0);
@@ -140,16 +140,16 @@ describe("tasks 툴", () => {
       expect(result.has_pending_work).toBe(false);
     });
 
-    test("todo + done 혼재 → has_pending_work true", async () => {
+    test("mix of todo + done → has_pending_work true", async () => {
       await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "작업1",
+        title: "task 1",
         assignee: "fe",
         priority: "high",
       });
       const { task_id: t2 } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "작업2",
+        title: "task 2",
         assignee: "be",
         priority: "medium",
       });
@@ -165,10 +165,10 @@ describe("tasks 툴", () => {
       expect(result.has_pending_work).toBe(true);
     });
 
-    test("전부 done → has_pending_work false", async () => {
+    test("all done → has_pending_work false", async () => {
       const { task_id } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "작업",
+        title: "task",
         assignee: "fe",
         priority: "low",
       });
@@ -182,10 +182,10 @@ describe("tasks 툴", () => {
       expect(result.has_pending_work).toBe(false);
     });
 
-    test("세션 격리 — 다른 세션 태스크는 집계되지 않음", async () => {
+    test("session isolation — tasks from other sessions are not counted", async () => {
       await handleCreateTask(db, "sess-other", {
         agent_id: "pm",
-        title: "다른 세션 작업",
+        title: "other session task",
         priority: "high",
       });
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "pm" });
@@ -194,16 +194,16 @@ describe("tasks 툴", () => {
   });
 
   describe("get_all_tasks", () => {
-    test("세션 전체 태스크 반환 (assignee 무관)", async () => {
+    test("returns all tasks in session regardless of assignee", async () => {
       await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "FE 작업",
+        title: "FE task",
         assignee: "fe",
         priority: "high",
       });
       await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "BE 작업",
+        title: "BE task",
         assignee: "be",
         priority: "medium",
       });
@@ -212,15 +212,15 @@ describe("tasks 툴", () => {
       expect(result.tasks).toHaveLength(2);
     });
 
-    test("다른 세션 태스크는 포함되지 않음", async () => {
+    test("tasks from other sessions are not included", async () => {
       await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
-        title: "세션1 작업",
+        title: "session 1 task",
         priority: "low",
       });
       await handleCreateTask(db, "sess-other", {
         agent_id: "pm",
-        title: "세션2 작업",
+        title: "session 2 task",
         priority: "low",
       });
       const result = await handleGetAllTasks(db, "sess-1", { agent_id: "pm" });

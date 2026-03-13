@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
 import { getReviewsByReviewer, insertReview, updateReviewStatus } from "./reviews";
 
-describe("리뷰 쿼리", () => {
+describe("review queries", () => {
   let db: Database;
   beforeEach(() => {
     db = new Database(":memory:");
@@ -11,7 +11,7 @@ describe("리뷰 쿼리", () => {
   });
   afterEach(() => db.close());
 
-  test("리뷰 요청 생성", () => {
+  test("create review request", () => {
     insertReview(db, {
       id: "rev-1",
       session_id: "sess-1",
@@ -25,7 +25,7 @@ describe("리뷰 쿼리", () => {
     expect(reviews).toHaveLength(1);
   });
 
-  test("리뷰 상태 업데이트", () => {
+  test("update review status", () => {
     insertReview(db, {
       id: "rev-2",
       session_id: "sess-1",

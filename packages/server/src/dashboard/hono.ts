@@ -16,8 +16,8 @@ import { broadcast } from "./websocket";
 
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
-// 번들된 경우: import.meta.url 기준 같은 디렉토리의 `dashboard/` 폴더를 사용
-// 개발 환경: RELAY_DASHBOARD_DIR env var로 override (예: packages/dashboard/dist)
+// Bundled: resolve dashboard/ relative to this file's location
+// Dev: override with RELAY_DASHBOARD_DIR env var (e.g. packages/dashboard/dist)
 const DASHBOARD_DIST =
   process.env.RELAY_DASHBOARD_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "dashboard");
 
@@ -26,7 +26,7 @@ export const app = new Hono();
 // Serve static files from the built React app
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
-// Agent list loaded once at server start (restart required for changes to take effect)
+// Lazy-loaded on first /api/agents request (after MCP init, getRelayDir() returns the correct path)
 let cachedAgents: ReturnType<typeof loadAgents> | null = null;
 
 // API: agent list

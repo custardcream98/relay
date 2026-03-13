@@ -4,12 +4,12 @@ import { getWorkflow, loadAgents } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("loadAgents", () => {
-  test("에이전트가 0개이면 명확한 에러를 던진다", () => {
+  test("throws a clear error when 0 agents are defined", () => {
     const emptyFile: AgentsFile = { agents: {} };
     expect(() => loadAgents(emptyFile)).toThrow("No agents defined");
   });
 
-  test("agents.yml에 에이전트가 있으면 정상 로드", () => {
+  test("loads successfully when agents.yml has agents", () => {
     const customFile: AgentsFile = {
       agents: {
         researcher: {
@@ -25,7 +25,7 @@ describe("loadAgents", () => {
     expect(result.researcher.name).toBe("Researcher");
   });
 
-  test("extends로 다른 에이전트를 상속할 수 있다", () => {
+  test("can inherit from another agent using extends", () => {
     const customFile: AgentsFile = {
       agents: {
         researcher: {
@@ -45,7 +45,7 @@ describe("loadAgents", () => {
     expect(result.peer_reviewer.name).toBe("Peer Reviewer"); // overridden
   });
 
-  test("disabled 에이전트는 결과에서 제외된다", () => {
+  test("disabled agents are excluded from results", () => {
     const custom: AgentsFile = {
       agents: {
         writer: {
@@ -62,7 +62,7 @@ describe("loadAgents", () => {
     expect(agents.editor).toBeUndefined();
   });
 
-  test("disabled 에이전트를 extends하면 에러를 던진다", () => {
+  test("throws when extending a disabled agent", () => {
     const custom: AgentsFile = {
       agents: {
         base: { disabled: true, name: "Base", emoji: "🔵", tools: [], systemPrompt: "Base." },
@@ -72,10 +72,10 @@ describe("loadAgents", () => {
     expect(() => loadAgents(custom)).toThrow();
   });
 
-  test("extends 없이 필수 필드가 빠진 커스텀 에이전트는 에러를 던진다", () => {
+  test("throws when required fields are missing without extends", () => {
     const custom: AgentsFile = {
       agents: {
-        "incomplete-agent": { name: "Missing fields" }, // tools, systemPrompt 누락
+        "incomplete-agent": { name: "Missing fields" }, // tools and systemPrompt omitted
       },
     };
     expect(() => loadAgents(custom)).toThrow();
@@ -83,7 +83,7 @@ describe("loadAgents", () => {
 });
 
 describe("language setting", () => {
-  test("에이전트별 language를 설정할 수 있다", () => {
+  test("can set per-agent language", () => {
     const custom: AgentsFile = {
       agents: {
         writer: {
@@ -106,7 +106,7 @@ describe("language setting", () => {
     expect(agents.analyst.language).toBeUndefined();
   });
 
-  test("글로벌 language는 모든 에이전트에 적용된다", () => {
+  test("global language applies to all agents", () => {
     const custom: AgentsFile = {
       agents: {
         writer: {
@@ -129,7 +129,7 @@ describe("language setting", () => {
     expect(agents.analyst.language).toBe("English");
   });
 
-  test("에이전트별 language가 글로벌 language보다 우선한다", () => {
+  test("per-agent language takes precedence over global language", () => {
     const custom: AgentsFile = {
       agents: {
         writer: {
@@ -153,7 +153,7 @@ describe("language setting", () => {
     expect(agents.analyst.language).toBe("English");
   });
 
-  test("buildSystemPromptWithMemory에 language 지시문이 포함된다", () => {
+  test("buildSystemPromptWithMemory includes language directive", () => {
     const { buildSystemPromptWithMemory } = require("./loader");
     const persona = {
       id: "writer",
@@ -167,7 +167,7 @@ describe("language setting", () => {
     expect(prompt).toContain("You MUST respond in Korean");
   });
 
-  test("language가 없으면 language 지시문이 포함되지 않는다", () => {
+  test("omits language directive when language is not set", () => {
     const { buildSystemPromptWithMemory } = require("./loader");
     const persona = {
       id: "writer",
@@ -182,12 +182,12 @@ describe("language setting", () => {
 });
 
 describe("workflow loader", () => {
-  test("커스텀 workflow가 없으면 빈 jobs 반환", () => {
+  test("returns empty jobs when no custom workflow is defined", () => {
     const workflow = getWorkflow({ agents: {} });
     expect(workflow.jobs).toBeDefined();
   });
 
-  test("커스텀 workflow jobs를 오버라이드할 수 있다", () => {
+  test("can override workflow jobs", () => {
     const custom: AgentsFile = {
       agents: {},
       workflow: {

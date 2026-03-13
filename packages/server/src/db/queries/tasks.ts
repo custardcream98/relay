@@ -77,8 +77,8 @@ export function getAllTasks(db: Database, sessionId: string): TaskRow[] {
     .all(sessionId);
 }
 
-// 태스크를 원자적으로 클레임 — 현재 'todo' 상태이고 해당 에이전트에 할당되어 있거나 미할당인 경우에만 'in_progress'로 변경
-// 클레임 성공 시 true, 실패 시 false 반환
+// Atomically claim a task — transitions to 'in_progress' only if currently 'todo' and assigned to (or unassigned from) the agent.
+// Returns true on success, false if the claim was rejected.
 export function claimTask(db: Database, taskId: string, agentId: string): boolean {
   db.query(`
     UPDATE tasks
@@ -99,7 +99,7 @@ export interface TeamStatusRow {
   total: number;
 }
 
-// 세션의 태스크 상태별 집계 — 에이전트가 작업 완료 시점을 판단하는 데 사용
+// Aggregated task counts by status for a session — used by agents to decide when work is complete
 export function getTeamStatus(db: Database, sessionId: string): TeamStatusRow {
   return (
     db

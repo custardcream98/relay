@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
 import { getTaskById, getTasksByAssignee, insertTask, updateTask } from "./tasks";
 
-describe("태스크 쿼리", () => {
+describe("task queries", () => {
   let db: Database;
 
   beforeEach(() => {
@@ -13,12 +13,12 @@ describe("태스크 쿼리", () => {
 
   afterEach(() => db.close());
 
-  test("태스크 생성 및 ID 조회", () => {
+  test("create task and retrieve by ID", () => {
     insertTask(db, {
       id: "task-1",
       session_id: "sess-1",
-      title: "로그인 UI 구현",
-      description: "OAuth 로그인 버튼 추가",
+      title: "Implement login UI",
+      description: "Add OAuth login button",
       assignee: "fe",
       status: "todo",
       priority: "high",
@@ -26,15 +26,15 @@ describe("태스크 쿼리", () => {
     });
 
     const task = getTaskById(db, "task-1");
-    expect(task?.title).toBe("로그인 UI 구현");
+    expect(task?.title).toBe("Implement login UI");
     expect(task?.status).toBe("todo");
   });
 
-  test("태스크 상태 업데이트", () => {
+  test("update task status", () => {
     insertTask(db, {
       id: "task-2",
       session_id: "sess-1",
-      title: "API 설계",
+      title: "API design",
       description: null,
       assignee: "be",
       status: "todo",
@@ -47,11 +47,11 @@ describe("태스크 쿼리", () => {
     expect(task?.status).toBe("in_progress");
   });
 
-  test("담당자별 태스크 조회", () => {
+  test("fetch tasks by assignee", () => {
     insertTask(db, {
       id: "t1",
       session_id: "s1",
-      title: "FE 작업",
+      title: "FE task",
       description: null,
       assignee: "fe",
       status: "todo",
@@ -61,7 +61,7 @@ describe("태스크 쿼리", () => {
     insertTask(db, {
       id: "t2",
       session_id: "s1",
-      title: "BE 작업",
+      title: "BE task",
       description: null,
       assignee: "be",
       status: "todo",
@@ -71,14 +71,14 @@ describe("태스크 쿼리", () => {
 
     const feTasks = getTasksByAssignee(db, "s1", "fe");
     expect(feTasks).toHaveLength(1);
-    expect(feTasks[0].title).toBe("FE 작업");
+    expect(feTasks[0].title).toBe("FE task");
   });
 
-  test("updateTask: 빈 updates 전달 시 에러 없이 종료 (SQL 오류 방지)", () => {
+  test("updateTask: empty updates should not throw (prevents SQL error)", () => {
     insertTask(db, {
       id: "task-3",
       session_id: "sess-1",
-      title: "빈 업데이트 테스트",
+      title: "empty update test",
       description: null,
       assignee: "fe",
       status: "todo",

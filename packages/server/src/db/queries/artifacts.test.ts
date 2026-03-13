@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { runMigrations } from "../schema";
 import { getArtifactByName, insertArtifact } from "./artifacts";
 
-describe("아티팩트 쿼리", () => {
+describe("artifact queries", () => {
   let db: Database;
   beforeEach(() => {
     db = new Database(":memory:");
@@ -11,7 +11,7 @@ describe("아티팩트 쿼리", () => {
   });
   afterEach(() => db.close());
 
-  test("아티팩트 저장 및 이름으로 조회", () => {
+  test("store artifact and retrieve by name", () => {
     insertArtifact(db, {
       id: "art-1",
       session_id: "sess-1",

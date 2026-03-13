@@ -12,7 +12,7 @@ let _db: Database | null = null;
 export function getDb(): Database {
   if (!_db) {
     const path = process.env.DB_PATH ?? `${getRelayDir()}/relay.db`;
-    // DB 파일이 위치할 디렉토리가 없으면 생성
+    // Create the directory if it does not exist yet
     const dir = dirname(path);
     if (dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
     _db = new Database(path);

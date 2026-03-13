@@ -7,8 +7,8 @@ const snippets = [
   {
     step: "01",
     label: "Install the MCP server",
-    code: `claude mcp add --npm @custardcream/relay relay-server`,
-    comment: "# adds relay to Claude Code globally",
+    code: `claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server`,
+    comment: "# registers relay MCP server globally",
   },
   {
     step: "02",
@@ -20,7 +20,7 @@ const snippets = [
     step: "03",
     label: "Ship a feature",
     code: `/relay:relay "add OAuth login with Google"`,
-    comment: "# PM → Designer → FE/BE → QA → Deployer",
+    comment: "# all agents start simultaneously, peer-to-peer",
   },
 ];
 ---
@@ -32,8 +32,8 @@ const snippets = [
       <span class="qs__label" aria-hidden="true">// quick start</span>
       <h2 class="qs__title">Up and running<br />in two minutes.</h2>
       <p class="qs__desc">
-        Three commands take you from installation to a fully deployed feature
-        with a real multi-agent team doing the work.
+        Three commands take you from installation to a running multi-agent team
+        working through your feature collaboratively.
       </p>
       <a href={`${base}getting-started/installation`} class="qs__link">
         Full installation guide

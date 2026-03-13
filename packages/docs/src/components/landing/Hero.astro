@@ -15,7 +15,7 @@ const docsUrl = `${base}getting-started/introduction`;
         <span class="hero__badge-dot" aria-hidden="true"></span>
         Claude Code Plugin
       </span>
-      <span class="hero__version">v0.3</span>
+      <span class="hero__version">v0.3.5</span>
     </div>
 
     <!-- 헤드라인: 세리프 디스플레이 폰트 -->
@@ -26,8 +26,8 @@ const docsUrl = `${base}getting-started/introduction`;
 
     <!-- 서브헤드라인 -->
     <p class="hero__subheadline">
-      relay spawns a crew of AI agents — PM, Designer, FE, BE, QA, Deployer —
-      that collaborate inside Claude Code to ship features end-to-end.
+      relay runs a team of AI agents — PM, Designer, DA, FE, BE, QA, Deployer —
+      that collaborate inside Claude Code via MCP tools.
       No extra API costs. No orchestrator.
     </p>
 
@@ -60,7 +60,7 @@ const docsUrl = `${base}getting-started/introduction`;
       </div>
       <div class="hero__terminal-body">
         <span class="hero__terminal-prompt" aria-hidden="true">$</span>
-        <code class="hero__terminal-code">claude mcp add --npm @custardcream/relay relay-server</code>
+        <code class="hero__terminal-code">claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server</code>
       </div>
     </div>
 

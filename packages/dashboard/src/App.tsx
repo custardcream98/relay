@@ -2,7 +2,7 @@
 // 새로운 두 존 레이아웃: 왼쪽(AgentArena) + 오른쪽(EventTimeline + TaskBoard/AgentDetailPanel)
 
 import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
-import { useCallback, useReducer, useRef } from "react";
+import { useCallback, useReducer, useRef, useState } from "react";
 import { AgentArena } from "./components/AgentArena";
 import { AgentDetailPanel } from "./components/AgentDetailPanel";
 import { AppHeader } from "./components/AppHeader";
@@ -143,13 +143,34 @@ function reducer(state: DashboardState, action: Action): DashboardState {
       }
 
       switch (event.type) {
-        case "session:snapshot":
+        case "session:snapshot": {
+          // 스냅샷의 기존 메시지/태스크를 타임라인 항목으로 변환
+          const snapshotMessages = event.messages as DashboardState["messages"];
+          const snapshotTasks = event.tasks as DashboardState["tasks"];
+          const snapshotEntries: TimelineEntry[] = [
+            ...snapshotMessages.map((m) => ({
+              id: `snap-msg-${m.id}`,
+              type: "message:new" as const,
+              agentId: m.from_agent,
+              description: m.to_agent ? `Message to ${m.to_agent}` : "Broadcast message",
+              detail: m.content.slice(0, 120),
+              timestamp: m.created_at * 1000, // SQLite unixepoch → ms
+            })),
+            ...snapshotTasks.map((t) => ({
+              id: `snap-task-${t.id}`,
+              type: "task:updated" as const,
+              agentId: t.assignee,
+              description: `Task ${t.status.replace("_", " ")}: ${t.title}`,
+              timestamp: Date.now(),
+            })),
+          ].sort((a, b) => a.timestamp - b.timestamp);
           return {
             ...state,
-            tasks: event.tasks as DashboardState["tasks"],
-            messages: event.messages as DashboardState["messages"],
-            timeline: newTimeline,
+            tasks: snapshotTasks,
+            messages: snapshotMessages,
+            timeline: snapshotEntries,
           };
+        }
         case "agent:status":
           return {
             ...state,
@@ -194,6 +215,55 @@ function reducer(state: DashboardState, action: Action): DashboardState {
   }
 }
 
+// 드래그 리사이즈 핸들 컴포넌트 — hr 태그 사용으로 semantic separator 충족
+function HDivider({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <hr
+      onMouseDown={onMouseDown}
+      style={{
+        width: 4,
+        height: "100%",
+        border: "none",
+        margin: 0,
+        cursor: "col-resize",
+        background: "var(--color-border-subtle)",
+        flexShrink: 0,
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-default)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-subtle)";
+      }}
+    />
+  );
+}
+
+function VDivider({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+  return (
+    <hr
+      onMouseDown={onMouseDown}
+      style={{
+        width: "100%",
+        height: 4,
+        border: "none",
+        margin: 0,
+        cursor: "row-resize",
+        background: "var(--color-border-subtle)",
+        flexShrink: 0,
+        transition: "background 0.15s",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-default)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-subtle)";
+      }}
+    />
+  );
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const handleEvent = useCallback((event: RelayEvent) => {
@@ -202,13 +272,62 @@ export default function App() {
   const { connected } = useRelaySocket({ onEvent: handleEvent });
   const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent, timeline } = state;
 
-  // 에이전트 수 추적 (AgentArena에서 fetch하지만 헤더에도 표시)
   const agentCountRef = useRef(0);
-
   const isFocusMode = selectedAgent !== null;
+
+  // 드래그 리사이즈 상태
+  const [arenaWidth, setArenaWidth] = useState(320); // 좌우 분할 (px)
+  const [timelinePct, setTimelinePct] = useState(55); // 상하 분할 (%)
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activityRef = useRef<HTMLDivElement>(null);
+
+  // 좌우 드래그 핸들러
+  const onHDividerMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startW = arenaWidth;
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientX - startX;
+        const next = Math.max(180, Math.min(520, startW + delta));
+        setArenaWidth(next);
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [arenaWidth]
+  );
+
+  // 상하 드래그 핸들러
+  const onVDividerMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startPct = timelinePct;
+      const activityH = activityRef.current?.clientHeight ?? 600;
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientY - startY;
+        const nextPx = (startPct / 100) * activityH + delta;
+        const next = Math.max(20, Math.min(80, (nextPx / activityH) * 100));
+        setTimelinePct(next);
+      };
+      const onUp = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    },
+    [timelinePct]
+  );
 
   return (
     <div
+      ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
       style={{ background: "var(--color-surface-root)", color: "var(--color-text-primary)" }}
     >
@@ -222,24 +341,28 @@ export default function App() {
 
       {/* 메인 두 존 레이아웃 */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 왼쪽: Agent Arena (320px 고정) */}
-        <AgentArena
-          statuses={agentStatuses}
-          thinkingChunks={thinkingChunks}
-          tasks={tasks}
-          messages={messages}
-          selectedAgent={selectedAgent}
-          onSelectAgent={(id) => dispatch({ type: "SELECT_AGENT", agentId: id })}
-        />
+        {/* 왼쪽: Agent Arena (드래그로 너비 조정 가능) */}
+        <div style={{ width: arenaWidth, flexShrink: 0 }}>
+          <AgentArena
+            statuses={agentStatuses}
+            thinkingChunks={thinkingChunks}
+            tasks={tasks}
+            messages={messages}
+            selectedAgent={selectedAgent}
+            onSelectAgent={(id) => dispatch({ type: "SELECT_AGENT", agentId: id })}
+          />
+        </div>
+
+        {/* 좌우 구분선 (드래그 가능) */}
+        <HDivider onMouseDown={onHDividerMouseDown} />
 
         {/* 오른쪽: Activity Zone */}
-        <div className="flex flex-col flex-1 overflow-hidden">
-          {/* 상단: EventTimeline (55%) */}
+        <div ref={activityRef} className="flex flex-col flex-1 overflow-hidden">
+          {/* 상단: EventTimeline (드래그로 비율 조정 가능) */}
           <div
             style={{
-              height: "55%",
+              height: `${timelinePct}%`,
               flexShrink: 0,
-              borderBottom: "1px solid var(--color-border-subtle)",
               display: "flex",
               flexDirection: "column",
             }}
@@ -264,7 +387,6 @@ export default function App() {
               >
                 Event Timeline
               </span>
-              {/* 이벤트 수 배지 */}
               <span
                 className="font-mono"
                 style={{
@@ -285,8 +407,11 @@ export default function App() {
             </div>
           </div>
 
-          {/* 하단: TaskBoard 또는 AgentDetailPanel (45%) */}
-          <div style={{ height: "45%", display: "flex", flexDirection: "column" }}>
+          {/* 상하 구분선 (드래그 가능) */}
+          <VDivider onMouseDown={onVDividerMouseDown} />
+
+          {/* 하단: TaskBoard 또는 AgentDetailPanel */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {/* 패널 헤더 */}
             <div
               className="flex items-center px-4 flex-shrink-0"
@@ -312,7 +437,6 @@ export default function App() {
             {/* 하단 패널 콘텐츠 */}
             <div className="flex-1 overflow-hidden">
               {isFocusMode && selectedAgent ? (
-                // Focus Mode: AgentDetailPanel
                 <AgentDetailPanel
                   agentId={selectedAgent}
                   status={agentStatuses[selectedAgent] ?? "idle"}
@@ -321,7 +445,6 @@ export default function App() {
                   tasks={tasks}
                 />
               ) : (
-                // 기본 모드: TaskBoard
                 <TaskBoard tasks={tasks} />
               )}
             </div>

@@ -20,8 +20,8 @@ const agents = [
     id: "da",
     label: "DA",
     color: "#6B8E23",
-    description: "Analyses data requirements, schemas, and analytics instrumentation.",
-    tools: ["post_artifact", "read_memory", "send_message"],
+    description: "Defines KPIs, analytics plans, and event tracking requirements.",
+    tools: ["claim_task", "post_artifact", "send_message"],
   },
   {
     id: "fe",
@@ -48,8 +48,8 @@ const agents = [
     id: "deployer",
     label: "Deployer",
     color: "#607080",
-    description: "Handles CI/CD, environment config, and final deployment.",
-    tools: ["get_my_tasks", "update_task", "send_message"],
+    description: "Handles final deployment after QA sign-off and records deployment history.",
+    tools: ["claim_task", "append_memory", "send_message"],
   },
 ];
 ---

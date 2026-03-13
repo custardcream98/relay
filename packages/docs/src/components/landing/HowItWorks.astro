@@ -6,7 +6,7 @@ const steps = [
     title: "Install",
     description:
       "Add the relay MCP server to Claude Code with one command. Optionally customise agent personas in agents.yml.",
-    code: "claude mcp add --npm @custardcream/relay relay-server",
+    code: "claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server",
   },
   {
     number: "02",
@@ -19,7 +19,7 @@ const steps = [
     number: "03",
     title: "Ship",
     description:
-      "Describe the feature. PM breaks it down, agents execute it, QA verifies, Deployer ships.",
+      "Describe the feature. All agents start simultaneously, claim tasks via MCP, and collaborate peer-to-peer until the work is done.",
     code: '/relay:relay "add dark mode toggle"',
   },
 ];
@@ -30,7 +30,7 @@ const steps = [
   <div class="how__header">
     <div class="how__header-inner">
       <span class="how__label" aria-hidden="true">// how it works</span>
-      <h2 class="how__title">Three commands.<br />Zero to shipped.</h2>
+      <h2 class="how__title">Three commands.<br />From install to running.</h2>
       <p class="how__subtitle">
         No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.
       </p>

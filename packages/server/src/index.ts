@@ -2,6 +2,10 @@
 
 import { app } from "./dashboard/hono";
 import { addClient, removeClient } from "./dashboard/websocket";
+import { getDb } from "./db/client";
+import { getAllArtifacts } from "./db/queries/artifacts";
+import { getAllMessages } from "./db/queries/messages";
+import { getAllTasks } from "./db/queries/tasks";
 import { createMcpServer, startMcpServer } from "./mcp";
 
 // MCP connects via piped stdin — if stdin is a TTY, this is a manual invocation; exit with guidance
@@ -34,6 +38,21 @@ try {
     websocket: {
       open(ws) {
         addClient(ws);
+        // 신규 연결 시 현재 세션 스냅샷 전송 — 대시보드 초기 하이드레이션용
+        try {
+          const db = getDb();
+          const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
+          const snapshot = JSON.stringify({
+            type: "session:snapshot",
+            tasks: getAllTasks(db, SESSION_ID),
+            messages: getAllMessages(db, SESSION_ID),
+            artifacts: getAllArtifacts(db, SESSION_ID),
+            timestamp: Date.now(),
+          });
+          ws.send(snapshot);
+        } catch (err) {
+          console.error("[relay] failed to send session snapshot:", err);
+        }
       },
       close(ws) {
         removeClient(ws);

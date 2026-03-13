@@ -56,6 +56,26 @@ if (mcp.exitCode !== 0) {
   process.exit(1);
 }
 
+// ─── Step 4: 로컬 설치 시 마켓플레이스 플러그인 비활성화 ─────────────────────
+// 플러그인이 활성화된 채로 있으면 plugin:relay:relay MCP가 중복 실행되어 충돌 발생
+if (!isGlobal) {
+  const settingsPath = join(HOME, ".claude", "settings.json");
+  try {
+    const raw = await Bun.file(settingsPath).text();
+    const settings = JSON.parse(raw);
+    const plugins = settings.enabledPlugins ?? {};
+    const relayPluginKey = Object.keys(plugins).find((k) => k.startsWith("relay@"));
+    if (relayPluginKey) {
+      delete plugins[relayPluginKey];
+      settings.enabledPlugins = plugins;
+      await Bun.write(settingsPath, JSON.stringify(settings, null, 2));
+      console.log(`▶ Disabled marketplace plugin (${relayPluginKey}) to avoid MCP conflict`);
+    }
+  } catch {
+    // settings.json 없거나 파싱 실패 시 무시
+  }
+}
+
 console.log(`\n✓ relay installed (${scope})`);
 console.log(`  Skills: ${skillsDest}`);
 console.log(`  Server: bun run ${serverBin}`);

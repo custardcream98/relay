@@ -12,6 +12,7 @@ The workflow is executed dynamically based on the `workflow` section defined in 
 2. Verify `.relay/memory/project.md` exists
    - If absent: suggest "init is required. Would you like to run `/relay:init` first?"
 3. Generate a new session ID in `YYYY-MM-DD-NNN` format
+4. Tell the user: "Dashboard: http://localhost:3456"
 
 ## Workflow execution
 

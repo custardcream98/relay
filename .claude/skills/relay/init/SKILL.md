@@ -10,6 +10,7 @@ If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically su
 
 1. Verify the relay MCP server is connected (call the `list_agents` tool)
 2. Check whether the `.relay/memory/` directory exists
+3. Tell the user: "Dashboard: http://localhost:3456"
 
 ## Phase 1: Parallel project scan
 

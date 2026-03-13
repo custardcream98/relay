@@ -1,7 +1,7 @@
+# yaml-language-server: $schema=../agents.schema.json
 # .relay/agents.yml
-# 이 레포 전용 relay 에이전트 커스터마이즈.
-# 프로젝트 루트의 agents.yml(프레임워크 코드)을 건드리지 않고 오버라이드.
 
+language: Korean
 agents:
   da:
     disabled: true
@@ -50,7 +50,7 @@ agents:
       - Always include agent_id as required parameter in new MCP tools
 
       ## Conventions
-      - Inline comments in Korean
+      - Inline comments in English
       - snake_case for MCP tool names
       - Co-locate test files with source (*.test.ts)
       - Use in-memory SQLite (new Database(":memory:")) in tests
@@ -91,7 +91,7 @@ agents:
 
       ## Conventions
       - File path comment at top of each source file
-      - Inline comments in Korean
+      - Inline comments in English
       - Props interfaces defined locally per component file
       - PascalCase for components, camelCase with use prefix for hooks
       - bun only (no npm/yarn/pnpm)

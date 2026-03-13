@@ -64,7 +64,7 @@ messages, tasks, artifacts, reviews, events — all keyed by session_id
 - deploy-docs.yml: GitHub Pages on packages/docs/** changes
 
 ## Key Conventions
-- Comments: Korean (inline), English (variable names, file-path headers)
+- Comments: English only (variable names, file-path headers, inline comments)
 - Release: always use `bunx changeset` workflow — never run publish directly
 - MCP tool naming: snake_case, always include agent_id
 - agents.default.yml: never modify — use agents.yml for overrides

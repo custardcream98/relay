@@ -9,6 +9,7 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 ## Execution
 
 1. Call `list_agents` to see the available agents.
+2. Tell the user: "Dashboard: http://localhost:3456"
 2. Load the specified agent's persona + memory.
 3. Spawn that agent alone.
    - Restrict tools to those listed in the agent's `tools` array from `list_agents`.

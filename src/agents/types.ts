@@ -1,8 +1,9 @@
 // src/agents/types.ts
 // 에이전트 페르소나 관련 타입 정의
 
-// AgentId는 shared/types.ts에서 단일 정의 — 중복 방지
-export type { AgentId } from "../../shared/types.ts";
+// AgentId is defined once in shared/types.ts — re-exported here for convenience
+import type { AgentId } from "../../shared/types.ts";
+export type { AgentId };
 
 export interface AgentConfig {
   name: string;

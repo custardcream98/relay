@@ -1,36 +1,26 @@
 // packages/dashboard/src/App.tsx
-// 새로운 두 존 레이아웃: 왼쪽(AgentArena) + 오른쪽(EventTimeline + TaskBoard/AgentDetailPanel)
+// Two-panel layout: left (AgentArena) + right (EventTimeline + TaskBoard/AgentDetailPanel)
 
 import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
-import { useCallback, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useState } from "react";
 import { AgentArena } from "./components/AgentArena";
 import { AgentDetailPanel } from "./components/AgentDetailPanel";
 import { AppHeader } from "./components/AppHeader";
-import type { TimelineEntry } from "./components/EventTimeline";
 import { EventTimeline } from "./components/EventTimeline";
 import { TaskBoard } from "./components/TaskBoard";
+import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
+import type { AgentMeta, Message, Task, TimelineEntry } from "./types";
 
-// 대시보드 전역 상태
+// Global dashboard state
 interface DashboardState {
-  tasks: Array<{
-    id: string;
-    title: string;
-    assignee: string | null;
-    status: string;
-    priority: string;
-  }>;
-  messages: Array<{
-    id: string;
-    from_agent: string;
-    to_agent: string | null;
-    content: string;
-    created_at: number;
-  }>;
+  tasks: Task[];
+  messages: Message[];
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
   timeline: TimelineEntry[];
+  _seq: number; // sequence counter for pure reducer
 }
 
 type Action =
@@ -44,9 +34,10 @@ const initialState: DashboardState = {
   thinkingChunks: {},
   selectedAgent: null,
   timeline: [],
+  _seq: 0,
 };
 
-// 이벤트에서 타임라인 항목 생성
+// Convert RelayEvent to TimelineEntry
 function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | null {
   switch (event.type) {
     case "message:new":
@@ -54,10 +45,8 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
         id,
         type: event.type,
         agentId: event.message.from_agent,
-        description: event.message.to_agent
-          ? `Message to ${event.message.to_agent}`
-          : "Broadcast message",
-        detail: event.message.content.slice(0, 120),
+        description: event.message.to_agent ? `→ ${event.message.to_agent}` : "Broadcast message",
+        detail: event.message.content,
         timestamp: event.timestamp,
       };
     case "task:updated":
@@ -65,7 +54,7 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
         id,
         type: event.type,
         agentId: event.task.assignee,
-        description: `Task ${event.task.status.replace("_", " ")}: ${event.task.title}`,
+        description: `Task ${event.task.status.replaceAll("_", " ")}: ${event.task.title}`,
         timestamp: event.timestamp,
       };
     case "artifact:posted":
@@ -73,7 +62,7 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
         id,
         type: event.type,
         agentId: event.artifact.created_by,
-        description: `Artifact posted: ${event.artifact.name}`,
+        description: `Artifact: ${event.artifact.name}`,
         timestamp: event.timestamp,
       };
     case "agent:thinking":
@@ -82,7 +71,7 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
         type: event.type,
         agentId: event.agentId,
         description: "Thinking…",
-        detail: event.chunk.slice(0, 120),
+        detail: event.chunk,
         timestamp: event.timestamp,
       };
     case "review:requested":
@@ -114,21 +103,22 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
   }
 }
 
-let entryCounter = 0;
-
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
       const event = action.event;
 
-      // 타임라인 항목 생성 (thinking 이벤트는 빈도가 너무 높아 마지막 것만 유지)
+      // Build timeline entry — agent:thinking replaces previous entry from the same agent
       let newTimeline = state.timeline;
-      const entryId = `${event.type}-${entryCounter++}`;
+      const entryId = `${event.type}-${state._seq}`;
       const entry = eventToTimelineEntry(event, entryId);
+
+      // Base updates shared across all EVENT cases
+      const baseUpdates = { _seq: state._seq + 1, timeline: newTimeline };
 
       if (entry) {
         if (event.type === "agent:thinking") {
-          // thinking 이벤트: 해당 에이전트의 기존 thinking 항목 교체 (스팸 방지)
+          // Prevent timeline flooding: replace existing thinking entry for the same agent
           const withoutPrev = state.timeline.filter(
             (e) => !(e.type === "agent:thinking" && e.agentId === event.agentId)
           );
@@ -136,36 +126,38 @@ function reducer(state: DashboardState, action: Action): DashboardState {
         } else {
           newTimeline = [...state.timeline, entry];
         }
-        // 최대 200개 유지
+        // Keep at most 200 entries
         if (newTimeline.length > 200) {
           newTimeline = newTimeline.slice(newTimeline.length - 200);
         }
+        baseUpdates.timeline = newTimeline;
       }
 
       switch (event.type) {
         case "session:snapshot": {
-          // 스냅샷의 기존 메시지/태스크를 타임라인 항목으로 변환
-          const snapshotMessages = event.messages as DashboardState["messages"];
-          const snapshotTasks = event.tasks as DashboardState["tasks"];
+          // Rebuild timeline from snapshot messages and tasks
+          const snapshotMessages = event.messages as Message[];
+          const snapshotTasks = event.tasks as Task[];
           const snapshotEntries: TimelineEntry[] = [
             ...snapshotMessages.map((m) => ({
               id: `snap-msg-${m.id}`,
               type: "message:new" as const,
               agentId: m.from_agent,
-              description: m.to_agent ? `Message to ${m.to_agent}` : "Broadcast message",
-              detail: m.content.slice(0, 120),
+              description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
+              detail: m.content,
               timestamp: m.created_at * 1000, // SQLite unixepoch → ms
             })),
             ...snapshotTasks.map((t) => ({
               id: `snap-task-${t.id}`,
               type: "task:updated" as const,
               agentId: t.assignee,
-              description: `Task ${t.status.replace("_", " ")}: ${t.title}`,
+              description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
               timestamp: Date.now(),
             })),
           ].sort((a, b) => a.timestamp - b.timestamp);
           return {
             ...state,
+            ...baseUpdates,
             tasks: snapshotTasks,
             messages: snapshotMessages,
             timeline: snapshotEntries,
@@ -174,38 +166,40 @@ function reducer(state: DashboardState, action: Action): DashboardState {
         case "agent:status":
           return {
             ...state,
+            ...baseUpdates,
             agentStatuses: { ...state.agentStatuses, [event.agentId]: event.status },
             thinkingChunks:
               event.status !== "working"
                 ? { ...state.thinkingChunks, [event.agentId]: "" }
                 : state.thinkingChunks,
-            timeline: newTimeline,
           };
         case "agent:thinking":
           return {
             ...state,
+            ...baseUpdates,
             thinkingChunks: {
               ...state.thinkingChunks,
               [event.agentId]: (state.thinkingChunks[event.agentId] ?? "") + event.chunk,
             },
-            timeline: newTimeline,
           };
         case "message:new":
           return {
             ...state,
+            ...baseUpdates,
             messages: [event.message, ...state.messages],
-            timeline: newTimeline,
           };
         case "task:updated": {
-          const existing = state.tasks.findIndex((t) => t.id === event.task.id);
+          // Shared type uses string for status, but runtime only receives TaskStatus values
+          const incomingTask = event.task as Task;
+          const existing = state.tasks.findIndex((t) => t.id === incomingTask.id);
           const tasks =
             existing >= 0
-              ? state.tasks.map((t) => (t.id === event.task.id ? event.task : t))
-              : [...state.tasks, event.task];
-          return { ...state, tasks, timeline: newTimeline };
+              ? state.tasks.map((t) => (t.id === incomingTask.id ? incomingTask : t))
+              : [...state.tasks, incomingTask];
+          return { ...state, ...baseUpdates, tasks };
         }
         default:
-          return { ...state, timeline: newTimeline };
+          return { ...state, ...baseUpdates };
       }
     }
     case "SELECT_AGENT":
@@ -215,52 +209,73 @@ function reducer(state: DashboardState, action: Action): DashboardState {
   }
 }
 
-// 드래그 리사이즈 핸들 컴포넌트 — hr 태그 사용으로 semantic separator 충족
-function HDivider({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+// Drag resize handle — intentionally a div (hr cannot be sized in flex row/column)
+function Divider({
+  orientation,
+  onMouseDown,
+}: {
+  orientation: "horizontal" | "vertical";
+  onMouseDown: (e: React.MouseEvent) => void;
+}) {
+  const isH = orientation === "horizontal";
   return (
-    <hr
+    <div
       onMouseDown={onMouseDown}
       style={{
-        width: 4,
-        height: "100%",
-        border: "none",
-        margin: 0,
-        cursor: "col-resize",
-        background: "var(--color-border-subtle)",
+        [isH ? "width" : "height"]: 4,
+        ...(isH ? { alignSelf: "stretch" } : {}),
         flexShrink: 0,
+        cursor: isH ? "col-resize" : "row-resize",
+        background: "var(--color-border-subtle)",
         transition: "background 0.15s",
       }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-default)";
+        (e.currentTarget as HTMLDivElement).style.background = "var(--color-border-default)";
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-subtle)";
+        (e.currentTarget as HTMLDivElement).style.background = "var(--color-border-subtle)";
       }}
     />
   );
 }
 
-function VDivider({ onMouseDown }: { onMouseDown: (e: React.MouseEvent) => void }) {
+// Panel top label + optional badge
+function PanelHeader({ label, badge }: { label: string; badge?: number | string }) {
   return (
-    <hr
-      onMouseDown={onMouseDown}
+    <div
+      className="flex items-center justify-between px-4 shrink-0"
       style={{
-        width: "100%",
-        height: 4,
-        border: "none",
-        margin: 0,
-        cursor: "row-resize",
-        background: "var(--color-border-subtle)",
-        flexShrink: 0,
-        transition: "background 0.15s",
+        height: 36,
+        borderBottom: "1px solid var(--color-border-subtle)",
+        background: "var(--color-surface-base)",
       }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-default)";
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLHRElement).style.background = "var(--color-border-subtle)";
-      }}
-    />
+    >
+      <span
+        style={{
+          fontSize: 10,
+          fontWeight: 500,
+          color: "var(--color-text-disabled)",
+          textTransform: "uppercase",
+          letterSpacing: "0.07em",
+        }}
+      >
+        {label}
+      </span>
+      {badge !== undefined && (
+        <span
+          className="font-mono"
+          style={{
+            fontSize: 10,
+            background: "var(--color-surface-overlay)",
+            color: "var(--color-text-tertiary)",
+            padding: "1px 6px",
+            borderRadius: 9999,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -272,93 +287,85 @@ export default function App() {
   const { connected } = useRelaySocket({ onEvent: handleEvent });
   const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent, timeline } = state;
 
-  const agentCountRef = useRef(0);
   const isFocusMode = selectedAgent !== null;
 
-  // 드래그 리사이즈 상태
-  const [arenaWidth, setArenaWidth] = useState(320); // 좌우 분할 (px)
-  const [timelinePct, setTimelinePct] = useState(55); // 상하 분할 (%)
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activityRef = useRef<HTMLDivElement>(null);
+  // Fetch agent list — passed as props to AgentArena
+  const [agents, setAgents] = useState<AgentMeta[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(true);
+  const [agentsError, setAgentsError] = useState(false);
 
-  // 좌우 드래그 핸들러
-  const onHDividerMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const startX = e.clientX;
-      const startW = arenaWidth;
-      const onMove = (ev: MouseEvent) => {
-        const delta = ev.clientX - startX;
-        const next = Math.max(180, Math.min(520, startW + delta));
-        setArenaWidth(next);
-      };
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [arenaWidth]
-  );
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setAgents(data);
+        setAgentsLoading(false);
+      })
+      .catch(() => {
+        setAgentsError(true);
+        setAgentsLoading(false);
+      });
+  }, []);
 
-  // 상하 드래그 핸들러
-  const onVDividerMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      const startY = e.clientY;
-      const startPct = timelinePct;
-      const activityH = activityRef.current?.clientHeight ?? 600;
-      const onMove = (ev: MouseEvent) => {
-        const delta = ev.clientY - startY;
-        const nextPx = (startPct / 100) * activityH + delta;
-        const next = Math.max(20, Math.min(80, (nextPx / activityH) * 100));
-        setTimelinePct(next);
-      };
-      const onUp = () => {
-        window.removeEventListener("mousemove", onMove);
-        window.removeEventListener("mouseup", onUp);
-      };
-      window.addEventListener("mousemove", onMove);
-      window.addEventListener("mouseup", onUp);
-    },
-    [timelinePct]
-  );
+  // Panel resize state and handlers
+  const {
+    arenaWidth,
+    arenaCollapsed,
+    isDraggingArena,
+    timelinePct,
+    activityRef,
+    onHDividerMouseDown,
+    onVDividerMouseDown,
+    onToggleCollapse,
+  } = usePanelResize();
 
   return (
     <div
-      ref={containerRef}
       className="h-screen flex flex-col overflow-hidden"
       style={{ background: "var(--color-surface-root)", color: "var(--color-text-primary)" }}
     >
-      {/* 앱 헤더 */}
       <AppHeader
         connected={connected}
-        agentCount={agentCountRef.current}
+        agentCount={agents.length}
         selectedAgent={selectedAgent}
         onClearFocus={() => dispatch({ type: "SELECT_AGENT", agentId: null })}
       />
 
-      {/* 메인 두 존 레이아웃 */}
+      {/* Main two-panel layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 왼쪽: Agent Arena (드래그로 너비 조정 가능) */}
-        <div style={{ width: arenaWidth, flexShrink: 0 }}>
+        {/* Left: Agent Arena — collapsible, drag-resizable width */}
+        <div
+          style={{
+            width: arenaCollapsed ? 32 : arenaWidth,
+            flexShrink: 0,
+            overflow: "hidden",
+            transition: isDraggingArena ? "none" : "width 200ms ease",
+          }}
+        >
           <AgentArena
+            agents={agents}
+            agentsLoading={agentsLoading}
+            agentsError={agentsError}
             statuses={agentStatuses}
             thinkingChunks={thinkingChunks}
             tasks={tasks}
             messages={messages}
             selectedAgent={selectedAgent}
             onSelectAgent={(id) => dispatch({ type: "SELECT_AGENT", agentId: id })}
+            collapsed={arenaCollapsed}
+            onToggleCollapse={onToggleCollapse}
           />
         </div>
 
-        {/* 좌우 구분선 (드래그 가능) */}
-        <HDivider onMouseDown={onHDividerMouseDown} />
+        {/* Column resize divider — hidden when collapsed */}
+        {!arenaCollapsed && <Divider orientation="horizontal" onMouseDown={onHDividerMouseDown} />}
 
-        {/* 오른쪽: Activity Zone */}
+        {/* Right: activity area */}
         <div ref={activityRef} className="flex flex-col flex-1 overflow-hidden">
-          {/* 상단: EventTimeline (드래그로 비율 조정 가능) */}
+          {/* Top: EventTimeline — drag-resizable height */}
           <div
             style={{
               height: `${timelinePct}%`,
@@ -367,74 +374,18 @@ export default function App() {
               flexDirection: "column",
             }}
           >
-            {/* 패널 헤더 */}
-            <div
-              className="flex items-center justify-between px-4 flex-shrink-0"
-              style={{
-                height: 36,
-                borderBottom: "1px solid var(--color-border-subtle)",
-                background: "var(--color-surface-base)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: "var(--color-text-disabled)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.07em",
-                }}
-              >
-                Event Timeline
-              </span>
-              <span
-                className="font-mono"
-                style={{
-                  fontSize: 10,
-                  background: "var(--color-surface-overlay)",
-                  color: "var(--color-text-tertiary)",
-                  padding: "1px 6px",
-                  borderRadius: 9999,
-                }}
-              >
-                {timeline.length}
-              </span>
-            </div>
-
-            {/* 타임라인 콘텐츠 */}
+            <PanelHeader label="Event Timeline" badge={timeline.length} />
             <div className="flex-1 overflow-hidden">
               <EventTimeline entries={timeline} focusAgent={selectedAgent} />
             </div>
           </div>
 
-          {/* 상하 구분선 (드래그 가능) */}
-          <VDivider onMouseDown={onVDividerMouseDown} />
+          {/* Row resize divider */}
+          <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
 
-          {/* 하단: TaskBoard 또는 AgentDetailPanel */}
+          {/* Bottom: TaskBoard or AgentDetailPanel */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            {/* 패널 헤더 */}
-            <div
-              className="flex items-center px-4 flex-shrink-0"
-              style={{
-                height: 36,
-                borderBottom: "1px solid var(--color-border-subtle)",
-                background: "var(--color-surface-base)",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 500,
-                  color: "var(--color-text-disabled)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.07em",
-                }}
-              >
-                {isFocusMode ? `${selectedAgent} — detail` : "Task Board"}
-              </span>
-            </div>
-
-            {/* 하단 패널 콘텐츠 */}
+            <PanelHeader label={isFocusMode ? `${selectedAgent} — detail` : "Task Board"} />
             <div className="flex-1 overflow-hidden">
               {isFocusMode && selectedAgent ? (
                 <AgentDetailPanel

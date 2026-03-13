@@ -1,6 +1,7 @@
 // packages/dashboard/src/components/AppHeader.tsx
-// 앱 상단 헤더 — 타이틀, 세션 선택기, 연결 상태
+// App top header — title, session selector, connection status
 
+import { memo } from "react";
 import type { AgentId } from "../types";
 
 interface Props {
@@ -10,17 +11,22 @@ interface Props {
   onClearFocus: () => void;
 }
 
-export function AppHeader({ connected, agentCount, selectedAgent, onClearFocus }: Props) {
+export const AppHeader = memo(function AppHeader({
+  connected,
+  agentCount,
+  selectedAgent,
+  onClearFocus,
+}: Props) {
   return (
     <div
-      className="flex items-center justify-between px-4 flex-shrink-0"
+      className="flex items-center justify-between px-4 shrink-0"
       style={{
         height: 44,
         background: "var(--color-surface-base)",
         borderBottom: "1px solid var(--color-border-subtle)",
       }}
     >
-      {/* 왼쪽: relay 워드마크 */}
+      {/* Left: relay wordmark */}
       <div className="flex items-center gap-2">
         <span
           style={{
@@ -49,7 +55,7 @@ export function AppHeader({ connected, agentCount, selectedAgent, onClearFocus }
         </span>
       </div>
 
-      {/* 가운데: Focus Mode 배지 (선택된 에이전트가 있을 때) */}
+      {/* Center: Focus Mode badge (when an agent is selected) */}
       {selectedAgent && (
         <div
           style={{
@@ -90,9 +96,9 @@ export function AppHeader({ connected, agentCount, selectedAgent, onClearFocus }
         </div>
       )}
 
-      {/* 오른쪽: 에이전트 수 + 연결 상태 */}
+      {/* Right: agent count + connection status */}
       <div className="flex items-center gap-3">
-        {/* 에이전트 수 배지 */}
+        {/* Agent count badge */}
         {agentCount > 0 && (
           <span
             className="font-mono"
@@ -108,8 +114,8 @@ export function AppHeader({ connected, agentCount, selectedAgent, onClearFocus }
           </span>
         )}
 
-        {/* 연결 상태 */}
-        {/* biome-ignore lint/a11y/useSemanticElements: div 레이아웃 필요 */}
+        {/* Connection status */}
+        {/* biome-ignore lint/a11y/useSemanticElements: div layout required */}
         <div
           className="flex items-center gap-1.5"
           role="status"
@@ -141,4 +147,4 @@ export function AppHeader({ connected, agentCount, selectedAgent, onClearFocus }
       </div>
     </div>
   );
-}
+});

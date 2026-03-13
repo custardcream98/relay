@@ -58,23 +58,12 @@ body {
   border-radius: 2px;
 }
 
-/* JetBrains Mono를 모노스페이스 컴포넌트에 적용 */
+/* Apply JetBrains Mono to monospace components */
 .font-mono {
   font-family: var(--font-mono);
 }
 
-/* 에이전트 상태 도트 scale pulse 애니메이션 */
-@keyframes scale-pulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.6);
-  }
-}
-
-/* 커서 깜박임 애니메이션 */
+/* Cursor blink animation */
 @keyframes blink {
   0%,
   100% {
@@ -89,7 +78,7 @@ body {
   }
 }
 
-/* AgentCard 아바타 링 pulse — working 상태 */
+/* AgentCard avatar ring pulse — working state */
 @keyframes ring-pulse {
   0%,
   100% {
@@ -102,7 +91,7 @@ body {
   }
 }
 
-/* EventTimeline 이벤트 카드 슬라이드 인 */
+/* EventTimeline event card slide-in */
 @keyframes slide-in-top {
   from {
     transform: translateY(-8px);
@@ -114,7 +103,7 @@ body {
   }
 }
 
-/* AgentCard thinking 텍스트 flash */
+/* AgentCard thinking text flash */
 @keyframes accent-flash {
   0%,
   100% {

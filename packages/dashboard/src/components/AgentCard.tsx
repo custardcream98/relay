@@ -1,7 +1,8 @@
 // packages/dashboard/src/components/AgentCard.tsx
-// 에이전트 카드 — 아바타, 상태 배지, 활동 미리보기, 태스크 수 포함
+// Agent card — avatar, status badge, activity preview, task count
 
-import { AGENT_ACCENT_HEX } from "../constants/agents";
+import { memo } from "react";
+import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
 import type { AgentId } from "../types";
 
 interface Props {
@@ -16,21 +17,14 @@ interface Props {
   onClick: () => void;
 }
 
-// 상태 레이블 텍스트
-const STATUS_LABEL: Record<string, string> = {
-  working: "working",
-  waiting: "waiting",
-  idle: "idle",
-};
-
-// 상태 배지 색상
+// Status badge colors — hex so we can append alpha suffix (e.g. ${COLOR}18)
 const STATUS_BADGE_COLOR: Record<string, string> = {
-  working: "var(--color-status-working)",
-  waiting: "var(--color-status-waiting)",
-  idle: "var(--color-text-disabled)",
+  working: "#34d399",
+  waiting: "#fbbf24",
+  idle: "#4a4a55",
 };
 
-export function AgentCard({
+export const AgentCard = memo(function AgentCard({
   id,
   name,
   emoji,
@@ -41,20 +35,20 @@ export function AgentCard({
   isSelected,
   onClick,
 }: Props) {
-  const accentColor = AGENT_ACCENT_HEX[id] ?? "#9898a8";
+  const accentColor = AGENT_ACCENT_HEX[id] ?? DEFAULT_AGENT_ACCENT;
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
 
-  // 활동 미리보기: working 시 thinking chunk, 아니면 마지막 메시지
+  // Activity preview: thinking chunk when working, otherwise last message
   const activityText =
     isWorking && thinkingChunk
-      ? thinkingChunk.slice(-120) // 최근 120자만 표시
+      ? thinkingChunk.slice(-120) // show last 120 chars
       : lastMessage
         ? lastMessage.slice(0, 80)
         : null;
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: 카드 스타일 유지를 위해 div 사용
+    // biome-ignore lint/a11y/useSemanticElements: div used to preserve card styling
     <div
       role="button"
       tabIndex={0}
@@ -90,7 +84,7 @@ export function AgentCard({
         }
       }}
     >
-      {/* 아바타 — 에이전트 이모지 + 컬러 링 */}
+      {/* Avatar — agent emoji + color ring */}
       <div style={{ position: "relative", flexShrink: 0 }}>
         <div
           style={{
@@ -102,7 +96,7 @@ export function AgentCard({
             justifyContent: "center",
             fontSize: 20,
             background: `${accentColor}15`,
-            // working 상태: ring-pulse 애니메이션 적용
+            // working state: apply ring-pulse animation
             boxShadow: isWorking
               ? `0 0 0 2px ${accentColor}`
               : isWaiting
@@ -115,7 +109,7 @@ export function AgentCard({
         >
           {emoji}
         </div>
-        {/* 상태 도트 — 오른쪽 하단 */}
+        {/* Status dot — bottom right */}
         <span
           style={{
             position: "absolute",
@@ -132,9 +126,9 @@ export function AgentCard({
         />
       </div>
 
-      {/* 콘텐츠 컬럼 */}
+      {/* Content column */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        {/* 헤더 행: 이름 + 상태 배지 + 태스크 수 */}
+        {/* Header row: name + status badge + task count */}
         <div
           style={{
             display: "flex",
@@ -143,19 +137,22 @@ export function AgentCard({
             marginBottom: 4,
           }}
         >
-          {/* 에이전트 이름 */}
+          {/* Agent name */}
           <span
             style={{
               fontSize: 13,
               fontWeight: 600,
               color: isSelected ? accentColor : "var(--color-text-primary)",
-              flexShrink: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              minWidth: 0,
             }}
           >
             {name}
           </span>
 
-          {/* 상태 배지 */}
+          {/* Status badge */}
           <span
             className="font-mono"
             style={{
@@ -170,10 +167,10 @@ export function AgentCard({
               flexShrink: 0,
             }}
           >
-            {STATUS_LABEL[status]}
+            {status}
           </span>
 
-          {/* 진행 중 태스크 수 — 오른쪽 끝 */}
+          {/* In-progress task count — right end */}
           {inProgressCount > 0 && (
             <span
               className="font-mono"
@@ -192,7 +189,7 @@ export function AgentCard({
           )}
         </div>
 
-        {/* 활동 미리보기 */}
+        {/* Activity preview */}
         {activityText ? (
           <p
             style={{
@@ -205,7 +202,7 @@ export function AgentCard({
               WebkitBoxOrient: "vertical",
               margin: 0,
               fontFamily: isWorking ? "var(--font-mono)" : "var(--font-sans)",
-              // working 중 thinking 텍스트에 accent flash 효과
+              // accent-flash effect on thinking text while working
               animation:
                 isWorking && thinkingChunk ? "accent-flash 2s ease-in-out infinite" : "none",
             }}
@@ -227,4 +224,4 @@ export function AgentCard({
       </div>
     </div>
   );
-}
+});

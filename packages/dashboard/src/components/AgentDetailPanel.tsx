@@ -1,27 +1,12 @@
 // packages/dashboard/src/components/AgentDetailPanel.tsx
-// Focus Mode에서 TaskBoard를 대체하는 에이전트 상세 패널
-// 탭: Thoughts | Messages | Tasks
+// Agent detail panel that replaces TaskBoard in Focus Mode
+// Tabs: Thoughts | Messages | Tasks
 
-import { useEffect, useRef, useState } from "react";
-import { AGENT_ACCENT_HEX } from "../constants/agents";
-import type { AgentId } from "../types";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import type { AgentId, Message, Task } from "../types";
+import { formatTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
-
-interface Message {
-  id: string;
-  from_agent: string;
-  to_agent: string | null;
-  content: string;
-  created_at: number;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  assignee: string | null;
-  status: string;
-  priority: string;
-}
 
 interface Props {
   agentId: AgentId;
@@ -33,7 +18,7 @@ interface Props {
 
 type Tab = "thoughts" | "messages" | "tasks";
 
-// 상태 컬러
+// Status colors
 const STATUS_COLOR: Record<string, string> = {
   todo: "var(--color-text-disabled)",
   in_progress: "#60a5fa",
@@ -41,19 +26,11 @@ const STATUS_COLOR: Record<string, string> = {
   done: "var(--color-status-working)",
 };
 
-function formatTime(unixSecs: number) {
-  return new Date(unixSecs * 1000).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-}
-
 export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tasks }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("thoughts");
-  const accentColor = AGENT_ACCENT_HEX[agentId] ?? "#9898a8";
+  const accentColor = AGENT_ACCENT_HEX[agentId] ?? DEFAULT_AGENT_ACCENT;
 
-  // 해당 에이전트의 메시지/태스크 필터
+  // Filter messages and tasks for this agent
   const agentMessages = messages.filter((m) => m.from_agent === agentId || m.to_agent === agentId);
   const agentTasks = tasks.filter((t) => t.assignee === agentId);
 
@@ -65,9 +42,9 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
 
   return (
     <div className="flex flex-col h-full" style={{ background: "var(--color-surface-inset)" }}>
-      {/* 탭 헤더 */}
+      {/* Tab header */}
       <div
-        className="flex items-center flex-shrink-0"
+        className="flex items-center shrink-0"
         style={{
           height: 40,
           borderBottom: "1px solid var(--color-border-subtle)",
@@ -77,7 +54,7 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
           gap: 2,
         }}
       >
-        {/* 에이전트 이름 */}
+        {/* Agent name */}
         <span
           style={{
             fontSize: 12,
@@ -90,7 +67,7 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
           {agentId}
         </span>
 
-        {/* 탭 버튼 */}
+        {/* Tab buttons */}
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -131,52 +108,51 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
         ))}
       </div>
 
-      {/* 탭 콘텐츠 */}
+      {/* Tab content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === "thoughts" && (
-          <ThoughtsTab
-            agentId={agentId}
-            status={status}
-            chunk={thinkingChunk}
-            accentColor={accentColor}
-          />
+          <ThoughtsTab status={status} chunk={thinkingChunk} accentColor={accentColor} />
         )}
         {activeTab === "messages" && (
           <MessagesTab messages={agentMessages} agentId={agentId} accentColor={accentColor} />
         )}
-        {activeTab === "tasks" && <TasksTab tasks={agentTasks} accentColor={accentColor} />}
+        {activeTab === "tasks" && <TasksTab tasks={agentTasks} />}
       </div>
     </div>
   );
 }
 
-// Thoughts 탭
+// Thoughts tab
 function ThoughtsTab({
   status,
   chunk,
   accentColor,
 }: {
-  agentId: string;
   status: string;
   chunk: string;
   accentColor: string;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const [userScrolledUp, setUserScrolledUp] = useState(false);
+  // Track scroll state via ref — prevents stale closure
+  const userScrolledUpRef = useRef(false);
+  // Only button visibility as state (re-render trigger)
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: chunk 변경 시 스크롤
+  // biome-ignore lint/correctness/useExhaustiveDependencies: chunk triggers scroll but isn't read inside
   useEffect(() => {
-    if (!userScrolledUp) {
+    if (!userScrolledUpRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [chunk]);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     const el = scrollRef.current;
     if (!el) return;
-    setUserScrolledUp(el.scrollHeight - el.scrollTop - el.clientHeight > 60);
-  };
+    const scrolledUp = el.scrollHeight - el.scrollTop - el.clientHeight > 60;
+    userScrolledUpRef.current = scrolledUp;
+    setShowScrollBtn(scrolledUp);
+  }, []);
 
   if (!chunk) {
     return (
@@ -202,7 +178,7 @@ function ThoughtsTab({
       }}
     >
       {chunk}
-      {/* 커서 */}
+      {/* Cursor */}
       <span
         style={{
           display: "inline-block",
@@ -215,11 +191,12 @@ function ThoughtsTab({
         }}
       />
       <div ref={bottomRef} />
-      {userScrolledUp && (
+      {showScrollBtn && (
         <button
           type="button"
           onClick={() => {
-            setUserScrolledUp(false);
+            userScrolledUpRef.current = false;
+            setShowScrollBtn(false);
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
           style={{
@@ -244,7 +221,7 @@ function ThoughtsTab({
   );
 }
 
-// Messages 탭
+// Messages tab
 function MessagesTab({
   messages,
   agentId,
@@ -268,7 +245,9 @@ function MessagesTab({
       {messages.map((msg) => {
         const isSent = msg.from_agent === agentId;
         const otherAgent = isSent ? msg.to_agent : msg.from_agent;
-        const otherColor = otherAgent ? (AGENT_ACCENT_HEX[otherAgent] ?? "#9898a8") : "#9898a8";
+        const otherColor = otherAgent
+          ? (AGENT_ACCENT_HEX[otherAgent] ?? DEFAULT_AGENT_ACCENT)
+          : DEFAULT_AGENT_ACCENT;
 
         return (
           <div
@@ -281,7 +260,7 @@ function MessagesTab({
               borderBottom: "1px solid var(--color-border-subtle)",
             }}
           >
-            {/* 방향 인디케이터 */}
+            {/* Direction indicator */}
             <span
               style={{
                 fontSize: 14,
@@ -294,7 +273,7 @@ function MessagesTab({
             </span>
 
             <div style={{ flex: 1, minWidth: 0 }}>
-              {/* 헤더 */}
+              {/* Header */}
               <div
                 style={{
                   display: "flex",
@@ -328,8 +307,8 @@ function MessagesTab({
   );
 }
 
-// Tasks 탭
-function TasksTab({ tasks }: { tasks: Task[]; accentColor: string }) {
+// Tasks tab
+function TasksTab({ tasks }: { tasks: Task[] }) {
   if (tasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full" style={{ gap: 8 }}>
@@ -371,7 +350,7 @@ function TasksTab({ tasks }: { tasks: Task[]; accentColor: string }) {
                   flexShrink: 0,
                 }}
               >
-                {task.status.replace("_", " ")}
+                {task.status.replaceAll("_", " ")}
               </span>
               <span
                 style={{

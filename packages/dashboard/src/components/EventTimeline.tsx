@@ -1,26 +1,17 @@
 // packages/dashboard/src/components/EventTimeline.tsx
-// 이벤트 타임라인 — 모든 릴레이 이벤트를 시간순으로 표시
+// Chronological stream of all relay events
 
-import { useEffect, useRef } from "react";
-import { AGENT_ACCENT_HEX } from "../constants/agents";
-import type { AgentId, RelayEvent } from "../types";
-
-// 표시 가능한 이벤트 항목 타입
-export interface TimelineEntry {
-  id: string;
-  type: RelayEvent["type"];
-  agentId: string | null;
-  description: string;
-  detail?: string;
-  timestamp: number; // ms
-}
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import type { AgentId, RelayEvent, TimelineEntry } from "../types";
+import { relativeTime } from "../utils/time";
 
 interface Props {
   entries: TimelineEntry[];
-  focusAgent: AgentId | null; // Focus Mode: 특정 에이전트 필터링
+  focusAgent: AgentId | null; // Focus Mode: filter to a specific agent
 }
 
-// 이벤트 타입별 아이콘
+// Icon per event type
 function eventIcon(type: RelayEvent["type"]): string {
   switch (type) {
     case "message:new":
@@ -42,40 +33,35 @@ function eventIcon(type: RelayEvent["type"]): string {
   }
 }
 
-// 상대 시간 표시 (예: "2m ago")
-function relativeTime(ts: number): string {
-  const diffMs = Date.now() - ts;
-  const diffSec = Math.floor(diffMs / 1000);
-  if (diffSec < 5) return "just now";
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  return `${diffHr}h ago`;
-}
-
 export function EventTimeline({ entries, focusAgent }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
 
-  // Focus Mode 필터링
+  // Refresh relative timestamps every 30 seconds
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Focus Mode: filter entries to the selected agent
   const filtered = focusAgent ? entries.filter((e) => e.agentId === focusAgent) : entries;
 
-  // 새 이벤트 시 자동 스크롤 (유저가 위로 스크롤하지 않은 경우)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: entries 변경 시 스크롤
+  // Auto-scroll to bottom on new events, unless user has scrolled up
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on entry count change
   useEffect(() => {
     if (!isUserScrollingRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [entries.length]);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     isUserScrollingRef.current = distFromBottom > 80;
-  };
+  }, []);
 
   if (filtered.length === 0) {
     return (
@@ -102,7 +88,7 @@ export function EventTimeline({ entries, focusAgent }: Props) {
     >
       {filtered.map((entry, idx) => {
         const accentColor = entry.agentId
-          ? (AGENT_ACCENT_HEX[entry.agentId] ?? "#9898a8")
+          ? (AGENT_ACCENT_HEX[entry.agentId] ?? DEFAULT_AGENT_ACCENT)
           : "#4a4a55";
         const isLast = idx === filtered.length - 1;
 
@@ -113,7 +99,7 @@ export function EventTimeline({ entries, focusAgent }: Props) {
   );
 }
 
-// 개별 이벤트 카드
+// Single event card — click to expand/collapse full detail
 interface EventCardProps {
   entry: TimelineEntry;
   accentColor: string;
@@ -121,8 +107,26 @@ interface EventCardProps {
 }
 
 function EventCard({ entry, accentColor, isLast }: EventCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [isTruncated, setIsTruncated] = useState(false);
+  const detailRef = useRef<HTMLParagraphElement>(null);
+  const hasDetail = !!entry.detail;
+
+  // Check if the detail text is actually overflowing (needs expand)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: check on entry change
+  useEffect(() => {
+    const el = detailRef.current;
+    if (!el) return;
+    setIsTruncated(el.scrollHeight > el.clientHeight + 2);
+  }, [entry.detail, expanded]);
+
+  const canExpand = hasDetail && isTruncated;
+
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: card expander, not a button
+    // biome-ignore lint/a11y/useKeyWithClickEvents: card expander, not a button
     <div
+      onClick={canExpand || expanded ? () => setExpanded((v) => !v) : undefined}
       style={{
         display: "flex",
         flexDirection: "row",
@@ -130,10 +134,11 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
         gap: 0,
         padding: "0 16px",
         animation: "slide-in-top 200ms ease-out both",
+        cursor: canExpand || expanded ? "pointer" : "default",
       }}
       className="group"
     >
-      {/* 트랙 라인 + 이벤트 노드 */}
+      {/* Track line + event node */}
       <div
         style={{
           display: "flex",
@@ -144,7 +149,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           marginRight: 12,
         }}
       >
-        {/* 이벤트 노드 아이콘 */}
+        {/* Event icon node */}
         <div
           style={{
             width: 28,
@@ -163,7 +168,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           {eventIcon(entry.type)}
         </div>
 
-        {/* 수직 연결 라인 (마지막 항목 제외) */}
+        {/* Vertical connector line (hidden on last item) */}
         {!isLast && (
           <div
             style={{
@@ -177,7 +182,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
         )}
       </div>
 
-      {/* 이벤트 콘텐츠 */}
+      {/* Event content */}
       <div
         style={{
           flex: 1,
@@ -186,7 +191,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           paddingTop: 4,
         }}
       >
-        {/* 헤더 행: 에이전트 이름 + 타입 + 타임스탬프 */}
+        {/* Header row: agent chip + description + timestamp */}
         <div
           style={{
             display: "flex",
@@ -195,7 +200,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
             marginBottom: 3,
           }}
         >
-          {/* 에이전트 이름 칩 */}
+          {/* Agent name chip */}
           {entry.agentId && (
             <span
               className="font-mono"
@@ -213,7 +218,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
             </span>
           )}
 
-          {/* 이벤트 설명 */}
+          {/* Event description */}
           <span
             style={{
               fontSize: 12,
@@ -228,7 +233,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
             {entry.description}
           </span>
 
-          {/* 타임스탬프 */}
+          {/* Timestamp */}
           <span
             className="font-mono"
             style={{
@@ -242,23 +247,44 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           </span>
         </div>
 
-        {/* 상세 텍스트 (있을 경우) */}
+        {/* Detail text — collapsed (2 lines) or expanded (full) on click */}
         {entry.detail && (
           <p
+            ref={detailRef}
             style={{
               fontSize: 11,
               lineHeight: 1.5,
               color: "var(--color-text-tertiary)",
               margin: 0,
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              ...(expanded
+                ? {}
+                : {
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                  }),
               fontFamily: entry.type === "agent:thinking" ? "var(--font-mono)" : "var(--font-sans)",
             }}
           >
             {entry.detail}
           </p>
+        )}
+        {/* Expand / collapse hint — only when content is actually truncated */}
+        {(canExpand || expanded) && (
+          <span
+            style={{
+              fontSize: 9,
+              color: "var(--color-text-disabled)",
+              marginTop: 2,
+              display: "block",
+              userSelect: "none",
+            }}
+          >
+            {expanded ? "▲ collapse" : "▼ expand"}
+          </span>
         )}
       </div>
     </div>

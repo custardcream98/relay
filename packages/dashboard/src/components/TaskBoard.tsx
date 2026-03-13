@@ -1,14 +1,7 @@
 // packages/dashboard/src/components/TaskBoard.tsx
-import { useMemo } from "react";
-import { AGENT_ACCENT_HEX } from "../constants/agents";
-
-interface Task {
-  id: string;
-  title: string;
-  assignee: string | null;
-  status: string;
-  priority: string;
-}
+import { memo, useMemo } from "react";
+import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import type { Task } from "../types";
 
 const COLUMNS = ["todo", "in_progress", "in_review", "done"] as const;
 const COLUMN_LABELS: Record<string, string> = {
@@ -18,7 +11,7 @@ const COLUMN_LABELS: Record<string, string> = {
   done: "Done",
 };
 
-// 컬럼별 상단 액센트 바 색상 (todo 제외)
+// Top accent bar color per column (excluding todo)
 const COLUMN_ACCENT: Record<string, string | undefined> = {
   todo: undefined,
   in_progress: "rgba(96,165,250,0.5)",
@@ -26,7 +19,7 @@ const COLUMN_ACCENT: Record<string, string | undefined> = {
   done: "rgba(52,211,153,0.5)",
 };
 
-// 우선순위별 왼쪽 액센트 바 색상
+// Left accent bar color per priority
 const PRIORITY_BAR_COLOR: Record<string, string> = {
   critical: "#ef4444",
   high: "#f97316",
@@ -34,7 +27,7 @@ const PRIORITY_BAR_COLOR: Record<string, string> = {
   low: "transparent",
 };
 
-export function TaskBoard({ tasks }: { tasks: Task[] }) {
+export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
   const tasksByStatus = useMemo(() => {
     const grouped: Record<string, Task[]> = {
       todo: [],
@@ -61,7 +54,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
             className="flex-1 min-w-0 flex flex-col overflow-hidden"
             style={{ borderRight: "1px solid var(--color-border-subtle)" }}
           >
-            {/* 컬럼 헤더 — 36px, 상단 액센트 바 포함 */}
+            {/* Column header — 36px, includes top accent bar */}
             <div
               style={{
                 height: 36,
@@ -72,7 +65,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                 paddingLeft: 12,
                 paddingRight: 12,
                 borderBottom: "1px solid var(--color-border-subtle)",
-                // in_progress/in_review/done: 상단 2px 액센트 바
+                // in_progress/in_review/done: top 2px accent bar
                 borderTop: accentColor ? `2px solid ${accentColor}` : undefined,
               }}
             >
@@ -88,7 +81,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
               >
                 {COLUMN_LABELS[col]}
               </span>
-              {/* 카운트 배지 — 항상 표시 (0개도 보임) */}
+              {/* Count badge — always visible (including 0) */}
               <span
                 className="font-mono"
                 style={{
@@ -103,30 +96,30 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
               </span>
             </div>
 
-            {/* 태스크 목록 */}
+            {/* Task list */}
             <div className="flex-1 overflow-y-auto flex flex-col" style={{ padding: 8, gap: 4 }}>
               {colTasks.map((task) => {
                 const isDone = col === "done";
                 const priorityBarColor = PRIORITY_BAR_COLOR[task.priority] ?? "transparent";
                 const accentHex = task.assignee
-                  ? (AGENT_ACCENT_HEX[task.assignee] ?? "#9898a8")
+                  ? (AGENT_ACCENT_HEX[task.assignee] ?? DEFAULT_AGENT_ACCENT)
                   : null;
                 const showPriorityLabel = task.priority === "critical" || task.priority === "high";
 
                 return (
-                  // biome-ignore lint/a11y/noStaticElementInteractions: hover 시 카드 스타일 변경을 위한 마우스 핸들러로, 상호작용 의미 없음
+                  // biome-ignore lint/a11y/noStaticElementInteractions: mouse handler for hover card styling only, no semantic interaction
                   <div
                     key={task.id}
                     style={{
                       position: "relative",
                       overflow: "hidden",
-                      // 왼쪽 여백: 우선순위 바 공간 확보
+                      // left padding: space for priority bar
                       padding: "8px 10px 8px 14px",
                       background: "var(--color-surface-raised)",
                       border: "1px solid var(--color-border-subtle)",
                       borderRadius: 6,
                       boxShadow: "var(--shadow-card)",
-                      // done 카드: opacity 낮춤
+                      // done cards: reduced opacity
                       opacity: isDone ? 0.45 : 1,
                       transition: "background 100ms, border-color 100ms, box-shadow 100ms",
                       cursor: "default",
@@ -144,7 +137,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                       el.style.boxShadow = "var(--shadow-card)";
                     }}
                   >
-                    {/* 왼쪽 우선순위 액센트 바 */}
+                    {/* Left priority accent bar */}
                     <span
                       style={{
                         position: "absolute",
@@ -157,7 +150,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                       }}
                     />
 
-                    {/* 태스크 제목 */}
+                    {/* Task title */}
                     <span
                       style={{
                         fontSize: 12,
@@ -171,7 +164,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                       {task.title}
                     </span>
 
-                    {/* 메타 행 — 담당자 칩 + 우선순위 레이블 */}
+                    {/* Meta row — assignee chip + priority label */}
                     {(task.assignee || showPriorityLabel) && (
                       <div
                         style={{
@@ -182,7 +175,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                           alignItems: "center",
                         }}
                       >
-                        {/* 담당자 칩 */}
+                        {/* Assignee chip */}
                         {task.assignee && accentHex && (
                           <span
                             className="font-mono"
@@ -191,7 +184,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                               fontWeight: 500,
                               padding: "1px 5px",
                               borderRadius: 3,
-                              // accent 색상 텍스트 + accent/10 배경
+                              // accent color text + accent/10 background
                               color: accentHex,
                               background: `${accentHex}1a`,
                             }}
@@ -199,7 +192,7 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
                             {task.assignee}
                           </span>
                         )}
-                        {/* critical/high 우선순위 레이블 */}
+                        {/* critical/high priority label */}
                         {showPriorityLabel && (
                           <span
                             className="font-mono"
@@ -222,4 +215,4 @@ export function TaskBoard({ tasks }: { tasks: Task[] }) {
       })}
     </div>
   );
-}
+});

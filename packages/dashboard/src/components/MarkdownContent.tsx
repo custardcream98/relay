@@ -1,9 +1,9 @@
 // packages/dashboard/src/components/MarkdownContent.tsx
-// 의존성 없는 경량 마크다운 렌더러
+// Lightweight dependency-free markdown renderer
 
 import type { ReactNode } from "react";
 
-// 인라인 요소 파서: **bold**, *italic*, `code`
+// Inline element parser: **bold**, *italic*, `code`
 function renderInline(text: string): ReactNode[] {
   const parts = text.split(/(`[^`\n]+`|\*\*[^*\n]+\*\*|\*[^*\n]+\*)/g);
   return parts.map((part, i) => {
@@ -21,7 +21,7 @@ function renderInline(text: string): ReactNode[] {
           className="font-mono"
           style={{
             fontSize: 11,
-            // surface-overlay 배경, text-primary 색상 (이전: zinc-800, emerald)
+            // surface-overlay background, text-primary color (prev: zinc-800, emerald)
             background: "var(--color-surface-overlay)",
             color: "var(--color-text-primary)",
             padding: "0 4px",
@@ -52,7 +52,7 @@ export function MarkdownContent({ text }: { text: string }) {
   while (i < lines.length) {
     const line = lines[i];
 
-    // 코드 블록
+    // Code block
     if (line.startsWith("```")) {
       const lang = line.slice(3).trim();
       const codeLines: string[] = [];
@@ -66,7 +66,7 @@ export function MarkdownContent({ text }: { text: string }) {
           key={key++}
           className="my-2 overflow-x-auto"
           style={{
-            // surface-inset 배경, border-subtle 테두리
+            // surface-inset background, border-subtle border
             background: "var(--color-surface-inset)",
             border: "1px solid var(--color-border-subtle)",
             borderRadius: 4,
@@ -91,7 +91,7 @@ export function MarkdownContent({ text }: { text: string }) {
             style={{
               fontSize: 11,
               lineHeight: 1.6,
-              // text-secondary (이전: emerald)
+              // text-secondary (prev: emerald)
               color: "var(--color-text-secondary)",
             }}
           >
@@ -99,7 +99,7 @@ export function MarkdownContent({ text }: { text: string }) {
           </code>
         </pre>
       );
-      i++; // 닫는 ``` 건너뜀
+      i++; // skip closing ```
       continue;
     }
 
@@ -134,7 +134,7 @@ export function MarkdownContent({ text }: { text: string }) {
       continue;
     }
 
-    // 테이블 행
+    // Table row
     if (line.startsWith("|")) {
       const rows: string[][] = [];
       while (i < lines.length && lines[i].startsWith("|")) {
@@ -142,7 +142,7 @@ export function MarkdownContent({ text }: { text: string }) {
           .split("|")
           .slice(1, -1)
           .map((c) => c.trim());
-        // 구분선 행 제외 (---)
+        // Skip separator rows (---)
         if (!cells.every((c) => /^[-:]+$/.test(c))) {
           rows.push(cells);
         }
@@ -181,11 +181,11 @@ export function MarkdownContent({ text }: { text: string }) {
       continue;
     }
 
-    // 리스트 항목
+    // List item
     if (line.match(/^[-*] /)) {
       nodes.push(
         <div key={key++} className="flex gap-2 text-sm leading-relaxed">
-          <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--color-text-tertiary)" }}>
+          <span className="mt-0.5 shrink-0" style={{ color: "var(--color-text-tertiary)" }}>
             ·
           </span>
           <span style={{ color: "var(--color-text-secondary)" }}>
@@ -197,14 +197,14 @@ export function MarkdownContent({ text }: { text: string }) {
       continue;
     }
 
-    // 빈 줄
+    // Empty line
     if (line.trim() === "") {
       nodes.push(<div key={key++} className="h-1.5" />);
       i++;
       continue;
     }
 
-    // 일반 텍스트
+    // Plain text
     nodes.push(
       <p
         key={key++}

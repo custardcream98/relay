@@ -10,6 +10,16 @@ interface UseRelaySocketOptions {
   onEvent: (event: RelayEvent) => void;
 }
 
+// Type guard: checks if an incoming WebSocket message is a RelayEvent
+function isRelayEvent(v: unknown): v is RelayEvent {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    "type" in v &&
+    typeof (v as Record<string, unknown>).type === "string"
+  );
+}
+
 export function useRelaySocket({ onEvent }: UseRelaySocketOptions): { connected: boolean } {
   const [connected, setConnected] = useState(false);
   const onEventRef = useRef(onEvent);
@@ -41,8 +51,10 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): { connected:
 
       socket.onmessage = (e) => {
         try {
-          const event = JSON.parse(e.data) as RelayEvent;
-          onEventRef.current(event);
+          const parsed: unknown = JSON.parse(e.data);
+          if (isRelayEvent(parsed)) {
+            onEventRef.current(parsed);
+          }
         } catch {
           // Ignore parse errors
         }

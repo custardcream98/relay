@@ -1,6 +1,9 @@
 // packages/dashboard/src/constants/agents.ts
-// 에이전트별 액센트 색상 (CSS 변수와 동기화)
-export const AGENT_ACCENT_HEX: Record<string, string> = {
+// Per-agent accent colors — keep in sync with CSS custom properties
+
+export const DEFAULT_AGENT_ACCENT = "#9898a8";
+
+export const AGENT_ACCENT_HEX: Partial<Record<string, string>> = {
   pm: "#a78bfa",
   designer: "#f472b6",
   da: "#fbbf24",

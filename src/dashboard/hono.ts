@@ -56,7 +56,12 @@ app.get("/api/sessions/:id", async (c) => {
 app.post("/api/hook/tool-use", async (c) => {
   // Claude Code가 stdin으로 전달하는 페이로드 구조:
   // { tool_name: "mcp__relay__send_message", tool_input: { agent_id: "pm", ... }, ... }
-  const body = await c.req.json();
+  let body: { tool_input?: { agent_id?: string } };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "잘못된 JSON 페이로드" }, 400);
+  }
   const agent: string = body.tool_input?.agent_id ?? "unknown";
   broadcast({
     type: "agent:status",

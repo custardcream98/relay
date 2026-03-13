@@ -50,9 +50,14 @@
 
 ## Phase 2: 교차 검증
 
-모든 에이전트의 init-done 메시지 수신 후:
-- PM이 각 에이전트 기억을 읽고 `project.md` 통합 요약 작성
-- `write_memory(key: 'summary', content: ...)` 로 프로젝트 전체 요약 저장
+모든 에이전트의 init-done 메시지 수집:
+- `get_messages()` 를 반복 호출하여 `content === "init-done"` 메시지를 탐지
+- 6개 에이전트 모두의 init-done 메시지가 수신되면 다음 단계 진행
+- 최대 5분 대기 후 완료되지 않은 에이전트는 넘어가서 진행
+
+PM이 각 에이전트 기억을 읽고 프로젝트 전체 요약 작성:
+- `read_memory(agent_id: "fe")`, `read_memory(agent_id: "be")`, ... 각 에이전트 기억 수집
+- `write_memory(key: "summary", content: ...)` 로 `project.md`에 통합 요약 저장
 
 ## Phase 3: 완료 보고
 

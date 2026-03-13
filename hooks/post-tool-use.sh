@@ -12,5 +12,5 @@ PAYLOAD=$(cat)
 # 대시보드가 실행 중이면 상태 갱신 요청 (페이로드 그대로 전달)
 curl -s -X POST "http://localhost:${RELAY_DASHBOARD_PORT}/api/hook/tool-use" \
   --header "Content-Type: application/json" \
-  --data "$PAYLOAD" \
+  --data-raw "$PAYLOAD" \
   > /dev/null 2>&1 || true  # 대시보드 미실행 시 무시

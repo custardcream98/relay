@@ -145,7 +145,7 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 ### 1. 마켓플레이스 추가
 
 ```
-/plugin marketplace add https://github.com/your-org/relay
+/plugin marketplace add https://github.com/custardcream98/relay
 ```
 
 ### 2. 플러그인 설치

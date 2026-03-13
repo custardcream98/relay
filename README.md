@@ -141,7 +141,7 @@ All events are persisted to SQLite. You can replay an entire session after the f
 ### 1. Add the marketplace
 
 ```
-/plugin marketplace add https://github.com/your-org/relay
+/plugin marketplace add https://github.com/custardcream98/relay
 ```
 
 ### 2. Install the plugin

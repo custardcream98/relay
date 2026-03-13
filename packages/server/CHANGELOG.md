@@ -1,5 +1,11 @@
 # @custardcream/relay
 
+## 0.3.6
+
+### Patch Changes
+
+- 3303eb8: Overhaul dashboard UI: collapsible/resizable panels, Focus Mode agent detail, improved event timeline, clean code refactoring, and multiple bug fixes
+
 ## 0.3.5
 
 ### Patch Changes

@@ -145,6 +145,22 @@ bun run dashboard:dev    # 프론트엔드 개발 서버
 bun run dashboard:build  # 프론트엔드 빌드
 ```
 
+## 배포
+
+**changeset 워크플로를 사용한다. `bun run publish:server`를 직접 실행하지 않는다.**
+
+```bash
+# 1. changeset 파일 생성 (patch/minor/major 선택)
+bunx changeset
+
+# 2. 커밋 & 푸시 → CI가 "Version Packages" PR 자동 생성
+git add .changeset/
+git commit -m "chore: add changeset"
+git push
+
+# 3. "Version Packages" PR 머지 → CI가 npm 자동 배포
+```
+
 ## 주의사항
 
 - Claude API 직접 호출 코드를 추가하지 않는다 (추가 과금 발생)
@@ -152,3 +168,6 @@ bun run dashboard:build  # 프론트엔드 빌드
 - 에이전트 페르소나 system prompt는 한국어/영어 모두 가능하나 일관성 유지
 - `.relay/memory/` 파일들은 git에 커밋하여 팀이 공유하는 것을 권장
 - `agents.default.yml`은 수정하지 않는다. 커스텀은 `agents.yml`에서
+- `.mcp.json`의 npx 명령은 반드시 `--package <pkg> <bin>` 형식으로 bin 이름을 명시한다
+  - 패키지명과 bin 이름이 다를 경우 npx가 바이너리를 찾지 못함
+  - 올바른 예: `["npx", "-y", "--package", "@custardcream/relay", "relay-server"]`

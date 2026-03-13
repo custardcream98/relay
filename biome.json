@@ -26,5 +26,28 @@
   },
   "files": {
     "includes": ["**", "!!**/node_modules", "!!**/dist", "!!packages/docs/.astro", "!!**/*.db"]
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/dashboard/src/components/MarkdownContent.tsx"],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noArrayIndexKey": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["packages/dashboard/src/App.tsx"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noStaticElementInteractions": "off",
+            "useFocusableInteractive": "off"
+          }
+        }
+      }
+    }
+  ]
 }

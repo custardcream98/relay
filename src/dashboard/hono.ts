@@ -6,7 +6,7 @@ import { getDb } from "../db/client";
 import { getAllMessages } from "../db/queries/messages";
 import { getAllTasks } from "../db/queries/tasks";
 import { getAllArtifacts } from "../db/queries/artifacts";
-// loadAgents는 Task 12 완료 후 import 추가 예정
+import { loadAgents } from "../agents/loader";
 // broadcast는 Task 21에서 /api/hook/tool-use 엔드포인트 추가 시 import
 // handleGetSessionSummary는 Task 17에서 sessions.ts 구현 후 추가
 
@@ -21,10 +21,14 @@ export const app = new Hono();
 // 정적 파일 (빌드된 React 앱)
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
-// API: 에이전트 목록 (Task 12 이전에는 빈 배열, Task 12 완료 후 실제 구현으로 대체)
+// API: 에이전트 목록
 app.get("/api/agents", (c) => {
-  // TODO: Task 12 완료 후 loadAgents() 사용으로 대체
-  return c.json([]);
+  const agents = loadAgents();
+  return c.json(
+    Object.values(agents).map(a => ({
+      id: a.id, name: a.name, emoji: a.emoji, description: a.description,
+    }))
+  );
 });
 
 // API: 세션 스냅샷 (초기 로드용)

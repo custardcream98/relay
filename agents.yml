@@ -1,0 +1,40 @@
+# agents.yml
+# 이 파일에서 에이전트 페르소나를 자유롭게 커스터마이즈하세요.
+# 명시하지 않은 필드는 agents.default.yml의 값이 사용됩니다.
+#
+# 사용 예시:
+#
+# 1. 기존 에이전트 systemPrompt 오버라이드:
+#   agents:
+#     fe:
+#       systemPrompt: |
+#         당신은 Next.js 전문 FE 엔지니어입니다...
+#
+# 2. 기존 에이전트 비활성화:
+#   agents:
+#     designer:
+#       disabled: true
+#
+# 3. 커스텀 에이전트 추가 (extends로 기존 상속):
+#   agents:
+#     security-reviewer:
+#       name: "Security Reviewer"
+#       emoji: "🔐"
+#       extends: "be"
+#       systemPrompt: |
+#         당신은 보안 전문가입니다. OWASP Top 10 관점에서 리뷰합니다...
+#
+# 4. workflow job 오버라이드 (QA 루프를 hotfix job으로 분리):
+#   workflow:
+#     jobs:
+#       qa:
+#         end:
+#           deploy: "모든 테스트를 통과하면"
+#           hotfix: "크리티컬 버그가 발견되면"
+#       hotfix:
+#         agents: [be]
+#         description: "크리티컬 버그만 긴급 수정한다."
+#         end:
+#           qa: "수정이 완료되어 재검증이 필요하면"
+
+agents: {}

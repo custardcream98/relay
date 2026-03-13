@@ -9,6 +9,7 @@ import { handleRequestReview, handleSubmitReview } from "./tools/review";
 import { getDb } from "./db/client";
 import { broadcast } from "./dashboard/websocket";
 import { getTaskById } from "./db/queries/tasks";
+import { loadAgents, getWorkflow } from "./agents/loader";
 
 // 현재 세션 ID (환경변수로 주입, 기본값 "default")
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
@@ -155,6 +156,33 @@ export function createMcpServer(): McpServer {
   }, async (input) => {
     const result = await handleSubmitReview(getDb(), SESSION_ID, input);
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // --- agents 툴 등록 ---
+
+  // 에이전트 목록 조회 (오케스트레이터가 어떤 에이전트가 있는지 파악에 사용)
+  const agents = loadAgents();
+
+  server.tool("list_agents", {}, async () => {
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify(
+          Object.values(agents).map(a => ({
+            id: a.id, name: a.name, emoji: a.emoji,
+            description: a.description, tools: a.tools,
+          }))
+        ),
+      }],
+    };
+  });
+
+  // 워크플로 설정 조회 (오케스트레이터가 실행 흐름 파악에 사용)
+  server.tool("get_workflow", {}, async () => {
+    const workflow = getWorkflow();
+    return {
+      content: [{ type: "text", text: JSON.stringify(workflow) }],
+    };
   });
 
   return server;

@@ -1,6 +1,6 @@
 // packages/server/src/db/queries/events.ts
 
-import type { RelayEvent } from "@relay/shared";
+import type { RelayEvent } from "@custardcream/relay-shared";
 import { getDb } from "../client.ts";
 
 // Persist an event to the DB for history replay.

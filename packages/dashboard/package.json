@@ -1,5 +1,5 @@
 {
-  "name": "@relay/dashboard",
+  "name": "@custardcream/relay-dashboard",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@relay/shared": "workspace:*",
+    "@custardcream/relay-shared": "workspace:*",
     "@tailwindcss/vite": "^4.2.1",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

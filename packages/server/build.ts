@@ -1,5 +1,5 @@
 // packages/server/build.ts
-// @relay/server npm 패키지 빌드 스크립트
+// @custardcream/relay npm 패키지 빌드 스크립트
 // 실행: bun run build.ts (루트의 build:server 스크립트에서 호출)
 import { chmod, cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";

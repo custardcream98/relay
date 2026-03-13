@@ -1,8 +1,8 @@
 // packages/server/src/agents/types.ts
 // Agent persona type definitions
 
-// AgentId is defined once in @relay/shared — re-exported here for convenience
-import type { AgentId } from "@relay/shared";
+// AgentId is defined once in @custardcream/relay-shared — re-exported here for convenience
+import type { AgentId } from "@custardcream/relay-shared";
 export type { AgentId };
 
 export interface AgentConfig {

@@ -1,5 +1,5 @@
 {
-  "name": "@relay/server",
+  "name": "@custardcream/relay",
   "version": "0.0.1",
   "description": "MCP server for the relay multi-agent framework",
   "type": "module",

@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@relay/dashboard", "@relay/docs"]
+  "ignore": ["@custardcream/relay-dashboard", "@custardcream/relay-docs"]
 }

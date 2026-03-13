@@ -1,47 +1,53 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
-const base = import.meta.env.BASE_URL;
+import { type Lang, useTranslations } from "../../i18n/landing";
 
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+const base = import.meta.env.BASE_URL;
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const docsSlug =
+  lang === "ko-KR" ? "ko-KR/getting-started/installation" : "getting-started/installation";
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const snippets = [
   {
     step: "01",
-    label: "Install the MCP server",
-    code: `claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server`,
-    comment: "# registers relay MCP server globally",
+    label: t("qs.step1.label"),
+    code: `claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay`,
+    comment: t("qs.step1.comment"),
   },
   {
     step: "02",
-    label: "Initialise project memory",
+    label: t("qs.step2.label"),
     code: `/relay:init`,
-    comment: "# agents scan the codebase in parallel",
+    comment: t("qs.step2.comment"),
   },
   {
     step: "03",
-    label: "Ship a feature",
+    label: t("qs.step3.label"),
     code: `/relay:relay "add OAuth login with Google"`,
-    comment: "# all agents start simultaneously, peer-to-peer",
+    comment: t("qs.step3.comment"),
   },
 ];
 ---
 
 <section class="qs">
   <div class="qs__inner">
-    <!-- 좌: 타이틀 + 링크 -->
+    <!-- Left: title + link -->
     <div class="qs__copy">
-      <span class="qs__label" aria-hidden="true">// quick start</span>
-      <h2 class="qs__title">Up and running<br />in two minutes.</h2>
+      <span class="qs__label" aria-hidden="true">{t("qs.label")}</span>
+      <h2 class="qs__title">{t("qs.title1")}<br />{t("qs.title2")}</h2>
       <p class="qs__desc">
-        Three commands take you from installation to a running multi-agent team
-        working through your feature collaboratively.
+        {t("qs.desc")}
       </p>
-      <a href={`${base}getting-started/installation`} class="qs__link">
-        Full installation guide
+      <a href={`${base}/${docsSlug}`} class="qs__link">
+        {t("qs.link")}
         <span aria-hidden="true">→</span>
       </a>
     </div>
 
-    <!-- 우: 터미널 스니펫 스택 -->
+    <!-- Right: terminal snippet stack -->
     <div class="qs__snippets" role="list" aria-label="Quick start steps">
       {
         snippets.map((s, i) => (
@@ -81,7 +87,7 @@ const snippets = [
     align-items: center;
   }
 
-  /* 왼쪽 카피 */
+  /* Left copy */
   .qs__copy {
     display: flex;
     flex-direction: column;
@@ -130,7 +136,7 @@ const snippets = [
     gap: 0.625rem;
   }
 
-  /* 오른쪽 스니펫 스택 */
+  /* Right snippet stack */
   .qs__snippets {
     display: flex;
     flex-direction: column;
@@ -218,7 +224,7 @@ const snippets = [
     letter-spacing: 0.02em;
   }
 
-  /* 반응형 */
+  /* Responsive */
   @media (max-width: 768px) {
     .qs__inner {
       grid-template-columns: 1fr;

@@ -1,9 +1,10 @@
 // packages/server/src/dashboard/hono.ts
 
+import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import { serveStatic } from "hono/bun";
 import { loadAgents } from "../agents/loader";
 import { getRelayDir } from "../config";
 import { getDb } from "../db/client";
@@ -93,12 +94,15 @@ app.post("/api/hook/tool-use", async (c) => {
 // SPA fallback: serve index.html for all routes so React Router works.
 // If the dashboard has not been built yet, return a helpful message.
 app.get("*", async (_c) => {
-  const file = Bun.file(join(DASHBOARD_DIST, "index.html"));
-  if (!(await file.exists())) {
+  const indexPath = join(DASHBOARD_DIST, "index.html");
+  try {
+    await access(indexPath);
+  } catch {
     return new Response("Dashboard not built. Run: bun run dashboard:build", {
       status: 404,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
     });
   }
-  return new Response(file);
+  const content = await readFile(indexPath);
+  return new Response(content, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 });

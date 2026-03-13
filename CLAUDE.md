@@ -10,18 +10,18 @@ The MCP server handles all inter-agent communication infrastructure.
 
 ## Tech Stack & Conventions
 
-- **Runtime**: Bun (prefer Bun over Node.js; use `bun:sqlite` built-in)
+- **Runtime**: Node.js (production); Bun (dev tooling — `bun run`, `bun test`)
 - **Language**: TypeScript (strict mode)
-- **MCP server**: `@modelcontextprotocol/sdk` + `Bun.serve()`
-- **API server**: Hono (Bun-native, runs in the same process as the MCP server)
-- **Realtime**: Bun built-in WebSocket
+- **MCP server**: `@modelcontextprotocol/sdk` + `@hono/node-server`
+- **API server**: Hono (runs in the same process as the MCP server)
+- **Realtime**: `ws` WebSocket
 - **Frontend**: React + Vite (`packages/dashboard/`)
 - **Styling**: Tailwind CSS
-- **DB**: `bun:sqlite` (session data)
+- **DB**: `better-sqlite3` (production); `bun:sqlite` (tests only — injected via `_setDb()`)
 - **Memory**: Markdown files (`.relay/memory/`)
 - **Persona config**: YAML (`agents.yml` / `agents.default.yml`)
 - **Package manager**: bun (do not use npm/yarn/pnpm)
-- **Comments**: Korean
+- **Comments**: English
 
 ## Architecture Principles
 
@@ -172,10 +172,12 @@ git push
 ## Notes
 
 - Never add code that calls the Claude API directly (incurs extra billing)
-- Prefer Bun built-in APIs over `node:` prefix modules
+- Use `node:` built-ins for production code; Bun APIs are only for dev tooling (test runner, build)
+  - `tsconfig.json` includes `"bun"` in `types` to support `bun:test` / `bun:sqlite` in test files — do NOT use Bun APIs in `src/` production code
+- All code comments must be in English
 - Agent persona system prompts may be Korean or English, but keep them consistent
 - Commit `.relay/memory/` files to git so the team shares memory
 - Never modify `agents.default.yml`; define your team in `agents.yml` (use `agents.example.yml` as reference)
-- Always specify the bin name explicitly in `.mcp.json` npx args using `--package <pkg> <bin>`
-  - If the package name differs from the bin name, npx cannot find the binary
-  - Correct: `["npx", "-y", "--package", "@custardcream/relay", "relay-server"]`
+- The bin name in `.mcp.json` must be specified explicitly with `--package`:
+  - Correct: `["npx", "-y", "--package", "@custardcream/relay", "relay"]`
+  - This ensures npx finds the `relay` binary even when the package name differs from the bin name

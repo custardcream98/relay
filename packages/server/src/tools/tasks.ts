@@ -1,4 +1,3 @@
-import type { Database } from "bun:sqlite";
 import type { TaskRow } from "../db/queries/tasks";
 import {
   claimTask,
@@ -8,10 +7,11 @@ import {
   insertTask,
   updateTask,
 } from "../db/queries/tasks";
+import type { SqliteDatabase } from "../db/types";
 
 // Create a task and return its generated ID
 export function handleCreateTask(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;
@@ -38,7 +38,7 @@ export function handleCreateTask(
 // Update a task's status or assignee.
 // Returns success: false if the task does not exist.
 export function handleUpdateTask(
-  db: Database,
+  db: SqliteDatabase,
   _sessionId: string,
   input: { agent_id: string; task_id: string; status?: string; assignee?: string }
 ) {
@@ -51,14 +51,18 @@ export function handleUpdateTask(
 }
 
 // Fetch all tasks assigned to an agent
-export function handleGetMyTasks(db: Database, sessionId: string, input: { agent_id: string }) {
+export function handleGetMyTasks(
+  db: SqliteDatabase,
+  sessionId: string,
+  input: { agent_id: string }
+) {
   const tasks = getTasksByAssignee(db, sessionId, input.agent_id);
   return { success: true, tasks };
 }
 
 // Atomically claim a task. Returns claimed: true only if the task is 'todo' and assigned to (or unassigned from) the agent.
 export function handleClaimTask(
-  db: Database,
+  db: SqliteDatabase,
   _sessionId: string,
   input: { agent_id: string; task_id: string }
 ) {
@@ -75,7 +79,11 @@ export function handleClaimTask(
 
 // Returns aggregated task counts for the session.
 // Agents use has_pending_work to decide when to broadcast end:waiting or end:done.
-export function handleGetTeamStatus(db: Database, sessionId: string, _input: { agent_id: string }) {
+export function handleGetTeamStatus(
+  db: SqliteDatabase,
+  sessionId: string,
+  _input: { agent_id: string }
+) {
   const status = getTeamStatus(db, sessionId);
   const has_pending_work = status.todo + status.in_progress + status.in_review > 0;
   return { success: true, ...status, has_pending_work };
@@ -83,7 +91,11 @@ export function handleGetTeamStatus(db: Database, sessionId: string, _input: { a
 
 // Returns all tasks in the session regardless of assignee.
 // Used by agents to get an overview of the entire team's work status.
-export function handleGetAllTasks(db: Database, sessionId: string, _input: { agent_id: string }) {
+export function handleGetAllTasks(
+  db: SqliteDatabase,
+  sessionId: string,
+  _input: { agent_id: string }
+) {
   const tasks = getAllTasks(db, sessionId);
   return { success: true, tasks };
 }

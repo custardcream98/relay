@@ -1,6 +1,6 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
-import { getWorkflow, loadAgents } from "./loader";
+import { buildSystemPromptWithMemory, getWorkflow, loadAgents } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("loadAgents", () => {
@@ -154,7 +154,6 @@ describe("language setting", () => {
   });
 
   test("buildSystemPromptWithMemory includes language directive", () => {
-    const { buildSystemPromptWithMemory } = require("./loader");
     const persona = {
       id: "writer",
       name: "Writer",
@@ -168,7 +167,6 @@ describe("language setting", () => {
   });
 
   test("omits language directive when language is not set", () => {
-    const { buildSystemPromptWithMemory } = require("./loader");
     const persona = {
       id: "writer",
       name: "Writer",

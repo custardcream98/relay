@@ -1,63 +1,46 @@
 ---
-title: 설치
-description: relay 설치 가이드 — Claude Code 플러그인 마켓플레이스 사용
+title: Installation
+description: relay installation guide — register the MCP server with Claude Code
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-relay는 **Claude Code 플러그인**으로 제공된다. 마켓플레이스를 통해 설치하거나, MCP 서버를 직접 등록하는 방식 모두 지원한다.
+relay is distributed as an npm package. Register the MCP server with Claude Code using the command below.
 
-## 사전 요구사항
+## Prerequisites
 
-- [Bun](https://bun.sh) v1.0 이상
-- [Claude Code](https://claude.ai/download) 설치 및 로그인
+- [Node.js](https://nodejs.org) v18 or later (or any Node-compatible runtime)
+- [Claude Code](https://claude.ai/download) installed and signed in
 
-## 설치 방법
+## Installation
 
 <Tabs>
-  <TabItem label="마켓플레이스 설치 (권장)">
-    Claude Code 내에서 두 커맨드로 설치할 수 있다.
+  <TabItem label="Global (recommended)">
+    Register the relay MCP server globally so it is available in all projects:
 
-    **1. 마켓플레이스 추가:**
-    ```
-    /plugin marketplace add https://github.com/custardcream98/relay
-    ```
-
-    **2. 플러그인 설치:**
-    ```
-    /plugin install relay
+    ```bash
+    claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
     ```
 
-    설치 시 다음이 자동으로 처리된다:
-    - 스킬 (`/relay:relay`, `/relay:init`, `/relay:agent`)
-    - MCP 서버 (`.mcp.json` 경유)
-    - PostToolUse 훅 (`hooks/hooks.json` 경유)
+    Skills and hooks are installed automatically when the plugin is loaded.
   </TabItem>
-  <TabItem label="MCP 직접 등록">
-    마켓플레이스 없이 MCP 서버만 수동으로 등록할 수도 있다.
+  <TabItem label="Local (current project only)">
+    To scope relay to a single project, use `--scope local` instead:
 
-    **글로벌 (모든 프로젝트에서 사용):**
     ```bash
-    claude mcp add --scope user --transport stdio relay-server \
-      -- bunx -y --package @custardcream/relay relay-server
+    claude mcp add --scope local relay -- npx -y --package @custardcream/relay relay
     ```
 
-    **로컬 (현재 프로젝트만):**
-    ```bash
-    claude mcp add --scope local --transport stdio relay-server \
-      -- bunx -y --package @custardcream/relay relay-server
-    ```
-
-    로컬 설치가 글로벌을 오버라이드한다.
+    Local installation overrides global when both are present.
   </TabItem>
 </Tabs>
 
-## 설치 확인
+## Verify installation
 
-Claude Code를 재시작한 후 다음 명령어로 설치가 정상인지 확인한다:
+After restarting Claude Code, confirm the installation with:
 
 ```
 /relay:init
 ```
 
-relay MCP 서버가 연결되면 설치가 완료된 것이다.
+If the relay MCP server connects successfully, the installation is complete.

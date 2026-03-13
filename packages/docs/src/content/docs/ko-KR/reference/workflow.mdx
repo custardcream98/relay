@@ -1,0 +1,137 @@
+---
+title: 워크플로우 스키마
+description: workflow 섹션의 전체 스키마 및 실행 메커니즘 레퍼런스
+---
+
+## 스키마
+
+```typescript
+interface WorkflowConfig {
+  jobs: Record<string, JobConfig>;
+}
+
+interface JobConfig {
+  agents: string[];                      // 병렬로 실행할 에이전트 ID
+  description: string;                   // job 설명 (에이전트에 주입됨)
+  reviewers?: Record<string, string[]>;  // 리뷰어 매핑
+  end: Record<string, string>;           // nextJobId → 조건 설명
+}
+```
+
+## 실행 메커니즘
+
+### 시작 job 결정
+
+```
+모든 end 맵에서 목적지 job ID 집합을 구성
+→ 이 집합에 없는 job = 시작 job
+```
+
+### Job 실행 흐름
+
+```
+1. job.agents를 병렬로 실행
+2. 각 에이전트에 주입:
+   - 에이전트 페르소나 (list_agents)
+   - 개인 메모리 (read_memory(agent_id))
+   - 프로젝트 메모리 (read_memory())
+   - 현재 job 정보 (description + end 조건)
+3. 에이전트가 작업 후 end 선언:
+   send_message(to: null, content: "end:{nextJobId} | {이유}")
+4. 모든 에이전트의 end 선언 수집
+5. 다음 job 결정 → 반복
+```
+
+### 의견 불일치 처리
+
+에이전트들이 서로 다른 `nextJobId`를 선언하는 경우:
+- 오케스트레이터(Claude)가 `end` 조건 설명과 수집된 이유를 읽고 최종 결정을 내립니다
+
+### `_done`에 도달했을 때
+
+1. 각 에이전트가 `append_memory`로 세션 학습 내용을 저장
+2. 팀 `lessons.md`를 업데이트
+3. `save_session_summary` 호출
+4. 결과 요약을 사용자에게 리포트
+
+## End 선언 형식
+
+```
+"end:{nextJobId} | {이유}"
+```
+
+예시:
+```
+"end:qa | All PRs have received LGTM."
+"end:development | Auth header handling needs a fix."
+"end:_done | Deployment complete and team notified."
+```
+
+## reviewers 메커니즘
+
+```yaml
+review:
+  agents: [fe2, be2]
+  reviewers:
+    fe: [fe2]
+    be: [be2]
+```
+
+`fe2` 에이전트를 실행할 때:
+  1. `fe` 에이전트의 페르소나를 로드 (fe2는 fe의 또 다른 인스턴스)
+  2. `agent_id`를 `fe2`로 설정
+  3. 추가 컨텍스트 주입: "get_artifact로 fe가 생성한 fe-pr 아티팩트를 가져와 리뷰하세요"
+
+## 제약 사항
+
+- Job ID는 고유해야 합니다
+- `_done`은 예약 키워드이며 최종 목적지로만 사용하세요
+- 순환 참조는 지원하지 않습니다 (단, `review → development → review` 같은 비순환 역방향 엣지는 허용)
+- Job의 `agents` 배열에는 최소 하나의 항목이 있어야 합니다
+
+## 기본값 (agents.default.yml)
+
+```yaml
+workflow:
+  jobs:
+    planning:
+      agents: [pm]
+      description: "Analyse user requirements and break down into tasks."
+      end:
+        design: "When all tasks have been created and assigned"
+
+    design:
+      agents: [designer, da]
+      description: "Designer writes the UX spec; DA writes the analytics plan. Both must complete."
+      end:
+        development: "When both deliverables have been shared via post_artifact"
+
+    development:
+      agents: [fe, be]
+      description: "FE implements the UI; BE implements the API. Both create PR artifacts."
+      end:
+        review: "When implementation is complete and PRs are ready"
+
+    review:
+      agents: [fe2, be2]
+      reviewers:
+        fe: [fe2]
+        be: [be2]
+      description: "Review the PRs from quality, security, and performance perspectives."
+      end:
+        qa: "When all PRs are LGTM"
+        development: "When changes are requested"
+
+    qa:
+      agents: [qa]
+      description: "Test the feature and create tickets for any bugs found."
+      end:
+        deploy: "When all tests pass and there are no open bug tickets"
+        development: "When bugs are found and fixes are needed"
+
+    deploy:
+      agents: [deployer]
+      description: "Deploy the QA-approved feature to production."
+      end:
+        _done: "When deployment is complete and team is notified"
+```

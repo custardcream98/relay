@@ -1,12 +1,16 @@
 // packages/server/build.ts
 // Build script for @custardcream/relay npm package
 // Usage: bun run build.ts (called from root build:server script)
-import { chmod, cp, mkdir, rm } from "node:fs/promises";
-import { join } from "node:path";
 
-const serverRoot = join(import.meta.dir);
+import { chmod, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
+
+const serverRoot = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(serverRoot, "../..");
 const outDir = join(serverRoot, "dist");
+const indexPath = join(outDir, "index.js");
 const dashboardSrc = join(repoRoot, "packages/dashboard/dist");
 const dashboardDest = join(outDir, "dashboard");
 
@@ -14,26 +18,23 @@ const dashboardDest = join(outDir, "dashboard");
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
-// 2. Bundle server (bun:sqlite is Bun built-in, must be externalized)
+// 2. Bundle server (better-sqlite3 and ws are native/CJS externals)
 console.log("📦 Bundling server...");
-const result = await Bun.build({
-  entrypoints: [join(serverRoot, "src/index.ts")],
-  outdir: outDir,
-  target: "bun",
-  external: ["bun:sqlite"],
+await build({
+  entryPoints: [join(serverRoot, "src/index.ts")],
+  outfile: indexPath,
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  external: ["better-sqlite3", "ws"],
+  loader: { ".yml": "text" }, // bundle .yml files as strings (replaces Bun's with { type: "text" } import attribute)
   minify: false,
-  sourcemap: "none",
+  sourcemap: false,
 });
 
-if (!result.success) {
-  for (const msg of result.logs) console.error(msg);
-  process.exit(1);
-}
-
 // 3. Add shebang + make executable
-const indexPath = join(outDir, "index.js");
-const original = await Bun.file(indexPath).text();
-await Bun.write(indexPath, `#!/usr/bin/env bun\n${original}`);
+const original = await readFile(indexPath, "utf-8");
+await writeFile(indexPath, `#!/usr/bin/env node\n${original}`);
 await chmod(indexPath, 0o755);
 
 // 4. Copy dashboard static files to dist/dashboard/

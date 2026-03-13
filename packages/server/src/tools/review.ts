@@ -1,8 +1,8 @@
-import type { Database } from "bun:sqlite";
 import { getReviewById, insertReview, updateReviewStatus } from "../db/queries/reviews";
+import type { SqliteDatabase } from "../db/types";
 
 export function handleRequestReview(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;
@@ -24,7 +24,7 @@ export function handleRequestReview(
 }
 
 export function handleSubmitReview(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;

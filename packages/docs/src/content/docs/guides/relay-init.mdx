@@ -1,56 +1,56 @@
 ---
-title: /relay:init — 프로젝트 파악
-description: 팀이 코드베이스를 병렬로 스캔하고 프로젝트 기억을 초기화하는 스킬
+title: /relay:init — project scan
+description: Skill that has the whole team scan the codebase in parallel and initialise project memory
 ---
 
-`/relay:init`은 프로젝트에 처음 relay를 사용하거나 팀이 프로젝트 컨텍스트를 새로 파악해야 할 때 실행한다.
+Run `/relay:init` the first time you use relay in a project, or when the team needs to re-learn the project context.
 
-`.relay/memory/`가 없으면 `/relay:relay` 실행 시 자동으로 이 스킬 실행을 제안한다.
+If `.relay/memory/` does not exist, running `/relay:relay` will automatically suggest running this skill first.
 
-## 실행 조건
+## When to run
 
-- relay MCP 서버가 연결되어 있어야 한다
-- 최초 1회 필수, 이후 프로젝트 구조가 크게 바뀌었을 때 재실행 권장
+- relay MCP server must be connected
+- Required once per project; re-run is recommended when the project structure changes significantly
 
-## Phase 0: 팀 제안 (agents.yml 없을 때)
+## Phase 0: team suggestion (when agents.yml is absent)
 
-`list_agents`가 빈 배열을 반환하면 아직 `agents.yml`이 없는 상태다.
-프로젝트를 분석하여 도메인에 맞는 팀을 제안하고, `agents.yml`을 자동 생성한다.
+If `list_agents` returns an empty array, `agents.yml` has not been created yet.
+relay analyses the project, proposes a suitable team for the domain, and auto-generates `agents.yml`.
 
-생성 후에는 MCP 서버를 재시작한 다음 `/relay:init`을 다시 실행해야 한다.
+After the file is generated, restart the MCP server and then run `/relay:init` again.
 
-## Phase 1: 병렬 프로젝트 스캔
+## Phase 1: parallel project scan
 
-`list_agents`에서 반환된 **모든 에이전트가 동시에** spawn되어 각자의 관점에서 코드베이스를 탐색한다.
+**All agents returned by `list_agents` spawn simultaneously** and explore the codebase from their own perspective.
 
-각 에이전트는 자신의 `systemPrompt`에 정의된 역할 관점에서 탐색하고,
-완료 후 `write_memory` 툴로 기억을 저장한 다음 브로드캐스트 메시지 `"init-done"`을 보낸다.
+Each agent scans from the role defined in its `systemPrompt`,
+then saves its memory with `write_memory` and broadcasts `"init-done"`.
 
-## Phase 2: 교차 검증
+## Phase 2: cross-review
 
-모든 에이전트의 `"init-done"` 브로드캐스트가 수집되거나 최대 5분 경과 시 다음 단계로 진행한다.
+Once all agents' `"init-done"` broadcasts are collected, or after a maximum of 5 minutes, the process moves to the next phase.
 
-코디네이터 역할 에이전트(설명이나 이름에 "manager", "coordinator", "pm" 등 포함)가
-각 에이전트의 기억을 읽고 `write_memory(key: "summary", ...)`로 `project.md`에 통합 요약을 저장한다.
+The coordinator agent (one whose description or name contains "manager", "coordinator", or "pm")
+reads each agent's memory and saves a consolidated summary to `project.md` via `write_memory(key: "summary", ...)`.
 
-## Phase 3: 완료 보고
+## Phase 3: completion report
 
-사용자에게 init 결과를 요약 보고한다:
-- 로드된 에이전트 목록
-- 저장된 메모리 키 목록
-- 이후 `/relay:relay "태스크"` 로 바로 시작 가능
+Reports the init results to the user:
+- List of loaded agents
+- List of saved memory keys
+- Ready to start with `/relay:relay "task"` immediately
 
-## 출력 결과
+## Output
 
-init 완료 후 `.relay/memory/` 디렉토리가 생성된다:
+After init completes, the `.relay/memory/` directory is created:
 
 ```
 .relay/
 └── memory/
-    ├── project.md               # 코디네이터가 작성한 통합 요약
+    ├── project.md               # consolidated summary written by the coordinator
     └── agents/
-        ├── {agentId}.md         # 각 에이전트의 개인 기억 (agents.yml에 정의된 에이전트 수만큼)
+        ├── {agentId}.md         # each agent's personal memory (one per agent in agents.yml)
         └── ...
 ```
 
-이 파일들은 git에 커밋하여 팀이 공유하는 것을 권장한다.
+It is recommended to commit these files to git so the team shares them.

@@ -71,9 +71,9 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
             >
               <span
                 style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: 500,
-                  color: "var(--color-text-disabled)",
+                  color: "var(--color-text-secondary)",
                   textTransform: "uppercase",
                   letterSpacing: "0.07em",
                   fontFamily: "var(--font-sans)",
@@ -85,9 +85,9 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
               <span
                 className="font-mono"
                 style={{
-                  fontSize: 10,
+                  fontSize: 11,
                   background: "var(--color-surface-overlay)",
-                  color: "var(--color-text-disabled)",
+                  color: "var(--color-text-secondary)",
                   borderRadius: 3,
                   padding: "1px 5px",
                 }}
@@ -153,9 +153,9 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                     {/* Task title */}
                     <span
                       style={{
-                        fontSize: 12,
-                        fontWeight: 450,
-                        lineHeight: 1.4,
+                        fontSize: 13,
+                        fontWeight: 400,
+                        lineHeight: 1.45,
                         color: isDone ? "var(--color-text-tertiary)" : "var(--color-text-primary)",
                         textDecoration: isDone ? "line-through" : undefined,
                         display: "block",
@@ -180,11 +180,10 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                           <span
                             className="font-mono"
                             style={{
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: 500,
-                              padding: "1px 5px",
+                              padding: "1px 6px",
                               borderRadius: 3,
-                              // accent color text + accent/10 background
                               color: accentHex,
                               background: `${accentHex}1a`,
                             }}
@@ -197,8 +196,8 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                           <span
                             className="font-mono"
                             style={{
-                              fontSize: 10,
-                              color: "var(--color-text-tertiary)",
+                              fontSize: 11,
+                              color: "var(--color-text-secondary)",
                             }}
                           >
                             {task.priority}

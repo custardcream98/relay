@@ -1,5 +1,5 @@
 // packages/dashboard/src/components/AppHeader.tsx
-// App top header — title, session selector, connection status
+// App top header — docs nav 스타일과 통일
 
 import { memo } from "react";
 import type { AgentId } from "../types";
@@ -19,43 +19,62 @@ export const AppHeader = memo(function AppHeader({
 }: Props) {
   return (
     <div
-      className="flex items-center justify-between px-4 shrink-0"
+      className="flex items-center justify-between px-5 shrink-0"
       style={{
-        height: 44,
-        background: "var(--color-surface-base)",
-        borderBottom: "1px solid var(--color-border-subtle)",
+        height: 52,
+        background: "color-mix(in srgb, var(--color-surface-root) 88%, transparent)",
+        borderBottom: "1px solid var(--color-border-default)",
+        backdropFilter: "blur(12px) saturate(1.2)",
+        WebkitBackdropFilter: "blur(12px) saturate(1.2)",
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
       }}
     >
-      {/* Left: relay wordmark */}
-      <div className="flex items-center gap-2">
+      {/* 왼쪽: relay_ 워드마크 */}
+      <div className="flex items-center gap-3">
         <span
           style={{
             fontSize: 15,
-            fontWeight: 700,
+            fontWeight: 500,
             letterSpacing: "-0.04em",
-            fontFamily: "var(--font-sans)",
+            fontFamily: "var(--font-mono)",
             color: "var(--color-text-primary)",
+            display: "flex",
+            alignItems: "baseline",
           }}
         >
           relay
+          <span
+            style={{
+              color: "var(--color-accent)",
+              animation: "blink 1.1s step-end infinite",
+              fontWeight: 400,
+            }}
+          >
+            _
+          </span>
         </span>
         <span
-          className="font-mono"
           style={{
-            fontSize: 9,
-            background: "var(--color-surface-overlay)",
-            color: "var(--color-text-tertiary)",
-            padding: "2px 6px",
+            fontSize: 10,
+            fontFamily: "var(--font-mono)",
+            background: "var(--color-accent-glow)",
+            color: "var(--color-accent)",
+            border: "1px solid var(--color-accent)",
+            padding: "2px 8px",
             borderRadius: 9999,
             textTransform: "uppercase",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.08em",
+            fontWeight: 500,
+            opacity: 0.9,
           }}
         >
           dashboard
         </span>
       </div>
 
-      {/* Center: Focus Mode badge (when an agent is selected) */}
+      {/* 중앙: Focus Mode 배지 */}
       {selectedAgent && (
         <div
           style={{
@@ -64,24 +83,26 @@ export const AppHeader = memo(function AppHeader({
             gap: 8,
             padding: "4px 12px",
             borderRadius: 9999,
-            background: "rgba(96,165,250,0.1)",
-            border: "1px solid rgba(96,165,250,0.25)",
+            background: "var(--color-accent-glow)",
+            border: "1px solid var(--color-accent)",
           }}
         >
           <span
             style={{
               fontSize: 11,
               fontWeight: 500,
-              color: "#60a5fa",
+              fontFamily: "var(--font-mono)",
+              color: "var(--color-accent)",
+              letterSpacing: "0.02em",
             }}
           >
-            Focus: {selectedAgent}
+            focus: {selectedAgent}
           </span>
           <button
             type="button"
             onClick={onClearFocus}
             style={{
-              fontSize: 12,
+              fontSize: 14,
               color: "var(--color-text-tertiary)",
               background: "none",
               border: "none",
@@ -96,25 +117,21 @@ export const AppHeader = memo(function AppHeader({
         </div>
       )}
 
-      {/* Right: agent count + connection status */}
-      <div className="flex items-center gap-3">
-        {/* Agent count badge */}
+      {/* 오른쪽: 에이전트 수 + 연결 상태 */}
+      <div className="flex items-center gap-4">
         {agentCount > 0 && (
           <span
-            className="font-mono"
             style={{
-              fontSize: 10,
-              background: "var(--color-surface-overlay)",
+              fontSize: 11,
+              fontFamily: "var(--font-mono)",
               color: "var(--color-text-tertiary)",
-              padding: "2px 8px",
-              borderRadius: 9999,
+              letterSpacing: "0.04em",
             }}
           >
             {agentCount} agents
           </span>
         )}
 
-        {/* Connection status */}
         {/* biome-ignore lint/a11y/useSemanticElements: div layout required */}
         <div
           className="flex items-center gap-1.5"
@@ -139,6 +156,7 @@ export const AppHeader = memo(function AppHeader({
               fontSize: 11,
               color: "var(--color-text-disabled)",
               fontFamily: "var(--font-mono)",
+              letterSpacing: "0.04em",
             }}
           >
             {connected ? "live" : "offline"}

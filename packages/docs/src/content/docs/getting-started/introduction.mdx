@@ -1,47 +1,47 @@
 ---
-title: relay란?
-description: Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크
+title: What is relay?
+description: A domain-agnostic multi-agent collaboration framework built on Claude Code
 ---
 
-relay는 Claude Code sub-agent들이 각자의 페르소나로 협업하는 **도메인 범용** 멀티 에이전트 프레임워크다.
-`agents.yml`에 팀을 자유롭게 정의한다 — 웹 개발팀, 리서치팀, 마케팅팀, 법무팀 등 어떤 구성이든 가능하다.
+relay is a **domain-agnostic** multi-agent framework where Claude Code sub-agents collaborate under their own personas.
+Define any team you want in `agents.yml` — a web dev team, research team, marketing team, legal team, or anything else.
 
-추가 API 과금 없이 Claude Code의 Agent 툴만 사용한다.
+Uses only Claude Code's Agent tool — no extra API billing.
 
-## 어떻게 동작하나?
+## How it works
 
 ```
-사용자: "쇼핑카트 기능 추가해줘"
+User: "Add a shopping cart feature"
   ↓
-[PM]       → 태스크 분해, 이슈 생성
-[Designer] → UX 플로우, 컴포넌트 스펙
-[DA]       → 이벤트 설계, 성과 지표 정의
-[BE]       → API 설계 및 구현
-[FE]       → UI 구현
-[FE2]      → FE 코드 리뷰
-[BE2]      → BE 코드 리뷰
-[QA]       → 테스트 시나리오 및 버그 리포트
-[Deployer] → 배포
+[PM]       → break down tasks, create issues
+[Designer] → UX flow, component spec
+[DA]       → event design, KPI definition
+[BE]       → API design and implementation
+[FE]       → UI implementation
+[FE2]      → FE code review
+[BE2]      → BE code review
+[QA]       → test scenarios and bug reports
+[Deployer] → deploy
 ```
 
-## 세 가지 레이어
+## Three layers
 
-| 레이어 | 역할 |
+| Layer | Role |
 |---|---|
-| MCP 서버 | 에이전트 간 통신 인프라 (메시지 버스, 태스크 보드, 메모리) |
-| Skills | `/relay:relay`, `/relay:init`, `/relay:agent` 오케스트레이션 전략 |
-| Hooks | PostToolUse — MCP 툴 호출 시 대시보드 실시간 갱신 |
+| MCP server | Inter-agent communication infrastructure (message bus, task board, memory) |
+| Skills | `/relay:relay`, `/relay:init`, `/relay:agent` orchestration strategies |
+| Hooks | PostToolUse — real-time dashboard updates on MCP tool calls |
 
-## 에이전트는 사용자가 정의한다
+## Agents are defined by you
 
-에이전트 구성은 `agents.yml`로 완전히 커스터마이즈할 수 있다.
-`agents.example.yml`에는 웹 개발팀 예시 (pm, designer, da, fe, be, qa, deployer)가 포함되어 있다.
-이를 복사하여 시작하거나, 원하는 대로 팀을 구성하면 된다.
+Agent configuration is fully customisable via `agents.yml`.
+`agents.example.yml` includes a web dev team example (pm, designer, da, fe, be, qa, deployer).
+Copy it to get started, or define your own team from scratch.
 
-## 왜 relay인가?
+## Why relay?
 
-일반적인 AI 에이전트 툴은 하나의 에이전트가 모든 것을 처리한다. relay는 다르다.
+Most AI agent tools run everything through a single agent. relay is different.
 
-각 에이전트는 자신의 역할만 수행하고, MCP 서버를 통해 서로 직접 소통한다.
-peer-to-peer — 오케스트레이터 없이 에이전트들이 이벤트 기반으로 협업한다.
-추가 API 과금 없이 Claude Code의 Agent 툴만 사용한다.
+Each agent handles only its own role, communicating directly with others through the MCP server.
+Peer-to-peer — agents collaborate event-driven, with no central orchestrator.
+Uses only Claude Code's Agent tool — no extra API billing.

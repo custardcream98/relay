@@ -1,7 +1,7 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "./types";
 
 // Run DB schema migrations
-export function runMigrations(db: Database): void {
+export function runMigrations(db: SqliteDatabase): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
@@ -68,7 +68,7 @@ export function runMigrations(db: Database): void {
 }
 
 // Drop all tables (for tests and development only)
-export function dropAllTables(db: Database): void {
+export function dropAllTables(db: SqliteDatabase): void {
   db.exec(`
     DROP TABLE IF EXISTS messages;
     DROP TABLE IF EXISTS tasks;

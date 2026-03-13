@@ -1,37 +1,37 @@
-import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import Database from "better-sqlite3";
 import { getRelayDir } from "../config";
 import { runMigrations } from "./schema";
+import type { SqliteDatabase } from "./types";
 
 // Singleton DB instance
-let _db: Database | null = null;
+let _db: SqliteDatabase | null = null;
 
 // Returns the DB instance.
 // Initializes and migrates the DB on first call.
-export function getDb(): Database {
+export function getDb(): SqliteDatabase {
   if (!_db) {
     const path = process.env.DB_PATH ?? `${getRelayDir()}/relay.db`;
     // Create the directory if it does not exist yet
     const dir = dirname(path);
     if (dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
-    _db = new Database(path);
-    // Enable WAL mode for improved concurrency
-    _db.exec("PRAGMA journal_mode = WAL;");
+    const betterDb = new Database(path);
+    // Enable WAL mode — better-sqlite3-specific API; must be called before casting to SqliteDatabase
+    betterDb.pragma("journal_mode = WAL");
+    _db = betterDb as unknown as SqliteDatabase;
     runMigrations(_db);
   }
   return _db;
-}
-
-// For tests: initialize the DB at the given path (e.g. ":memory:")
-export function initDb(path: string): void {
-  _db?.close();
-  _db = new Database(path);
-  runMigrations(_db);
 }
 
 // Close the DB connection and reset the singleton instance
 export function closeDb(): void {
   _db?.close();
   _db = null;
+}
+
+// For tests only: inject an already-created DB instance (e.g. bun:sqlite in-memory DB)
+export function _setDb(db: SqliteDatabase): void {
+  _db = db;
 }

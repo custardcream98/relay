@@ -1,44 +1,45 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+import { type Lang, useTranslations } from "../../i18n/landing";
+
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const features = [
   {
     index: "A",
-    title: "MCP-native communication",
-    description:
-      "Agents communicate exclusively through MCP tools — send_message, create_task, post_artifact. Every interaction is auditable and replayable.",
-    detail: "Peer-to-peer. No orchestrator bottleneck.",
+    title: t("features.A.title"),
+    description: t("features.A.desc"),
+    detail: t("features.A.detail"),
   },
   {
     index: "B",
-    title: "Zero extra billing",
-    description:
-      "relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond what Claude Code already charges.",
-    detail: "Runs entirely on your existing Claude Code subscription.",
+    title: t("features.B.title"),
+    description: t("features.B.desc"),
+    detail: t("features.B.detail"),
   },
   {
     index: "C",
-    title: "Persistent shared memory",
-    description:
-      "Each session writes Markdown notes to .relay/memory/. Agents start the next session fully aware of prior decisions and patterns.",
-    detail: "Commit .relay/memory/ to git — your whole team shares context.",
+    title: t("features.C.title"),
+    description: t("features.C.desc"),
+    detail: t("features.C.detail"),
   },
   {
     index: "D",
-    title: "Realtime dashboard",
-    description:
-      "A WebSocket-powered Kanban board and message feed shows task state changes and inter-agent messages as they happen.",
-    detail: "Full session replay included. Review every task and message.",
+    title: t("features.D.title"),
+    description: t("features.D.desc"),
+    detail: t("features.D.detail"),
   },
 ];
 ---
 
 <section class="features">
   <div class="features__header">
-    <span class="features__label" aria-hidden="true">// why relay</span>
-    <h2 class="features__title">Transparent, lean,<br />and composable.</h2>
+    <span class="features__label" aria-hidden="true">{t("features.label")}</span>
+    <h2 class="features__title">{t("features.title1")}<br />{t("features.title2")}</h2>
   </div>
 
-  <!-- 2×2 그리드 — 컴팩트한 editorial 카드 -->
+  <!-- 2×2 grid — compact editorial cards -->
   <div class="features__grid">
     {
       features.map((f, i) => (
@@ -88,7 +89,7 @@ const features = [
     margin: 0;
   }
 
-  /* 2×2 격자 */
+  /* 2×2 grid */
   .features__grid {
     max-width: 1100px;
     margin: 0 auto;
@@ -120,7 +121,7 @@ const features = [
     background-color: var(--color-bg-raised);
   }
 
-  /* 알파벳 인덱스 */
+  /* Alphabetic index */
   .features__cell-index {
     font-family: var(--font-display);
     font-style: italic;
@@ -161,15 +162,14 @@ const features = [
   }
 
   .features__cell-detail {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 400;
     color: var(--color-accent);
-    letter-spacing: 0.03em;
     margin: 0.25rem 0 0;
-    opacity: 0.75;
   }
 
-  /* 반응형 */
+  /* Responsive */
   @media (max-width: 640px) {
     .features__grid {
       grid-template-columns: 1fr;

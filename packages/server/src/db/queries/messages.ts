@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../types";
 
 export interface MessageRow {
   id: string;
@@ -11,8 +11,8 @@ export interface MessageRow {
 }
 
 // Insert a message into the DB
-export function insertMessage(db: Database, msg: Omit<MessageRow, "created_at">): void {
-  db.query(`
+export function insertMessage(db: SqliteDatabase, msg: Omit<MessageRow, "created_at">): void {
+  db.prepare(`
     INSERT INTO messages (id, session_id, from_agent, to_agent, content, thread_id)
     VALUES (?, ?, ?, ?, ?, ?)
   `).run(msg.id, msg.session_id, msg.from_agent, msg.to_agent, msg.content, msg.thread_id);
@@ -20,12 +20,12 @@ export function insertMessage(db: Database, msg: Omit<MessageRow, "created_at">)
 
 // Fetch messages received by a specific agent (direct + broadcast)
 export function getMessagesForAgent(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   agentId: string
 ): MessageRow[] {
   return db
-    .query<MessageRow, [string, string]>(`
+    .prepare(`
     SELECT * FROM messages
     WHERE session_id = ?
       AND (to_agent = ? OR to_agent IS NULL)
@@ -35,9 +35,9 @@ export function getMessagesForAgent(
 }
 
 // Fetch all messages in a session
-export function getAllMessages(db: Database, sessionId: string): MessageRow[] {
+export function getAllMessages(db: SqliteDatabase, sessionId: string): MessageRow[] {
   return db
-    .query<MessageRow, [string]>(`
+    .prepare(`
     SELECT * FROM messages WHERE session_id = ? ORDER BY created_at ASC
   `)
     .all(sessionId) as MessageRow[];

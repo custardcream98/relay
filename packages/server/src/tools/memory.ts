@@ -1,6 +1,7 @@
 // packages/server/src/tools/memory.ts
 // Tool for reading and writing agent memory as Markdown files
 import { existsSync, mkdirSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Validate agent_id to prevent path traversal attacks
@@ -46,10 +47,10 @@ export async function handleReadMemory(relayDir: string, input: { agent_id?: str
   try {
     if (!input.agent_id) {
       const project = existsSync(projectMemoryPath(relayDir))
-        ? await Bun.file(projectMemoryPath(relayDir)).text()
+        ? await readFile(projectMemoryPath(relayDir), "utf-8")
         : null;
       const lessons = existsSync(lessonsMemoryPath(relayDir))
-        ? await Bun.file(lessonsMemoryPath(relayDir)).text()
+        ? await readFile(lessonsMemoryPath(relayDir), "utf-8")
         : null;
       const content =
         [project, lessons].filter((s): s is string => s !== null).join("\n\n---\n\n") || null;
@@ -58,7 +59,7 @@ export async function handleReadMemory(relayDir: string, input: { agent_id?: str
 
     const path = agentMemoryPath(relayDir, input.agent_id);
     if (!existsSync(path)) return { success: true, content: null };
-    return { success: true, content: await Bun.file(path).text() };
+    return { success: true, content: await readFile(path, "utf-8") };
   } catch (err) {
     return { success: false, content: null, error: String(err) };
   }
@@ -88,7 +89,7 @@ export async function handleWriteMemory(
       ? agentMemoryPath(relayDir, input.agent_id)
       : projectMemoryPath(relayDir);
 
-    const existing = existsSync(path) ? await Bun.file(path).text() : "";
+    const existing = existsSync(path) ? await readFile(path, "utf-8") : "";
 
     // Split into lines to accurately locate section boundaries (avoids regex metacharacter issues)
     const lines = existing.split("\n");
@@ -98,7 +99,7 @@ export async function handleWriteMemory(
     if (startIdx === -1) {
       // Section absent — append at end
       const suffix = `${existing.length > 0 ? "\n" : ""}## ${input.key}\n\n${input.content}`;
-      await Bun.write(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
+      await writeFile(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
     } else {
       // Replace up to the next ## header or end of file
       let endIdx = lines.findIndex((l, i) => i > startIdx && l.startsWith("## "));
@@ -107,7 +108,7 @@ export async function handleWriteMemory(
       const after = lines.slice(endIdx);
       const newSection = [`## ${input.key}`, "", input.content];
       const merged = [...before, ...newSection, ...after].join("\n");
-      await Bun.write(path, `${merged.trimEnd()}\n`);
+      await writeFile(path, `${merged.trimEnd()}\n`);
     }
 
     return { success: true };
@@ -139,8 +140,8 @@ export async function handleAppendMemory(
     const timestamp = new Date().toISOString().split("T")[0];
     const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
 
-    const existing = existsSync(path) ? await Bun.file(path).text() : "";
-    await Bun.write(path, existing + entry);
+    const existing = existsSync(path) ? await readFile(path, "utf-8") : "";
+    await writeFile(path, existing + entry);
     return { success: true };
   } catch (err) {
     return { success: false, error: String(err) };

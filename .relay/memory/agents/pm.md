@@ -4,7 +4,7 @@ relay는 Claude Code 기반의 도메인-범용 멀티에이전트 협업 프레
 사용자가 `agents.yml`에 팀을 정의하면 (웹개발, 리서치, 마케팅, 법률 등 무엇이든) relay가 나머지를 처리한다.
 Claude Code 플러그인으로 배포됨: MCP Server + Skills + Hooks 세 레이어.
 Claude API를 직접 호출하지 않음 — Claude Code의 Agent 툴만 사용 (추가 비용 없음).
-npm 패키지명: `@custardcream/relay` (bin: `relay-server`)
+npm 패키지명: `@custardcream/relay` (bin: `relay`)
 GitHub: https://github.com/custardcream98/relay
 현재 버전: 0.1.0 (changeset 0.2.0 준비 중)
 

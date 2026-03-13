@@ -7,7 +7,7 @@
 relay는 Claude Code 기반의 도메인-범용 멀티에이전트 협업 프레임워크다.
 사용자가 `agents.yml`에 팀을 정의하면(웹 개발, 리서치, 마케팅, 법률 등 무엇이든) relay가 나머지를 처리한다.
 
-- **npm 패키지**: `@custardcream/relay` v0.2.1, bin: `relay-server`
+- **npm 패키지**: `@custardcream/relay` v0.2.1, bin: `relay`
 - **GitHub**: https://github.com/custardcream98/relay
 - **대시보드**: http://localhost:3456
 - **문서 사이트**: https://custardcream98.github.io/relay
@@ -208,7 +208,7 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 
 **릴리즈 워크플로우 (changeset 사용):**
 ```bash
-bunx changeset        # patch/minor/major 선택
+bunx changeset        # patch/minor/major 선택 (dev tooling — Bun 필요)
 git add .changeset/
 git commit -m "chore: add changeset"
 git push
@@ -218,8 +218,9 @@ git push
 
 **설치:**
 - Claude Code 마켓플레이스 플러그인으로 설치 (skills + MCP 자동 등록)
-- `.mcp.json` bunx args: 반드시 `--package @custardcream/relay relay-server` 명시
-  - 패키지명과 bin명이 다를 때 bunx가 바이너리를 찾지 못하는 문제 방지
+- `.mcp.json` npx args: `["npx", "-y", "--package", "@custardcream/relay", "relay"]`
+  - `--package` 명시 필수 — 패키지명과 bin명이 다를 때 npx가 바이너리를 찾지 못하는 문제 방지
+  - 프로덕션 런타임은 Node.js (Bun 불필요)
 - 설치 후 `/reload-plugins` 실행 필요
 
 ## CI/CD

@@ -15,3 +15,8 @@ _2026-03-13_
 - QA ran concurrently with BE — some bug reports overlapped with fixes already in progress. QA should wait for BE/designer tasks to reach in_review before running.
 - frontend-design skill was invoked by designer agent and significantly elevated design quality
 - be2 reviewer pattern worked well for content accuracy verification
+
+---
+_2026-03-13_
+
+Session 2026-03-13-002: Docs overhaul complete. Key fixes: landing page no longer shows hardcoded 7-agent roster (AgentRoster now says "Any team. Any domain." with agents.yml snippet); all 13 MDX docs translated to English; fake marketplace install commands removed from installation.mdx; Footer/Hero install scripts now consistent. Build: 15 pages, 0 errors.

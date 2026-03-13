@@ -67,10 +67,10 @@ export function EventTimeline({ entries, focusAgent }: Props) {
     return (
       <div className="flex flex-col items-center justify-center h-full" style={{ gap: 10 }}>
         <span style={{ fontSize: 28, opacity: 0.2 }}>📡</span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-tertiary)" }}>
+        <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
           {focusAgent ? `No events for ${focusAgent}` : "Waiting for events…"}
         </span>
-        <span style={{ fontSize: 11, color: "var(--color-text-disabled)" }}>
+        <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
           {focusAgent
             ? "Events will appear when this agent is active"
             : "Start a relay session to see live events"}
@@ -205,7 +205,7 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
             <span
               className="font-mono"
               style={{
-                fontSize: 10,
+                fontSize: 11,
                 fontWeight: 600,
                 color: accentColor,
                 background: `${accentColor}18`,
@@ -221,8 +221,8 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           {/* Event description */}
           <span
             style={{
-              fontSize: 12,
-              fontWeight: 450,
+              fontSize: 13,
+              fontWeight: 400,
               color: "var(--color-text-primary)",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -237,8 +237,8 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           <span
             className="font-mono"
             style={{
-              fontSize: 10,
-              color: "var(--color-text-disabled)",
+              fontSize: 11,
+              color: "var(--color-text-tertiary)",
               flexShrink: 0,
               whiteSpace: "nowrap",
             }}
@@ -252,9 +252,9 @@ function EventCard({ entry, accentColor, isLast }: EventCardProps) {
           <p
             ref={detailRef}
             style={{
-              fontSize: 11,
-              lineHeight: 1.5,
-              color: "var(--color-text-tertiary)",
+              fontSize: 12,
+              lineHeight: 1.55,
+              color: "var(--color-text-secondary)",
               margin: 0,
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",

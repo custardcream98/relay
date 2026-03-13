@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../types";
 
 export interface ReviewRow {
   id: string;
@@ -14,10 +14,10 @@ export interface ReviewRow {
 
 // Insert a review into the DB
 export function insertReview(
-  db: Database,
+  db: SqliteDatabase,
   review: Omit<ReviewRow, "created_at" | "updated_at">
 ): void {
-  db.query(`
+  db.prepare(`
     INSERT INTO reviews (id, session_id, artifact_id, reviewer, requester, status, comments)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
@@ -33,35 +33,33 @@ export function insertReview(
 
 // Update a review's status and comments
 export function updateReviewStatus(
-  db: Database,
+  db: SqliteDatabase,
   id: string,
   status: string,
   comments: string | null
 ): void {
-  db.query(`
+  db.prepare(`
     UPDATE reviews SET status = ?, comments = ?, updated_at = unixepoch()
     WHERE id = ?
   `).run(status, comments, id);
 }
 
 // Look up a review by ID (used for ownership validation)
-export function getReviewById(db: Database, id: string, sessionId: string): ReviewRow | null {
+export function getReviewById(db: SqliteDatabase, id: string, sessionId: string): ReviewRow | null {
   return (
-    db
-      .query<ReviewRow, [string, string]>("SELECT * FROM reviews WHERE id = ? AND session_id = ?")
-      .get(id, sessionId) ?? null
+    (db.prepare("SELECT * FROM reviews WHERE id = ? AND session_id = ?").get(id, sessionId) as
+      | ReviewRow
+      | undefined) ?? null
   );
 }
 
 // Fetch all reviews assigned to a specific reviewer
 export function getReviewsByReviewer(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   reviewer: string
 ): ReviewRow[] {
   return db
-    .query<ReviewRow, [string, string]>(
-      "SELECT * FROM reviews WHERE session_id = ? AND reviewer = ? ORDER BY created_at ASC"
-    )
-    .all(sessionId, reviewer);
+    .prepare("SELECT * FROM reviews WHERE session_id = ? AND reviewer = ? ORDER BY created_at ASC")
+    .all(sessionId, reviewer) as ReviewRow[];
 }

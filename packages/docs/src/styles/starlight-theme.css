@@ -315,6 +315,17 @@ main {
   animation: docs-fade-in 0.35s ease-out both;
 }
 
+/* ─── 우측 TOC (On this page) ─── */
+
+starlight-toc a {
+  font-size: 0.8125rem !important;
+}
+
+starlight-toc .isCurrent {
+  color: var(--sl-color-text-accent) !important;
+  border-inline-start-color: var(--sl-color-text-accent) !important;
+}
+
 /* ─── "이전/다음" 페이지 링크 ─── */
 
 .pagination-links a {

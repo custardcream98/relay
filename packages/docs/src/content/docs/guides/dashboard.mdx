@@ -1,79 +1,79 @@
 ---
-title: 대시보드
-description: relay 웹 대시보드 — 에이전트 활동 실시간 시각화
+title: Dashboard
+description: relay web dashboard — real-time visualisation of agent activity
 ---
 
-relay MCP 서버는 웹 대시보드를 함께 서빙한다.
-에이전트들이 어떻게 생각하고, 서로 어떻게 소통하는지 실시간으로 확인할 수 있다.
+The relay MCP server also serves a web dashboard.
+You can watch agents think and communicate with each other in real time.
 
-## 접속
+## Accessing
 
-MCP 서버가 기동되면 자동으로 대시보드도 시작된다:
+The dashboard starts automatically when the MCP server starts:
 
 ```
 http://localhost:3456
 ```
 
-## 세 가지 패널
+## Three panels
 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  [PM ●]  [Designer ○]  [DA ○]  [FE ●]  [BE ●]  [QA ○]   │
 ├───────────────────┬──────────────────┬───────────────────┤
 │    Task Board     │   Message Feed   │   Agent Thoughts  │
-│    (Kanban)       │   (Slack-like)   │   (실시간 스트림)  │
+│    (Kanban)       │   (Slack-like)   │   (live stream)   │
 └───────────────────┴──────────────────┴───────────────────┘
 ```
 
 ### Task Board (Kanban)
 
-- 전체 이슈 현황을 Kanban 보드 형태로 표시
-- `todo` → `in_progress` → `in_review` → `done` 상태 변경 시 즉시 업데이트
-- 태스크 클릭 시 상세 정보 (담당자, 우선순위, 설명) 확인
+- Displays the full issue status as a Kanban board
+- Updates instantly when task state changes: `todo` → `in_progress` → `in_review` → `done`
+- Click a task to view details (assignee, priority, description)
 
 ### Message Feed
 
-- 에이전트 간 대화를 Slack 스레드 형태로 표시
-- `to: null` 브로드캐스트 메시지와 1:1 메시지 구분
-- 실시간으로 새 메시지가 추가됨
+- Displays inter-agent conversations as Slack-style threads
+- Distinguishes `to: null` broadcast messages from direct messages
+- New messages appear in real time
 
 ### Agent Thoughts
 
-- 선택한 에이전트의 추론 과정(툴 호출 전 텍스트)을 실시간 스트리밍
-- 에이전트 상태 표시: `idle` (회색), `working` (초록), `waiting` (노란색)
+- Streams the selected agent's reasoning (text before tool calls) in real time
+- Agent status indicator: `idle` (grey), `working` (green), `waiting` (yellow)
 
-## WebSocket 이벤트
+## WebSocket events
 
-대시보드는 WebSocket으로 실시간 업데이트를 받는다.
-모든 이벤트는 `{ type, timestamp, ...페이로드 }` 구조를 따른다. 별도의 `payload` 래퍼 필드는 없다.
+The dashboard receives real-time updates over WebSocket.
+All events follow the `{ type, timestamp, ...payload }` structure — there is no separate `payload` wrapper field.
 
-| 이벤트 타입 | 설명 |
+| Event type | Description |
 |---|---|
-| `agent:thinking` | 에이전트 추론 텍스트 스트리밍 |
-| `agent:status` | 에이전트 상태 변경 (idle/working/waiting) |
-| `message:new` | 새 메시지 수신 |
-| `task:updated` | 태스크 상태 변경 |
-| `artifact:posted` | 새 아티팩트 공유 |
-| `review:requested` | 리뷰 요청 발생 |
-| `memory:updated` | 에이전트 메모리 갱신 |
+| `agent:thinking` | Agent reasoning text stream |
+| `agent:status` | Agent status change (idle/working/waiting) |
+| `message:new` | New message received |
+| `task:updated` | Task state change |
+| `artifact:posted` | New artifact shared |
+| `review:requested` | Review request raised |
+| `memory:updated` | Agent memory updated |
 
-## 히스토리 재생
+## History replay
 
-모든 이벤트는 SQLite에 타임스탬프와 함께 저장된다.
+All events are stored in SQLite with timestamps.
 
-세션 종료 후에도 대시보드에서 세션을 선택하여 전체 과정을 재생(replay)할 수 있다:
-- 에이전트들이 어떤 순서로 작업했는지
-- 어떤 메시지를 주고받았는지
-- 어디서 블로커가 발생했는지
+Even after a session ends, you can select a session from the dashboard and replay the entire process:
+- The order in which agents worked
+- What messages were exchanged
+- Where blockers occurred
 
 ## REST API
 
-대시보드는 Hono 기반 REST API도 제공한다:
+The dashboard also exposes a Hono-based REST API:
 
 ```
-GET  /api/session               # 현재 세션 스냅샷 (tasks, messages, artifacts)
-GET  /api/sessions/:id          # 특정 세션 요약 (summary.md)
-GET  /api/sessions/:id/events   # 세션 이벤트 목록 (히스토리 재생용)
-GET  /api/agents                # 에이전트 목록
-POST /api/hook/tool-use         # PostToolUse 훅 수신 엔드포인트 (내부용)
+GET  /api/session               # current session snapshot (tasks, messages, artifacts)
+GET  /api/sessions/:id          # specific session summary (summary.md)
+GET  /api/sessions/:id/events   # session event list (for history replay)
+GET  /api/agents                # agent list
+POST /api/hook/tool-use         # PostToolUse hook receiver (internal)
 ```

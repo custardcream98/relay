@@ -1,8 +1,8 @@
-import type { Database } from "bun:sqlite";
 import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
+import type { SqliteDatabase } from "../db/types";
 
 export async function handlePostArtifact(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;
@@ -26,7 +26,7 @@ export async function handlePostArtifact(
 }
 
 export async function handleGetArtifact(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   input: { agent_id: string; name: string }
 ) {

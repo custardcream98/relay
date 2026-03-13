@@ -92,5 +92,5 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 - task update: 허용 컬럼 화이트리스트 (ALLOWED_UPDATE_KEYS)
 
 ### Published Package
-- `@custardcream/relay` v0.2.1, bin: `relay-server → dist/index.js`
-- npx 실행: `npx -y --package @custardcream/relay relay-server`
+- `@custardcream/relay` v0.2.1, bin: `relay → dist/index.js`
+- npx 실행: `npx -y --package @custardcream/relay relay`

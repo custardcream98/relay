@@ -1,74 +1,74 @@
 ---
-title: /relay:relay — 전체 워크플로
-description: agents.yml에 정의된 팀 전체가 이벤트 기반으로 협업하는 메인 스킬
+title: /relay:relay — full workflow
+description: The main skill that runs the full team defined in agents.yml in an event-driven collaboration
 ---
 
-`/relay:relay`는 사용자의 태스크를 받아 `agents.yml`에 정의된 팀 전체가 협업하여 처리하는 메인 스킬이다.
-에이전트들은 세션 시작 시 모두 동시에 spawn되어 이벤트 기반으로 협업한다.
+`/relay:relay` takes a user task and has the entire team defined in `agents.yml` collaborate to handle it.
+All agents spawn simultaneously at session start and work event-driven.
 
-## 사용법
-
-```
-/relay:relay "구현할 기능 설명"
-```
-
-예시:
-```
-/relay:relay "쇼핑카트 기능 추가해줘"
-/relay:relay "유저 프로필 페이지 개선"
-/relay:relay "결제 API 보안 강화"
-```
-
-## 사전 확인
-
-실행 전 다음을 확인한다:
-- relay MCP 서버 연결 상태 (`list_agents` 호출)
-  - 에이전트가 없으면 `agents.yml`을 먼저 생성하도록 안내
-- `.relay/memory/project.md` 존재 여부 (없으면 `/relay:init` 제안)
-- 대시보드 URL 안내: `http://localhost:3456`
-
-## 세션 시작
-
-`list_agents`로 팀 전체를 로드하고, **모든 에이전트를 동시에 spawn**한다.
-
-각 에이전트 spawn 시:
-1. `list_agents`에서 페르소나 로드
-2. `read_memory(agent_id)` + `read_memory()` (project.md + lessons.md)로 기억 로드
-3. 에이전트의 `tools` 배열로 MCP 툴 제한
-
-코디네이터 역할 에이전트에게는 사용자의 요청이 system prompt에 추가된다.
-나머지 에이전트들은 코디네이터가 태스크를 배정할 때까지 대기한다.
-
-## 이벤트 기반 협업 모델
-
-에이전트들은 서로 직접 통신하지 않는다. 모든 협업은 MCP 툴을 통한다:
-
-- `send_message` / `get_messages` — 에이전트 간 메시지
-- `create_task` / `claim_task` — 태스크 생성 및 원자적 클레임
-- `post_artifact` / `get_artifact` — 산출물 공유
-- `request_review` / `submit_review` — 코드 리뷰
-
-에이전트는 작업 완료 또는 대기 시 end 선언을 브로드캐스트한다:
+## Usage
 
 ```
-"end:waiting | {이유}"   # 현재 할 일 없음 (세션 계속)
-"end:_done | {요약}"     # 완전히 완료
-"end:failed | {이유}"    # 복구 불가 오류
+/relay:relay "description of what to implement"
 ```
 
-오케스트레이터는 `end:waiting`을 선언한 에이전트에게 새 태스크가 배정되면 해당 에이전트를 재spawn한다.
+Examples:
+```
+/relay:relay "Add a shopping cart feature"
+/relay:relay "Improve the user profile page"
+/relay:relay "Harden the payment API security"
+```
 
-## 리뷰어 spawn
+## Pre-flight checks
 
-에이전트가 `"Review requested: {reviewerId}"` 패턴으로 브로드캐스트하면
-오케스트레이터가 해당 리뷰어를 즉시 spawn한다:
+Before running, the skill verifies:
+- relay MCP server connection (via `list_agents`)
+  - If no agents are found, guides the user to create `agents.yml` first
+- Whether `.relay/memory/project.md` exists (suggests `/relay:init` if not)
+- Prints dashboard URL: `http://localhost:3456`
 
-- `reviewerId`가 `list_agents`에 있으면 해당 페르소나 사용
-- 없으면 요청자의 페르소나를 상속하여 spawn
+## Session start
 
-## 세션 종료
+Loads the full team via `list_agents` and **spawns all agents simultaneously**.
 
-모든 에이전트가 `end:_done`을 선언하면:
-1. `append_memory(content: ...)` — `lessons.md`에 팀 회고 저장
-2. `save_session_summary(session_id, summary, tasks, messages)` — 세션 아카이브
-3. 사용자에게 결과 요약 보고
+For each agent spawn:
+1. Load persona from `list_agents`
+2. Load memory via `read_memory(agent_id)` + `read_memory()` (project.md + lessons.md)
+3. Restrict MCP tool access to the agent's `tools` array
+
+The user's request is added to the coordinator agent's system prompt.
+Other agents wait for the coordinator to assign tasks.
+
+## Event-driven collaboration model
+
+Agents do not communicate directly with each other. All collaboration goes through MCP tools:
+
+- `send_message` / `get_messages` — inter-agent messaging
+- `create_task` / `claim_task` — task creation and atomic claiming
+- `post_artifact` / `get_artifact` — sharing deliverables
+- `request_review` / `submit_review` — code review
+
+When an agent has no more work or has finished, it broadcasts an end declaration:
+
+```
+"end:waiting | {reason}"   # no current work (session continues)
+"end:_done | {summary}"    # fully complete
+"end:failed | {reason}"    # unrecoverable error
+```
+
+The orchestrator re-spawns a `end:waiting` agent when new tasks are assigned to it.
+
+## Reviewer spawn
+
+When an agent broadcasts `"Review requested: {reviewerId}"`,
+the orchestrator immediately spawns that reviewer:
+
+- If `reviewerId` exists in `list_agents`, uses that persona
+- Otherwise, inherits the requester's persona
+
+## Session end
+
+When all agents have declared `end:_done`:
+1. `append_memory(content: ...)` — save team retrospective to `lessons.md`
+2. `save_session_summary(session_id, summary, tasks, messages)` — archive the session
+3. Report the results summary to the user

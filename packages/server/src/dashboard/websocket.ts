@@ -1,5 +1,5 @@
 // packages/server/src/dashboard/websocket.ts
-import type { ServerWebSocket } from "bun";
+import type { WebSocket } from "ws";
 import { insertEvent } from "../db/queries/events.ts";
 import type { RelayEvent } from "./events";
 
@@ -7,13 +7,13 @@ import type { RelayEvent } from "./events";
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
 // Set of currently connected WebSocket clients
-const clients = new Set<ServerWebSocket<unknown>>();
+const clients = new Set<WebSocket>();
 
-export function addClient(ws: ServerWebSocket<unknown>): void {
+export function addClient(ws: WebSocket): void {
   clients.add(ws);
 }
 
-export function removeClient(ws: ServerWebSocket<unknown>): void {
+export function removeClient(ws: WebSocket): void {
   clients.delete(ws);
 }
 

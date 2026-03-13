@@ -252,9 +252,9 @@ function PanelHeader({ label, badge }: { label: string; badge?: number | string 
     >
       <span
         style={{
-          fontSize: 10,
+          fontSize: 11,
           fontWeight: 500,
-          color: "var(--color-text-disabled)",
+          color: "var(--color-text-tertiary)",
           textTransform: "uppercase",
           letterSpacing: "0.07em",
         }}
@@ -265,9 +265,9 @@ function PanelHeader({ label, badge }: { label: string; badge?: number | string 
         <span
           className="font-mono"
           style={{
-            fontSize: 10,
+            fontSize: 11,
             background: "var(--color-surface-overlay)",
-            color: "var(--color-text-tertiary)",
+            color: "var(--color-text-secondary)",
             padding: "1px 6px",
             borderRadius: 9999,
           }}

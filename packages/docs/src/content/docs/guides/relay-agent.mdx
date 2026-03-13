@@ -1,56 +1,56 @@
 ---
-title: /relay:agent — 단일 에이전트
-description: 특정 에이전트 한 명만 단독으로 호출하는 스킬
+title: /relay:agent — single agent
+description: Invoke a single specific agent in isolation
 ---
 
-`/relay:agent`는 특정 에이전트 한 명만 단독으로 호출한다.
-전체 워크플로가 아닌 단일 에이전트의 전문성이 필요할 때 사용한다.
+`/relay:agent` invokes one specific agent in isolation.
+Use it when you need a single agent's expertise rather than the full team workflow.
 
-## 사용법
+## Usage
 
 ```
-/relay:agent {에이전트ID} "{지시}"
+/relay:agent {agentId} "{instruction}"
 ```
 
-예시:
+Examples:
 ```
-/relay:agent fe "CartItem 컴포넌트 리팩토링해줘"
-/relay:agent be "유저 인증 API 보안 검토해줘"
-/relay:agent qa "로그인 기능 엣지케이스 테스트 시나리오 작성해줘"
-/relay:agent designer "결제 플로우 UX 개선안 작성해줘"
+/relay:agent fe "Refactor the CartItem component"
+/relay:agent be "Security review the user auth API"
+/relay:agent qa "Write edge case test scenarios for the login feature"
+/relay:agent designer "Write UX improvement proposals for the checkout flow"
 ```
 
-## 사용 가능한 에이전트 ID
+## Available agent IDs
 
-사용 가능한 에이전트 목록은 `agents.yml` 설정에 따라 다르다.
-`list_agents` 호출 결과에서 ID 목록을 확인할 수 있다.
+The available agent list depends on your `agents.yml` configuration.
+Check the IDs from the `list_agents` result.
 
-## 실행 과정
+## Execution steps
 
-1. `list_agents`로 사용 가능한 에이전트 목록 확인
-2. 대시보드 URL 안내: `http://localhost:3456`
-3. 지정한 에이전트의 페르소나 + 기억 로드
-4. 에이전트의 `tools` 배열로 MCP 툴 제한하여 단독 spawn
-5. 작업 완료 후 `append_memory`로 학습 내용 저장
+1. Check available agents via `list_agents`
+2. Print dashboard URL: `http://localhost:3456`
+3. Load the specified agent's persona and memory
+4. Spawn the agent in isolation with its `tools` array restricting MCP tool access
+5. On completion, save learnings via `append_memory`
 
-## 메모리 로드
+## Memory loading
 
-단일 에이전트도 전체 컨텍스트를 가지고 작업한다:
-1. `read_memory(agent_id: "{agentId}")` — 해당 에이전트의 개인 기억
-2. `read_memory()` — `project.md` + `lessons.md` 프로젝트 기억
+Single agents work with the full project context:
+1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
+2. `read_memory()` — project memory (`project.md` + `lessons.md`)
 
-두 결과를 합성하여 system prompt에 prepend한다.
+Both results are merged and prepended to the system prompt.
 
-## 알 수 없는 에이전트 처리
+## Unknown agent handling
 
-지정한 에이전트 ID가 `list_agents` 결과에 없으면:
-- 사용 가능한 에이전트 목록을 사용자에게 표시
-- 다시 에이전트를 선택하도록 요청
+If the specified agent ID is not found in `list_agents`:
+- Display the list of available agents to the user
+- Ask the user to choose a different agent
 
-## 활용 예시
+## When to use
 
-**단일 에이전트 활용이 적합한 경우:**
-- 특정 파일의 코드 리뷰가 필요할 때
-- 아키텍처 분석이나 기술 조언이 필요할 때
-- 전체 워크플로 없이 특정 산출물(테스트, 문서)만 필요할 때
-- 빠른 작업으로 전체 팀을 동원하기 과한 경우
+**Single agent invocation is appropriate when:**
+- You need a code review of a specific file
+- You need architecture analysis or technical advice
+- You only need a specific deliverable (tests, docs) without the full workflow
+- The task is quick and doesn't justify spinning up the whole team

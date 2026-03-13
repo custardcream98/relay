@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
 // Embeds file content as string at build time — no path issues after bundling/npm publish
-import defaultYmlText from "../../../../agents.default.yml" with { type: "text" };
+import defaultYmlText from "../../../../agents.default.yml";
 import { getProjectRoot, getRelayDir } from "../config";
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
@@ -19,7 +19,11 @@ function readYml(path: string): AgentsFile | null {
 
 /** Parse the default AgentsFile embedded in the bundle */
 function parseDefaultYml(): AgentsFile {
-  return yaml.load(defaultYmlText) as AgentsFile;
+  // esbuild bundles .yml as a string; bun:test imports it as a parsed object
+  if (typeof defaultYmlText === "string") {
+    return yaml.load(defaultYmlText) as AgentsFile;
+  }
+  return defaultYmlText as unknown as AgentsFile;
 }
 
 /**

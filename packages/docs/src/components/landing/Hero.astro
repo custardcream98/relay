@@ -1,40 +1,44 @@
 ---
+import { type Lang, useTranslations } from "../../i18n/landing";
+
 const base = import.meta.env.BASE_URL;
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
-const docsUrl = `${base}getting-started/introduction`;
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const docsSlug =
+  lang === "ko-KR" ? "ko-KR/getting-started/introduction" : "getting-started/introduction";
 ---
 
 <section class="hero">
-  <!-- 장식용 격자 배경 -->
+  <!-- Decorative grid background -->
   <div class="hero__grid-bg" aria-hidden="true"></div>
 
   <div class="hero__inner">
-    <!-- 배지 -->
+    <!-- Badge -->
     <div class="hero__meta">
       <span class="hero__badge">
         <span class="hero__badge-dot" aria-hidden="true"></span>
         Claude Code Plugin
       </span>
-      <span class="hero__version">v0.3.5</span>
+      <span class="hero__version">v0.3.6</span>
     </div>
 
-    <!-- 헤드라인: 세리프 디스플레이 폰트 -->
+    <!-- Headline: serif display font -->
     <h1 class="hero__headline">
-      Your codebase,<br />
-      <em class="hero__headline-em">worked by a team.</em>
+      {t("hero.headline1")}<br />
+      <em class="hero__headline-em">{t("hero.headlineEm")}</em>
     </h1>
 
-    <!-- 서브헤드라인 -->
+    <!-- Subheadline -->
     <p class="hero__subheadline">
-      relay runs a team of AI agents — PM, Designer, DA, FE, BE, QA, Deployer —
-      that collaborate inside Claude Code via MCP tools.
-      No extra API costs. No orchestrator.
+      {t("hero.subheadline")}
     </p>
 
-    <!-- CTA 버튼 -->
+    <!-- CTA buttons -->
     <div class="hero__cta">
-      <a href={docsUrl} class="btn btn--primary">
-        Get started
+      <a href={`${base}/${docsSlug}`} class="btn btn--primary">
+        {t("hero.cta")}
         <span class="btn__arrow" aria-hidden="true">→</span>
       </a>
       <a
@@ -50,7 +54,7 @@ const docsUrl = `${base}getting-started/introduction`;
       </a>
     </div>
 
-    <!-- 설치 커맨드 — 터미널 스타일 -->
+    <!-- Install command — terminal style -->
     <div class="hero__terminal" role="region" aria-label="Quick install command">
       <div class="hero__terminal-bar" aria-hidden="true">
         <span class="hero__terminal-dot" style="background:#FF5F56"></span>
@@ -60,32 +64,15 @@ const docsUrl = `${base}getting-started/introduction`;
       </div>
       <div class="hero__terminal-body">
         <span class="hero__terminal-prompt" aria-hidden="true">$</span>
-        <code class="hero__terminal-code">claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server</code>
+        <code class="hero__terminal-code">claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay</code>
       </div>
     </div>
 
-    <!-- 수치 지표 -->
-    <div class="hero__stats" role="list" aria-label="Key metrics">
-      <div class="hero__stat" role="listitem">
-        <span class="hero__stat-num">7</span>
-        <span class="hero__stat-label">agents</span>
-      </div>
-      <div class="hero__stat-divider" aria-hidden="true"></div>
-      <div class="hero__stat" role="listitem">
-        <span class="hero__stat-num">3</span>
-        <span class="hero__stat-label">commands</span>
-      </div>
-      <div class="hero__stat-divider" aria-hidden="true"></div>
-      <div class="hero__stat" role="listitem">
-        <span class="hero__stat-num">$0</span>
-        <span class="hero__stat-label">extra API cost</span>
-      </div>
-    </div>
   </div>
 </section>
 
 <style>
-  /* ─── 히어로 섹션 ─── */
+  /* ─── Hero section ─── */
   .hero {
     position: relative;
     padding-top: calc(60px + 6rem);
@@ -93,7 +80,7 @@ const docsUrl = `${base}getting-started/introduction`;
     overflow: hidden;
   }
 
-  /* 격자 배경 패턴 */
+  /* Grid background pattern */
   .hero__grid-bg {
     position: absolute;
     inset: 0;
@@ -119,7 +106,7 @@ const docsUrl = `${base}getting-started/introduction`;
     text-align: center;
   }
 
-  /* 메타 배지 줄 */
+  /* Meta badge row */
   .hero__meta {
     display: flex;
     align-items: center;
@@ -162,7 +149,7 @@ const docsUrl = `${base}getting-started/introduction`;
     letter-spacing: 0.04em;
   }
 
-  /* 헤드라인 */
+  /* Headline */
   .hero__headline {
     font-family: var(--font-display);
     font-size: clamp(2.75rem, 7vw, 5rem);
@@ -178,7 +165,7 @@ const docsUrl = `${base}getting-started/introduction`;
     color: var(--color-accent);
   }
 
-  /* 서브헤드라인 */
+  /* Subheadline */
   .hero__subheadline {
     font-size: clamp(1rem, 2.2vw, 1.125rem);
     color: var(--color-text-secondary);
@@ -188,7 +175,7 @@ const docsUrl = `${base}getting-started/introduction`;
     font-weight: 300;
   }
 
-  /* CTA 버튼 그룹 */
+  /* CTA button group */
   .hero__cta {
     display: flex;
     gap: 0.875rem;
@@ -245,7 +232,7 @@ const docsUrl = `${base}getting-started/introduction`;
     transform: translateX(3px);
   }
 
-  /* 터미널 블록 */
+  /* Terminal block */
   .hero__terminal {
     width: 100%;
     max-width: 600px;
@@ -304,51 +291,10 @@ const docsUrl = `${base}getting-started/introduction`;
     word-break: break-all;
   }
 
-  /* 수치 지표 줄 */
-  .hero__stats {
-    display: flex;
-    align-items: center;
-    gap: 2.5rem;
-    padding-top: 0.5rem;
-  }
-
-  .hero__stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-  }
-
-  .hero__stat-num {
-    font-family: var(--font-display);
-    font-size: 1.625rem;
-    font-weight: 400;
-    color: var(--color-text-primary);
-    line-height: 1;
-    letter-spacing: -0.02em;
-  }
-
-  .hero__stat-label {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--color-text-muted);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .hero__stat-divider {
-    width: 1px;
-    height: 2rem;
-    background-color: var(--color-border-strong);
-  }
-
-  /* 반응형: 좁은 화면 */
+  /* Responsive: narrow screens */
   @media (max-width: 480px) {
-    .hero__stats {
-      gap: 1.5rem;
-    }
-    .hero__stat-num {
-      font-size: 1.25rem;
+    .hero__headline {
+      font-size: clamp(2.25rem, 8vw, 2.75rem);
     }
   }
 </style>

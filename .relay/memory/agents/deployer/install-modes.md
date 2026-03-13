@@ -14,10 +14,10 @@ No manual install script is needed.
 
 Used when running from npm:
 ```json
-{ "command": "bunx", "args": ["--bun", "--package", "@custardcream/relay", "relay-server"] }
+{ "command": "npx", "args": ["-y", "--package", "@custardcream/relay", "relay"] }
 ```
-- `--package @custardcream/relay` ensures bunx finds the binary even if package name differs from bin name
-- Bin name: `relay-server` → `./dist/index.js`
+- `--package @custardcream/relay` ensures npx finds the binary even if package name differs from bin name
+- Bin name: `relay` → `./dist/index.js`
 
 ## Plugin Config (`.claude-plugin/plugin.json`)
 

@@ -1,43 +1,47 @@
 ---
-// Landing page 레이아웃 — Starlight를 우회해 커스텀 Nav, 디자인 토큰, 스타일 적용
-// biome-ignore lint/correctness/noUnusedImports: Astro 템플릿에서 사용
+// Landing page layout — bypasses Starlight to apply custom Nav, design tokens, and styles
+// biome-ignore lint/correctness/noUnusedImports: used in Astro template
 import Nav from "../components/landing/Nav.astro";
+import type { Lang } from "../i18n/landing";
 
 interface Props {
+  lang?: Lang;
   title?: string;
   description?: string;
 }
 
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const { lang = "en" } = Astro.props;
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const title = Astro.props.title ?? "relay — Multi-agent framework for Claude Code";
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const description =
   Astro.props.description ??
   "relay spins up a crew of AI agents that collaborate inside Claude Code to ship features end-to-end.";
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
     <title>{title}</title>
     <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
-    <!-- 개성 있는 폰트 조합: Berkeley Mono 스타일 + editorial serif -->
+    <!-- Distinctive font pairing: Berkeley Mono style + editorial serif -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
     <style>
-      /* Tailwind v4 진입점 */
+      /* Tailwind v4 entry point */
       @import "tailwindcss";
 
-      /* ─── 디자인 토큰 ─── */
+      /* ─── Design tokens ─── */
       :root {
-        /* 라이트 모드 — 크림/오프화이트 베이스, 잉크 텍스트 */
+        /* Light mode — cream/off-white base, ink text */
         --color-bg-root:    #F5F0E8;
         --color-bg-surface: #EDE8DF;
         --color-bg-raised:  #FAF7F2;
@@ -47,12 +51,12 @@ const description =
         --color-border:     #D4C9B8;
         --color-border-strong: #B8AA96;
 
-        /* 앰버/골드 강조 — 보라 대신 따뜻한 황금빛 */
+        /* Amber/gold accent — warm golden tone instead of purple */
         --color-accent:       #C17F24;
         --color-accent-light: #E8A83A;
         --color-accent-glow:  rgba(193, 127, 36, 0.15);
 
-        /* 에이전트 색상 — 조화로운 팔레트 */
+        /* Agent colors — harmonious palette */
         --agent-pm:       #C17F24;
         --agent-designer: #A0522D;
         --agent-da:       #6B8E23;
@@ -61,17 +65,17 @@ const description =
         --agent-qa:       #8B4513;
         --agent-deployer: #708090;
 
-        --font-display: "DM Serif Display", Georgia, serif;
-        --font-sans:    "DM Sans", system-ui, sans-serif;
+        --font-display: "DM Serif Display", "Noto Serif KR", Georgia, serif;
+        --font-sans:    "DM Sans", "Noto Sans KR", system-ui, sans-serif;
         --font-mono:    "DM Mono", "JetBrains Mono", "Fira Code", monospace;
 
-        /* 노이즈 텍스처 레이어용 */
+        /* For noise texture overlay layer */
         --noise-opacity: 0.035;
       }
 
       @media (prefers-color-scheme: dark) {
         :root {
-          /* 다크 모드 — 딥 잉크 베이스, 웜 크림 텍스트 */
+          /* Dark mode — deep ink base, warm cream text */
           --color-bg-root:    #0F0D0A;
           --color-bg-surface: #181410;
           --color-bg-raised:  #1E1A14;
@@ -89,7 +93,7 @@ const description =
         }
       }
 
-      /* ─── 기본 리셋 ─── */
+      /* ─── Base reset ─── */
       *,
       *::before,
       *::after {
@@ -112,7 +116,7 @@ const description =
         -moz-osx-font-smoothing: grayscale;
       }
 
-      /* 미세 노이즈 오버레이 — 페이퍼 질감 */
+      /* Subtle noise overlay — paper texture */
       body::before {
         content: "";
         position: fixed;
@@ -129,7 +133,7 @@ const description =
         display: block;
       }
 
-      /* 스킵 링크 */
+      /* Skip link */
       .skip-link {
         position: absolute;
         top: -100%;
@@ -147,7 +151,7 @@ const description =
         top: 0;
       }
 
-      /* 페이지 로드 페이드인 */
+      /* Page load fade-in */
       @keyframes page-in {
         from { opacity: 0; transform: translateY(6px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -156,11 +160,20 @@ const description =
       main {
         animation: page-in 0.5s ease-out both;
       }
+
+      /* Korean typography adjustments */
+      :lang(ko) h1,
+      :lang(ko) h2,
+      :lang(ko) h3,
+      :lang(ko) p {
+        word-break: keep-all;
+        overflow-wrap: break-word;
+      }
     </style>
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to content</a>
-    <Nav />
+    <Nav lang={lang} />
     <main id="main-content">
       <slot />
     </main>

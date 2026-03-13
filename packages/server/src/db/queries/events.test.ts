@@ -1,11 +1,18 @@
-import { beforeEach, describe, expect, test } from "bun:test";
-import { initDb } from "../client.ts";
+import { Database } from "bun:sqlite";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { _setDb, closeDb } from "../client.ts";
+import { runMigrations } from "../schema.ts";
+import type { SqliteDatabase } from "../types.ts";
 import { getEventsBySession, insertEvent } from "./events.ts";
 
 describe("events queries", () => {
   beforeEach(() => {
-    initDb(":memory:");
+    const db = new Database(":memory:");
+    runMigrations(db as unknown as SqliteDatabase);
+    _setDb(db as unknown as SqliteDatabase);
   });
+
+  afterEach(() => closeDb());
 
   test("can store and retrieve events", () => {
     const event = {

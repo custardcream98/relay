@@ -156,7 +156,7 @@ export const AgentCard = memo(function AgentCard({
           <span
             className="font-mono"
             style={{
-              fontSize: 9,
+              fontSize: 10,
               fontWeight: 500,
               color: STATUS_BADGE_COLOR[status],
               background: `${STATUS_BADGE_COLOR[status]}18`,
@@ -193,7 +193,7 @@ export const AgentCard = memo(function AgentCard({
         {activityText ? (
           <p
             style={{
-              fontSize: 11,
+              fontSize: 12,
               lineHeight: 1.5,
               color: isWorking ? "var(--color-text-secondary)" : "var(--color-text-tertiary)",
               overflow: "hidden",
@@ -212,8 +212,8 @@ export const AgentCard = memo(function AgentCard({
         ) : (
           <p
             style={{
-              fontSize: 11,
-              color: "var(--color-text-disabled)",
+              fontSize: 12,
+              color: "var(--color-text-tertiary)",
               margin: 0,
               fontStyle: "italic",
             }}

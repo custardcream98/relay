@@ -9,6 +9,8 @@
 
 <p align="center">
   <a href="./README.md">English</a>
+  &nbsp;·&nbsp;
+  <a href="https://custardcream98.github.io/relay/ko-KR">문서</a>
 </p>
 
 <br />
@@ -143,7 +145,7 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께
 ### 사전 준비
 
 - [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 해요
-- [Bun](https://bun.sh) — relay의 런타임이에요
+- [Node.js](https://nodejs.org) v18 이상 (또는 호환 런타임)
 
 ### 1. 마켓플레이스 추가
 
@@ -248,14 +250,14 @@ relay/
 
 | 레이어 | 기술 |
 |---|---|
-| Runtime | Bun |
+| Runtime | Node.js (npx로 배포) |
 | Language | TypeScript (strict) |
-| MCP 서버 | `@modelcontextprotocol/sdk` + `Bun.serve()` |
-| API 서버 | Hono (Bun 네이티브) |
-| 실시간 통신 | Bun 내장 WebSocket |
+| MCP 서버 | `@modelcontextprotocol/sdk` + `@hono/node-server` |
+| API 서버 | Hono |
+| 실시간 통신 | `ws` WebSocket |
 | 프론트엔드 | React + Vite |
 | 스타일 | Tailwind CSS |
-| DB | `bun:sqlite` |
+| DB | `better-sqlite3` |
 | 메모리 | Markdown 파일 (`.relay/memory/`) |
 | 페르소나 설정 | YAML (`agents.yml`) |
 

@@ -1,38 +1,61 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,450;0,14..32,500;0,14..32,600;1,14..32,400&family=JetBrains+Mono:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Noto+Sans+KR:wght@300;400;500&display=swap");
 @import "tailwindcss";
 
 :root {
-  --color-surface-root: #0c0c0f;
-  --color-surface-base: #111116;
-  --color-surface-raised: #17171d;
-  --color-surface-overlay: #1e1e26;
-  --color-surface-inset: #0a0a0e;
-  --color-border-subtle: rgba(255, 255, 255, 0.08);
-  --color-border-default: rgba(255, 255, 255, 0.12);
-  --color-border-strong: rgba(255, 255, 255, 0.18);
-  --color-text-primary: #e8e8ed;
-  --color-text-secondary: #9898a8;
-  --color-text-tertiary: #666672;
-  --color-text-disabled: #4a4a55;
-  --color-accent-pm: #a78bfa;
+  /* 배경 — docs 다크 모드와 동일한 웜 잉크 팔레트 */
+  --color-surface-root: #0f0d0a;
+  --color-surface-base: #181410;
+  --color-surface-raised: #1e1a14;
+  --color-surface-overlay: #252018;
+  --color-surface-inset: #0a0806;
+
+  /* 보더 — 웜 톤, 가시성 확보 */
+  --color-border-subtle: #2e2620;
+  --color-border-default: #3d3428;
+  --color-border-strong: #544838;
+
+  /* 텍스트 — 강한 대비 */
+  --color-text-primary: #f8f2e8;
+  --color-text-secondary: #d0bea4;
+  --color-text-tertiary: #9a8a74;
+  --color-text-disabled: #6e5e4e;
+
+  /* UI 강조색 — docs와 동일한 앰버/골드 */
+  --color-accent: #e8a83a;
+  --color-accent-light: #f5c860;
+  --color-accent-glow: rgba(232, 168, 58, 0.12);
+
+  /* 에이전트 역할별 색상 — 기능적 식별용 유지 */
+  --color-accent-pm: #c084fc;
   --color-accent-designer: #f472b6;
   --color-accent-da: #fbbf24;
   --color-accent-fe: #60a5fa;
   --color-accent-be: #34d399;
   --color-accent-qa: #fb923c;
   --color-accent-deployer: #f97316;
+
+  /* 상태 */
   --color-status-working: #34d399;
   --color-status-waiting: #fbbf24;
-  --color-status-idle: #2d2d35;
+  --color-status-idle: #2a2318;
+
+  /* 우선순위 */
   --color-priority-critical: #ef4444;
   --color-priority-high: #f97316;
   --color-priority-medium: #eab308;
+
+  /* 연결 상태 */
   --color-connection-live: #34d399;
   --color-connection-dead: #ef4444;
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", monospace;
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+
+  /* 폰트 — docs와 동일 */
+  --font-sans: "DM Sans", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  --font-mono: "DM Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
+  --font-display: "DM Serif Display", Georgia, serif;
+
+  /* 그림자 — 웜 틴트 */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-border-subtle);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-border-default);
 }
 
 body {
@@ -40,6 +63,7 @@ body {
   background: var(--color-surface-root);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
+  font-weight: 400;
 }
 
 * {
@@ -58,27 +82,22 @@ body {
   border-radius: 2px;
 }
 
-/* Apply JetBrains Mono to monospace components */
 .font-mono {
   font-family: var(--font-mono);
 }
 
-/* Cursor blink animation */
+/* 커서 깜빡임 — docs nav와 동일 */
 @keyframes blink {
   0%,
   100% {
     opacity: 1;
   }
-  49% {
-    opacity: 1;
-  }
-  50%,
-  99% {
+  50% {
     opacity: 0;
   }
 }
 
-/* AgentCard avatar ring pulse — working state */
+/* AgentCard 아바타 링 펄스 — working 상태 */
 @keyframes ring-pulse {
   0%,
   100% {
@@ -91,7 +110,7 @@ body {
   }
 }
 
-/* EventTimeline event card slide-in */
+/* EventTimeline 이벤트 카드 슬라이드인 */
 @keyframes slide-in-top {
   from {
     transform: translateY(-8px);
@@ -103,7 +122,7 @@ body {
   }
 }
 
-/* AgentCard thinking text flash */
+/* AgentCard thinking 텍스트 플래시 */
 @keyframes accent-flash {
   0%,
   100% {

@@ -1,82 +1,82 @@
 ---
-title: 에이전트 커스터마이즈
-description: agents.yml로 에이전트 페르소나를 커스터마이즈하는 방법
+title: Customising agents
+description: How to customise agent personas with agents.yml
 ---
 
-relay의 에이전트 페르소나는 YAML 파일로 완전히 커스터마이즈할 수 있다.
+Agent personas in relay are fully customisable via a YAML file.
 
-## 파일 구조
+## File structure
 
 ```
 relay/
-├── agents.default.yml   # 기본 페르소나 (수정 비권장)
-└── agents.yml           # 사용자 커스텀 (이 파일을 편집)
+├── agents.default.yml   # default personas (do not modify)
+└── agents.yml           # your customisations (edit this file)
 ```
 
-`agents.default.yml`은 수정하지 않는다. 모든 커스텀은 `agents.yml`에서 한다.
-`agents.yml`이 `agents.default.yml`을 오버라이드한다.
+Do not modify `agents.default.yml`. All customisations go in `agents.yml`.
+`agents.yml` overrides `agents.default.yml`.
 
-## agents.yml 기본 구조
+## Basic structure of agents.yml
 
 ```yaml
 agents:
   fe:
-    # 오버라이드할 필드만 명시
+    # only specify fields you want to override
     systemPrompt: |
-      당신은 React와 TypeScript 전문가입니다.
+      You are a React and TypeScript expert.
       ...
 ```
 
-## 오버라이드
+## Override
 
-기존 에이전트의 일부 필드만 변경할 때:
+Change only certain fields of an existing agent:
 
 ```yaml
 agents:
   fe:
-    name: "Frontend Engineer (React 전문)"
+    name: "Frontend Engineer (React specialist)"
     systemPrompt: |
-      당신은 스타트업의 Frontend Engineer입니다.
-      React, TypeScript, Tailwind CSS를 주로 사용합니다.
+      You are a Frontend Engineer at a startup.
+      Your primary stack is React, TypeScript, and Tailwind CSS.
       ...
 ```
 
 ## extends
 
-다른 에이전트의 설정을 상속받아 확장할 때:
+Inherit and extend another agent's configuration:
 
 ```yaml
 agents:
   fe-mobile:
-    extends: fe          # fe 페르소나를 상속
+    extends: fe          # inherit from the fe persona
     name: "Mobile Frontend Engineer"
     systemPrompt: |
-      당신은 React Native 전문 Frontend Engineer입니다.
+      You are a Frontend Engineer specialising in React Native.
       ...
 ```
 
 ## disabled
 
-특정 에이전트를 비활성화할 때:
+Disable a specific agent:
 
 ```yaml
 agents:
   da:
-    disabled: true       # DA 에이전트를 비활성화
+    disabled: true       # disable the DA agent
 ```
 
-비활성화된 에이전트는 `list_agents` 결과에 포함되지 않으며, 워크플로에서도 제외된다.
+Disabled agents are excluded from `list_agents` results and from all workflows.
 
-## 커스텀 에이전트 추가
+## Adding custom agents
 
-기본 에이전트 외에 새로운 페르소나를 추가할 수 있다:
+You can add entirely new personas beyond the defaults:
 
 ```yaml
 agents:
   security:
     name: "Security Engineer"
     emoji: "🔐"
-    description: "보안 취약점 분석 및 개선"
+    description: "Security vulnerability analysis and remediation"
     tools:
       - get_messages
       - get_my_tasks
@@ -85,14 +85,14 @@ agents:
       - post_artifact
       - send_message
     systemPrompt: |
-      당신은 보안 전문가입니다.
-      OWASP Top 10 기준으로 코드를 검토하고
-      취약점을 찾아 수정 방향을 제시합니다.
+      You are a security expert.
+      Review code against the OWASP Top 10 and
+      identify vulnerabilities with recommended fixes.
 ```
 
-## tools 필드
+## tools field
 
-에이전트가 사용할 수 있는 MCP 툴 목록을 지정한다:
+Specifies the list of MCP tools the agent is allowed to call:
 
 ```yaml
 tools:
@@ -110,5 +110,5 @@ tools:
   - append_memory
 ```
 
-에이전트는 `tools` 목록에 없는 MCP 툴은 호출할 수 없다.
-역할에 맞는 최소한의 툴만 부여하는 것을 권장한다.
+An agent cannot call any MCP tool not listed in its `tools` array.
+It is recommended to grant only the minimum tools necessary for each role.

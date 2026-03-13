@@ -22,5 +22,5 @@ packages/docs/.astro/
 
 # OS
 .DS_Store
-docs/
+/docs/
 packages/docs/node_modules/

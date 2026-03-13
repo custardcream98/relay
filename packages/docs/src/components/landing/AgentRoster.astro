@@ -1,94 +1,93 @@
 ---
-// 에이전트 색상은 대시보드 색상 코딩과 정확히 일치
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
-const agents = [
-  {
-    id: "pm",
-    label: "PM",
-    color: "#C17F24",
-    description: "Breaks down requirements, creates tasks, and coordinates the team.",
-    tools: ["create_task", "send_message", "get_messages"],
-  },
-  {
-    id: "designer",
-    label: "Designer",
-    color: "#A0522D",
-    description: "Produces design specs, component structures, and visual guidelines.",
-    tools: ["post_artifact", "get_artifact", "send_message"],
-  },
-  {
-    id: "da",
-    label: "DA",
-    color: "#6B8E23",
-    description: "Defines KPIs, analytics plans, and event tracking requirements.",
-    tools: ["claim_task", "post_artifact", "send_message"],
-  },
-  {
-    id: "fe",
-    label: "FE",
-    color: "#4682B4",
-    description: "Implements UI components and integrates with backend APIs.",
-    tools: ["claim_task", "post_artifact", "request_review"],
-  },
-  {
-    id: "be",
-    label: "BE",
-    color: "#2E8B57",
-    description: "Builds APIs, services, and database interactions.",
-    tools: ["claim_task", "post_artifact", "request_review"],
-  },
-  {
-    id: "qa",
-    label: "QA",
-    color: "#8B6914",
-    description: "Writes tests, finds edge cases, and validates agent output.",
-    tools: ["get_artifact", "submit_review", "create_task"],
-  },
-  {
-    id: "deployer",
-    label: "Deployer",
-    color: "#607080",
-    description: "Handles final deployment after QA sign-off and records deployment history.",
-    tools: ["claim_task", "append_memory", "send_message"],
-  },
+import { type Lang, useTranslations } from "../../i18n/landing";
+
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// agents.yml example — code snippet showing custom team definition directly
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const yamlSnippet = `agents:
+  pm:
+    persona: |
+      You are a product manager.
+      Break down requirements into tasks.
+  fe:
+    persona: |
+      You are a frontend engineer.
+      Build React components.
+  reviewer:
+    persona: |
+      You are a code reviewer.
+      Focus on correctness and style.`;
+
+// Example team setup — based on agents.example.yml, noting these are not fixed roles
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const exampleAgents = [
+  { id: "pm", label: "PM", color: "#C17F24" },
+  { id: "designer", label: "Designer", color: "#A0522D" },
+  { id: "da", label: "DA", color: "#6B8E23" },
+  { id: "fe", label: "FE", color: "#4682B4" },
+  { id: "be", label: "BE", color: "#2E8B57" },
+  { id: "qa", label: "QA", color: "#8B6914" },
+  { id: "deployer", label: "Deployer", color: "#607080" },
 ];
 ---
 
 <section class="roster">
   <div class="roster__header">
-    <span class="roster__label" aria-hidden="true">// the team</span>
-    <h2 class="roster__title">Seven specialists.<br />One codebase.</h2>
+    <span class="roster__label" aria-hidden="true">{t("roster.label")}</span>
+    <h2 class="roster__title">{t("roster.title1")}<br />{t("roster.title2")}</h2>
     <p class="roster__subtitle">
-      All powered by Claude Code's Agent tool — fully customisable via <code class="roster__inline-code">agents.yml</code>.
+      {t("roster.subtitle")}
     </p>
   </div>
 
-  <ul class="roster__grid" role="list">
-    {
-      agents.map((agent) => (
-        <li class="roster__card">
-          <!-- 색상 마커 -->
-          <div class="roster__card-header">
-            <span
-              class="roster__indicator"
-              style={`background-color: ${agent.color}`}
-              aria-hidden="true"
-            />
-            <span class="roster__id">{agent.label}</span>
-          </div>
+  <div class="roster__body">
+    <!-- agents.yml code snippet -->
+    <div class="roster__yaml-pane">
+      <div class="roster__yaml-bar" aria-hidden="true">
+        <span class="roster__yaml-dot" style="background:#FF5F56"></span>
+        <span class="roster__yaml-dot" style="background:#FFBD2E"></span>
+        <span class="roster__yaml-dot" style="background:#27C93F"></span>
+        <span class="roster__yaml-filename">agents.yml</span>
+      </div>
+      <pre class="roster__yaml-code" aria-label="Example agents.yml configuration"><code>{yamlSnippet}</code></pre>
+    </div>
 
-          <p class="roster__desc">{agent.description}</p>
+    <!-- Right: description + example badges -->
+    <div class="roster__info">
+      <p class="roster__info-lead">
+        {t("roster.infoLead")}
+      </p>
 
-          <!-- 대표 MCP 툴 태그 -->
-          <div class="roster__tools" aria-label={`${agent.label} tools`}>
-            {agent.tools.map((tool) => (
-              <span class="roster__tool-tag">{tool}</span>
-            ))}
-          </div>
-        </li>
-      ))
-    }
-  </ul>
+      <!-- Example badges — web-dev team from agents.example.yml -->
+      <div class="roster__examples" aria-label="Example agents from agents.example.yml">
+        <span class="roster__examples-label">{t("roster.examplesLabel")}</span>
+        <div class="roster__chips">
+          {exampleAgents.map((agent) => (
+            <span class="roster__chip">
+              <span
+                class="roster__chip-dot"
+                style={`background-color: ${agent.color}`}
+                aria-hidden="true"
+              />
+              {agent.label}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <a
+        href="https://github.com/custardcream98/relay/blob/main/agents.example.yml"
+        class="roster__link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t("roster.browseLink")}
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
 </section>
 
 <style>
@@ -97,7 +96,7 @@ const agents = [
     background-color: var(--color-bg-surface);
   }
 
-  /* 헤더 */
+  /* Header */
   .roster__header {
     max-width: 1100px;
     margin: 0 auto;
@@ -129,104 +128,161 @@ const agents = [
     font-size: 1rem;
     color: var(--color-text-secondary);
     line-height: 1.7;
-    max-width: 440px;
+    max-width: 520px;
     margin: 0;
     font-weight: 300;
   }
 
-  .roster__inline-code {
-    font-family: var(--font-mono);
-    font-size: 0.875em;
-    background-color: var(--color-bg-root);
-    border: 1px solid var(--color-border-strong);
-    border-radius: 0.25rem;
-    padding: 0.1rem 0.375rem;
-    color: var(--color-text-primary);
-  }
-
-  /* 에이전트 카드 그리드 */
-  .roster__grid {
-    list-style: none;
-    padding: 0 clamp(1.25rem, 5vw, 2.5rem) 5rem;
-    margin: 0 auto;
+  /* Body — 2-column layout */
+  .roster__body {
     max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem) 5rem;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1px;
-    /* 그리드 갭 대신 1px 보더 효과 */
-    background-color: var(--color-border);
-    border: 1px solid var(--color-border);
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  /* YAML code panel */
+  .roster__yaml-pane {
     border-radius: 0.75rem;
+    border: 1px solid var(--color-border-strong);
+    background-color: var(--color-bg-root);
     overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07);
   }
 
-  /* 카드 */
-  .roster__card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    padding: 1.5rem;
-    background-color: var(--color-bg-surface);
-    transition: background-color 0.15s;
-  }
-
-  .roster__card:hover {
-    background-color: var(--color-bg-raised);
-  }
-
-  .roster__card-header {
+  .roster__yaml-bar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
   }
 
-  /* 에이전트 색상 표시 */
-  .roster__indicator {
+  .roster__yaml-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 0 8px currentColor;
+    opacity: 0.85;
   }
 
-  .roster__id {
+  .roster__yaml-filename {
+    flex: 1;
+    text-align: center;
     font-family: var(--font-mono);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    color: var(--color-text-primary);
-    letter-spacing: 0.02em;
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
   }
 
-  .roster__desc {
-    font-size: 0.875rem;
+  .roster__yaml-code {
+    margin: 0;
+    padding: 1.25rem 1.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
     color: var(--color-text-secondary);
-    line-height: 1.6;
+    line-height: 1.75;
+    overflow-x: auto;
+  }
+
+  .roster__yaml-code code {
+    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    white-space: pre;
+  }
+
+  /* Right info area */
+  .roster__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    padding-top: 0.5rem;
+  }
+
+  .roster__info-lead {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.75;
     margin: 0;
     font-weight: 300;
-    flex: 1;
   }
 
-  /* MCP 툴 태그 */
-  .roster__tools {
+  /* Example badge block */
+  .roster__examples {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .roster__examples-label {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .roster__chips {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.375rem;
+    gap: 0.5rem;
   }
 
-  .roster__tool-tag {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: var(--color-text-muted);
-    background-color: var(--color-bg-root);
+  .roster__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4375rem;
+    padding: 0.3125rem 0.75rem;
+    border-radius: 9999px;
     border: 1px solid var(--color-border);
-    border-radius: 0.25rem;
-    padding: 0.1875rem 0.4375rem;
-    letter-spacing: 0.03em;
-    transition: color 0.15s, border-color 0.15s;
+    background-color: var(--color-bg-raised);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.02em;
+    transition: border-color 0.15s, color 0.15s;
   }
 
-  .roster__card:hover .roster__tool-tag {
-    color: var(--color-accent);
+  .roster__chip:hover {
     border-color: var(--color-accent);
+    color: var(--color-text-primary);
+  }
+
+  .roster__chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+
+  /* Link */
+  .roster__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: opacity 0.15s;
+    width: fit-content;
+  }
+
+  .roster__link:hover {
+    opacity: 0.75;
+  }
+
+  /* Responsive: single column on narrow screens */
+  @media (max-width: 760px) {
+    .roster__body {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

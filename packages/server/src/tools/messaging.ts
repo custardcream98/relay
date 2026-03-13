@@ -1,5 +1,5 @@
-import type { Database } from "bun:sqlite";
 import { getMessagesForAgent, insertMessage } from "../db/queries/messages";
+import type { SqliteDatabase } from "../db/types";
 
 interface SendMessageInput {
   agent_id: string;
@@ -13,7 +13,7 @@ interface GetMessagesInput {
 }
 
 // Send a message and return the message object for broadcasting
-export function handleSendMessage(db: Database, sessionId: string, input: SendMessageInput) {
+export function handleSendMessage(db: SqliteDatabase, sessionId: string, input: SendMessageInput) {
   const id = crypto.randomUUID();
   const msg = {
     id,
@@ -33,7 +33,7 @@ export function handleSendMessage(db: Database, sessionId: string, input: SendMe
 }
 
 // Fetch messages received by an agent (direct + broadcast)
-export function handleGetMessages(db: Database, sessionId: string, input: GetMessagesInput) {
+export function handleGetMessages(db: SqliteDatabase, sessionId: string, input: GetMessagesInput) {
   const messages = getMessagesForAgent(db, sessionId, input.agent_id);
   return { success: true, messages };
 }

@@ -1,43 +1,45 @@
 ---
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+import { type Lang, useTranslations } from "../../i18n/landing";
+
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const steps = [
   {
     number: "01",
-    title: "Install",
-    description:
-      "Add the relay MCP server to Claude Code with one command. Optionally customise agent personas in agents.yml.",
-    code: "claude mcp add --scope user --transport stdio relay-server -- bunx -y --package @custardcream/relay relay-server",
+    title: t("how.step1.title"),
+    description: t("how.step1.desc"),
+    code: "claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay",
   },
   {
     number: "02",
-    title: "Init",
-    description:
-      "Run /relay:init once. All agents scan the codebase in parallel and write shared memory to .relay/memory/.",
+    title: t("how.step2.title"),
+    description: t("how.step2.desc"),
     code: "/relay:init",
   },
   {
     number: "03",
-    title: "Ship",
-    description:
-      "Describe the feature. All agents start simultaneously, claim tasks via MCP, and collaborate peer-to-peer until the work is done.",
+    title: t("how.step3.title"),
+    description: t("how.step3.desc"),
     code: '/relay:relay "add dark mode toggle"',
   },
 ];
 ---
 
 <section class="how">
-  <!-- 섹션 헤더 -->
+  <!-- Section header -->
   <div class="how__header">
     <div class="how__header-inner">
-      <span class="how__label" aria-hidden="true">// how it works</span>
-      <h2 class="how__title">Three commands.<br />From install to running.</h2>
+      <span class="how__label" aria-hidden="true">{t("how.label")}</span>
+      <h2 class="how__title">{t("how.title1")}<br />{t("how.title2")}</h2>
       <p class="how__subtitle">
-        No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.
+        {t("how.subtitle")}
       </p>
     </div>
   </div>
 
-  <!-- 스텝 목록 — 수평 룰 구분 editorial 레이아웃 -->
+  <!-- Step list — editorial layout divided by horizontal rules -->
   <div class="how__steps">
     {
       steps.map((step, i) => (
@@ -63,7 +65,7 @@ const steps = [
     border-top: 1px solid var(--color-border);
   }
 
-  /* 헤더 영역 */
+  /* Header area */
   .how__header {
     background-color: var(--color-bg-surface);
     padding: 5rem 0 4.5rem;
@@ -107,7 +109,7 @@ const steps = [
     font-weight: 300;
   }
 
-  /* 스텝 리스트 — editorial 가로 레이아웃 */
+  /* Step list — editorial horizontal layout */
   .how__steps {
     max-width: 1100px;
     margin: 0 auto;
@@ -145,7 +147,7 @@ const steps = [
     border-top-color: transparent;
   }
 
-  /* 번호 컬럼 */
+  /* Number column */
   .how__step-num-col {
     display: flex;
     align-items: center;
@@ -161,7 +163,7 @@ const steps = [
     opacity: 0.8;
   }
 
-  /* 내용 컬럼 */
+  /* Content column */
   .how__step-content {
     display: flex;
     flex-direction: column;
@@ -186,7 +188,7 @@ const steps = [
     max-width: 440px;
   }
 
-  /* 코드 컬럼 */
+  /* Code column */
   .how__step-code-col {
     flex-shrink: 0;
     max-width: 320px;
@@ -211,7 +213,7 @@ const steps = [
     color: var(--color-text-primary);
   }
 
-  /* 반응형 */
+  /* Responsive */
   @media (max-width: 700px) {
     .how__step {
       grid-template-columns: 2.5rem 1fr;

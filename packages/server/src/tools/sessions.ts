@@ -1,6 +1,7 @@
 // packages/server/src/tools/sessions.ts
 // Tool for saving and retrieving session summaries as files
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Validate session_id to prevent path traversal attacks
@@ -24,12 +25,12 @@ export async function handleSaveSessionSummary(
     const dir = join(relayDir, "sessions", input.session_id);
     mkdirSync(dir, { recursive: true });
 
-    await Bun.write(
+    await writeFile(
       join(dir, "summary.md"),
       `# Session Summary: ${input.session_id}\n\n${input.summary}\n`
     );
-    await Bun.write(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
-    await Bun.write(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
+    await writeFile(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
+    await writeFile(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
 
     return { success: true };
   } catch (err) {
@@ -75,7 +76,7 @@ export async function handleGetSessionSummary(
   try {
     const summaryPath = join(relayDir, "sessions", input.session_id, "summary.md");
     if (!existsSync(summaryPath)) return { success: false, error: "session not found" };
-    return { success: true, summary: await Bun.file(summaryPath).text() };
+    return { success: true, summary: await readFile(summaryPath, "utf-8") };
   } catch (err) {
     return { success: false, error: String(err) };
   }

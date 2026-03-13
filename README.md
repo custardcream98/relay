@@ -9,6 +9,8 @@
 
 <p align="center">
   <a href="./README.ko.md">한국어</a>
+  &nbsp;·&nbsp;
+  <a href="https://custardcream98.github.io/relay">Docs</a>
 </p>
 
 <br />
@@ -139,7 +141,7 @@ All events are persisted to SQLite. You can replay an entire session after the f
 ### Prerequisites
 
 - [Claude Code](https://claude.ai/download) — CLI must be installed and authenticated
-- [Bun](https://bun.sh) — relay's runtime
+- [Node.js](https://nodejs.org) v18 or later (or any compatible runtime)
 
 ### 1. Add the marketplace
 
@@ -244,18 +246,18 @@ relay/
 
 ## Tech stack
 
-| Layer         | Technology                                   |
-|---------------|----------------------------------------------|
-| Runtime       | Bun                                          |
-| Language      | TypeScript (strict)                          |
-| MCP server    | `@modelcontextprotocol/sdk` + `Bun.serve()`  |
-| API server    | Hono (Bun-native)                            |
-| Real-time     | Bun built-in WebSocket                       |
-| Frontend      | React + Vite                                 |
-| Styling       | Tailwind CSS                                 |
-| Database      | `bun:sqlite`                                 |
-| Memory        | Markdown files (`.relay/memory/`)            |
-| Personas      | YAML (`agents.yml`)                          |
+| Layer         | Technology                                          |
+|---------------|-----------------------------------------------------|
+| Runtime       | Node.js (distributed via npx)                       |
+| Language      | TypeScript (strict)                                 |
+| MCP server    | `@modelcontextprotocol/sdk` + `@hono/node-server`   |
+| API server    | Hono                                                |
+| Real-time     | `ws` WebSocket                                      |
+| Frontend      | React + Vite                                        |
+| Styling       | Tailwind CSS                                        |
+| Database      | `better-sqlite3`                                    |
+| Memory        | Markdown files (`.relay/memory/`)                   |
+| Personas      | YAML (`agents.yml`)                                 |
 
 <br />
 

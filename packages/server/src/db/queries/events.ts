@@ -7,16 +7,15 @@ import { getDb } from "../client.ts";
 // created_at uses unixepoch() (seconds) — convert event.timestamp (ms) accordingly.
 export function insertEvent(sessionId: string, event: RelayEvent): void {
   const db = getDb();
-  db.run(
-    `INSERT INTO events (id, session_id, type, payload, agent_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-    [
-      crypto.randomUUID(),
-      sessionId,
-      event.type,
-      JSON.stringify(event),
-      "agentId" in event ? event.agentId : null,
-      Math.floor(event.timestamp / 1000), // ms → seconds (matches unixepoch() unit)
-    ]
+  db.prepare(
+    `INSERT INTO events (id, session_id, type, payload, agent_id, created_at) VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(
+    crypto.randomUUID(),
+    sessionId,
+    event.type,
+    JSON.stringify(event),
+    "agentId" in event ? event.agentId : null,
+    Math.floor(event.timestamp / 1000) // ms → seconds (matches unixepoch() unit)
   );
 }
 
@@ -24,7 +23,7 @@ export function insertEvent(sessionId: string, event: RelayEvent): void {
 export function getEventsBySession(sessionId: string): RelayEvent[] {
   const db = getDb();
   const rows = db
-    .query(`SELECT payload FROM events WHERE session_id = ? ORDER BY created_at ASC`)
+    .prepare(`SELECT payload FROM events WHERE session_id = ? ORDER BY created_at ASC`)
     .all(sessionId) as { payload: string }[];
   return rows.map((r) => JSON.parse(r.payload) as RelayEvent);
 }

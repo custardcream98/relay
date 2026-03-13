@@ -5,9 +5,13 @@
     "moduleResolution": "bundler",
     "strict": true,
     "skipLibCheck": true,
-    "types": ["bun-types"],
+    "types": ["node", "bun"],
+    "esModuleInterop": true,
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "paths": {
+      "@custardcream/relay-shared": ["../shared/index.ts"]
+    }
   },
   "include": ["src/**/*"]
 }

@@ -1,4 +1,4 @@
-import type { Database } from "bun:sqlite";
+import type { SqliteDatabase } from "../types";
 
 export interface ArtifactRow {
   id: string;
@@ -12,8 +12,11 @@ export interface ArtifactRow {
 }
 
 // Insert an artifact into the DB
-export function insertArtifact(db: Database, artifact: Omit<ArtifactRow, "created_at">): void {
-  db.query(`
+export function insertArtifact(
+  db: SqliteDatabase,
+  artifact: Omit<ArtifactRow, "created_at">
+): void {
+  db.prepare(`
     INSERT INTO artifacts (id, session_id, name, type, content, created_by, task_id)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `).run(
@@ -29,24 +32,22 @@ export function insertArtifact(db: Database, artifact: Omit<ArtifactRow, "create
 
 // Look up an artifact by name within a session (most recent match)
 export function getArtifactByName(
-  db: Database,
+  db: SqliteDatabase,
   sessionId: string,
   name: string
 ): ArtifactRow | null {
   return (
-    db
-      .query<ArtifactRow, [string, string]>(
+    (db
+      .prepare(
         "SELECT * FROM artifacts WHERE session_id = ? AND name = ? ORDER BY created_at DESC LIMIT 1"
       )
-      .get(sessionId, name) ?? null
+      .get(sessionId, name) as ArtifactRow | undefined) ?? null
   );
 }
 
 // Fetch all artifacts in a session
-export function getAllArtifacts(db: Database, sessionId: string): ArtifactRow[] {
+export function getAllArtifacts(db: SqliteDatabase, sessionId: string): ArtifactRow[] {
   return db
-    .query<ArtifactRow, [string]>(
-      "SELECT * FROM artifacts WHERE session_id = ? ORDER BY created_at ASC"
-    )
-    .all(sessionId);
+    .prepare("SELECT * FROM artifacts WHERE session_id = ? ORDER BY created_at ASC")
+    .all(sessionId) as ArtifactRow[];
 }

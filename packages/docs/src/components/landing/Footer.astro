@@ -1,33 +1,39 @@
 ---
-const base = import.meta.env.BASE_URL;
+import { type Lang, useTranslations } from "../../i18n/landing";
 
-// biome-ignore lint/correctness/noUnusedVariables: Astro 템플릿에서 사용
+const base = import.meta.env.BASE_URL;
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const docsSlug =
+  lang === "ko-KR" ? "ko-KR/getting-started/introduction" : "getting-started/introduction";
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const links = [
-  { label: "Docs", href: `${base}getting-started/introduction` },
-  { label: "GitHub", href: "https://github.com/custardcream98/relay", external: true },
-  { label: "npm", href: "https://www.npmjs.com/package/@custardcream/relay", external: true },
+  { label: t("footer.docs"), href: `${base}/${docsSlug}` },
+  { label: t("footer.github"), href: "https://github.com/custardcream98/relay", external: true },
+  {
+    label: t("footer.npm"),
+    href: "https://www.npmjs.com/package/@custardcream/relay",
+    external: true,
+  },
 ];
 ---
 
 <footer class="footer">
   <div class="footer__inner">
-    <!-- 왼쪽: 로고 + 설명 -->
+    <!-- Left: logo + description -->
     <div class="footer__brand">
       <span class="footer__wordmark">
         relay<span class="footer__wordmark-cursor" aria-hidden="true">_</span>
       </span>
       <p class="footer__tagline">
-        Multi-agent framework for Claude Code.
+        {t("footer.tagline")}
       </p>
     </div>
 
-    <!-- 가운데: 설치 명령 -->
-    <div class="footer__install" aria-label="Install command">
-      <span class="footer__install-label">install</span>
-      <code class="footer__install-code">bunx -y --package @custardcream/relay relay-server</code>
-    </div>
-
-    <!-- 오른쪽: 링크 + 라이선스 -->
+    <!-- Right: links + license -->
     <div class="footer__right">
       <nav class="footer__links" aria-label="Footer navigation">
         {
@@ -60,12 +66,12 @@ const links = [
     margin: 0 auto;
     padding: 0 clamp(1.25rem, 5vw, 2.5rem);
     display: grid;
-    grid-template-columns: 1fr 1.5fr 1fr;
+    grid-template-columns: 1fr 1fr;
     align-items: center;
     gap: 2rem;
   }
 
-  /* 브랜드 */
+  /* Brand */
   .footer__brand {
     display: flex;
     flex-direction: column;
@@ -98,35 +104,7 @@ const links = [
     line-height: 1.5;
   }
 
-  /* 설치 명령 */
-  .footer__install {
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-  }
-
-  .footer__install-label {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: var(--color-text-muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .footer__install-code {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--color-text-secondary);
-    background-color: var(--color-bg-root);
-    border: 1px solid var(--color-border);
-    border-radius: 0.375rem;
-    padding: 0.5rem 0.75rem;
-    word-break: break-all;
-    line-height: 1.5;
-    display: block;
-  }
-
-  /* 오른쪽 링크 + 카피 */
+  /* Right links + copyright */
   .footer__right {
     display: flex;
     flex-direction: column;
@@ -161,7 +139,7 @@ const links = [
     letter-spacing: 0.02em;
   }
 
-  /* 반응형 */
+  /* Responsive */
   @media (max-width: 800px) {
     .footer__inner {
       grid-template-columns: 1fr;

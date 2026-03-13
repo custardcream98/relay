@@ -1,0 +1,74 @@
+---
+title: /relay:relay — 전체 워크플로우
+description: agents.yml에 정의된 팀 전체를 이벤트 드리븐 협업으로 실행하는 메인 Skill
+---
+
+`/relay:relay`는 사용자의 태스크를 받아 `agents.yml`에 정의된 팀 전체가 협업해 처리합니다.
+세션 시작 시 모든 에이전트가 동시에 실행되고, 이벤트 드리븐 방식으로 작업합니다.
+
+## 사용법
+
+```
+/relay:relay "구현할 내용 설명"
+```
+
+예시:
+```
+/relay:relay "장바구니 기능을 추가해줘"
+/relay:relay "사용자 프로필 페이지를 개선해줘"
+/relay:relay "결제 API 보안을 강화해줘"
+```
+
+## 사전 확인
+
+실행 전에 다음 사항을 확인합니다:
+- relay MCP 서버 연결 여부 (`list_agents` 호출)
+  - 에이전트가 없으면 먼저 `agents.yml`을 생성하도록 안내
+- `.relay/memory/project.md` 존재 여부 (없으면 `/relay:init` 실행 제안)
+- 대시보드 URL 출력: `http://localhost:3456`
+
+## 세션 시작
+
+`list_agents`로 전체 팀을 로드하고 **모든 에이전트를 동시에 실행**합니다.
+
+각 에이전트 실행 시:
+1. `list_agents`에서 페르소나 로드
+2. `read_memory(agent_id)` + `read_memory()`로 메모리 로드 (project.md + lessons.md)
+3. 에이전트의 `tools` 배열로 MCP 도구 접근 제한
+
+사용자의 요청은 코디네이터 에이전트의 시스템 프롬프트에 추가됩니다.
+다른 에이전트들은 코디네이터가 태스크를 배정할 때까지 대기합니다.
+
+## 이벤트 드리븐 협업 모델
+
+에이전트들은 서로 직접 통신하지 않습니다. 모든 협업은 MCP 도구를 통해 이루어져요:
+
+- `send_message` / `get_messages` — 에이전트 간 메시지 전달
+- `create_task` / `claim_task` — 태스크 생성 및 원자적 클레임
+- `post_artifact` / `get_artifact` — 산출물 공유
+- `request_review` / `submit_review` — 코드 리뷰
+
+에이전트가 더 이상 작업이 없거나 완료되면 종료 선언을 브로드캐스트합니다:
+
+```
+"end:waiting | {이유}"   # 현재 작업 없음 (세션 계속)
+"end:_done | {요약}"     # 완전히 완료
+"end:failed | {이유}"    # 복구 불가능한 오류
+```
+
+오케스트레이터는 새 태스크가 배정되면 `end:waiting` 상태의 에이전트를 다시 실행합니다.
+
+## 리뷰어 실행
+
+에이전트가 `"Review requested: {reviewerId}"`를 브로드캐스트하면,
+오케스트레이터가 해당 리뷰어를 즉시 실행합니다:
+
+- `reviewerId`가 `list_agents`에 있으면 해당 페르소나 사용
+- 없으면 요청 에이전트의 페르소나를 상속
+
+## 세션 종료
+
+모든 에이전트가 `end:_done`을 선언하면:
+1. `append_memory(content: ...)` — 팀 회고를 `lessons.md`에 저장
+2. `save_session_summary(session_id, summary, tasks, messages)` — 세션 아카이브
+3. 결과 요약을 사용자에게 리포트

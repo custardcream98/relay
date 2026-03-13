@@ -1,117 +1,117 @@
 ---
-title: 워크플로 설정
-description: agents.yml의 workflow 섹션으로 태스크 실행 흐름을 커스터마이즈
+title: Workflow configuration
+description: Customise the task execution flow with the workflow section in agents.yml
 ---
 
-`agents.yml`의 `workflow` 섹션으로 에이전트들이 어떤 순서로 작업할지 완전히 제어할 수 있다.
+The `workflow` section in `agents.yml` gives you full control over the order in which agents work.
 
-## 기본 구조
+## Basic structure
 
 ```yaml
 workflow:
   jobs:
     {jobId}:
-      agents: [에이전트ID 목록]
-      description: "이 job에서 수행할 작업 설명"
+      agents: [list of agent IDs]
+      description: "description of work done in this job"
       end:
-        {nextJobId}: "이 조건이 충족되면 다음 job으로"
-        {anotherJobId}: "이 조건이 충족되면 다른 job으로"
+        {nextJobId}: "advance to the next job when this condition is met"
+        {anotherJobId}: "advance to another job when this other condition is met"
 ```
 
-## 특수 값
+## Special values
 
-- `_done`: 워크플로 종료를 나타내는 특수 job ID
-- `end` 조건이 여러 개면 에이전트가 상황에 따라 선택
+- `_done`: reserved job ID that signals the end of the workflow
+- If multiple `end` conditions are defined, the agent chooses based on the situation
 
-## 기본 워크플로 예시
+## Default workflow example
 
 ```yaml
 workflow:
   jobs:
     planning:
       agents: [pm]
-      description: "사용자 요구사항을 분석하고 태스크를 분해한다."
+      description: "Analyse user requirements and break down into tasks."
       end:
-        design: "모든 태스크가 생성되고 담당자에게 배정되면"
+        design: "When all tasks have been created and assigned"
 
     design:
       agents: [designer, da]
-      description: "Designer는 UX 스펙, DA는 분석 계획을 작성한다."
+      description: "Designer writes the UX spec; DA writes the analytics plan."
       end:
-        development: "두 산출물이 모두 post_artifact로 공유되면"
+        development: "When both deliverables have been shared via post_artifact"
 
     development:
       agents: [fe, be]
-      description: "FE는 UI를, BE는 API를 구현하고 PR 아티팩트를 작성한다."
+      description: "FE implements the UI; BE implements the API. Both create PR artifacts."
       end:
-        review: "구현이 완료되어 PR이 준비되면"
+        review: "When implementation is complete and PRs are ready"
 
     review:
       agents: [fe2, be2]
       reviewers:
         fe: [fe2]
         be: [be2]
-      description: "PR을 리뷰한다."
+      description: "Review the PRs."
       end:
-        qa: "모든 PR이 LGTM이면"
-        development: "수정이 필요한 피드백이 있으면"
+        qa: "When all PRs are LGTM"
+        development: "When changes are requested"
 
     qa:
       agents: [qa]
-      description: "기능을 테스트하고 버그를 발견하면 티켓을 생성한다."
+      description: "Test the feature and create tickets for any bugs found."
       end:
-        deploy: "모든 테스트를 통과하면"
-        development: "버그가 발견되면"
+        deploy: "When all tests pass"
+        development: "When bugs are found"
 
     deploy:
       agents: [deployer]
-      description: "QA를 통과한 기능을 프로덕션에 배포한다."
+      description: "Deploy the QA-approved feature to production."
       end:
-        _done: "배포가 완료되면"
+        _done: "When deployment is complete"
 ```
 
-## reviewers 필드
+## reviewers field
 
-리뷰가 필요한 job에서 `reviewers` 필드로 리뷰어를 지정한다:
+Use the `reviewers` field in jobs that require review:
 
 ```yaml
 review:
   agents: [fe2, be2]
   reviewers:
-    fe: [fe2]    # fe가 작성한 아티팩트를 fe2가 리뷰
-    be: [be2]    # be가 작성한 아티팩트를 be2가 리뷰
+    fe: [fe2]    # fe2 reviews artifacts created by fe
+    be: [be2]    # be2 reviews artifacts created by be
 ```
 
-리뷰어 에이전트는 대응하는 원작자(fe, be)의 페르소나로 spawn되되,
-`agent_id`는 `fe2`, `be2`로 설정된다.
+Reviewer agents are spawned with the persona of their corresponding author (fe, be),
+but with `agent_id` set to `fe2` or `be2`.
 
-## 간소화 워크플로
+## Simplified workflow
 
-빠른 프로토타입 등 간단한 작업에는 워크플로를 단순화할 수 있다:
+For quick prototypes and simple tasks, you can strip the workflow down:
 
 ```yaml
 workflow:
   jobs:
     planning:
       agents: [pm]
-      description: "태스크 분해"
+      description: "Break down tasks"
       end:
-        development: "태스크 생성 완료 시"
+        development: "When tasks are created"
 
     development:
       agents: [fe, be]
-      description: "구현"
+      description: "Implement"
       end:
-        _done: "구현 완료 시"
+        _done: "When implementation is complete"
 ```
 
-## 병렬 실행
+## Parallel execution
 
-`agents` 배열에 여러 에이전트를 지정하면 모두 동시에 spawn된다:
+Listing multiple agents in the `agents` array spawns them all simultaneously:
 
 ```yaml
 design:
-  agents: [designer, da]  # 두 에이전트가 동시에 작업
+  agents: [designer, da]  # both agents work at the same time
 ```
 
-모든 에이전트가 `end` 선언을 해야 다음 job으로 진행한다.
+All agents in the array must declare `end` before the workflow advances to the next job.

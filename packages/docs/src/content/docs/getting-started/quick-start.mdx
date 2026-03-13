@@ -1,75 +1,75 @@
 ---
-title: 빠른 시작
-description: relay를 처음 사용하는 5분 가이드
+title: Quick start
+description: A 5-minute guide to getting started with relay
 ---
 
 import { Steps } from "@astrojs/starlight/components";
 
-relay 설치 후 처음 프로젝트에 적용하는 가이드다.
+A guide for applying relay to a project for the first time after installation.
 
 <Steps>
 
-1. **프로젝트 파악 (최초 1회)**
+1. **Scan the project (once per project)**
 
-   새 프로젝트에 relay를 처음 사용하거나 팀이 컨텍스트를 새로 파악해야 할 때:
+   Run this the first time you use relay in a new project, or when the team needs to re-learn the codebase:
 
    ```
    /relay:init
    ```
 
-   PM, FE, BE, DA, Designer, QA 6명의 에이전트가 병렬로 코드베이스를 탐색하고
-   `.relay/memory/`에 프로젝트 기억을 저장한다.
+   All configured agents spawn in parallel, scan the codebase from their own perspective,
+   and save project memory to `.relay/memory/`.
 
-2. **태스크 실행**
+2. **Run a task**
 
-   init이 완료되면 바로 태스크를 요청할 수 있다:
+   Once init is complete, you can request tasks immediately:
 
    ```
-   /relay:relay "쇼핑카트 기능 추가해줘"
+   /relay:relay "Add a shopping cart feature"
    ```
 
-   에이전트들이 워크플로대로 PM → Designer/DA → FE/BE → 코드리뷰 → QA → Deployer 순서로 작업한다.
+   Agents collaborate event-driven according to the configured workflow.
 
-3. **대시보드 확인 (선택)**
+3. **Check the dashboard (optional)**
 
-   MCP 서버가 기동되면 웹 대시보드에서 실시간으로 에이전트 활동을 확인할 수 있다:
+   Once the MCP server is running, you can monitor agent activity in real time on the web dashboard:
 
    ```
    http://localhost:3456
    ```
 
-4. **단일 에이전트 호출 (필요 시)**
+4. **Invoke a single agent (when needed)**
 
-   특정 에이전트만 단독으로 호출하고 싶을 때:
+   When you only need one specific agent's expertise:
 
    ```
-   /relay:agent fe "CartItem 컴포넌트 리팩토링해줘"
-   /relay:agent be "유저 인증 API 보안 검토해줘"
+   /relay:agent fe "Refactor the CartItem component"
+   /relay:agent be "Security review the user auth API"
    ```
 
 </Steps>
 
-## 예시 흐름
+## Example flow
 
 ```
-사용자: /relay:relay "로그인 기능 구현해줘"
+User: /relay:relay "Implement a login feature"
 
-[PM]       → 로그인 기능을 5개 태스크로 분해
-             → FE: UI 구현, BE: API 구현, Designer: 화면 설계, DA: 이벤트 설계
+[PM]       → breaks down login into 5 tasks
+             → FE: UI, BE: API, Designer: screen spec, DA: event design
 
-[Designer] → 로그인 화면 스펙 작성 (post_artifact)
-[DA]       → login_success, login_fail 이벤트 설계 (post_artifact)
+[Designer] → writes login screen spec (post_artifact)
+[DA]       → designs login_success, login_fail events (post_artifact)
 
-[FE]       → 로그인 UI 구현, fe-pr 아티팩트 생성
-[BE]       → 인증 API 구현, be-pr 아티팩트 생성
+[FE]       → implements login UI, creates fe-pr artifact
+[BE]       → implements auth API, creates be-pr artifact
 
-[FE2]      → FE PR 코드리뷰 (request_review → submit_review)
-[BE2]      → BE PR 코드리뷰
+[FE2]      → reviews FE PR (request_review → submit_review)
+[BE2]      → reviews BE PR
 
-[QA]       → 테스트 시나리오 작성, 검증
-           → 버그 발견 시 티켓 생성 → 개발팀 수정
+[QA]       → writes test scenarios, validates
+           → creates tickets for any bugs found → dev team fixes
 
-[Deployer] → 배포 완료, 팀에 공지
+[Deployer] → deployment complete, notifies team
 
-사용자: ✅ 로그인 기능 배포 완료!
+User: ✅ Login feature deployed!
 ```

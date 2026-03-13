@@ -1,45 +1,45 @@
 ---
-title: agents.yml 스키마
-description: agents.yml 전체 스키마 레퍼런스
+title: agents.yml schema
+description: Full schema reference for agents.yml
 ---
 
-`agents.yml`은 에이전트 페르소나와 워크플로를 커스터마이즈하는 설정 파일이다.
-`agents.default.yml`의 기본값을 오버라이드한다.
+`agents.yml` is the configuration file for customising agent personas and workflows.
+It overrides the defaults in `agents.default.yml`.
 
-## 최상위 구조
+## Top-level structure
 
 ```yaml
 agents:
   {agentId}:
-    # 에이전트 설정
+    # agent configuration
     ...
 
 workflow:
   jobs:
-    # 워크플로 설정
+    # workflow configuration
     ...
 ```
 
-## agents 섹션
+## agents section
 
-### 에이전트 스키마
+### Agent schema
 
 ```yaml
 agents:
   {agentId}:
-    name: string           # 표시 이름 (예: "Frontend Engineer")
-    emoji: string          # 이모지 아이콘 (예: "💻")
-    description: string    # 짧은 역할 설명
-    disabled: boolean      # true이면 비활성화 (기본값: false)
-    extends: string        # 상속받을 에이전트 ID
-    tools:                 # 사용 가능한 MCP 툴 목록
+    name: string           # display name (e.g. "Frontend Engineer")
+    emoji: string          # emoji icon (e.g. "💻")
+    description: string    # short role description
+    disabled: boolean      # disable the agent when true (default: false)
+    extends: string        # agent ID to inherit from
+    tools:                 # list of allowed MCP tools
       - tool_name
-    systemPrompt: string   # 에이전트 system prompt (멀티라인)
+    systemPrompt: string   # agent system prompt (multiline)
 ```
 
-### 기본 에이전트 ID
+### Default agent IDs
 
-| ID | 이름 |
+| ID | Name |
 |---|---|
 | `pm` | Product Manager |
 | `designer` | UX Designer |
@@ -49,7 +49,7 @@ agents:
 | `qa` | QA Engineer |
 | `deployer` | Deployer |
 
-### 사용 가능한 tools
+### Available tools
 
 ```
 send_message
@@ -74,96 +74,96 @@ list_agents
 get_workflow
 ```
 
-## workflow 섹션
+## workflow section
 
-### job 스키마
+### job schema
 
 ```yaml
 workflow:
   jobs:
     {jobId}:
-      agents:              # 이 job에서 병렬로 실행될 에이전트 ID 목록
+      agents:              # list of agent IDs to run in parallel in this job
         - agentId
-      description: string  # job 설명 (에이전트 system prompt에 주입됨)
-      reviewers:           # 리뷰어 매핑 (선택)
+      description: string  # job description (injected into agent system prompts)
+      reviewers:           # reviewer mapping (optional)
         {agentId}: [reviewerAgentId]
-      end:                 # 다음 job 결정 조건
-        {nextJobId}: "조건 설명"
-        _done: "워크플로 종료 조건"
+      end:                 # conditions for choosing the next job
+        {nextJobId}: "condition description"
+        _done: "workflow end condition"
 ```
 
-### 특수 job ID
+### Special job IDs
 
-- `_done`: 워크플로 종료를 나타내는 예약어
+- `_done`: reserved keyword that marks the end of the workflow
 
-### 시작 job 결정
+### Start job detection
 
-시작 job은 자동으로 결정된다: 어떤 job의 `end` 목적지에도 지정되지 않은 job이 시작점이다.
+The start job is determined automatically: the job that does not appear as a destination in any other job's `end` map is the entry point.
 
-## 전체 예시
+## Full example
 
 ```yaml
 agents:
   fe:
     name: "Frontend Engineer (Next.js)"
     systemPrompt: |
-      당신은 Next.js App Router 전문 Frontend Engineer입니다.
-      TypeScript, Tailwind CSS, React Query를 주로 사용합니다.
+      You are a Frontend Engineer specialising in Next.js App Router.
+      Your primary stack is TypeScript, Tailwind CSS, and React Query.
 
-      ## 역할
-      - 디자인 스펙을 바탕으로 Next.js 컴포넌트를 구현합니다
-      - PR 아티팩트를 생성하고 FE2에게 코드리뷰를 요청합니다
+      ## Role
+      - Implement Next.js components from design specs
+      - Create PR artifacts and request code review from FE2
 
-      ## 규칙
-      - agent_id는 "fe" 또는 "fe2"로 설정 (리뷰어 역할 시 "fe2")
+      ## Rules
+      - Set agent_id to "fe" normally, or "fe2" when acting as a reviewer
 
   security:
     name: "Security Engineer"
     emoji: "🔐"
-    description: "보안 취약점 분석"
+    description: "Security vulnerability analysis"
     tools:
       - get_messages
       - get_artifact
       - post_artifact
       - send_message
     systemPrompt: |
-      당신은 보안 전문가입니다.
-      OWASP Top 10 기준으로 PR을 검토합니다.
+      You are a security expert.
+      Review PRs against the OWASP Top 10.
 
   da:
-    disabled: true  # DA 에이전트 비활성화
+    disabled: true  # disable the DA agent
 
 workflow:
   jobs:
     planning:
       agents: [pm]
-      description: "요구사항 분석 및 태스크 분해"
+      description: "Analyse requirements and break down into tasks"
       end:
-        development: "태스크 배정 완료 시"
+        development: "When tasks are assigned"
 
     development:
       agents: [fe, be]
-      description: "구현"
+      description: "Implement"
       end:
-        security-review: "구현 완료 시"
+        security-review: "When implementation is complete"
 
     security-review:
       agents: [security]
-      description: "보안 검토"
+      description: "Security review"
       end:
-        qa: "보안 이슈 없으면"
-        development: "수정 필요 시"
+        qa: "When no security issues are found"
+        development: "When fixes are needed"
 
     qa:
       agents: [qa]
-      description: "기능 테스트"
+      description: "Feature testing"
       end:
-        deploy: "테스트 통과 시"
-        development: "버그 발견 시"
+        deploy: "When tests pass"
+        development: "When bugs are found"
 
     deploy:
       agents: [deployer]
-      description: "배포"
+      description: "Deploy"
       end:
-        _done: "배포 완료 시"
+        _done: "When deployment is complete"
 ```

@@ -1,0 +1,119 @@
+---
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const features = [
+  {
+    icon: "🔗",
+    title: "MCP-native communication",
+    description:
+      "Agents communicate exclusively through MCP tools — send_message, create_task, post_artifact — keeping every interaction auditable and replayable.",
+  },
+  {
+    icon: "💡",
+    title: "Zero extra billing",
+    description:
+      "relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond what Claude Code already charges.",
+  },
+  {
+    icon: "🧠",
+    title: "Persistent shared memory",
+    description:
+      "Each session writes Markdown notes to .relay/memory/. Agents start the next session fully aware of prior decisions and patterns.",
+  },
+  {
+    icon: "📊",
+    title: "Realtime dashboard",
+    description:
+      "A WebSocket-powered Kanban + message feed shows exactly what each agent is thinking and doing as it happens. Full session replay included.",
+  },
+];
+---
+
+<section class="features">
+  <div class="features__inner">
+    <h2 class="features__title">Why relay?</h2>
+    <p class="features__subtitle">
+      Designed to be transparent, lean, and composable.
+    </p>
+    <div class="features__grid">
+      {
+        features.map((feature) => (
+          <div class="features__card">
+            <span class="features__icon" aria-hidden="true">{feature.icon}</span>
+            <h3 class="features__card-title">{feature.title}</h3>
+            <p class="features__card-desc">{feature.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .features {
+    background-color: var(--color-bg-surface);
+    padding: 5rem 0;
+  }
+
+  .features__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 5vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .features__title {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-align: center;
+  }
+
+  .features__subtitle {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: -2rem 0 0;
+    line-height: 1.7;
+  }
+
+  .features__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
+  }
+
+  .features__card {
+    background-color: var(--color-bg-root);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .features__icon {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .features__card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .features__card-desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.65;
+    margin: 0;
+  }
+</style>

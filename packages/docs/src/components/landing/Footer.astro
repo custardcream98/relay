@@ -1,0 +1,72 @@
+---
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const base = import.meta.env.BASE_URL;
+---
+
+<footer class="footer">
+  <div class="footer__inner">
+    <span class="footer__wordmark">relay</span>
+    <p class="footer__copy">MIT License &copy; {new Date().getFullYear()}</p>
+    <nav class="footer__links" aria-label="Footer navigation">
+      <a
+        href="https://github.com/custardcream98/relay"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="footer__link"
+      >
+        GitHub
+      </a>
+      <a href={`${base}/getting-started/introduction`} class="footer__link">
+        Docs
+      </a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--color-border);
+    padding: 2.5rem 0;
+  }
+
+  .footer__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 5vw, 2rem);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+  }
+
+  .footer__wordmark {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-accent);
+    letter-spacing: -0.02em;
+  }
+
+  .footer__copy {
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  .footer__links {
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  .footer__link {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer__link:hover {
+    color: var(--color-text-primary);
+  }
+</style>

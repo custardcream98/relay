@@ -1,0 +1,110 @@
+---
+// Custom HTML boilerplate layout for the landing page
+// Bypasses Starlight to apply a custom Nav, CSS tokens, and styles
+// biome-ignore lint/correctness/noUnusedImports: used in Astro template
+import Nav from "../components/landing/Nav.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const title = Astro.props.title ?? "relay — Multi-agent framework for Claude Code";
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const description =
+  Astro.props.description ??
+  "relay spins up a crew of AI agents that collaborate inside Claude Code to ship features end-to-end.";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <link rel="icon" href={`${import.meta.env.BASE_URL}favicon.svg`} type="image/svg+xml" />
+    <style>
+      /* Tailwind v4 entry point */
+      @import "tailwindcss";
+
+      /* ─── Design tokens ─── */
+      :root {
+        /* Light mode */
+        --color-bg-root: #fafafa;
+        --color-bg-surface: #f4f4f5;
+        --color-text-primary: #09090b;
+        --color-text-secondary: #71717a;
+        --color-text-muted: #a1a1aa;
+        --color-border: #e4e4e7;
+        --color-accent: #7c3aed;
+
+        --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        --font-mono: "JetBrains Mono", "Fira Code", monospace;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --color-bg-root: #09090b;
+          --color-bg-surface: #18181b;
+          --color-text-primary: #fafafa;
+          --color-text-secondary: #a1a1aa;
+          --color-text-muted: #71717a;
+          --color-border: #27272a;
+          --color-accent: #a78bfa;
+        }
+      }
+
+      /* ─── Base reset ─── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--color-bg-root);
+        color: var(--color-text-primary);
+        font-family: var(--font-sans);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 1rem;
+        padding: 0.5rem 1rem;
+        background: var(--color-accent);
+        color: #fff;
+        font-size: 0.875rem;
+        border-radius: 0 0 0.375rem 0.375rem;
+        text-decoration: none;
+        z-index: 9999;
+      }
+      .skip-link:focus {
+        top: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <a
+      href="#main-content"
+      class="skip-link"
+    >Skip to content</a>
+    <Nav />
+    <main id="main-content">
+      <slot />
+    </main>
+  </body>
+</html>

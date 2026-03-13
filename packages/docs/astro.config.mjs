@@ -1,12 +1,16 @@
 // docs-site/astro.config.mjs
 
 import starlight from "@astrojs/starlight";
+import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 
 export default defineConfig({
   // GitHub Pages 배포 시 repo 이름이 base path가 됨
   site: "https://custardcream98.github.io",
   base: "/relay",
+  vite: {
+    plugins: [tailwindcss()],
+  },
   integrations: [
     starlight({
       title: "relay",

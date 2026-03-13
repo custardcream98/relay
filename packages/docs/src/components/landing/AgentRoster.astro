@@ -1,0 +1,155 @@
+---
+// Colors match the dashboard agent color coding exactly
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
+const agents = [
+  {
+    id: "pm",
+    label: "PM",
+    color: "#C084FC", // purple-400
+    description: "Breaks down requirements, creates tasks, and coordinates the team.",
+  },
+  {
+    id: "designer",
+    label: "Designer",
+    color: "#F472B6", // pink-400
+    description: "Produces design specs, component structures, and visual guidelines.",
+  },
+  {
+    id: "da",
+    label: "DA",
+    color: "#FACC15", // yellow-400
+    description: "Analyses data requirements, schemas, and analytics instrumentation.",
+  },
+  {
+    id: "fe",
+    label: "FE",
+    color: "#60A5FA", // blue-400
+    description: "Implements UI components and integrates with backend APIs.",
+  },
+  {
+    id: "be",
+    label: "BE",
+    color: "#34D399", // emerald-400
+    description: "Builds APIs, services, and database interactions.",
+  },
+  {
+    id: "qa",
+    label: "QA",
+    color: "#FB923C", // orange-400
+    description: "Writes tests, finds edge cases, and validates agent output.",
+  },
+  {
+    id: "deployer",
+    label: "Deployer",
+    color: "#FB923C", // orange-400
+    description: "Handles CI/CD, environment config, and final deployment.",
+  },
+];
+---
+
+<section class="roster">
+  <div class="roster__inner">
+    <h2 class="roster__title">The team</h2>
+    <p class="roster__subtitle">
+      Seven specialised agents — all powered by Claude Code, zero extra API costs.
+    </p>
+    <ul class="roster__list" role="list">
+      {
+        agents.map((agent) => (
+          <li class="roster__item">
+            <span
+              class="roster__dot"
+              style={`background-color: ${agent.color}`}
+              aria-hidden="true"
+            />
+            <div class="roster__info">
+              <span class="roster__id">{agent.label}</span>
+              <span class="roster__desc">{agent.description}</span>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .roster {
+    padding: 5rem 0;
+  }
+
+  .roster__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 5vw, 2rem);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+  }
+
+  .roster__title {
+    font-size: clamp(1.75rem, 4vw, 2.25rem);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+    margin: 0;
+    text-align: center;
+  }
+
+  .roster__subtitle {
+    font-size: 1rem;
+    color: var(--color-text-secondary);
+    text-align: center;
+    max-width: 480px;
+    margin: -2rem 0 0;
+    line-height: 1.7;
+  }
+
+  .roster__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .roster__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 0.625rem;
+    background-color: var(--color-bg-root);
+  }
+
+  .roster__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.35rem;
+  }
+
+  .roster__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .roster__id {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .roster__desc {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+</style>

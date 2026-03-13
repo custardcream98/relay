@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://custardcream98.github.io/relay/sitemap-index.xml

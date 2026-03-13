@@ -1,5 +1,6 @@
 // docs-site/astro.config.mjs
 
+import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
@@ -12,9 +13,11 @@ export default defineConfig({
     plugins: [tailwindcss()],
   },
   integrations: [
+    sitemap(),
     starlight({
       title: "relay",
-      description: "Multi-agent framework for Claude Code",
+      description:
+        "relay is a multi-agent collaboration framework for Claude Code. Define any team in agents.yml — web dev, research, marketing — and agents collaborate peer-to-peer via MCP. No extra API costs.",
       social: [
         {
           icon: "github",
@@ -22,8 +25,39 @@ export default defineConfig({
           href: "https://github.com/custardcream98/relay",
         },
       ],
+      favicon: "/favicon.svg",
       // Starlight custom CSS — kept in sync with the landing page design tokens
       customCss: ["./src/styles/starlight-theme.css"],
+      // OG and Twitter Card tags injected into every Starlight doc page
+      head: [
+        {
+          tag: "meta",
+          attrs: { property: "og:image", content: "https://custardcream98.github.io/relay/og.svg" },
+        },
+        {
+          tag: "meta",
+          attrs: { name: "twitter:card", content: "summary_large_image" },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image",
+            content: "https://custardcream98.github.io/relay/og.svg",
+          },
+        },
+        {
+          tag: "meta",
+          attrs: { property: "og:site_name", content: "relay" },
+        },
+        {
+          tag: "meta",
+          attrs: {
+            name: "keywords",
+            content:
+              "Claude Code, multi-agent, AI agents, MCP, workflow automation, Claude, relay, peer-to-peer agents",
+          },
+        },
+      ],
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },

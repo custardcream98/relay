@@ -1,10 +1,24 @@
 <br />
 
+<p align="center">
+  <img src="https://custardcream98.github.io/relay/favicon.svg" width="72" height="72" alt="relay icon" />
+</p>
+
 <h1 align="center">relay</h1>
 <p align="center">
   <strong>A multi-agent collaboration framework built on Claude Code.</strong>
   <br />
   <span>One task. A full team. Any role, any domain.</span>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@custardcream/relay"><img src="https://img.shields.io/npm/v/%40custardcream%2Frelay?style=flat-square&color=C17F24&label=npm" alt="npm version" /></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/license-MIT-C17F24?style=flat-square" alt="MIT license" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Claude%20Code-Plugin-E8A83A?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/runtime-Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
 </p>
 
 <p align="center">

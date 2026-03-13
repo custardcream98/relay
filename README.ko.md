@@ -1,10 +1,24 @@
 <br />
 
+<p align="center">
+  <img src="https://custardcream98.github.io/relay/favicon.svg" width="72" height="72" alt="relay icon" />
+</p>
+
 <h1 align="center">relay</h1>
 <p align="center">
   <strong>Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크.</strong>
   <br />
   <span>하나의 태스크. 온 팀이 움직여요. 어떤 역할이든, 어떤 도메인이든.</span>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@custardcream/relay"><img src="https://img.shields.io/npm/v/%40custardcream%2Frelay?style=flat-square&color=C17F24&label=npm" alt="npm version" /></a>
+  &nbsp;
+  <img src="https://img.shields.io/badge/license-MIT-C17F24?style=flat-square" alt="MIT license" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/Claude%20Code-Plugin-E8A83A?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />
+  &nbsp;
+  <img src="https://img.shields.io/badge/runtime-Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js" />
 </p>
 
 <p align="center">

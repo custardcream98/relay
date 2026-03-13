@@ -88,6 +88,14 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
     }
   }
 
+  if (Object.keys(merged).length === 0) {
+    throw new Error(
+      "No agents defined. Create agents.yml in your project root with at least one agent.\n" +
+        "See agents.example.yml for a complete example.\n" +
+        "Required fields: name, emoji, tools, systemPrompt"
+    );
+  }
+
   return merged;
 }
 

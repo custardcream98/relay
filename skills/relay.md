@@ -46,18 +46,53 @@ while (currentJob !== "_done"):
           send_message(to: null, content: "end:{nextJobId} | {이유}")
           {job.end 조건 목록}
 
-  # 모든 에이전트의 end 선언 수집 대기
-  # get_messages를 주기적으로 호출하여 content가 "end:"로 시작하는 메시지 탐지
-  # job.agents 수만큼 end 선언이 모이면 다음 단계 진행
-  declarations = get_messages() 결과에서 content.startsWith("end:") 필터링
-                 (형식: "end:{nextJobId} | {이유}")
+          ## 실패 처리
+          복구 불가능한 오류가 발생하면 (필수 아티팩트 없음, 툴 호출 반복 실패 등)
+          작업을 중단하고 아래 형식으로 실패를 선언하세요:
+          send_message(to: null, content: "end:failed | {실패 원인 상세}")
+          실패 선언 후 추가 작업을 시도하지 마세요.
 
-  # 다음 job 결정
+  # 모든 에이전트의 end 선언 수집 대기
+  # get_messages를 ~30초마다 호출하여 content가 "end:"로 시작하는 메시지 탐지
+  # 지원 형식:
+  #   "end:{nextJobId} | {이유}"  — 성공, nextJobId로 진행
+  #   "end:failed | {이유}"       — 에이전트 실패, 워크플로 중단
+  #
+  # 타임아웃: 최대 10분 대기. 10분 내에 모든 에이전트의 end 선언이 도착하지 않으면
+  #   응답하지 않은 에이전트 목록을 사용자에게 보고하고, 진행 여부를 사용자가 결정.
+  #   (도착한 선언만으로 다음 job을 결정하거나, 워크플로를 중단할 수 있음)
+
+  expectedAgents = job.agents (+ reviewers 포함 시 reviewers 목록도 합산)
+  startTime = now()
+  declarations = []
+
+  while declarations 수 < expectedAgents 수:
+    if now() - startTime > 10분:
+      missingAgents = expectedAgents - declarations에서 이미 응답한 에이전트 목록
+      사용자에게 경고: "⚠️ 타임아웃: {missingAgents}이(가) 응답하지 않았습니다. 도착한 응답으로 계속하시겠습니까?"
+      사용자 결정에 따라 진행 또는 중단
+      break
+
+    새 메시지 확인 (get_messages)
+    새로 수신된 "end:"로 시작하는 메시지를 declarations에 추가
+
+    # 실패 선언 즉시 처리
+    if any declaration matches "end:failed":
+      failedAgent = 해당 에이전트 ID
+      reason = 선언 메시지의 {이유} 부분
+      사용자에게 즉시 보고: "❌ {failedAgent} 실패: {reason}"
+      워크플로 중단 (currentJob = "_failed")
+      break
+
+    ~30초 대기 후 재시도
+
+  # 다음 job 결정 (정상 완료 시)
   if all declarations point to same nextJob:
     currentJob = nextJob
   else:
-    # 의견 갈림 → Claude가 job.end 조건 설명을 읽고 판단
-    currentJob = decide based on job.end conditions and collected reasons
+    # 의견 갈림 → 보수적 경로 우선 (advancing보다 looping back 선호)
+    # job.end 조건 설명과 수집된 이유를 종합하여 가장 보수적인 선택 적용
+    currentJob = decide based on job.end conditions and collected reasons, preferring the most conservative path (loop back over advance)
 ```
 
 ### Step 3: 세션 종료 (`_done` 도달 시)

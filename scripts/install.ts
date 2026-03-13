@@ -28,8 +28,8 @@ console.log(`[relay] 스킬 설치 완료: ${targetDir}`);
 
 // 2. MCP 서버 등록
 const mcpArgs = isGlobal
-  ? ["mcp", "add", "--global", "relay", "--", "bun", "run", join(relayRoot, "src", "index.ts")]
-  : ["mcp", "add", "relay", "--", "bun", "run", join(relayRoot, "src", "index.ts")];
+  ? ["mcp", "add", "--global", "--transport", "stdio", "relay", "--", "bun", "run", join(relayRoot, "src", "index.ts")]
+  : ["mcp", "add", "--transport", "stdio", "relay", "--", "bun", "run", join(relayRoot, "src", "index.ts")];
 
 const mcpResult = Bun.spawnSync(["claude", ...mcpArgs], { stdout: "inherit", stderr: "inherit" });
 if (mcpResult.exitCode !== 0) {

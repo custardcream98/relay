@@ -1,25 +1,22 @@
 // dashboard/src/App.tsx
-import { useReducer, useEffect } from "react";
+import { useCallback, useReducer } from "react";
 import { useRelaySocket } from "./hooks/useRelaySocket";
 import { AgentStatusBar } from "./components/AgentStatusBar";
 import { TaskBoard } from "./components/TaskBoard";
 import { MessageFeed } from "./components/MessageFeed";
 import { AgentThoughts } from "./components/AgentThoughts";
-import type { AgentId, RelayEvent } from "./types";
-
-const WS_URL = `ws://${window.location.host}/ws`;
+import type { AgentId, RelayEvent } from "@shared/types";
 
 // 대시보드 파생 상태 타입
 interface DashboardState {
   tasks: Array<{ id: string; title: string; assignee: string | null; status: string; priority: string }>;
   messages: Array<{ id: string; from_agent: string; to_agent: string | null; content: string; created_at: number }>;
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
-  thinkingChunks: Partial<Record<AgentId, string[]>>;
+  thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
 }
 
 type Action =
-  | { type: "SNAPSHOT"; snapshot: { tasks: unknown[]; messages: unknown[]; artifacts: unknown[] } }
   | { type: "EVENT"; event: RelayEvent }
   | { type: "SELECT_AGENT"; agentId: AgentId | null };
 
@@ -33,65 +30,66 @@ const initialState: DashboardState = {
 
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
-    case "SNAPSHOT":
-      return {
-        ...state,
-        tasks: action.snapshot.tasks as DashboardState["tasks"],
-        messages: action.snapshot.messages as DashboardState["messages"],
-      };
-    case "SELECT_AGENT":
-      return { ...state, selectedAgent: action.agentId };
     case "EVENT": {
       const event = action.event;
-      if (event.type === "task:updated") {
-        const idx = state.tasks.findIndex(t => t.id === event.task.id);
-        const tasks = idx >= 0
-          ? state.tasks.map((t, i) => i === idx ? { ...t, ...event.task } : t)
-          : [...state.tasks, event.task];
-        return { ...state, tasks };
+      switch (event.type) {
+        case "session:snapshot":
+          // 초기 스냅샷 — WebSocket 연결 직후 서버에서 전송
+          return {
+            ...state,
+            tasks: event.tasks as DashboardState["tasks"],
+            messages: event.messages as DashboardState["messages"],
+          };
+        case "agent:status":
+          return {
+            ...state,
+            agentStatuses: { ...state.agentStatuses, [event.agentId]: event.status },
+            // idle/waiting 전환 시 thinking chunks 초기화
+            thinkingChunks: event.status !== "working"
+              ? { ...state.thinkingChunks, [event.agentId]: "" }
+              : state.thinkingChunks,
+          };
+        case "agent:thinking":
+          return {
+            ...state,
+            thinkingChunks: {
+              ...state.thinkingChunks,
+              [event.agentId]: (state.thinkingChunks[event.agentId] ?? "") + event.chunk,
+            },
+          };
+        case "message:new":
+          // 최신 메시지를 앞에 추가 (최신 우선)
+          return { ...state, messages: [event.message, ...state.messages] };
+        case "task:updated": {
+          const existing = state.tasks.findIndex((t) => t.id === event.task.id);
+          const tasks = existing >= 0
+            ? state.tasks.map((t) => (t.id === event.task.id ? event.task : t))
+            : [...state.tasks, event.task];
+          return { ...state, tasks };
+        }
+        case "artifact:posted":
+          // 아티팩트는 현재 대시보드에서 별도 추적하지 않음
+          return state;
+        default:
+          return state;
       }
-      if (event.type === "message:new") {
-        return { ...state, messages: [...state.messages, event.message] };
-      }
-      if (event.type === "agent:status") {
-        return { ...state, agentStatuses: { ...state.agentStatuses, [event.agentId]: event.status } };
-      }
-      if (event.type === "agent:thinking") {
-        const prev = state.thinkingChunks[event.agentId] ?? [];
-        return {
-          ...state,
-          thinkingChunks: { ...state.thinkingChunks, [event.agentId]: [...prev, event.chunk] },
-        };
-      }
-      if (event.type === "session:snapshot") {
-        return {
-          ...state,
-          tasks: event.tasks as DashboardState["tasks"],
-          messages: event.messages as DashboardState["messages"],
-        };
-      }
-      return state;
     }
+    case "SELECT_AGENT":
+      return { ...state, selectedAgent: action.agentId };
+    default:
+      return state;
   }
 }
 
 export default function App() {
-  const { events, connected } = useRelaySocket(WS_URL);
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 초기 스냅샷 로드
-  useEffect(() => {
-    fetch("/api/session")
-      .then(r => r.json())
-      .then(snapshot => dispatch({ type: "SNAPSHOT", snapshot }))
-      .catch(console.error);
+  // useCallback으로 안정적인 참조 유지 — useRelaySocket 내부에서 ref로 관리되므로 사실상 불필요하나 명시적으로 선언
+  const handleEvent = useCallback((event: RelayEvent) => {
+    dispatch({ type: "EVENT", event });
   }, []);
 
-  // WebSocket 이벤트를 reducer로 전달 (마지막으로 처리한 이벤트만)
-  useEffect(() => {
-    if (events.length === 0) return;
-    dispatch({ type: "EVENT", event: events[events.length - 1] });
-  }, [events]);
+  const { connected } = useRelaySocket({ onEvent: handleEvent });
 
   const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent } = state;
 
@@ -133,7 +131,7 @@ export default function App() {
         <div className="w-1/3 overflow-hidden">
           <AgentThoughts
             agentId={selectedAgent}
-            chunks={selectedAgent ? (thinkingChunks[selectedAgent] ?? []) : []}
+            chunks={selectedAgent ? (thinkingChunks[selectedAgent] ?? "") : ""}
           />
         </div>
       </div>

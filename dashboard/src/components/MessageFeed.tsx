@@ -1,4 +1,6 @@
 // dashboard/src/components/MessageFeed.tsx
+import { useEffect, useRef } from "react";
+
 interface Message {
   id: string;
   from_agent: string;
@@ -14,9 +16,16 @@ const AGENT_COLORS: Record<string, string> = {
   fe: "text-blue-400",
   be: "text-green-400",
   qa: "text-orange-400",
+  deployer: "text-orange-400", // deployer 색상 추가
 };
 
 export function MessageFeed({ messages }: { messages: Message[] }) {
+  // 새 메시지 도착 시 하단 자동 스크롤
+  const bottomRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   return (
     <div className="flex flex-col gap-3 p-3 overflow-y-auto h-full">
       {messages.map((msg) => (
@@ -49,6 +58,8 @@ export function MessageFeed({ messages }: { messages: Message[] }) {
           아직 메시지가 없습니다
         </p>
       )}
+      {/* 자동 스크롤 앵커 */}
+      <div ref={bottomRef} />
     </div>
   );
 }

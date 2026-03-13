@@ -30,6 +30,7 @@ describe("세션 툴", () => {
     });
     const result = await handleGetSessionSummary(TEST_DIR, { session_id: "2026-03-13-001" });
     expect(result.success).toBe(true);
+    if (!result.success) throw new Error("unreachable");
     expect(result.summary).toContain("테스트 요약");
   });
 

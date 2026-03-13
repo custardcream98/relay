@@ -291,8 +291,8 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("호출하는 에이전트 ID (보통 오케스트레이터)"),
       session_id: z.string().describe("세션 ID (YYYY-MM-DD-NNN 형식)"),
       summary: z.string().describe("세션 요약 텍스트"),
-      tasks: z.array(z.record(z.unknown())).describe("세션 내 모든 태스크"),
-      messages: z.array(z.record(z.unknown())).describe("세션 내 모든 메시지"),
+      tasks: z.array(z.record(z.string(), z.unknown())).describe("세션 내 모든 태스크"),
+      messages: z.array(z.record(z.string(), z.unknown())).describe("세션 내 모든 메시지"),
     },
     async (input) => {
       const result = await handleSaveSessionSummary(RELAY_DIR, input);
@@ -330,32 +330,45 @@ export function createMcpServer(): McpServer {
   // 에이전트 목록 조회 (오케스트레이터가 어떤 에이전트가 있는지 파악에 사용)
   const agents = loadAgents();
 
-  server.tool("list_agents", {}, async () => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: JSON.stringify(
-            Object.values(agents).map((a) => ({
-              id: a.id,
-              name: a.name,
-              emoji: a.emoji,
-              description: a.description,
-              tools: a.tools,
-            }))
-          ),
-        },
-      ],
-    };
-  });
+  server.tool(
+    "list_agents",
+    {
+      agent_id: z.string().describe("호출하는 에이전트 ID (추적용)"),
+    },
+    async () => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              Object.values(agents).map((a) => ({
+                id: a.id,
+                name: a.name,
+                emoji: a.emoji,
+                description: a.description,
+                tools: a.tools,
+                systemPrompt: a.systemPrompt, // 페르소나 주입용
+              }))
+            ),
+          },
+        ],
+      };
+    }
+  );
 
   // 워크플로 설정 조회 (오케스트레이터가 실행 흐름 파악에 사용)
-  server.tool("get_workflow", {}, async () => {
-    const workflow = getWorkflow();
-    return {
-      content: [{ type: "text", text: JSON.stringify(workflow) }],
-    };
-  });
+  server.tool(
+    "get_workflow",
+    {
+      agent_id: z.string().describe("호출하는 에이전트 ID (추적용)"),
+    },
+    async () => {
+      const workflow = getWorkflow();
+      return {
+        content: [{ type: "text", text: JSON.stringify(workflow) }],
+      };
+    }
+  );
 
   return server;
 }

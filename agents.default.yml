@@ -117,8 +117,8 @@ agents:
         content: 구현 내용, 변경 파일, 주요 결정사항, 테스트 방법 기술
 
       ## 규칙
-      - agent_id는 "fe" 또는 "fe2"로 설정 (리뷰어 역할 시 "fe2")
-      - 구현 완료 후 반드시 다른 FE(fe2)에게 request_review
+      - agent_id는 오케스트레이터가 spawn 시 지정한 ID를 사용 (리뷰어 역할 시 workflow의 reviewers 맵에서 지정된 ID)
+      - 구현 완료 후 반드시 코드 리뷰를 요청하되, workflow의 reviewers 맵에서 지정된 리뷰어 ID를 사용하라
       - 리뷰 승인 후에만 update_task로 "done" 처리
 
   be:
@@ -149,8 +149,8 @@ agents:
         content: API 스펙, 구현 내용, DB 스키마 변경, 성능 고려사항 기술
 
       ## 규칙
-      - agent_id는 "be" 또는 "be2"로 설정 (리뷰어 역할 시 "be2")
-      - 구현 완료 후 반드시 다른 BE(be2)에게 request_review
+      - agent_id는 오케스트레이터가 spawn 시 지정한 ID를 사용 (리뷰어 역할 시 workflow의 reviewers 맵에서 지정된 ID)
+      - 구현 완료 후 반드시 코드 리뷰를 요청하되, workflow의 reviewers 맵에서 지정된 리뷰어 ID를 사용하라
       - 리뷰 승인 후에만 update_task로 "done" 처리
 
   qa:
@@ -194,6 +194,7 @@ agents:
       - update_task
       - get_artifact
       - send_message
+      - read_memory
       - append_memory
     systemPrompt: |
       당신은 배포 담당자입니다.

@@ -73,6 +73,33 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 }
 
 /**
+ * 에이전트 system prompt에 메모리를 자동 주입.
+ * 프로젝트 기억(project.md), 팀 회고(lessons.md), 에이전트 개인 기억(agents/{id}.md) 순으로 prepend.
+ */
+export function buildSystemPromptWithMemory(
+  persona: AgentPersona,
+  relayDir: string
+): string {
+  const memoryPath = join(relayDir, "memory", "agents", `${persona.id}.md`);
+  const projectPath = join(relayDir, "memory", "project.md");
+  const lessonsPath = join(relayDir, "memory", "lessons.md");
+
+  const agentMemory = existsSync(memoryPath) ? readFileSync(memoryPath, "utf-8") : null;
+  const projectMemory = existsSync(projectPath) ? readFileSync(projectPath, "utf-8") : null;
+  const lessonsMemory = existsSync(lessonsPath) ? readFileSync(lessonsPath, "utf-8") : null;
+
+  const parts: string[] = [
+    projectMemory ? `## 프로젝트 기억\n\n${projectMemory}` : null,
+    lessonsMemory ? `## 팀 회고 및 의사결정 히스토리\n\n${lessonsMemory}` : null,
+    agentMemory ? `## 내 기억 (이전 세션에서 학습)\n\n${agentMemory}` : null,
+  ].filter((s): s is string => s !== null);
+
+  if (parts.length === 0) return persona.systemPrompt;
+
+  return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}`;
+}
+
+/**
  * 워크플로 설정 로드.
  * 커스텀 workflow.jobs가 있으면 기본값과 job 단위로 merge.
  */

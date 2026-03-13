@@ -2,10 +2,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { join } from "node:path";
 import { handleSendMessage, handleGetMessages } from "./tools/messaging";
 import { handleCreateTask, handleUpdateTask, handleGetMyTasks } from "./tools/tasks";
 import { handlePostArtifact, handleGetArtifact } from "./tools/artifacts";
 import { handleRequestReview, handleSubmitReview } from "./tools/review";
+import { handleReadMemory, handleWriteMemory, handleAppendMemory } from "./tools/memory";
+import { handleSaveSessionSummary, handleListSessions, handleGetSessionSummary } from "./tools/sessions";
 import { getDb } from "./db/client";
 import { broadcast } from "./dashboard/websocket";
 import { getTaskById } from "./db/queries/tasks";
@@ -155,6 +158,67 @@ export function createMcpServer(): McpServer {
     comments: z.string().optional().describe("리뷰 코멘트"),
   }, async (input) => {
     const result = await handleSubmitReview(getDb(), SESSION_ID, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // --- memory 툴 등록 ---
+  const RELAY_DIR = process.env.RELAY_DIR ?? join(process.cwd(), ".relay");
+
+  // 에이전트(또는 프로젝트) 메모리 조회
+  server.tool("read_memory", {
+    agent_id: z.string().optional().describe("에이전트 ID (없으면 project.md + lessons.md 반환)"),
+  }, async (input) => {
+    const result = await handleReadMemory(RELAY_DIR, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 메모리 섹션 저장 (덮어쓰기)
+  server.tool("write_memory", {
+    agent_id: z.string().optional().describe("에이전트 ID (없으면 project.md에 저장)"),
+    key: z.string().describe("기억 섹션 키 (예: conventions, api-patterns)"),
+    content: z.string().describe("저장할 내용"),
+  }, async (input) => {
+    const result = await handleWriteMemory(RELAY_DIR, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 메모리 누적 추가
+  server.tool("append_memory", {
+    agent_id: z.string().optional().describe("에이전트 ID (없으면 lessons.md에 누적)"),
+    content: z.string().describe("추가할 내용"),
+  }, async (input) => {
+    const result = await handleAppendMemory(RELAY_DIR, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // --- sessions 툴 등록 ---
+
+  // 세션 요약 저장 (세션 종료 시 호출)
+  server.tool("save_session_summary", {
+    agent_id: z.string().describe("호출하는 에이전트 ID (보통 오케스트레이터)"),
+    session_id: z.string().describe("세션 ID (YYYY-MM-DD-NNN 형식)"),
+    summary: z.string().describe("세션 요약 텍스트"),
+    tasks: z.array(z.record(z.unknown())).describe("세션 내 모든 태스크"),
+    messages: z.array(z.record(z.unknown())).describe("세션 내 모든 메시지"),
+  }, async (input) => {
+    const result = await handleSaveSessionSummary(RELAY_DIR, input);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 세션 목록 조회
+  server.tool("list_sessions", {
+    agent_id: z.string().describe("호출하는 에이전트 ID"),
+  }, async (_input) => {
+    const result = await handleListSessions(RELAY_DIR);
+    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+  });
+
+  // 특정 세션 요약 조회
+  server.tool("get_session_summary", {
+    agent_id: z.string().describe("호출하는 에이전트 ID"),
+    session_id: z.string().describe("조회할 세션 ID"),
+  }, async (input) => {
+    const result = await handleGetSessionSummary(RELAY_DIR, { session_id: input.session_id });
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   });
 

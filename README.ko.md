@@ -137,24 +137,62 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 
 ## 시작하기
 
+### 사전 준비
+
+- [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 한다
+- [Bun](https://bun.sh) — relay의 런타임
+
+### 1. relay 클론 및 설치
+
 ```bash
-# 의존성 설치
+git clone https://github.com/your-org/relay.git
+cd relay
 bun install
+```
 
-# 글로벌 설치 (모든 프로젝트에서 사용 가능, 권장)
-bun run install --global
+### 2. 플러그인 설치
 
-# 또는 현재 프로젝트에만 설치
-bun run install
+**글로벌 설치** — 모든 프로젝트에서 `/relay` 사용 가능 (권장):
 
-# 최초 1회: 팀이 프로젝트 전체를 파악
+```bash
+bun run install:global
+```
+
+다음 세 가지가 설치된다:
+- Skills (`/relay`, `/relay-init`, `/relay-agent`) → `~/.claude/skills/`
+- MCP 서버 → `claude mcp add --scope user`로 등록
+- PostToolUse 훅 → `~/.claude/settings.json`에 주입
+
+**로컬 설치** — 특정 프로젝트에만 적용 (프로젝트 루트에서 실행):
+
+```bash
+bun run --cwd /path/to/relay install:local
+```
+
+글로벌/로컬 모두 설치된 경우 로컬이 글로벌을 오버라이드한다.
+
+### 3. 프로젝트에서 사용
+
+프로젝트 루트에서 Claude Code를 열고 실행:
+
+```
 /relay-init
+```
 
-# 이후 일반 사용
+전체 에이전트가 병렬로 코드베이스를 스캔한다. 각 에이전트는 자신의 역할에 맞는 부분을 파악하고 `.relay/memory/`에 기록한다. 최초 1회, 또는 프로젝트가 크게 바뀐 후 다시 실행한다.
+
+```
 /relay "쇼핑카트 기능 추가해줘"
 ```
 
-글로벌/로컬 모두 동일한 플러그인 구조다. 로컬이 글로벌을 오버라이드한다.
+이후는 팀이 알아서 한다.
+
+### 설치 확인
+
+```bash
+claude mcp list
+# relay: bun run /path/to/relay/packages/server/src/index.ts - ✓ Connected
+```
 
 <br />
 

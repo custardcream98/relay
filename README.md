@@ -133,24 +133,62 @@ All events are persisted to SQLite. You can replay an entire session after the f
 
 ## Getting started
 
+### Prerequisites
+
+- [Claude Code](https://claude.ai/download) — the CLI must be installed and authenticated
+- [Bun](https://bun.sh) — relay's runtime
+
+### 1. Clone and install relay
+
 ```bash
-# install dependencies
+git clone https://github.com/your-org/relay.git
+cd relay
 bun install
+```
 
-# global install (available across all your projects)
-bun run install --global
+### 2. Install the plugin
 
-# or local install (current project only)
-bun run install
+**Global install** — makes `/relay` available in every project:
 
-# first time: let the team learn your project
+```bash
+bun run install:global
+```
+
+This installs three things:
+- Skills (`/relay`, `/relay-init`, `/relay-agent`) → `~/.claude/skills/`
+- MCP server → registered via `claude mcp add --scope user`
+- PostToolUse hook → `~/.claude/settings.json`
+
+**Local install** — scoped to one project only (run from your project root):
+
+```bash
+bun run --cwd /path/to/relay install:local
+```
+
+Local overrides global when both are installed.
+
+### 3. Use it in your project
+
+Open Claude Code in any project and run:
+
+```
 /relay-init
+```
 
-# then just describe what you want
+This spawns all agents in parallel to scan your codebase. Each agent reads the parts relevant to their role and writes their findings to `.relay/memory/`. Takes a few minutes. Run it once per project, or again after major changes.
+
+```
 /relay "add a shopping cart"
 ```
 
-Global and local installs are the same plugin structure. Local overrides global.
+That's it. The team takes it from there.
+
+### Verify the setup
+
+```bash
+claude mcp list
+# relay: bun run /path/to/relay/packages/server/src/index.ts - ✓ Connected
+```
 
 <br />
 

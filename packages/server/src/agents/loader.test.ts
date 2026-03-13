@@ -3,8 +3,8 @@ import { describe, expect, test } from "bun:test";
 import { getWorkflow, loadAgents } from "./loader";
 import type { AgentsFile } from "./types";
 
-describe("에이전트 loader", () => {
-  test("기본 agents.default.yml 로드 성공", () => {
+describe("agent loader", () => {
+  test("loads agents.default.yml successfully", () => {
     const agents = loadAgents();
     expect(agents.pm).toBeDefined();
     expect(agents.fe).toBeDefined();
@@ -12,43 +12,43 @@ describe("에이전트 loader", () => {
     expect(agents.qa).toBeDefined();
   });
 
-  test("pm 에이전트에 필수 필드 존재", () => {
+  test("pm agent has required fields", () => {
     const agents = loadAgents();
     expect(agents.pm.name).toBeTruthy();
     expect(agents.pm.systemPrompt).toBeTruthy();
     expect(agents.pm.tools.length).toBeGreaterThan(0);
   });
 
-  test("커스텀 yml로 systemPrompt 오버라이드", () => {
+  test("overrides systemPrompt with custom yml", () => {
     const custom: AgentsFile = {
       agents: {
-        pm: { systemPrompt: "커스텀 PM 프롬프트" },
+        pm: { systemPrompt: "Custom PM prompt" },
       },
     };
     const agents = loadAgents(custom);
-    expect(agents.pm.systemPrompt).toBe("커스텀 PM 프롬프트");
-    // 오버라이드하지 않은 필드는 기본값 유지
+    expect(agents.pm.systemPrompt).toBe("Custom PM prompt");
+    // fields not overridden keep their default values
     expect(agents.pm.name).toBeTruthy();
   });
 
-  test("extends로 다른 에이전트 설정 상속", () => {
+  test("inherits config from another agent via extends", () => {
     const custom: AgentsFile = {
       agents: {
         "fe-senior": {
           extends: "fe",
           name: "Senior Frontend Engineer",
-          systemPrompt: "시니어 FE 프롬프트",
+          systemPrompt: "Senior FE prompt",
         },
       },
     };
     const agents = loadAgents(custom);
     expect(agents["fe-senior"]).toBeDefined();
     expect(agents["fe-senior"].name).toBe("Senior Frontend Engineer");
-    // extends한 fe의 tools 상속
+    // inherits tools from the extended fe agent
     expect(agents["fe-senior"].tools).toEqual(agents.fe.tools);
   });
 
-  test("disabled: true인 에이전트 제외", () => {
+  test("excludes agents with disabled: true", () => {
     const custom: AgentsFile = {
       agents: { designer: { disabled: true } },
     };
@@ -56,7 +56,7 @@ describe("에이전트 loader", () => {
     expect(agents.designer).toBeUndefined();
   });
 
-  test("disabled된 에이전트를 extends하면 에러 발생", () => {
+  test("throws when extending a disabled agent", () => {
     const custom: AgentsFile = {
       agents: {
         be: { disabled: true },
@@ -66,24 +66,84 @@ describe("에이전트 loader", () => {
     expect(() => loadAgents(custom)).toThrow();
   });
 
-  test("extends 없이 필수 필드 누락된 커스텀 에이전트는 에러 발생", () => {
+  test("throws for custom agent without extends when required fields are missing", () => {
     const custom: AgentsFile = {
       agents: {
-        "incomplete-agent": { name: "Missing fields" }, // tools, systemPrompt 누락
+        "incomplete-agent": { name: "Missing fields" }, // missing tools and systemPrompt
       },
     };
     expect(() => loadAgents(custom)).toThrow();
   });
 });
 
-describe("워크플로 loader", () => {
-  test("기본 workflow 로드 성공", () => {
+describe("language setting", () => {
+  test("sets language per agent", () => {
+    const custom: AgentsFile = {
+      agents: { pm: { language: "Korean" } },
+    };
+    const agents = loadAgents(custom);
+    expect(agents.pm.language).toBe("Korean");
+    // other agents have no language set
+    expect(agents.fe.language).toBeUndefined();
+  });
+
+  test("global language applies to all agents", () => {
+    const custom: AgentsFile = {
+      agents: {},
+      language: "English",
+    };
+    const agents = loadAgents(custom);
+    expect(agents.pm.language).toBe("English");
+    expect(agents.fe.language).toBe("English");
+    expect(agents.be.language).toBe("English");
+  });
+
+  test("per-agent language overrides global language", () => {
+    const custom: AgentsFile = {
+      agents: { pm: { language: "Korean" } },
+      language: "English",
+    };
+    const agents = loadAgents(custom);
+    expect(agents.pm.language).toBe("Korean");
+    expect(agents.fe.language).toBe("English");
+  });
+
+  test("buildSystemPromptWithMemory includes language instruction", () => {
+    const { buildSystemPromptWithMemory } = require("./loader");
+    const persona = {
+      id: "pm",
+      name: "PM",
+      emoji: "📋",
+      tools: [],
+      systemPrompt: "You are PM.",
+      language: "Korean",
+    };
+    const prompt = buildSystemPromptWithMemory(persona, "/nonexistent");
+    expect(prompt).toContain("You MUST respond in Korean");
+  });
+
+  test("no language instruction when language is not set", () => {
+    const { buildSystemPromptWithMemory } = require("./loader");
+    const persona = {
+      id: "pm",
+      name: "PM",
+      emoji: "📋",
+      tools: [],
+      systemPrompt: "You are PM.",
+    };
+    const prompt = buildSystemPromptWithMemory(persona, "/nonexistent");
+    expect(prompt).not.toContain("Language");
+  });
+});
+
+describe("workflow loader", () => {
+  test("loads default workflow successfully", () => {
     const workflow = getWorkflow();
     expect(workflow.jobs).toBeDefined();
     expect(Object.keys(workflow.jobs).length).toBeGreaterThan(0);
   });
 
-  test("planning job이 시작점으로 감지됨 (어떤 end에도 없음)", () => {
+  test("detects planning job as start (not a target in any end map)", () => {
     const workflow = getWorkflow();
     const allTargets = new Set(
       Object.values(workflow.jobs).flatMap((j) => Object.keys(j.end ?? {}))
@@ -93,22 +153,22 @@ describe("워크플로 loader", () => {
     expect(startJobs[0]).toBe("planning");
   });
 
-  test("커스텀 workflow로 job end 오버라이드", () => {
+  test("overrides job end with custom workflow", () => {
     const custom: AgentsFile = {
       agents: {},
       workflow: {
         jobs: {
           qa: {
-            description: "커스텀 QA",
-            end: { deploy: "테스트 통과 시", hotfix: "크리티컬 버그 발견 시" },
+            description: "Custom QA",
+            end: { deploy: "when tests pass", hotfix: "when a critical bug is found" },
           },
         },
       },
     };
     const workflow = getWorkflow(custom);
-    expect(workflow.jobs.qa.description).toBe("커스텀 QA");
+    expect(workflow.jobs.qa.description).toBe("Custom QA");
     expect(workflow.jobs.qa.end?.hotfix).toBeDefined();
-    // 다른 job은 기본값 유지
+    // other jobs keep their defaults
     expect(workflow.jobs.planning).toBeDefined();
   });
 });

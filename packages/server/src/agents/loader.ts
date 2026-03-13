@@ -3,13 +3,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
-// 빌드 시점에 파일 내용을 문자열로 embed — 번들/npm 배포 후에도 경로 문제 없음
+// Embeds file content as string at build time — no path issues after bundling/npm publish
 import defaultYmlText from "../../../../agents.default.yml" with { type: "text" };
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
 // agents.yml allows per-project customization — resolved relative to CWD (user project root)
 const PROJECT_ROOT = process.cwd();
-// .relay/agents.yml — 세션별 오버라이드 (git 추적 없이 커스터마이즈 가능)
+// .relay/agents.yml — session-level override (customize without git tracking)
 const RELAY_DIR = process.env.RELAY_DIR ?? join(PROJECT_ROOT, ".relay");
 
 /**
@@ -21,7 +21,7 @@ function readYml(path: string): AgentsFile | null {
   return yaml.load(readFileSync(path, "utf-8")) as AgentsFile;
 }
 
-/** 번들에 embed된 기본 AgentsFile을 파싱 */
+/** Parse the default AgentsFile embedded in the bundle */
 function parseDefaultYml(): AgentsFile {
   return yaml.load(defaultYmlText) as AgentsFile;
 }
@@ -33,10 +33,10 @@ function parseDefaultYml(): AgentsFile {
  * When using extends, the specified agent's config is inherited and then overridden.
  */
 export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> {
-  // 1. 빌드 시 embed된 기본값 사용 (파일 시스템 접근 불필요)
+  // 1. Use embedded defaults from build time (no filesystem access needed)
   const defaultFile = parseDefaultYml();
 
-  // 2. Load user customizations — .relay/agents.yml 우선, 없으면 루트 agents.yml
+  // 2. Load user customizations — .relay/agents.yml takes priority, fallback to root agents.yml
   const customFile = override ??
     readYml(join(RELAY_DIR, "agents.yml")) ??
     readYml(join(PROJECT_ROOT, "agents.yml")) ?? { agents: {} };
@@ -47,11 +47,15 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 
   const merged: Record<string, AgentPersona> = {};
 
+  // Global language setting (fallback when per-agent language is absent)
+  const globalLanguage = customFile.language;
+
   // Process built-in agents
   for (const [id, config] of Object.entries(defaults)) {
     const custom = customs[id] ?? {};
     if (custom.disabled) continue;
-    merged[id] = { id, ...config, ...custom } as AgentPersona;
+    const language = custom.language ?? globalLanguage;
+    merged[id] = { id, ...config, ...custom, ...(language ? { language } : {}) } as AgentPersona;
   }
 
   // Process custom-only agents (extends or brand-new)
@@ -59,11 +63,19 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
     if (id in merged) continue; // Already processed above
     if (config.disabled) continue;
 
+    const language = config.language ?? globalLanguage;
+
     if (config.extends) {
       // Extending a disabled or nonexistent agent is an error
       const base = merged[config.extends];
       if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
-      merged[id] = { ...base, ...config, id, extends: undefined } as AgentPersona;
+      merged[id] = {
+        ...base,
+        ...config,
+        id,
+        extends: undefined,
+        ...(language ? { language } : {}),
+      } as AgentPersona;
     } else {
       // New custom agent without extends must have all required fields
       const { name, emoji, tools, systemPrompt } = config;
@@ -72,7 +84,7 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
           `custom agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
         );
       }
-      merged[id] = { id, ...config } as AgentPersona;
+      merged[id] = { id, ...config, ...(language ? { language } : {}) } as AgentPersona;
     }
   }
 
@@ -83,6 +95,7 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
  * Inject memory into an agent's system prompt.
  * Prepends project memory (project.md), team retrospectives (lessons.md),
  * and the agent's personal memory (agents/{id}.md) in that order.
+ * If persona.language is set, appends a language instruction at the end.
  */
 export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: string): string {
   const memoryPath = join(relayDir, "memory", "agents", `${persona.id}.md`);
@@ -93,15 +106,20 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
   const projectMemory = existsSync(projectPath) ? readFileSync(projectPath, "utf-8") : null;
   const lessonsMemory = existsSync(lessonsPath) ? readFileSync(lessonsPath, "utf-8") : null;
 
+  // Language instruction — appended last to give it the highest priority
+  const languageInstruction = persona.language
+    ? `\n\n## Language\n\nYou MUST respond in ${persona.language} at all times.`
+    : "";
+
   const parts: string[] = [
     projectMemory ? `## Project Memory\n\n${projectMemory}` : null,
     lessonsMemory ? `## Team Retrospectives & Decision History\n\n${lessonsMemory}` : null,
     agentMemory ? `## My Memory (learned from previous sessions)\n\n${agentMemory}` : null,
   ].filter((s): s is string => s !== null);
 
-  if (parts.length === 0) return persona.systemPrompt;
+  if (parts.length === 0) return `${persona.systemPrompt}${languageInstruction}`;
 
-  return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}`;
+  return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}${languageInstruction}`;
 }
 
 /**

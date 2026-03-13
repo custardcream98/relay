@@ -3,12 +3,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
+// 빌드 시점에 파일 내용을 문자열로 embed — 번들/npm 배포 후에도 경로 문제 없음
+import defaultYmlText from "../../../../agents.default.yml" with { type: "text" };
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
-
-// agents.default.yml is located at the monorepo root (packages/server/src/agents/ → ../../../../ = root).
-// Using import.meta.dir (current file location) instead of process.cwd() ensures correct
-// path resolution even when the MCP server runs from a user's project directory.
-const RELAY_PKG_ROOT = join(import.meta.dir, "../../../..");
 
 // agents.yml allows per-project customization — resolved relative to CWD (user project root)
 const PROJECT_ROOT = process.cwd();
@@ -22,6 +19,11 @@ function readYml(path: string): AgentsFile | null {
   return yaml.load(readFileSync(path, "utf-8")) as AgentsFile;
 }
 
+/** 번들에 embed된 기본 AgentsFile을 파싱 */
+function parseDefaultYml(): AgentsFile {
+  return yaml.load(defaultYmlText) as AgentsFile;
+}
+
 /**
  * Load agent personas.
  * Applies the optional override file; otherwise reads agents.yml from the project root.
@@ -29,9 +31,8 @@ function readYml(path: string): AgentsFile | null {
  * When using extends, the specified agent's config is inherited and then overridden.
  */
 export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> {
-  // 1. Load built-in defaults (bundled with relay package)
-  const defaultFile = readYml(join(RELAY_PKG_ROOT, "agents.default.yml"));
-  if (!defaultFile) throw new Error("agents.default.yml not found");
+  // 1. 빌드 시 embed된 기본값 사용 (파일 시스템 접근 불필요)
+  const defaultFile = parseDefaultYml();
 
   // 2. Load user customizations (absent = empty object) — relative to project root
   const customFile = override ?? readYml(join(PROJECT_ROOT, "agents.yml")) ?? { agents: {} };
@@ -104,8 +105,7 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
  * If a custom workflow.jobs override exists, merge it with the defaults at the job level.
  */
 export function getWorkflow(override?: AgentsFile): WorkflowConfig {
-  const defaultFile = readYml(join(RELAY_PKG_ROOT, "agents.default.yml"));
-  if (!defaultFile) throw new Error("agents.default.yml not found");
+  const defaultFile = parseDefaultYml();
 
   const customFile = override ?? readYml(join(PROJECT_ROOT, "agents.yml")) ?? { agents: {} };
 

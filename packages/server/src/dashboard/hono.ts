@@ -1,6 +1,7 @@
 // packages/server/src/dashboard/hono.ts
 
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { loadAgents } from "../agents/loader";
@@ -14,9 +15,10 @@ import { broadcast } from "./websocket";
 
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
-// hono.ts lives in packages/server/src/dashboard/ → monorepo root: import.meta.dir + "../../../.."
-const RELAY_PKG_ROOT = join(import.meta.dir, "../../../..");
-const DASHBOARD_DIST = join(RELAY_PKG_ROOT, "packages", "dashboard", "dist");
+// 번들된 경우: import.meta.url 기준 같은 디렉토리의 `dashboard/` 폴더를 사용
+// 개발 환경: RELAY_DASHBOARD_DIR env var로 override (예: packages/dashboard/dist)
+const DASHBOARD_DIST =
+  process.env.RELAY_DASHBOARD_DIR ?? join(dirname(fileURLToPath(import.meta.url)), "dashboard");
 
 export const app = new Hono();
 

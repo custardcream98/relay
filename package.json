@@ -24,10 +24,14 @@
     "dashboard:build": "bun run --filter @relay/dashboard build",
     "docs:dev": "bun run --filter @relay/docs dev",
     "docs:build": "bun run --filter @relay/docs build",
+    "build:server": "bun run --filter @relay/server build",
+    "build:release": "bun run dashboard:build && bun run build:server",
+    "release": "bun run build:release && changeset publish",
     "prepare": "husky"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",
+    "@changesets/cli": "^2.30.0",
     "husky": "^9.1.7"
   }
 }

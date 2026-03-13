@@ -1,11 +1,8 @@
 {
   "mcpServers": {
     "relay": {
-      "command": "bash",
-      "args": [
-        "-c",
-        "cd '${CLAUDE_PLUGIN_ROOT}' && bun install --frozen-lockfile --silent && bun run packages/server/src/index.ts"
-      ]
+      "command": "npx",
+      "args": ["-y", "@relay/server"]
     }
   }
 }

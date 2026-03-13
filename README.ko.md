@@ -4,7 +4,7 @@
 <p align="center">
   <strong>Claude Code 위에서 동작하는 멀티 에이전트 협업 프레임워크.</strong>
   <br />
-  <span>하나의 태스크. 팀 전체가 움직인다. PM, Designer, DA, FE, BE, QA, Deployer.</span>
+  <span>하나의 태스크. 온 팀이 움직여요. PM, Designer, DA, FE, BE, QA, Deployer.</span>
 </p>
 
 <p align="center">
@@ -16,9 +16,9 @@
 
 ## 개념
 
-일반적인 AI 코딩 툴은 에이전트 하나가 모든 걸 처리한다.
+일반적인 AI 코딩 툴은 에이전트 하나가 모든 걸 처리해요.
 
-relay는 팀을 만든다. 각 에이전트는 자신의 역할만 수행하고, MCP 서버를 통해 서로 직접 소통한다. PM이 기획하면 Designer가 설계하고, DA가 측정 계획을 세운다. FE/BE가 개발하고 서로의 코드를 리뷰한다. QA가 검증하고, Deployer가 배포한다.
+relay는 팀을 만들어요. 각 에이전트는 자신의 역할만 수행하고, MCP 서버를 통해 서로 직접 소통해요. PM이 기획하면 Designer가 설계하고, DA가 측정 계획을 세워요. FE/BE가 개발하고 서로의 코드를 리뷰해요. QA가 검증하고, Deployer가 배포해요.
 
 ```
 사용자: "쇼핑카트 기능 추가해줘"
@@ -33,13 +33,13 @@ relay는 팀을 만든다. 각 에이전트는 자신의 역할만 수행하고,
 [Deployer] 배포
 ```
 
-파이프라인이 아니다. 에이전트들은 MCP 툴을 통해 peer-to-peer로 소통한다 — 중앙 오케스트레이터 없이, 추가 API 과금 없이.
+파이프라인이 아니에요. 에이전트들은 MCP 툴을 통해 peer-to-peer로 소통해요 — 중앙 오케스트레이터 없이, 추가 API 과금 없이.
 
 <br />
 
 ## 동작 방식
 
-relay는 세 가지 레이어로 구성된 Claude Code 플러그인이다.
+relay는 세 가지 레이어로 구성된 Claude Code 플러그인이에요.
 
 ```
 relay (plugin)
@@ -48,17 +48,17 @@ relay (plugin)
 └── Hooks       자동화 트리거
 ```
 
-**MCP 서버**는 데이터를 저장하고 라우팅만 한다. Claude API 호출도, 의사결정도 없다. 에이전트들이 읽고 쓰는 메시지 버스, 태스크 보드, 아티팩트 저장소, 리뷰 큐, 메모리 레이어가 전부다.
+**MCP 서버**는 데이터를 저장하고 라우팅만 해요. Claude API 호출도, 의사결정도 없어요. 에이전트들이 읽고 쓰는 메시지 버스, 태스크 보드, 아티팩트 저장소, 리뷰 큐, 메모리 레이어가 전부예요.
 
-**Skills**는 오케스트레이팅 Claude Code 세션에게 sub-agent를 어떻게 띄우고, 어떤 MCP 툴을 쓰고, 결과를 어떻게 해석할지를 알려주는 `.md` 파일이다. 오케스트레이션 전략이 코드가 아닌 텍스트로 존재한다. 동작 방식을 바꾸고 싶으면 파일을 수정하면 된다 — 서버 재배포 없이.
+**Skills**는 오케스트레이터 역할을 하는 Claude Code 세션에게 sub-agent를 어떻게 띄우고, 어떤 MCP 툴을 쓰고, 결과를 어떻게 해석할지 알려주는 `.md` 파일이에요. 오케스트레이션 전략을 코드가 아닌 텍스트로 관리해요. 동작 방식을 바꾸고 싶으면 파일을 수정하면 돼요 — 서버 재배포 없이.
 
-**Hooks** — `hooks/hooks.json`이 PostToolUse 이벤트를 감지해 에이전트 상태를 대시보드에 실시간으로 push한다.
+**Hooks** — `hooks/hooks.json`이 PostToolUse 이벤트를 감지해 에이전트 상태를 대시보드에 실시간으로 push해요.
 
 <br />
 
 ## 에이전트 툴
 
-모든 에이전트는 MCP 툴을 통해서만 소통한다.
+모든 에이전트는 MCP 툴을 통해서만 소통해요.
 
 | 카테고리 | 툴 | 설명 |
 |---|---|---|
@@ -78,13 +78,13 @@ relay (plugin)
 | 세션 | `list_sessions` | 과거 세션 목록 |
 | 세션 | `get_session_summary` | 특정 세션 요약 조회 |
 
-오케스트레이터는 추가로 `list_agents`, `get_workflow`를 사용해 런타임에 페르소나 설정과 워크플로 DAG를 읽는다.
+오케스트레이터는 추가로 `list_agents`, `get_workflow`를 사용해 런타임에 페르소나 설정과 워크플로 DAG를 읽어요.
 
 <br />
 
 ## 메모리 구조
 
-에이전트의 기억은 수명이 다른 두 레이어로 분리된다.
+에이전트의 기억은 수명이 다른 두 레이어로 분리돼요.
 
 ```
 your-project/
@@ -104,17 +104,17 @@ your-project/
             └── summary.md
 ```
 
-**세션 시작 시** — `project.md`와 각 에이전트 개인 기억이 system prompt에 자동으로 주입된다.
+**세션 시작 시** — `project.md`와 각 에이전트 개인 기억이 system prompt에 자동으로 주입돼요.
 
-**세션 종료 시** — 각 에이전트가 `write_memory`로 새로 배운 것과 주요 결정을 기억에 추가한다.
+**세션 종료 시** — 각 에이전트가 `write_memory`로 새로 배운 것과 주요 결정을 기억에 추가해요.
 
-기억은 평범한 Markdown 파일이다. 사람이 직접 편집하거나 git으로 팀 전체가 공유할 수 있다.
+기억은 평범한 Markdown 파일이에요. 직접 편집하거나 git으로 팀 전체가 공유할 수 있어요.
 
 <br />
 
 ## 대시보드
 
-MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께 서빙한다.
+MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께 제공해요.
 
 ```
 +----------------------------------------------------------+
@@ -125,13 +125,13 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 +-------------------+------------------+-------------------+
 ```
 
-**Task Board** — 전체 이슈 현황 Kanban. 태스크 상태 변경 시 실시간 업데이트.
+**Task Board** — 전체 이슈 현황 Kanban. 태스크 상태 변경 시 실시간으로 업데이트돼요.
 
-**Message Feed** — 에이전트 간 대화를 Slack 스레드 형태로 표시.
+**Message Feed** — 에이전트 간 대화를 Slack 스레드 형태로 보여줘요.
 
-**Agent Thoughts** — 선택한 에이전트의 추론 과정을 실시간 스트리밍.
+**Agent Thoughts** — 선택한 에이전트의 추론 과정을 실시간으로 스트리밍해요.
 
-모든 이벤트는 SQLite에 저장된다. 세션 종료 후 전체 과정을 재생(replay)할 수 있다.
+모든 이벤트는 SQLite에 저장돼요. 세션 종료 후 전체 과정을 재생(replay)할 수 있어요.
 
 <br />
 
@@ -139,8 +139,8 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 
 ### 사전 준비
 
-- [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 한다
-- [Bun](https://bun.sh) — relay의 런타임
+- [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 해요
+- [Bun](https://bun.sh) — relay의 런타임이에요
 
 ### 1. 마켓플레이스 추가
 
@@ -154,12 +154,12 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 /plugin install relay
 ```
 
-다음이 자동으로 설정된다:
+다음이 자동으로 설정돼요:
 - Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
 - MCP 서버 (`.mcp.json` 기반)
 - PostToolUse 훅 (`hooks/hooks.json` 기반)
 
-### 3. 프로젝트에서 사용
+### 3. 프로젝트에서 사용하기
 
 프로젝트 최초 사용 시:
 
@@ -167,7 +167,7 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 /relay:init
 ```
 
-전체 에이전트가 병렬로 코드베이스를 스캔한다. 각 에이전트는 자신의 역할에 맞는 부분을 파악하고 `.relay/memory/`에 기록한다. 최초 1회, 또는 프로젝트가 크게 바뀐 후 다시 실행한다.
+전체 에이전트가 병렬로 코드베이스를 스캔해요. 각 에이전트는 자신의 역할에 맞는 부분을 파악하고 `.relay/memory/`에 기록해요. 최초 1회, 또는 프로젝트가 크게 바뀐 후 다시 실행하면 돼요.
 
 이후 태스크 실행:
 
@@ -185,7 +185,7 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드를 함께
 
 ## 에이전트 커스터마이징
 
-두 YAML 파일을 런타임에 merge한다.
+relay는 두 YAML 파일을 런타임에 병합해요.
 
 ```yaml
 # agents.default.yml — 수정 비권장
@@ -195,7 +195,7 @@ agents:
     systemPrompt: |
       You are a senior frontend engineer...
 
-# agents.yml — 자유롭게 편집
+# agents.yml — 자유롭게 편집하세요
 agents:
   fe:
     systemPrompt: |          # 기본값 오버라이드

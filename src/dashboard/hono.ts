@@ -7,8 +7,8 @@ import { getAllMessages } from "../db/queries/messages";
 import { getAllTasks } from "../db/queries/tasks";
 import { getAllArtifacts } from "../db/queries/artifacts";
 import { loadAgents } from "../agents/loader";
+import { handleGetSessionSummary } from "../tools/sessions";
 // broadcast는 Task 21에서 /api/hook/tool-use 엔드포인트 추가 시 import
-// handleGetSessionSummary는 Task 17에서 sessions.ts 구현 후 추가
 
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
@@ -44,7 +44,13 @@ app.get("/api/session", (c) => {
   });
 });
 
-// /api/sessions/:id 엔드포인트는 Task 17에서 sessions.ts 구현 후 추가
+// 세션 요약 조회 API
+app.get("/api/sessions/:id", async (c) => {
+  const relayDir = process.env.RELAY_DIR ?? join(process.cwd(), ".relay");
+  const result = await handleGetSessionSummary(relayDir, { session_id: c.req.param("id") });
+  if (!result.success) return c.json({ error: result.error }, 404);
+  return c.json(result);
+});
 
 // SPA fallback: React 앱 라우팅을 위해 모든 경로에서 index.html 반환
 app.get("*", (c) => new Response(Bun.file(join(DASHBOARD_DIST, "index.html"))));

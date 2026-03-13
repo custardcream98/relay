@@ -1,6 +1,6 @@
 // packages/server/build.ts
-// @custardcream/relay npm 패키지 빌드 스크립트
-// 실행: bun run build.ts (루트의 build:server 스크립트에서 호출)
+// Build script for @custardcream/relay npm package
+// Usage: bun run build.ts (called from root build:server script)
 import { chmod, cp, mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -10,12 +10,12 @@ const outDir = join(serverRoot, "dist");
 const dashboardSrc = join(repoRoot, "packages/dashboard/dist");
 const dashboardDest = join(outDir, "dashboard");
 
-// 1. 이전 빌드 정리
+// 1. Clean previous build
 await rm(outDir, { recursive: true, force: true });
 await mkdir(outDir, { recursive: true });
 
-// 2. 서버 번들링 (bun:sqlite는 Bun 내장이라 externalize)
-console.log("📦 서버 번들링 중...");
+// 2. Bundle server (bun:sqlite is Bun built-in, must be externalized)
+console.log("📦 Bundling server...");
 const result = await Bun.build({
   entrypoints: [join(serverRoot, "src/index.ts")],
   outdir: outDir,
@@ -30,14 +30,14 @@ if (!result.success) {
   process.exit(1);
 }
 
-// 3. 샤뱅 추가 + 실행 권한 부여
+// 3. Add shebang + make executable
 const indexPath = join(outDir, "index.js");
 const original = await Bun.file(indexPath).text();
 await Bun.write(indexPath, `#!/usr/bin/env bun\n${original}`);
 await chmod(indexPath, 0o755);
 
-// 4. 대시보드 정적 파일 복사 (dist/dashboard/)
-console.log("🎨 대시보드 파일 복사 중...");
+// 4. Copy dashboard static files to dist/dashboard/
+console.log("🎨 Copying dashboard assets...");
 await cp(dashboardSrc, dashboardDest, { recursive: true });
 
-console.log("✅ 빌드 완료 → dist/");
+console.log("✅ Build complete → dist/");

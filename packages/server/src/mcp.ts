@@ -1,6 +1,7 @@
 // packages/server/src/mcp.ts
 
 import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import yaml from "js-yaml";
@@ -412,28 +413,49 @@ export function createMcpServer(): McpServer {
 
   // Lazy agent cache — populated on first list_agents call, after setProjectRoot() has been set.
   // Loading at createMcpServer() time would use CWD=/tmp (bunx behavior) and always return [].
-  let agents: Record<string, AgentPersona> | null = null;
+  // Key: session_id string, or "__default__" for the no-session-id case.
+  const agentsCache = new Map<string, Record<string, AgentPersona>>();
   let pool: Record<string, AgentPersona> | null = null;
 
-  function getAgents(): Record<string, AgentPersona> {
-    if (agents === null) {
-      try {
-        // RELAY_SESSION_AGENTS_FILE allows the relay skill to override the active team per session
-        const sessionAgentsFile = process.env.RELAY_SESSION_AGENTS_FILE;
-        if (sessionAgentsFile && existsSync(sessionAgentsFile)) {
-          const parsed = yaml.load(readFileSync(sessionAgentsFile, "utf-8")) as Parameters<
+  function getAgents(sessionId?: string): Record<string, AgentPersona> {
+    const cacheKey = sessionId ?? "__default__";
+    if (agentsCache.has(cacheKey)) return agentsCache.get(cacheKey)!;
+
+    let result: Record<string, AgentPersona>;
+    try {
+      if (sessionId) {
+        // Load session-specific agent file: .relay/session-agents-{session_id}.yml
+        const sessionFile = join(getRelayDir(), `session-agents-${sessionId}.yml`);
+        if (existsSync(sessionFile)) {
+          const parsed = yaml.load(readFileSync(sessionFile, "utf-8")) as Parameters<
             typeof loadAgents
           >[0];
-          agents = loadAgents(parsed ?? undefined);
+          result = loadAgents(parsed ?? undefined);
         } else {
-          agents = loadAgents();
+          // No session-specific file — fall back directly to agents.yml.
+          // Do NOT use RELAY_SESSION_AGENTS_FILE here: sessionId takes priority over the
+          // legacy env var, and mixing them would break concurrent-session isolation.
+          result = loadAgents();
         }
-      } catch {
-        // No agents.yml — return empty so /relay:init phase 0 (team suggestion) can run
-        agents = {};
+      } else {
+        // No session_id — check legacy RELAY_SESSION_AGENTS_FILE env var first
+        const legacyFile = process.env.RELAY_SESSION_AGENTS_FILE;
+        if (legacyFile && existsSync(legacyFile)) {
+          const parsed = yaml.load(readFileSync(legacyFile, "utf-8")) as Parameters<
+            typeof loadAgents
+          >[0];
+          result = loadAgents(parsed ?? undefined);
+        } else {
+          result = loadAgents();
+        }
       }
+    } catch {
+      // No agents.yml — return empty so /relay:init phase 0 (team suggestion) can run
+      result = {};
     }
-    return agents;
+
+    agentsCache.set(cacheKey, result);
+    return result;
   }
 
   function getPool(): Record<string, AgentPersona> {
@@ -452,14 +474,20 @@ export function createMcpServer(): McpServer {
     "list_agents",
     {
       agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      session_id: z
+        .string()
+        .optional()
+        .describe(
+          "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml before falling back to agents.yml"
+        ),
     },
-    async () => {
+    async (input) => {
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify(
-              Object.values(getAgents()).map((a) => ({
+              Object.values(getAgents(input.session_id)).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,

@@ -13,8 +13,8 @@ packages/docs/.astro/
 *.db-shm
 *.db-wal
 
-# Ephemeral per-session team file — written by /relay:relay during Team Composition
-.relay/session-agents.yml
+# Ephemeral per-session team files — written by /relay:relay during Team Composition
+.relay/session-agents*.yml
 
 # Git worktrees
 .worktrees/

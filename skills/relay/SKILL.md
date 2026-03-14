@@ -8,7 +8,7 @@ react to messages and tasks organically, like a Slack-first team.
 
 ## Pre-flight Checks
 
-1. Confirm the relay MCP server is connected by calling `list_agents`.
+1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
    - If no agents are returned: tell the user "No agents defined. Create agents.yml first. See agents.example.yml for reference." and stop.
 2. Verify `.relay/memory/project.md` exists.
    - If absent: suggest running `/relay:init` first.
@@ -27,7 +27,11 @@ for the session rather than always using the static `agents.yml` roster.
 
 ### Step 0: Check for an existing team
 
-Call `list_agents` (already done in Pre-flight step 1).
+Call `list_agents` (already done in Pre-flight step 1 — **without** `session_id`).
+
+> **Note**: The Pre-flight `list_agents` call does not pass `session_id` — the
+> session-specific file has not been written yet. `session_id` is passed only in
+> Session Startup step 1, after Team Composition writes the session-specific file.
 
 - **If `list_agents` returned ≥ 1 agent** — ask the user:
   > "Use your configured team from `agents.yml`? Or would you like to pick a custom team
@@ -66,13 +70,13 @@ Call `list_agents` (already done in Pre-flight step 1).
    - "Remove X, add Y" → adjust the team and re-show.
    - "Start over" → go back to step 2.
 
-5. Once confirmed, write the selected team to `.relay/session-agents.yml`:
+5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
    - Format is identical to `agents.yml` (an `agents:` map with only the selected entries).
    - To build the file, call `list_agents` — it returns full personas including `systemPrompt`.
      Map each selected agent ID to its full persona config.
-   - Write the file at `.relay/session-agents.yml`.
-   - Set the `RELAY_SESSION_AGENTS_FILE` environment variable to the absolute path of this
-     file so the server picks it up on its next `list_agents` call.
+   - Write the file at `.relay/session-agents-{session_id}.yml` (use the session ID generated
+     in Pre-flight step 3).
+   - Do NOT set `RELAY_SESSION_AGENTS_FILE` — pass `session_id` directly to `list_agents` instead.
 
 > **Fallback**: if no pool is configured and no `agents.yml` exists, the session cannot
 > start. Prompt the user to create one.
@@ -85,7 +89,7 @@ Call `list_agents` (already done in Pre-flight step 1).
 
 ### Step 1: Load all agents
 
-Call `list_agents` to get the active roster (reflects any `session-agents.yml` override).
+Call `list_agents(agent_id: "orchestrator", session_id: "{session_id}")` to get the active roster.
 Cache the result — it will be referenced throughout.
 
 Separate agents into:
@@ -275,8 +279,8 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
 2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
-3. Clean up: if `.relay/session-agents.yml` was written during Team Composition, delete it
-   (it is ephemeral and gitignored).
+3. Clean up: if `.relay/session-agents-{session_id}.yml` was written during Team Composition,
+   delete it (it is ephemeral and gitignored).
 4. Report results to the user.
 
 ## Multi-Instance Notes

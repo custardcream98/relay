@@ -158,6 +158,7 @@ export function createMcpServer(): McpServer {
             assignee: input.assignee ?? null,
             status: "todo",
             priority: input.priority,
+            description: input.description ?? null,
           },
           timestamp: Date.now(),
         });
@@ -191,6 +192,7 @@ export function createMcpServer(): McpServer {
               assignee: task.assignee,
               status: task.status,
               priority: task.priority,
+              description: task.description,
             },
             timestamp: Date.now(),
           });
@@ -232,6 +234,7 @@ export function createMcpServer(): McpServer {
               assignee: task.assignee,
               status: task.status,
               priority: task.priority,
+              description: task.description,
             },
             timestamp: Date.now(),
           });
@@ -484,6 +487,7 @@ export function createMcpServer(): McpServer {
     }
 
     const cacheKey = sessionId ?? "__default__";
+    // biome-ignore lint/style/noNonNullAssertion: get() is safe after has() check
     if (agentsCache.has(cacheKey)) return agentsCache.get(cacheKey)!;
 
     let result: Record<string, AgentPersona>;

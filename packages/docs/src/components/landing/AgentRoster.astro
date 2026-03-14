@@ -2,6 +2,7 @@
 import { type Lang, useTranslations } from "../../i18n/landing";
 
 const { lang = "en" }: { lang?: Lang } = Astro.props;
+// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const t = useTranslations(lang);
 
 // agents.pool.yml example — code snippet showing custom pool definition

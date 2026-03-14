@@ -317,6 +317,7 @@ main {
 
 /* ─── 우측 TOC (On this page) ─── */
 
+/* biome-ignore lint/style/noDescendingSpecificity: starlight-toc a and .sidebar-content a target different DOM regions */
 starlight-toc a {
   font-size: 0.8125rem !important;
 }

@@ -212,7 +212,7 @@ export type UIKeys = keyof (typeof ui)["en"];
 export function useTranslations(lang: Lang) {
   return function t(key: UIKeys): string {
     const langMap = ui[lang] as Record<string, string>;
-    const enMap = ui["en"] as Record<string, string>;
+    const enMap = ui.en as Record<string, string>;
     return langMap[key] ?? enMap[key];
   };
 }

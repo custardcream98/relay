@@ -36,6 +36,16 @@
   },
   "overrides": [
     {
+      "includes": ["packages/docs/src/styles/*.css"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noImportantStyles": "off"
+          }
+        }
+      }
+    },
+    {
       "includes": ["packages/dashboard/src/components/MarkdownContent.tsx"],
       "linter": {
         "rules": {

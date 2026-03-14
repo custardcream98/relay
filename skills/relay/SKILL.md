@@ -12,14 +12,25 @@ react to messages and tasks organically, like a Slack-first team.
    - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
 2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
    - If absent: suggest running `/relay:init` first to set up the pool.
-3. Generate a new session ID in `YYYY-MM-DD-NNN-XXXX` format, where `XXXX` is 4 random hex digits.
-   - Example: `2026-03-14-001-a3f7`
-   - The random suffix prevents file-name collisions when two sessions start within the same second
-     (both would write to the same `session-agents-{id}.yml` without it).
-   - If the `RELAY_INSTANCE` environment variable is set, prefix the session ID:
-     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN-XXXX` (e.g. `project-a-2026-03-14-001-a3f7`).
-4. Call `get_server_info` to get the actual dashboard URL (the server auto-selects a port from 3456–3465).
-   - Tell the user: "Dashboard: {dashboardUrl}"
+3. In parallel, call `list_sessions` and `get_server_info` to determine the correct session ID and dashboard URL.
+
+   **3a. Compute the next NNN counter** using `list_sessions` result:
+   - Today's date prefix: `YYYY-MM-DD` (current date).
+   - If `instanceId` is non-null (from `get_server_info`), filter for sessions whose IDs start with `{instanceId}-YYYY-MM-DD-`; otherwise filter for sessions starting with `YYYY-MM-DD-`.
+   - For each matching session ID, strip the `{instanceId}-` prefix if present, then split by `-` and parse the **segment at index 3** as an integer (that is the NNN counter).
+   - Next NNN = max of all parsed counters + 1, or 1 if no sessions match today.
+   - Format NNN as a 3-digit zero-padded integer (e.g. `001`, `007`).
+
+   **3b. Compose the session ID:**
+   - Base: `YYYY-MM-DD-NNN-XXXX` where `XXXX` is 4 random hex digits (collision guard for same-second starts).
+   - If `instanceId` is non-null: `{instanceId}-YYYY-MM-DD-NNN-XXXX`.
+   - Example (no instance): `2026-03-14-007-a3f7`
+   - Example (with instance `project-a`): `project-a-2026-03-14-007-a3f7`
+
+   **3c. Register the session:** Call `start_session(agent_id: "orchestrator", session_id: "{composedId}")`.
+   This activates the session ID on the server and resets the live dashboard view.
+
+4. Report to the user: `"Session: {session_id} | Dashboard: {dashboardUrl}"`
 
 ## Team Composition (Dynamic Agent Selection)
 

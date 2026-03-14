@@ -153,8 +153,12 @@ function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
       // Skip live WebSocket events when viewing a historical session
-      // (tasks and messages are frozen to the snapshot; only let session:snapshot through for reconnect)
-      if (state.viewingSessionId !== null && action.event.type !== "session:snapshot") {
+      // (tasks and messages are frozen to the snapshot; only let session:snapshot and session:started through)
+      if (
+        state.viewingSessionId !== null &&
+        action.event.type !== "session:snapshot" &&
+        action.event.type !== "session:started"
+      ) {
         return state;
       }
 
@@ -297,6 +301,20 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               : [...state.tasks, incomingTask];
           return { ...state, ...baseUpdates, tasks };
         }
+        case "session:started":
+          // A new relay session started — clear all live state so the dashboard shows a fresh run
+          return {
+            ...state,
+            tasks: [],
+            messages: [],
+            agentStatuses: {},
+            thinkingChunks: {},
+            selectedAgent: null,
+            timeline: [],
+            sessionTeam: [],
+            viewingSessionId: null,
+            _liveSnapshot: null,
+          };
         default:
           return { ...state, ...baseUpdates };
       }

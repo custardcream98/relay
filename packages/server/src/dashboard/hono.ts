@@ -17,9 +17,6 @@ import { getAllTasks } from "../db/queries/tasks";
 import { handleGetSessionSummary } from "../tools/sessions";
 import { broadcast } from "./websocket";
 
-// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
-const SESSION_ID = getSessionId();
-
 // Bundled: resolve dashboard/ relative to this file's location
 // Dev: override with RELAY_DASHBOARD_DIR env var (e.g. packages/dashboard/dist)
 const DASHBOARD_DIST =
@@ -59,10 +56,11 @@ app.get("/api/agents", (c) => {
 // API: session snapshot (used for initial dashboard load)
 app.get("/api/session", (c) => {
   const db = getDb();
+  const sessionId = getSessionId();
   return c.json({
-    tasks: getAllTasks(db, SESSION_ID),
-    messages: getAllMessages(db, SESSION_ID),
-    artifacts: getAllArtifacts(db, SESSION_ID),
+    tasks: getAllTasks(db, sessionId),
+    messages: getAllMessages(db, sessionId),
+    artifacts: getAllArtifacts(db, sessionId),
   });
 });
 

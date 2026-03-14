@@ -16,6 +16,7 @@ import {
   getRelayDir,
   getSessionId,
   setProjectRoot,
+  setSessionId,
   uriToPath,
 } from "./config";
 import { broadcast } from "./dashboard/websocket";
@@ -38,9 +39,6 @@ import {
   handleGetTeamStatus,
   handleUpdateTask,
 } from "./tools/tasks";
-
-// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
-const SESSION_ID = getSessionId();
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({
@@ -74,6 +72,33 @@ export function createMcpServer(): McpServer {
     }
   );
 
+  // Declares the active session ID for this relay run.
+  // Call once at the start of each /relay:relay invocation — before any other tools.
+  // All subsequent tool calls in this process will use the given session ID.
+  // Also broadcasts session:started to reset the live dashboard view.
+  server.tool(
+    "start_session",
+    {
+      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      session_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .describe("Session ID to activate (e.g. 2026-03-14-007)"),
+    },
+    async (input) => {
+      setSessionId(input.session_id);
+      broadcast({ type: "session:started", sessionId: input.session_id, timestamp: Date.now() });
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({ success: true, session_id: input.session_id }),
+          },
+        ],
+      };
+    }
+  );
+
   // --- messaging tools ---
 
   // Send a message from one agent to another (or broadcast)
@@ -86,7 +111,7 @@ export function createMcpServer(): McpServer {
       thread_id: z.string().optional().describe("Thread ID (optional)"),
     },
     async (input) => {
-      const result = await handleSendMessage(getDb(), SESSION_ID, input);
+      const result = await handleSendMessage(getDb(), getSessionId(), input);
       if (result.success) {
         broadcast({
           type: "message:new",
@@ -105,7 +130,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the agent whose messages to fetch"),
     },
     async (input) => {
-      const result = await handleGetMessages(getDb(), SESSION_ID, input);
+      const result = await handleGetMessages(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -123,7 +148,7 @@ export function createMcpServer(): McpServer {
       priority: z.enum(["critical", "high", "medium", "low"]).describe("Task priority"),
     },
     async (input) => {
-      const result = await handleCreateTask(getDb(), SESSION_ID, input);
+      const result = await handleCreateTask(getDb(), getSessionId(), input);
       if (result.success && result.task_id) {
         broadcast({
           type: "task:updated",
@@ -154,7 +179,7 @@ export function createMcpServer(): McpServer {
       assignee: z.string().optional().describe("New assignee"),
     },
     async (input) => {
-      const result = await handleUpdateTask(getDb(), SESSION_ID, input);
+      const result = await handleUpdateTask(getDb(), getSessionId(), input);
       if (result.success) {
         const task = getTaskById(getDb(), input.task_id);
         if (task) {
@@ -182,7 +207,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the agent whose tasks to fetch"),
     },
     async (input) => {
-      const result = await handleGetMyTasks(getDb(), SESSION_ID, input);
+      const result = await handleGetMyTasks(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -195,7 +220,7 @@ export function createMcpServer(): McpServer {
       task_id: z.string().describe("ID of the task to claim"),
     },
     async (input) => {
-      const result = await handleClaimTask(getDb(), SESSION_ID, input);
+      const result = await handleClaimTask(getDb(), getSessionId(), input);
       if (result.claimed) {
         const task = getTaskById(getDb(), input.task_id);
         if (task) {
@@ -223,7 +248,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the calling agent"),
     },
     async (input) => {
-      const result = await handleGetTeamStatus(getDb(), SESSION_ID, input);
+      const result = await handleGetTeamStatus(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -235,7 +260,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the calling agent"),
     },
     async (input) => {
-      const result = await handleGetAllTasks(getDb(), SESSION_ID, input);
+      const result = await handleGetAllTasks(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -255,7 +280,7 @@ export function createMcpServer(): McpServer {
       task_id: z.string().optional().describe("Associated task ID"),
     },
     async (input) => {
-      const result = await handlePostArtifact(getDb(), SESSION_ID, input);
+      const result = await handlePostArtifact(getDb(), getSessionId(), input);
       if (result.success && result.artifact_id) {
         broadcast({
           type: "artifact:posted",
@@ -280,7 +305,7 @@ export function createMcpServer(): McpServer {
       name: z.string().describe("Name of the artifact to retrieve"),
     },
     async (input) => {
-      const result = await handleGetArtifact(getDb(), SESSION_ID, input);
+      const result = await handleGetArtifact(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -296,7 +321,7 @@ export function createMcpServer(): McpServer {
       reviewer: z.string().describe("ID of the reviewer agent (e.g. fe2, be2)"),
     },
     async (input) => {
-      const result = await handleRequestReview(getDb(), SESSION_ID, input);
+      const result = await handleRequestReview(getDb(), getSessionId(), input);
       if (result.success && result.review_id) {
         broadcast({
           type: "review:requested",
@@ -323,7 +348,7 @@ export function createMcpServer(): McpServer {
       comments: z.string().optional().describe("Review comments"),
     },
     async (input) => {
-      const result = await handleSubmitReview(getDb(), SESSION_ID, input);
+      const result = await handleSubmitReview(getDb(), getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );

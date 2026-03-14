@@ -104,8 +104,6 @@ async function resolvePort(): Promise<number> {
 
 const DASHBOARD_PORT = await resolvePort();
 setPort(DASHBOARD_PORT);
-// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
-const SESSION_ID = getSessionId();
 
 // Dashboard HTTP + WebSocket server.
 // EADDRINUSE is emitted asynchronously on the server's "error" event — not catchable via try/catch.
@@ -138,6 +136,7 @@ dashboardServer.on("upgrade", (request, socket, head) => {
       // Send current session snapshot on new connection — for dashboard initial hydration
       try {
         const db = getDb();
+        const sessionId = getSessionId();
         // Load agent metadata for SessionTeamBadge hydration
         let agentMeta: Array<{ id: AgentId; name: string; emoji: string }> = [];
         try {
@@ -152,9 +151,9 @@ dashboardServer.on("upgrade", (request, socket, head) => {
         }
         const snapshot = JSON.stringify({
           type: "session:snapshot",
-          tasks: getAllTasks(db, SESSION_ID),
-          messages: getAllMessages(db, SESSION_ID),
-          artifacts: getAllArtifacts(db, SESSION_ID),
+          tasks: getAllTasks(db, sessionId),
+          messages: getAllMessages(db, sessionId),
+          artifacts: getAllArtifacts(db, sessionId),
           instanceId: process.env.RELAY_INSTANCE,
           port: DASHBOARD_PORT,
           agents: agentMeta,

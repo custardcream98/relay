@@ -91,4 +91,9 @@ export type RelayEvent =
       agents?: Array<{ id: string; name: string; emoji: string }>;
       timestamp: number;
     }
-  | { type: "memory:updated"; agentId: AgentId; timestamp: number };
+  | { type: "memory:updated"; agentId: AgentId; timestamp: number }
+  | {
+      type: "session:started";
+      sessionId: string;
+      timestamp: number;
+    };

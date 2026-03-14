@@ -155,26 +155,19 @@ All events are persisted to SQLite. You can replay an entire session after the f
 ### Prerequisites
 
 - [Claude Code](https://claude.ai/download) — CLI must be installed and authenticated
-- [Node.js](https://nodejs.org) v18 or later (or any compatible runtime)
+- [Node.js](https://nodejs.org) v18 or later
 
-### 1. Add the marketplace
+### 1. Register the MCP server
 
-```
-/plugin marketplace add https://github.com/custardcream98/relay
-```
-
-### 2. Install the plugin
-
-```
-/plugin install relay
+```bash
+claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
 ```
 
-This sets up everything automatically:
-- Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
-- MCP server (via `.mcp.json`)
-- PostToolUse hook (via `hooks/hooks.json`)
+This registers relay globally. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks are installed automatically when the plugin loads. Restart Claude Code after running this.
 
-### 3. Use it in your project
+> To scope relay to a single project only, use `--scope local` instead.
+
+### 2. Use it in your project
 
 First time on a new project:
 
@@ -289,4 +282,4 @@ relay/
 - [x] Generic agent architecture (any domain, any team)
 - [ ] Streaming agent thoughts to dashboard
 - [ ] Session replay UI
-- [ ] Public documentation site
+- [x] Public documentation site

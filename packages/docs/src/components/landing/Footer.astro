@@ -24,9 +24,11 @@ const links = [
   <div class="footer__inner">
     <!-- Left: logo + description -->
     <div class="footer__brand">
-      <span class="footer__wordmark">
-        relay<span class="footer__wordmark-cursor" aria-hidden="true">_</span>
-      </span>
+      <a href={`${base}/${docsSlug}`} class="footer__wordmark-link">
+        <span class="footer__wordmark">
+          relay<span class="footer__wordmark-cursor" aria-hidden="true">_</span>
+        </span>
+      </a>
       <p class="footer__tagline">
         {t("footer.tagline")}
       </p>
@@ -71,6 +73,10 @@ const links = [
   }
 
   /* Brand */
+  .footer__wordmark-link {
+    text-decoration: none;
+  }
+
   .footer__brand {
     display: flex;
     flex-direction: column;

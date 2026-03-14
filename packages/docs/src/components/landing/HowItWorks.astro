@@ -11,18 +11,28 @@ const steps = [
     title: t("how.step1.title"),
     description: t("how.step1.desc"),
     code: "claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay",
+    link: null,
   },
   {
     number: "02",
     title: t("how.step2.title"),
     description: t("how.step2.desc"),
     code: "/relay:init",
+    link: null,
   },
   {
     number: "03",
     title: t("how.step3.title"),
     description: t("how.step3.desc"),
     code: '/relay:relay "add dark mode toggle"',
+    link: null,
+  },
+  {
+    number: "04",
+    title: t("how.step4.title"),
+    description: t("how.step4.desc"),
+    code: "http://localhost:3456",
+    link: "http://localhost:3456",
   },
 ];
 ---
@@ -52,7 +62,11 @@ const steps = [
             <p class="how__step-desc">{step.description}</p>
           </div>
           <div class="how__step-code-col">
-            <code class="how__step-code">{step.code}</code>
+            {step.link ? (
+              <a href={step.link} target="_blank" rel="noopener noreferrer" class="how__step-code how__step-code--link">{step.code}</a>
+            ) : (
+              <code class="how__step-code">{step.code}</code>
+            )}
           </div>
         </div>
       ))
@@ -211,6 +225,16 @@ const steps = [
   .how__step:hover .how__step-code {
     border-color: var(--color-accent);
     color: var(--color-text-primary);
+  }
+
+  .how__step-code--link {
+    text-decoration: none;
+    transition: border-color 0.18s, color 0.18s;
+  }
+
+  .how__step-code--link:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
   }
 
   /* Responsive */

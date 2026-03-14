@@ -15,7 +15,7 @@ const ui = {
     "hero.headlineEm": "Your team builds it.",
     "hero.subheadline":
       "Write a YAML file. Get a collaborating team of Claude agents — peer-to-peer, event-driven, no orchestrator code. Works inside Claude Code. No new API keys. No extra billing.",
-    "hero.cta": "Get started",
+    "hero.cta": "Get started in 2 min",
 
     // HowItWorks
     "how.label": "// how it works",
@@ -24,13 +24,16 @@ const ui = {
     "how.subtitle": "No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.",
     "how.step1.title": "Install",
     "how.step1.desc":
-      "Add the relay MCP server to Claude Code with one command. Optionally customise agent personas in agents.yml.",
+      "Register the relay MCP server with one command. Define your team in agents.yml — any role, any domain.",
     "how.step2.title": "Init",
     "how.step2.desc":
-      "Run /relay:init once. All agents scan the codebase in parallel and write shared memory to .relay/memory/.",
+      "Run /relay:init once per project. Every agent scans the codebase in parallel and writes shared context to .relay/memory/. Commit it to git.",
     "how.step3.title": "Ship",
     "how.step3.desc":
-      "Describe the feature. All agents start simultaneously, claim tasks via MCP, and collaborate peer-to-peer until the work is done.",
+      "Describe what you want built. All agents start simultaneously, claim tasks, and collaborate peer-to-peer — no phases, no waiting.",
+    "how.step4.title": "Watch it run",
+    "how.step4.desc":
+      "Open the realtime dashboard while agents are running. Kanban board, message feed, and live agent reasoning — all updating via WebSocket.",
 
     // AgentRoster
     "roster.label": "// bring your own team",
@@ -41,28 +44,30 @@ const ui = {
     "roster.infoLead":
       "Each agent gets its own Claude Code session, persona, and access to the shared MCP tool set. Agents collaborate peer-to-peer — no orchestrator.",
     "roster.examplesLabel": "example team (agents.example.yml)",
+    "roster.domainNote":
+      "This is a web-dev team — one example. Build a research team, marketing team, legal team, or any combination. Any role you can describe in a system prompt.",
     "roster.browseLink": "Browse agents.example.yml",
 
     // Features
     "features.label": "// why relay",
     "features.title1": "Transparent, lean,",
     "features.title2": "and composable.",
-    "features.A.title": "MCP-native communication",
+    "features.A.title": "Peer-to-peer, no orchestrator",
     "features.A.desc":
-      "Agents communicate exclusively through MCP tools — send_message, create_task, post_artifact. Every interaction is auditable and replayable.",
-    "features.A.detail": "Peer-to-peer. No orchestrator bottleneck.",
-    "features.B.title": "Zero extra billing",
+      "Agents communicate directly through MCP tools — send_message, create_task, post_artifact. No central bottleneck. Every interaction is auditable and replayable.",
+    "features.A.detail": "claim_task is atomic. Race conditions handled.",
+    "features.B.title": "No extra billing",
     "features.B.desc":
-      "relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond what Claude Code already charges.",
-    "features.B.detail": "Runs entirely on your existing Claude Code subscription.",
-    "features.C.title": "Persistent shared memory",
+      "relay uses only Claude Code's built-in Agent tool. No direct Claude API calls — you pay exactly what Claude Code charges, nothing more.",
+    "features.B.detail": "Runs on your existing Claude Code subscription.",
+    "features.C.title": "Memory that persists across sessions",
     "features.C.desc":
-      "Each session writes Markdown notes to .relay/memory/. Agents start the next session fully aware of prior decisions and patterns.",
-    "features.C.detail": "Commit .relay/memory/ to git — your whole team shares context.",
+      "Agents write Markdown notes to .relay/memory/ after each session. The next session starts with full context — decisions made, patterns learned, mistakes noted.",
+    "features.C.detail": "Plain Markdown. Commit to git. Editable by anyone.",
     "features.D.title": "Realtime dashboard",
     "features.D.desc":
-      "A WebSocket-powered Kanban board and message feed shows task state changes and inter-agent messages as they happen.",
-    "features.D.detail": "Full session replay included. Review every task and message.",
+      "A live Kanban board, Slack-style message feed, and per-agent reasoning stream — all updating via WebSocket as work happens. Full session replay included.",
+    "features.D.detail": "Open http://localhost:3456 while agents are running.",
 
     // QuickStart
     "qs.label": "// quick start",
@@ -77,6 +82,8 @@ const ui = {
     "qs.step2.comment": "# agents scan the codebase in parallel",
     "qs.step3.label": "Ship a feature",
     "qs.step3.comment": "# all agents start simultaneously, peer-to-peer",
+    "qs.prereqNote":
+      "Note: agents.yml must exist before running /relay:init. Copy agents.example.yml to get started.",
 
     // Footer
     "footer.tagline": "Multi-agent framework for Claude Code.",
@@ -95,7 +102,7 @@ const ui = {
     "hero.headlineEm": "완전한 팀으로.",
     "hero.subheadline":
       "YAML 파일 하나로 충분합니다. Claude 에이전트들이 P2P로 협업합니다 — 이벤트 기반, 오케스트레이터 불필요. Claude Code 안에서 동작하며, 새 API 키도 추가 요금도 없습니다.",
-    "hero.cta": "시작하기",
+    "hero.cta": "2분 만에 시작하기",
 
     // HowItWorks
     "how.label": "// 작동 방식",
@@ -105,13 +112,16 @@ const ui = {
       "오케스트레이터도, 추가 요금도 없습니다. Claude Code 내장 Agent 툴만 사용합니다.",
     "how.step1.title": "설치",
     "how.step1.desc":
-      "한 줄의 명령어로 relay MCP 서버를 Claude Code에 추가합니다. agents.yml로 에이전트 페르소나를 자유롭게 설정할 수 있습니다.",
+      "명령어 한 줄로 relay MCP 서버를 등록합니다. agents.yml에 팀을 정의하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
     "how.step2.title": "초기화",
     "how.step2.desc":
-      "/relay:init을 한 번 실행합니다. 모든 에이전트가 코드베이스를 병렬로 스캔하고 .relay/memory/에 공유 메모리를 기록합니다.",
+      "프로젝트당 한 번 /relay:init을 실행합니다. 모든 에이전트가 병렬로 코드베이스를 스캔하고 .relay/memory/에 공유 컨텍스트를 기록합니다. git에 커밋하세요.",
     "how.step3.title": "배포",
     "how.step3.desc":
-      "기능을 설명하면 됩니다. 모든 에이전트가 동시에 시작해 MCP로 작업을 분담하고, 작업이 완료될 때까지 P2P로 협업합니다.",
+      "만들고 싶은 것을 설명하면 됩니다. 모든 에이전트가 동시에 시작해 작업을 클레임하고 P2P로 협업합니다 — 단계도 없고 대기도 없습니다.",
+    "how.step4.title": "실시간으로 확인",
+    "how.step4.desc":
+      "에이전트가 실행되는 동안 실시간 대시보드를 열어보세요. Kanban 보드, 메시지 피드, 에이전트별 추론 스트림이 WebSocket으로 업데이트됩니다.",
 
     // AgentRoster
     "roster.label": "// 나만의 팀을 구성하세요",
@@ -122,28 +132,30 @@ const ui = {
     "roster.infoLead":
       "각 에이전트는 독립적인 Claude Code 세션과 페르소나, 공유 MCP 툴셋을 가집니다. 에이전트끼리 P2P로 협업하며, 오케스트레이터가 필요 없습니다.",
     "roster.examplesLabel": "예시 팀 (agents.example.yml)",
+    "roster.domainNote":
+      "이것은 웹 개발 팀의 예시입니다. 리서치 팀, 마케팅 팀, 법무 팀 등 어떤 조합이든 구성할 수 있습니다. 시스템 프롬프트로 설명할 수 있는 역할이라면 모두 가능합니다.",
     "roster.browseLink": "agents.example.yml 보기",
 
     // Features
     "features.label": "// relay를 선택하는 이유",
     "features.title1": "투명하고, 가볍고,",
     "features.title2": "유연하게 조합됩니다.",
-    "features.A.title": "MCP 네이티브 통신",
+    "features.A.title": "P2P 통신, 오케스트레이터 불필요",
     "features.A.desc":
-      "에이전트는 MCP 툴만을 통해 통신합니다 — send_message, create_task, post_artifact. 모든 상호작용이 감사 가능하고 재현 가능합니다.",
-    "features.A.detail": "P2P 구조로 오케스트레이터 병목이 없습니다.",
+      "에이전트는 MCP 툴로만 통신합니다 — send_message, create_task, post_artifact. 중앙 병목이 없습니다. 모든 상호작용이 감사 가능하고 재현 가능합니다.",
+    "features.A.detail": "claim_task는 원자적입니다. 레이스 컨디션 방지.",
     "features.B.title": "추가 요금 없음",
     "features.B.desc":
-      "relay는 Claude Code의 내장 Agent 툴만 사용합니다. Claude API를 직접 호출하지 않으므로 기존 Claude Code 구독 외에 추가 비용이 발생하지 않습니다.",
+      "relay는 Claude Code의 내장 Agent 툴만 사용합니다. Claude API를 직접 호출하지 않아 기존 Claude Code 구독 요금 외 추가 비용이 없습니다.",
     "features.B.detail": "기존 Claude Code 구독으로 완전히 동작합니다.",
-    "features.C.title": "세션 간 공유 메모리",
+    "features.C.title": "세션을 넘는 공유 메모리",
     "features.C.desc":
-      "각 세션은 .relay/memory/에 Markdown 노트를 작성합니다. 에이전트들은 다음 세션에서 이전 결정과 패턴을 완전히 파악한 상태로 시작합니다.",
-    "features.C.detail": ".relay/memory/를 git에 커밋해두면 팀 전원이 같은 컨텍스트를 공유합니다.",
+      "에이전트는 세션 종료 후 .relay/memory/에 Markdown 노트를 작성합니다. 다음 세션은 이전 결정, 학습된 패턴, 기록된 실수를 모두 파악한 채로 시작합니다.",
+    "features.C.detail": "일반 Markdown. git에 커밋. 누구나 편집 가능.",
     "features.D.title": "실시간 대시보드",
     "features.D.desc":
-      "WebSocket 기반의 Kanban 보드와 메시지 피드로 작업 상태 변화와 에이전트 간 메시지를 실시간으로 확인할 수 있습니다.",
-    "features.D.detail": "전체 세션 리플레이 기능 포함. 모든 작업과 메시지를 검토할 수 있습니다.",
+      "실시간 Kanban 보드, Slack 스타일 메시지 피드, 에이전트별 추론 스트림 — 작업이 진행되는 동안 WebSocket으로 모두 업데이트됩니다. 전체 세션 리플레이 포함.",
+    "features.D.detail": "에이전트 실행 중 http://localhost:3456을 열어보세요.",
 
     // QuickStart
     "qs.label": "// 빠른 시작",
@@ -158,6 +170,8 @@ const ui = {
     "qs.step2.comment": "# 에이전트들이 코드베이스를 병렬로 스캔합니다",
     "qs.step3.label": "기능 출시",
     "qs.step3.comment": "# 모든 에이전트가 동시에 시작, P2P 협업",
+    "qs.prereqNote":
+      "참고: /relay:init 실행 전에 agents.yml이 존재해야 합니다. agents.example.yml을 복사해서 시작하세요.",
 
     // Footer
     "footer.tagline": "Claude Code를 위한 멀티 에이전트 프레임워크.",

@@ -1,46 +1,53 @@
 ---
 title: Quick start
-description: Get relay running in 5 minutes — install the MCP server, scan your project with /relay:init, then run /relay:relay to start your first multi-agent session.
+description: Get relay running in under 5 minutes — install the MCP server, scan your project, then run your first multi-agent session.
 ---
 
-import { Steps } from "@astrojs/starlight/components";
+import { Steps, Aside } from "@astrojs/starlight/components";
 
-A guide for applying relay to a project for the first time after installation.
+Three commands. That's all it takes to go from zero to a full team of AI agents working through your feature in parallel.
 
 <Steps>
 
 1. **Scan the project (once per project)**
 
-   Run this the first time you use relay in a new project, or when the team needs to re-learn the codebase:
+   Run this the first time you use relay in a new project, or after major codebase changes:
 
    ```
    /relay:init
    ```
 
-   All configured agents spawn in parallel, scan the codebase from their own perspective,
-   and save project memory to `.relay/memory/`.
+   All configured agents spawn in parallel and scan the codebase from their own perspective.
+   Each agent writes what it learned to `.relay/memory/` — shared context that persists across sessions.
+
+   <Aside type="tip">
+   Commit `.relay/memory/` to git. Your whole team shares the same agent context.
+   </Aside>
 
 2. **Run a task**
 
-   Once init is complete, you can request tasks immediately:
+   Describe what you want built:
 
    ```
    /relay:relay "Add a shopping cart feature"
    ```
 
-   Agents collaborate event-driven according to the configured workflow.
+   All agents start simultaneously. Each one claims tasks, communicates through MCP tools, and
+   collaborates peer-to-peer — no orchestrator bottleneck. Watch it happen live at `http://localhost:3456`.
 
 3. **Check the dashboard (optional)**
 
-   Once the MCP server is running, you can monitor agent activity in real time on the web dashboard:
+   Open the real-time dashboard while agents are running:
 
    ```
    http://localhost:3456
    ```
 
-4. **Invoke a single agent (when needed)**
+   Task Board (Kanban), Message Feed (Slack-style threads), and Agent Thoughts (live reasoning stream) — all updating as work happens.
 
-   When you only need one specific agent's expertise:
+4. **Invoke a single agent when needed**
+
+   Need one specific perspective without spinning up the whole team?
 
    ```
    /relay:agent fe "Refactor the CartItem component"
@@ -49,27 +56,28 @@ A guide for applying relay to a project for the first time after installation.
 
 </Steps>
 
-## Example flow
+## What a real session looks like
 
 ```
 User: /relay:relay "Implement a login feature"
 
-[PM]       → breaks down login into 5 tasks
-             → FE: UI, BE: API, Designer: screen spec, DA: event design
+[PM]       → breaks down login into 5 tasks: UI, API, screen spec, event design, tests
+             → assigns to Designer, DA, FE, BE
 
-[Designer] → writes login screen spec (post_artifact)
-[DA]       → designs login_success, login_fail events (post_artifact)
+[Designer] → writes login screen spec → post_artifact("login-screen-spec")
+[DA]       → designs login_success / login_fail events → post_artifact("login-events")
 
-[FE]       → implements login UI, creates fe-pr artifact
-[BE]       → implements auth API, creates be-pr artifact
+[FE]       → reads Designer spec → builds login UI → post_artifact("fe-pr")
+[BE]       → designs auth API contract → shares with FE → builds implementation → post_artifact("be-pr")
 
-[FE2]      → reviews FE PR (request_review → submit_review)
-[BE2]      → reviews BE PR
+[FE2]      → reads fe-pr → submit_review (approved with comments)
+[BE2]      → reads be-pr → submit_review (approved)
 
-[QA]       → writes test scenarios, validates
-           → creates tickets for any bugs found → dev team fixes
+[QA]       → writes test scenarios → creates bug tickets → dev team fixes
 
-[Deployer] → deployment complete, notifies team
+[Deployer] → QA signs off → deploys → notifies team
 
-User: ✅ Login feature deployed!
+User: Login feature is live.
 ```
+
+The whole flow is event-driven. Agents react to each other's messages and artifacts — no waiting in line.

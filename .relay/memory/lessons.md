@@ -70,3 +70,26 @@ _2026-03-14_
 - designer running concurrently with PM (UX spec ready before FE started) was valuable
 - QA minor note: App.tsx line 184 has 1 residual `as Task[]` cast for status type narrowing — non-blocking
 
+
+---
+_2026-03-14_
+
+---
+_2026-03-14_
+
+## Session 2026-03-14-003: Docs/README First-Impression Overhaul
+
+**Team**: pm, designer, fe, marketer (new), qa
+
+**Accomplishments:**
+- Marketer (new agent): README install commands fixed (stale `/plugin marketplace add` → `claude mcp add`); landing.ts Hero CTA sharpened, HowItWorks/Features copy improved (EN+KO); introduction.mdx + quick-start.mdx full rewrite (EN+KO)
+- Designer: full audit of docs/README, posted design spec with P0 bug finding (AgentRoster `persona:` → `systemPrompt:`) and README section reorder recommendation
+- FE: Hero.astro v0.3.6 → v0.6.0; README Roadmap [x]; AgentRoster YAML P0 fix confirmed; HowItWorks "Watch it run" step 04 (→ localhost:3456); QuickStart prereq note; Footer wordmark link; new landing.ts i18n keys
+- QA: approved all 3 PRs, verified build (55 pages, 0 errors) each time
+
+**Lessons:**
+- Task board discipline remains weak — agents complete file work but skip claim_task/update_task. PM wrap-up had to manually close 6 stale todo tasks. Fix: orechstrator should verify get_all_tasks() before accepting end:_done; agent prompts need stronger update_task enforcement.
+- Marketer agent is highly effective for first-impression copy work — should be added to agents.pool.yml permanently
+- RELAY_SESSION_AGENTS_FILE cache is pre-populated on first list_agents call, so custom session teams won't show in dashboard UI (marketer not visible). Known limitation.
+- Agent card "No activity yet" bug: task:updated events don't update agent card lastMessage — needs fix in App.tsx reducer
+

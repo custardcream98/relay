@@ -8,17 +8,19 @@ const t = useTranslations(lang);
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const yamlSnippet = `agents:
   pm:
-    persona: |
-      You are a product manager.
+    name: Project Manager
+    emoji: "📋"
+    tools: [create_task, get_all_tasks, send_message, get_messages]
+    systemPrompt: |
+      You are the project manager.
       Break down requirements into tasks.
   fe:
-    persona: |
+    name: Frontend Engineer
+    emoji: "💻"
+    tools: [claim_task, get_my_tasks, post_artifact, send_message]
+    systemPrompt: |
       You are a frontend engineer.
-      Build React components.
-  reviewer:
-    persona: |
-      You are a code reviewer.
-      Focus on correctness and style.`;
+      Build React components, request reviews.`;
 
 // Example team setup — based on agents.example.yml, noting these are not fixed roles
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
@@ -76,6 +78,8 @@ const exampleAgents = [
           ))}
         </div>
       </div>
+
+      <p class="roster__domain-note">{t("roster.domainNote")}</p>
 
       <a
         href="https://github.com/custardcream98/relay/blob/main/agents.example.yml"
@@ -259,6 +263,16 @@ const exampleAgents = [
     border-radius: 50%;
     flex-shrink: 0;
     opacity: 0.85;
+  }
+
+  /* Multi-domain note */
+  .roster__domain-note {
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 300;
+    font-style: italic;
   }
 
   /* Link */

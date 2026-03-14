@@ -1,75 +1,83 @@
 ---
 title: 빠른 시작
-description: relay를 5분 만에 시작하는 가이드
+description: relay를 5분 안에 시작하세요 — MCP 서버 설치, 프로젝트 스캔, 그리고 첫 멀티에이전트 세션 실행.
 ---
 
-import { Steps } from "@astrojs/starlight/components";
+import { Steps, Aside } from "@astrojs/starlight/components";
 
-설치 후 처음으로 relay를 프로젝트에 적용하는 가이드입니다.
+명령어 세 개면 충분합니다. 여기서 AI 에이전트 팀이 기능을 병렬로 작업하는 단계까지 바로 갑니다.
 
 <Steps>
 
 1. **프로젝트 스캔 (프로젝트당 최초 1회)**
 
-   새 프로젝트에 relay를 처음 사용하거나, 팀이 코드베이스를 다시 학습해야 할 때 실행하세요:
+   새 프로젝트에 relay를 처음 사용하거나 코드베이스가 크게 바뀌었을 때 실행하세요:
 
    ```
    /relay:init
    ```
 
-   설정된 모든 에이전트가 병렬로 실행되어 각자의 관점에서 코드베이스를 스캔하고,
-   프로젝트 메모리를 `.relay/memory/`에 저장합니다.
+   설정된 모든 에이전트가 병렬로 코드베이스를 각자의 관점에서 스캔합니다.
+   각 에이전트가 학습한 내용을 `.relay/memory/`에 기록합니다 — 세션을 넘어 유지되는 공유 컨텍스트입니다.
+
+   <Aside type="tip">
+   `.relay/memory/`를 git에 커밋하세요. 팀 전원이 동일한 에이전트 컨텍스트를 공유합니다.
+   </Aside>
 
 2. **태스크 실행**
 
-   init이 완료되면 즉시 태스크를 요청할 수 있어요:
+   만들고 싶은 것을 설명하세요:
 
    ```
-   /relay:relay "장바구니 기능을 추가해줘"
+   /relay:relay "장바구니 기능 추가해줘"
    ```
 
-   에이전트들이 설정된 워크플로우에 따라 이벤트 드리븐으로 협업합니다.
+   모든 에이전트가 동시에 시작합니다. 각자 태스크를 클레임하고, MCP 도구로 소통하며,
+   P2P로 협업합니다 — 오케스트레이터 병목 없음. `http://localhost:3456`에서 실시간으로 확인하세요.
 
 3. **대시보드 확인 (선택사항)**
 
-   MCP 서버가 실행되면 웹 대시보드에서 에이전트 활동을 실시간으로 모니터링할 수 있어요:
+   에이전트가 실행되는 동안 실시간 대시보드를 여세요:
 
    ```
    http://localhost:3456
    ```
 
+   태스크 보드(Kanban), 메시지 피드(Slack 스타일 스레드), 에이전트 추론 스트림 — 작업이 진행되면서 모두 업데이트됩니다.
+
 4. **단일 에이전트 호출 (필요할 때)**
 
-   특정 에이전트의 전문성만 필요한 경우:
+   전체 팀 없이 특정 관점 하나만 필요할 때:
 
    ```
-   /relay:agent fe "CartItem 컴포넌트를 리팩터링해줘"
+   /relay:agent fe "CartItem 컴포넌트 리팩터링해줘"
    /relay:agent be "사용자 인증 API 보안 검토해줘"
    ```
 
 </Steps>
 
-## 실행 흐름 예시
+## 실제 세션은 이렇게 진행됩니다
 
 ```
-사용자: /relay:relay "로그인 기능을 구현해줘"
+사용자: /relay:relay "로그인 기능 구현해줘"
 
-[PM]       → 로그인을 5개의 태스크로 분해
-             → FE: UI, BE: API, Designer: 화면 스펙, DA: 이벤트 설계
+[PM]       → 로그인을 5개 태스크로 분해: UI, API, 화면 스펙, 이벤트 설계, 테스트
+             → Designer, DA, FE, BE에 할당
 
-[Designer] → 로그인 화면 스펙 작성 (post_artifact)
-[DA]       → login_success, login_fail 이벤트 설계 (post_artifact)
+[Designer] → 로그인 화면 스펙 작성 → post_artifact("login-screen-spec")
+[DA]       → login_success / login_fail 이벤트 설계 → post_artifact("login-events")
 
-[FE]       → 로그인 UI 구현, fe-pr 아티팩트 생성
-[BE]       → 인증 API 구현, be-pr 아티팩트 생성
+[FE]       → Designer 스펙 읽기 → 로그인 UI 빌드 → post_artifact("fe-pr")
+[BE]       → API 계약 설계 → FE와 공유 → 구현 → post_artifact("be-pr")
 
-[FE2]      → FE PR 리뷰 (request_review → submit_review)
-[BE2]      → BE PR 리뷰
+[FE2]      → fe-pr 읽기 → submit_review (코멘트와 함께 승인)
+[BE2]      → be-pr 읽기 → submit_review (승인)
 
-[QA]       → 테스트 시나리오 작성 및 검증
-           → 발견된 버그는 티켓 생성 → 개발팀이 수정
+[QA]       → 테스트 시나리오 작성 → 버그 티켓 생성 → 개발팀이 수정
 
-[Deployer] → 배포 완료, 팀에 알림
+[Deployer] → QA 승인 → 배포 → 팀에 알림
 
-사용자: ✅ 로그인 기능 배포 완료!
+사용자: 로그인 기능이 배포되었습니다.
 ```
+
+전체 흐름이 이벤트 드리븐입니다. 에이전트들은 서로의 메시지와 아티팩트에 반응합니다 — 줄을 서서 기다리지 않습니다.

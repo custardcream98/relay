@@ -1,47 +1,81 @@
 ---
 title: What is relay?
-description: A domain-agnostic multi-agent collaboration framework built on Claude Code
+description: relay turns Claude Code into a collaborating team of AI agents. Define any team in a YAML file — no orchestrator code, no extra API billing.
 ---
 
-relay is a **domain-agnostic** multi-agent framework where Claude Code sub-agents collaborate under their own personas.
-Define any team you want in `agents.yml` — a web dev team, research team, marketing team, legal team, or anything else.
+import { Aside } from "@astrojs/starlight/components";
 
-Uses only Claude Code's Agent tool — no extra API billing.
+You describe a feature. A full team of AI agents figures out how to build it together.
 
-## How it works
+That's relay.
+
+## The problem with single-agent AI
+
+Most AI coding tools run a single agent that does everything: plans, researches, codes, reviews, tests, and deploys — sequentially, from one context window. It works for small tasks. It falls apart for anything complex.
+
+A single agent can't specialize. It can't parallelize. And it can't catch its own mistakes.
+
+## What relay does differently
+
+relay spawns a team of Claude Code sub-agents — each with its own role, its own persona, and its own judgment. They run simultaneously, communicate through a shared MCP server, and collaborate peer-to-peer until the work is done.
 
 ```
-User: "Add a shopping cart feature"
-  ↓
-[PM]       → break down tasks, create issues
-[Designer] → UX flow, component spec
-[DA]       → event design, KPI definition
-[BE]       → API design and implementation
-[FE]       → UI implementation
-[FE2]      → FE code review
-[BE2]      → BE code review
-[QA]       → test scenarios and bug reports
-[Deployer] → deploy
+User: /relay:relay "add a shopping cart"
+
+[PM]       breaks down the feature into tasks
+[Designer] writes the UX flow and component spec
+[DA]       defines the analytics events             ← all running at the same time
+[FE]       claims frontend tasks, builds UI
+[BE]       shares API contract early, builds backend
+[QA]       watches for completed PRs, writes tests
+[Deployer] ships when QA signs off
 ```
 
-## Three layers
+No phases. No turn-taking. Just a team working in parallel.
 
-| Layer | Role |
+## Define any team, for any domain
+
+relay ships with no built-in agents. You define your team in `agents.yml`:
+
+```yaml
+agents:
+  pm:
+    name: Project Manager
+    emoji: "📋"
+    tools: [create_task, get_all_tasks, send_message, get_messages]
+    systemPrompt: |
+      You are the project manager. Break down requirements into tasks.
+
+  researcher:
+    name: Researcher
+    emoji: "🔬"
+    tools: [claim_task, get_my_tasks, post_artifact, send_message]
+    systemPrompt: |
+      You are a researcher. Investigate topics and post findings as artifacts.
+```
+
+Web dev team, research team, marketing team, legal team — if you can describe a role in a system prompt, relay can run it.
+
+## How it's built
+
+relay is a Claude Code plugin with three layers:
+
+| Layer | What it does |
 |---|---|
-| MCP server | Inter-agent communication infrastructure (message bus, task board, memory) |
-| Skills | `/relay:relay`, `/relay:init`, `/relay:agent` orchestration strategies |
-| Hooks | PostToolUse — real-time dashboard updates on MCP tool calls |
+| **MCP server** | Message bus, task board, artifact store, and memory layer. No Claude API calls — pure infrastructure. |
+| **Skills** | `.md` files that tell Claude Code how to orchestrate agents. Change behavior by editing text, not code. |
+| **Hooks** | `PostToolUse` hook that pushes agent status to the real-time dashboard on every MCP tool call. |
 
-## Agents are defined by you
+<Aside type="tip">
+relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond your existing Claude Code subscription.
+</Aside>
 
-Agent configuration is fully customisable via `agents.yml`.
-`agents.example.yml` includes a web dev team example (pm, designer, da, fe, be, qa, deployer).
-Copy it to get started, or define your own team from scratch.
+## What you get
 
-## Why relay?
+- **Parallel execution** — all agents start simultaneously, no sequential phases
+- **Atomic task claiming** — agents race to claim tasks; `claim_task` is race-condition safe
+- **Persistent memory** — agents write findings to `.relay/memory/` after each session; the next session picks up where the last left off
+- **Real-time dashboard** — watch tasks, messages, and agent reasoning update live at `http://localhost:3456`
+- **Full session replay** — every event is stored in SQLite; review the entire collaboration after the fact
 
-Most AI agent tools run everything through a single agent. relay is different.
-
-Each agent handles only its own role, communicating directly with others through the MCP server.
-Peer-to-peer — agents collaborate event-driven, with no central orchestrator.
-Uses only Claude Code's Agent tool — no extra API billing.
+Ready to try it? [Install relay →](/getting-started/installation)

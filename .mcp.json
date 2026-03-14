@@ -2,7 +2,7 @@
   "mcpServers": {
     "relay": {
       "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"]
+      "args": ["-y", "--package", "@custardcream/relay@latest", "relay"]
     }
   }
 }

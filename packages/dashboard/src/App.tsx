@@ -141,7 +141,7 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
         id,
         type: "team:composed",
         agentId: null,
-        description: `Team composed: ${event.agents.map((a) => a.name).join(", ")}`,
+        description: `Team composed: ${event.agents.map((a: { name: string }) => a.name).join(", ")}`,
         timestamp: event.timestamp,
       };
     default:
@@ -191,7 +191,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
           ...state,
           ...baseUpdates,
           sessionTeam: event.agents.map((a) => ({
-            id: a.id,
+            id: a.id as AgentId,
             name: a.name,
             emoji: a.emoji,
           })),
@@ -206,7 +206,9 @@ function reducer(state: DashboardState, action: Action): DashboardState {
 
           // Rebuild session team from snapshot if present
           const teamFromSnapshot: AgentMeta[] =
-            event.agents && event.agents.length > 0 ? event.agents : state.sessionTeam;
+            event.agents && event.agents.length > 0
+              ? event.agents.map((a) => ({ ...a, id: a.id as AgentId }))
+              : state.sessionTeam;
 
           const snapshotEntries: TimelineEntry[] = [
             ...snapshotMessages.map((m) => ({
@@ -231,9 +233,9 @@ function reducer(state: DashboardState, action: Action): DashboardState {
           for (const m of snapshotMessages) {
             if (!m.from_agent) continue;
             const c = m.content ?? "";
-            if (c.startsWith("end:waiting")) restoredStatuses[m.from_agent] = "waiting";
+            if (c.startsWith("end:waiting")) restoredStatuses[m.from_agent as AgentId] = "waiting";
             else if (c.startsWith("end:_done") || c.startsWith("end:failed"))
-              restoredStatuses[m.from_agent] = "done";
+              restoredStatuses[m.from_agent as AgentId] = "done";
           }
 
           return {

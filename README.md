@@ -76,27 +76,27 @@ relay (plugin)
 
 Every agent communicates exclusively through MCP tools:
 
-| Category  | Tool                  | Description                            |
-|-----------|-----------------------|----------------------------------------|
-| Messaging | `send_message`        | Send a message to another agent        |
-| Messaging | `get_messages`        | Read incoming messages                 |
-| Tasks     | `create_task`         | Open a new issue                       |
-| Tasks     | `update_task`         | Update status or add a comment         |
-| Tasks     | `get_my_tasks`        | List tasks assigned to this agent      |
-| Tasks     | `get_all_tasks`       | List all tasks in the session          |
-| Tasks     | `claim_task`          | Atomically claim a task (race-safe)    |
-| Tasks     | `get_team_status`     | Aggregate task counts by status        |
-| Artifacts | `post_artifact`       | Share output (spec, PR, report, ...)   |
-| Artifacts | `get_artifact`        | Retrieve an artifact                   |
-| Review    | `request_review`      | Request a code or design review        |
-| Review    | `submit_review`       | Submit review feedback                 |
-| Memory    | `read_memory`         | Read cross-session memory              |
-| Memory    | `write_memory`        | Overwrite a memory file                |
-| Memory    | `append_memory`       | Append to a memory file                |
-| Sessions  | `save_session_summary`| Save a session summary                 |
-| Sessions  | `list_sessions`       | List past sessions                     |
-| Sessions  | `get_session_summary` | Retrieve a session summary             |
-| Visibility| `broadcast_thinking`  | Push agent intent to the dashboard     |
+| Category   | Tool                   | Description                          |
+| ---------- | ---------------------- | ------------------------------------ |
+| Messaging  | `send_message`         | Send a message to another agent      |
+| Messaging  | `get_messages`         | Read incoming messages               |
+| Tasks      | `create_task`          | Open a new issue                     |
+| Tasks      | `update_task`          | Update status or add a comment       |
+| Tasks      | `get_my_tasks`         | List tasks assigned to this agent    |
+| Tasks      | `get_all_tasks`        | List all tasks in the session        |
+| Tasks      | `claim_task`           | Atomically claim a task (race-safe)  |
+| Tasks      | `get_team_status`      | Aggregate task counts by status      |
+| Artifacts  | `post_artifact`        | Share output (spec, PR, report, ...) |
+| Artifacts  | `get_artifact`         | Retrieve an artifact                 |
+| Review     | `request_review`       | Request a code or design review      |
+| Review     | `submit_review`        | Submit review feedback               |
+| Memory     | `read_memory`          | Read cross-session memory            |
+| Memory     | `write_memory`         | Overwrite a memory file              |
+| Memory     | `append_memory`        | Append to a memory file              |
+| Sessions   | `save_session_summary` | Save a session summary               |
+| Sessions   | `list_sessions`        | List past sessions                   |
+| Sessions   | `get_session_summary`  | Retrieve a session summary           |
+| Visibility | `broadcast_thinking`   | Push agent intent to the dashboard   |
 
 The orchestrator also has access to `list_agents` for reading the active persona configuration at runtime.
 
@@ -204,19 +204,28 @@ agents:
   pm:
     name: Project Manager
     emoji: "📋"
-    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
+    tools:
+      [create_task, get_all_tasks, get_team_status, send_message, get_messages]
     systemPrompt: |
       You are the project manager. Break down requirements into tasks...
 
   researcher:
     name: Researcher
     emoji: "🔬"
-    tools: [send_message, get_messages, get_all_tasks, claim_task, get_team_status, post_artifact]
+    tools:
+      [
+        send_message,
+        get_messages,
+        get_all_tasks,
+        claim_task,
+        get_team_status,
+        post_artifact,
+      ]
     systemPrompt: |
       You are a researcher. Investigate topics and post findings as artifacts...
 
   reviewer:
-    extends: researcher     # inherit persona, override fields
+    extends: researcher # inherit persona, override fields
     name: Peer Reviewer
     emoji: "🔍"
 ```
@@ -254,33 +263,17 @@ relay/
 
 ## Tech stack
 
-| Layer         | Technology                                          |
-|---------------|-----------------------------------------------------|
-| Runtime       | Node.js (distributed via npx)                       |
-| Language      | TypeScript (strict)                                 |
-| MCP server    | `@modelcontextprotocol/sdk` + `@hono/node-server`   |
-| API server    | Hono                                                |
-| Real-time     | `ws` WebSocket                                      |
-| Frontend      | React + Vite                                        |
-| Styling       | Tailwind CSS                                        |
-| Database      | `better-sqlite3`                                    |
-| Memory        | Markdown files (`.relay/memory/`)                   |
-| Personas      | YAML (`agents.yml`)                                 |
+| Layer      | Technology                                        |
+| ---------- | ------------------------------------------------- |
+| Runtime    | Node.js (distributed via npx)                     |
+| Language   | TypeScript (strict)                               |
+| MCP server | `@modelcontextprotocol/sdk` + `@hono/node-server` |
+| API server | Hono                                              |
+| Real-time  | `ws` WebSocket                                    |
+| Frontend   | React + Vite                                      |
+| Styling    | Tailwind CSS                                      |
+| Database   | `better-sqlite3`                                  |
+| Memory     | Markdown files (`.relay/memory/`)                 |
+| Personas   | YAML (`agents.yml`)                               |
 
 <br />
-
-## Roadmap
-
-- [x] MCP server + core tools (messaging, tasks)
-- [x] Memory tools + `.relay/memory/` structure
-- [x] Agent persona YAML system
-- [x] Artifact and review tools
-- [x] Real-time web dashboard
-- [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
-- [x] Init mode (parallel project scan)
-- [x] Claude Code Plugin format (marketplace-ready)
-- [x] Event-driven collaboration (all agents alive simultaneously)
-- [x] Generic agent architecture (any domain, any team)
-- [ ] Streaming agent thoughts to dashboard
-- [ ] Session replay UI
-- [x] Public documentation site

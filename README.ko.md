@@ -76,27 +76,27 @@ relay (plugin)
 
 모든 에이전트는 MCP 툴을 통해서만 소통해요.
 
-| 카테고리 | 툴 | 설명 |
-|---|---|---|
-| 메시징 | `send_message` | 특정 에이전트에게 메시지 전송 |
-| 메시징 | `get_messages` | 수신 메시지 조회 |
-| 태스크 | `create_task` | 새 이슈 생성 |
-| 태스크 | `update_task` | 태스크 상태/코멘트 업데이트 |
-| 태스크 | `get_my_tasks` | 내 담당 태스크 조회 |
-| 태스크 | `get_all_tasks` | 세션 전체 태스크 조회 |
-| 태스크 | `claim_task` | 태스크 원자적 클레임 (경쟁 조건 방지) |
-| 태스크 | `get_team_status` | 상태별 태스크 집계 |
-| 아티팩트 | `post_artifact` | 산출물 공유 (디자인 스펙, PR, 리포트 등) |
-| 아티팩트 | `get_artifact` | 산출물 조회 |
-| 리뷰 | `request_review` | 리뷰 요청 |
-| 리뷰 | `submit_review` | 리뷰 결과 제출 |
-| 메모리 | `read_memory` | 이전 세션 기억 조회 |
-| 메모리 | `write_memory` | 기억 갱신 |
-| 메모리 | `append_memory` | 기억에 누적 추가 |
-| 세션 | `save_session_summary` | 세션 요약 저장 |
-| 세션 | `list_sessions` | 과거 세션 목록 |
-| 세션 | `get_session_summary` | 특정 세션 요약 조회 |
-| 가시성 | `broadcast_thinking` | 에이전트 의도를 대시보드에 실시간 전송 |
+| 카테고리 | 툴                     | 설명                                     |
+| -------- | ---------------------- | ---------------------------------------- |
+| 메시징   | `send_message`         | 특정 에이전트에게 메시지 전송            |
+| 메시징   | `get_messages`         | 수신 메시지 조회                         |
+| 태스크   | `create_task`          | 새 이슈 생성                             |
+| 태스크   | `update_task`          | 태스크 상태/코멘트 업데이트              |
+| 태스크   | `get_my_tasks`         | 내 담당 태스크 조회                      |
+| 태스크   | `get_all_tasks`        | 세션 전체 태스크 조회                    |
+| 태스크   | `claim_task`           | 태스크 원자적 클레임 (경쟁 조건 방지)    |
+| 태스크   | `get_team_status`      | 상태별 태스크 집계                       |
+| 아티팩트 | `post_artifact`        | 산출물 공유 (디자인 스펙, PR, 리포트 등) |
+| 아티팩트 | `get_artifact`         | 산출물 조회                              |
+| 리뷰     | `request_review`       | 리뷰 요청                                |
+| 리뷰     | `submit_review`        | 리뷰 결과 제출                           |
+| 메모리   | `read_memory`          | 이전 세션 기억 조회                      |
+| 메모리   | `write_memory`         | 기억 갱신                                |
+| 메모리   | `append_memory`        | 기억에 누적 추가                         |
+| 세션     | `save_session_summary` | 세션 요약 저장                           |
+| 세션     | `list_sessions`        | 과거 세션 목록                           |
+| 세션     | `get_session_summary`  | 특정 세션 요약 조회                      |
+| 가시성   | `broadcast_thinking`   | 에이전트 의도를 대시보드에 실시간 전송   |
 
 오케스트레이터는 추가로 `list_agents`를 사용해 런타임에 페르소나 설정을 읽어요.
 
@@ -206,19 +206,28 @@ agents:
   pm:
     name: Project Manager
     emoji: "📋"
-    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
+    tools:
+      [create_task, get_all_tasks, get_team_status, send_message, get_messages]
     systemPrompt: |
       You are the project manager. Break down requirements into tasks...
 
   researcher:
     name: Researcher
     emoji: "🔬"
-    tools: [send_message, get_messages, get_all_tasks, claim_task, get_team_status, post_artifact]
+    tools:
+      [
+        send_message,
+        get_messages,
+        get_all_tasks,
+        claim_task,
+        get_team_status,
+        post_artifact,
+      ]
     systemPrompt: |
       You are a researcher. Investigate topics and post findings as artifacts...
 
   reviewer:
-    extends: researcher     # 다른 에이전트 상속 후 일부만 오버라이드
+    extends: researcher # 다른 에이전트 상속 후 일부만 오버라이드
     name: Peer Reviewer
     emoji: "🔍"
 ```
@@ -256,33 +265,17 @@ relay/
 
 ## 기술 스택
 
-| 레이어 | 기술 |
-|---|---|
-| Runtime | Node.js (npx로 배포) |
-| Language | TypeScript (strict) |
-| MCP 서버 | `@modelcontextprotocol/sdk` + `@hono/node-server` |
-| API 서버 | Hono |
-| 실시간 통신 | `ws` WebSocket |
-| 프론트엔드 | React + Vite |
-| 스타일 | Tailwind CSS |
-| DB | `better-sqlite3` |
-| 메모리 | Markdown 파일 (`.relay/memory/`) |
-| 페르소나 설정 | YAML (`agents.yml`) |
+| 레이어        | 기술                                              |
+| ------------- | ------------------------------------------------- |
+| Runtime       | Node.js (npx로 배포)                              |
+| Language      | TypeScript (strict)                               |
+| MCP 서버      | `@modelcontextprotocol/sdk` + `@hono/node-server` |
+| API 서버      | Hono                                              |
+| 실시간 통신   | `ws` WebSocket                                    |
+| 프론트엔드    | React + Vite                                      |
+| 스타일        | Tailwind CSS                                      |
+| DB            | `better-sqlite3`                                  |
+| 메모리        | Markdown 파일 (`.relay/memory/`)                  |
+| 페르소나 설정 | YAML (`agents.yml`)                               |
 
 <br />
-
-## 로드맵
-
-- [x] MCP 서버 + 기본 툴 (messaging, tasks)
-- [x] 메모리 툴 + `.relay/memory/` 구조
-- [x] 에이전트 페르소나 YAML 시스템
-- [x] 아티팩트 및 리뷰 툴
-- [x] 실시간 웹 대시보드
-- [x] Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
-- [x] Init Mode (병렬 프로젝트 스캔)
-- [x] Claude Code Plugin 형식 (마켓플레이스 배포 가능)
-- [x] 이벤트 드리븐 협업 (모든 에이전트 동시 실행)
-- [x] 범용 에이전트 아키텍처 (어떤 도메인이든)
-- [ ] 에이전트 thinking 대시보드 스트리밍
-- [ ] 세션 replay UI
-- [x] 공개 문서 사이트

@@ -91,3 +91,22 @@ export function getSessionId(): string {
   _sessionId = `${date}-${hh}${mm}${ss}`;
   return _sessionId;
 }
+
+/**
+ * Override the session ID for the current server process.
+ * Called by the start_session MCP tool when a new /relay:relay session begins.
+ * This allows multiple sequential relay sessions within the same server process
+ * to store data under distinct session IDs.
+ */
+export function setSessionId(id: string): void {
+  _sessionId = id;
+}
+
+/**
+ * Reset the session ID singleton back to null so getSessionId() will
+ * auto-generate a fresh timestamp-based ID on next call.
+ * @internal Test-only — do not call from production code.
+ */
+export function _resetSessionId(): void {
+  _sessionId = null;
+}

@@ -85,6 +85,19 @@ const ui = {
     "qs.prereqNote":
       "Note: agents.yml must exist before running /relay:init. Copy agents.example.yml to get started.",
 
+    // DashboardPreview
+    "dashboard.label": "// live dashboard",
+    "dashboard.title1": "Watch the team",
+    "dashboard.title2": "work in real time.",
+    "dashboard.subtitle": "Every task, message, and thought — visible as it happens.",
+    "dashboard.panel.tasks": "Task Board",
+    "dashboard.panel.messages": "Messages",
+    "dashboard.panel.thoughts": "Agent Thoughts",
+    "dashboard.col.todo": "TODO",
+    "dashboard.col.inprogress": "IN PROGRESS",
+    "dashboard.col.inreview": "IN REVIEW",
+    "dashboard.col.done": "DONE",
+
     // Footer
     "footer.tagline": "Multi-agent framework for Claude Code.",
     "footer.docs": "Docs",
@@ -172,6 +185,19 @@ const ui = {
     "qs.step3.comment": "# 모든 에이전트가 동시에 시작, P2P 협업",
     "qs.prereqNote":
       "참고: /relay:init 실행 전에 agents.yml이 존재해야 합니다. agents.example.yml을 복사해서 시작하세요.",
+
+    // DashboardPreview
+    "dashboard.label": "// 실시간 대시보드",
+    "dashboard.title1": "팀이 일하는 모습을",
+    "dashboard.title2": "실시간으로 지켜보세요.",
+    "dashboard.subtitle": "모든 태스크, 메시지, 추론 — 발생하는 즉시 확인할 수 있습니다.",
+    "dashboard.panel.tasks": "태스크 보드",
+    "dashboard.panel.messages": "메시지",
+    "dashboard.panel.thoughts": "에이전트 추론",
+    "dashboard.col.todo": "할 일",
+    "dashboard.col.inprogress": "진행 중",
+    "dashboard.col.inreview": "검토 중",
+    "dashboard.col.done": "완료",
 
     // Footer
     "footer.tagline": "Claude Code를 위한 멀티 에이전트 프레임워크.",

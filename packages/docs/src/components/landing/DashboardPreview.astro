@@ -1,0 +1,573 @@
+---
+import { type Lang, useTranslations } from "../../i18n/landing";
+
+const { lang = "en" }: { lang?: Lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="dp">
+  <!-- Section header -->
+  <div class="dp__header">
+    <span class="dp__label" aria-hidden="true">{t("dashboard.label")}</span>
+    <h2 class="dp__title">
+      {t("dashboard.title1")}<br />
+      <em class="dp__title-em">{t("dashboard.title2")}</em>
+    </h2>
+    <p class="dp__subtitle">{t("dashboard.subtitle")}</p>
+  </div>
+
+  <!-- Browser chrome wrapper -->
+  <div class="dp__browser" role="img" aria-label="relay dashboard mockup">
+    <!-- Browser title bar -->
+    <div class="dp__browser-bar">
+      <div class="dp__browser-dots" aria-hidden="true">
+        <span class="dp__dot" style="background:#FF5F56"></span>
+        <span class="dp__dot" style="background:#FFBD2E"></span>
+        <span class="dp__dot" style="background:#27C93F"></span>
+      </div>
+      <!-- Tab -->
+      <div class="dp__browser-tab" aria-hidden="true">
+        <span class="dp__tab-icon">⚡</span>
+        <span>relay</span>
+      </div>
+      <!-- URL bar -->
+      <div class="dp__browser-url" aria-hidden="true">
+        <span class="dp__url-dot"></span>
+        localhost:3456 &mdash; relay dashboard
+      </div>
+    </div>
+
+    <!-- Dashboard body: 3-panel layout -->
+    <div class="dp__panels">
+
+      <!-- Panel 1: Task Board (Kanban) -->
+      <div class="dp__panel dp__panel--tasks">
+        <div class="dp__panel-header">
+          <span class="dp__panel-title">{t("dashboard.panel.tasks")}</span>
+        </div>
+        <div class="dp__kanban">
+
+          <!-- TODO column -->
+          <div class="dp__col">
+            <div class="dp__col-label">{t("dashboard.col.todo")}</div>
+            <div class="dp__card">
+              <span class="dp__card-agent" style="color:#fb923c">🔍</span>
+              <span class="dp__card-text">Write unit tests</span>
+            </div>
+          </div>
+
+          <!-- IN PROGRESS column -->
+          <div class="dp__col">
+            <div class="dp__col-label dp__col-label--active">{t("dashboard.col.inprogress")}</div>
+            <div class="dp__card dp__card--active">
+              <span class="dp__card-agent" style="color:#60a5fa">💻</span>
+              <span class="dp__card-text">Implement dark mode</span>
+              <span class="dp__card-pulse" aria-hidden="true"></span>
+            </div>
+          </div>
+
+          <!-- IN REVIEW column -->
+          <div class="dp__col">
+            <div class="dp__col-label">{t("dashboard.col.inreview")}</div>
+            <div class="dp__card">
+              <span class="dp__card-agent" style="color:#34d399">⚙️</span>
+              <span class="dp__card-text">API endpoint</span>
+            </div>
+          </div>
+
+          <!-- DONE column -->
+          <div class="dp__col">
+            <div class="dp__col-label dp__col-label--done">{t("dashboard.col.done")}</div>
+            <div class="dp__card dp__card--done">
+              <span class="dp__card-agent" style="color:#f472b6">🎨</span>
+              <span class="dp__card-text">Design system setup</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel 2: Message Feed -->
+      <div class="dp__panel dp__panel--messages">
+        <div class="dp__panel-header">
+          <span class="dp__panel-title">{t("dashboard.panel.messages")}</span>
+        </div>
+        <div class="dp__messages">
+
+          <div class="dp__msg">
+            <span class="dp__msg-avatar" style="background:rgba(167,139,250,0.15);color:#a78bfa">📋</span>
+            <div class="dp__msg-body">
+              <span class="dp__msg-name" style="color:#a78bfa">pm</span>
+              <span class="dp__msg-time">2m ago</span>
+              <p class="dp__msg-text">Starting sprint — implement dark mode toggle</p>
+            </div>
+          </div>
+
+          <div class="dp__msg">
+            <span class="dp__msg-avatar" style="background:rgba(96,165,250,0.15);color:#60a5fa">💻</span>
+            <div class="dp__msg-body">
+              <span class="dp__msg-name" style="color:#60a5fa">fe</span>
+              <span class="dp__msg-arrow" aria-hidden="true">→</span>
+              <span class="dp__msg-name" style="color:#34d399">be</span>
+              <span class="dp__msg-time">1m ago</span>
+              <p class="dp__msg-text">Is the color API ready?</p>
+            </div>
+          </div>
+
+          <!-- New message with fade-in animation -->
+          <div class="dp__msg dp__msg--new">
+            <span class="dp__msg-avatar" style="background:rgba(52,211,153,0.15);color:#34d399">⚙️</span>
+            <div class="dp__msg-body">
+              <span class="dp__msg-name" style="color:#34d399">be</span>
+              <span class="dp__msg-time">just now</span>
+              <p class="dp__msg-text">API deployed ✓ Color tokens available</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Panel 3: Agent Thoughts -->
+      <div class="dp__panel dp__panel--thoughts">
+        <div class="dp__panel-header">
+          <span class="dp__panel-title">
+            <span style="color:#60a5fa">💻 fe</span>
+            &mdash; {t("dashboard.panel.thoughts")}
+          </span>
+          <span class="dp__thinking-dot" aria-hidden="true"></span>
+        </div>
+        <div class="dp__thoughts">
+          <p class="dp__thoughts-text">
+            Reading the existing color system... I see CSS custom properties are already set up. I'll hook into <code class="dp__inline-code">var(--color-bg-surface)</code> and add a toggle class to <code class="dp__inline-code">:root</code><span class="dp__cursor" aria-hidden="true">|</span>
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ─── Section wrapper ─── */
+  .dp {
+    border-top: 1px solid var(--color-border);
+    background-color: var(--color-bg-root);
+    padding: 5rem 0 6rem;
+  }
+
+  /* ─── Section header ─── */
+  .dp__header {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem) 3.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .dp__label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-accent);
+    letter-spacing: 0.06em;
+    font-weight: 500;
+  }
+
+  .dp__title {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.5vw, 3rem);
+    font-weight: 400;
+    color: var(--color-text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  .dp__title-em {
+    font-style: italic;
+    color: var(--color-accent);
+  }
+
+  .dp__subtitle {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin: 0;
+    font-weight: 300;
+    max-width: 480px;
+  }
+
+  /* ─── Browser chrome ─── */
+  .dp__browser {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(1.25rem, 5vw, 2.5rem);
+  }
+
+  .dp__browser > * {
+    /* inner structure — no extra padding needed */
+  }
+
+  /* Browser frame */
+  .dp__browser-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-strong);
+    border-bottom: none;
+    border-radius: 0.75rem 0.75rem 0 0;
+  }
+
+  .dp__browser-dots {
+    display: flex;
+    gap: 0.375rem;
+    flex-shrink: 0;
+  }
+
+  .dp__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    opacity: 0.85;
+    display: inline-block;
+  }
+
+  .dp__browser-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .dp__tab-icon {
+    font-size: 0.625rem;
+  }
+
+  .dp__browser-url {
+    flex: 1;
+    padding: 0.25rem 0.75rem;
+    background-color: var(--color-bg-raised);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dp__url-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #27C93F;
+    flex-shrink: 0;
+    opacity: 0.8;
+  }
+
+  /* ─── Dashboard panels ─── */
+  .dp__panels {
+    display: grid;
+    grid-template-columns: 1.8fr 1.6fr 1.4fr;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0 0 0.75rem 0.75rem;
+    overflow: hidden;
+    min-height: 280px;
+  }
+
+  .dp__panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--color-border);
+    background-color: var(--color-bg-root);
+  }
+
+  .dp__panel:last-child {
+    border-right: none;
+  }
+
+  .dp__panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-bg-surface);
+  }
+
+  .dp__panel-title {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-muted);
+    letter-spacing: 0.04em;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  /* ─── Kanban ─── */
+  .dp__kanban {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    padding: 0.75rem;
+    gap: 0.5rem;
+    flex: 1;
+  }
+
+  .dp__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .dp__col-label {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    padding: 0 0.125rem;
+  }
+
+  .dp__col-label--active {
+    color: #60a5fa;
+  }
+
+  .dp__col-label--done {
+    color: #34d399;
+  }
+
+  .dp__card {
+    position: relative;
+    background-color: var(--color-bg-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    overflow: hidden;
+  }
+
+  .dp__card-agent {
+    font-size: 0.6875rem;
+  }
+
+  .dp__card-text {
+    font-size: 0.625rem;
+    color: var(--color-text-secondary);
+    line-height: 1.4;
+    font-family: var(--font-sans);
+  }
+
+  /* Active card: subtle pulsing border */
+  @keyframes card-pulse {
+    0%, 100% { border-color: rgba(96, 165, 250, 0.4); box-shadow: 0 0 0 0 rgba(96, 165, 250, 0); }
+    50%       { border-color: rgba(96, 165, 250, 0.8); box-shadow: 0 0 8px rgba(96, 165, 250, 0.2); }
+  }
+
+  .dp__card--active {
+    border-color: rgba(96, 165, 250, 0.4);
+    animation: card-pulse 2.5s ease-in-out infinite;
+  }
+
+  .dp__card-pulse {
+    position: absolute;
+    top: 0.375rem;
+    right: 0.375rem;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #60a5fa;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.3; transform: scale(0.7); }
+  }
+
+  .dp__card--done {
+    opacity: 0.5;
+  }
+
+  /* ─── Messages ─── */
+  .dp__messages {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0.625rem;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .dp__msg {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 0.375rem;
+    border-radius: 0.375rem;
+    align-items: flex-start;
+  }
+
+  .dp__msg:hover {
+    background-color: var(--color-bg-surface);
+  }
+
+  .dp__msg-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .dp__msg-body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dp__msg-name {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+  }
+
+  .dp__msg-arrow {
+    font-size: 0.625rem;
+    color: var(--color-text-muted);
+  }
+
+  .dp__msg-time {
+    font-family: var(--font-mono);
+    font-size: 0.5625rem;
+    color: var(--color-text-muted);
+    margin-left: 0.25rem;
+  }
+
+  .dp__msg-text {
+    width: 100%;
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* New message: fade + slide up */
+  @keyframes msg-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .dp__msg--new {
+    animation: msg-in 0.5s ease-out both;
+    animation-delay: 0.3s;
+    opacity: 0;
+  }
+
+  /* ─── Agent Thoughts ─── */
+  .dp__panel--thoughts {
+    background-color: var(--color-bg-root);
+  }
+
+  .dp__thinking-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    animation: pulse-dot 1.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  .dp__thoughts {
+    padding: 0.875rem;
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .dp__thoughts-text {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .dp__inline-code {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-accent);
+    background-color: var(--color-accent-glow);
+    padding: 0.05em 0.3em;
+    border-radius: 0.2em;
+  }
+
+  /* Blinking cursor */
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
+
+  .dp__cursor {
+    display: inline-block;
+    color: var(--color-accent);
+    font-weight: 400;
+    animation: blink 1s step-end infinite;
+    margin-left: 1px;
+  }
+
+  /* ─── Responsive ─── */
+  @media (max-width: 900px) {
+    .dp__panels {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+    }
+
+    .dp__panel--tasks {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @media (max-width: 600px) {
+    .dp__panels {
+      grid-template-columns: 1fr;
+    }
+
+    .dp__panel--tasks {
+      grid-column: 1;
+    }
+
+    .dp__browser-tab {
+      display: none;
+    }
+
+    .dp__kanban {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>

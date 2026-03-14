@@ -96,6 +96,7 @@ Every agent communicates exclusively through MCP tools:
 | Sessions  | `save_session_summary`| Save a session summary                 |
 | Sessions  | `list_sessions`       | List past sessions                     |
 | Sessions  | `get_session_summary` | Retrieve a session summary             |
+| Visibility| `broadcast_thinking`  | Push agent intent to the dashboard     |
 
 The orchestrator also has access to `list_agents` for reading the active persona configuration at runtime.
 

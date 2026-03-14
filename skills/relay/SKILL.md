@@ -116,6 +116,19 @@ to see if tasks have already been created.
 
 If no clear coordinator exists, prepend the task to the first agent alphabetically.
 
+**All agents** also receive this discipline note appended to their system prompt:
+```
+## Task Board Discipline
+- Always claim_task before starting work on a task (marks it in_progress atomically).
+- Always update_task(status: "done") immediately after finishing a task — completing a file
+  change alone does not close the task.
+- Before declaring end:_done or end:waiting, call get_my_tasks() to confirm no open tasks remain.
+
+## Visibility
+- Before each significant operation, call broadcast_thinking(content: "what you're about to do").
+  This streams your intent to the dashboard so the team can see what you're working on.
+```
+
 ### Step 3: Collect first-round declarations
 
 After all agents complete their first run, collect their `end:` messages from broadcasts.
@@ -156,7 +169,18 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     if msg.content starts with "end:waiting":
       dormant_agents[msg.from_agent] = extract reason after "|"
     elif msg.content starts with "end:_done":
-      done_agents[msg.from_agent] = extract summary after "|"
+      # Verify the agent's tasks are actually complete before accepting the declaration
+      all_tasks = get_all_tasks(agent_id: "orchestrator")
+      my_open_tasks = [t for t in all_tasks
+                       if t.assignee == msg.from_agent AND t.status in ("todo", "in_progress")]
+      if my_open_tasks:
+        # Agent has unfinished tasks — re-spawn to close them out
+        re-spawn msg.from_agent with context:
+          "You declared end:_done but still have open tasks: {my_open_tasks}.
+           Call update_task(status: 'done') for each completed task, then re-declare end:_done."
+        # Do NOT add to done_agents yet
+      else:
+        done_agents[msg.from_agent] = extract summary after "|"
     elif msg.content starts with "end:failed":
       report failure to user: "{msg.from_agent} failed: {reason}"
       ask user: abort or continue without this agent?

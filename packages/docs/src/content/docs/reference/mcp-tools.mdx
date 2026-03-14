@@ -1,6 +1,6 @@
 ---
 title: MCP tools reference
-description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 17 tools: messaging, tasks, artifacts, reviews, memory, and sessions."
+description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 18 tools: messaging, tasks, artifacts, reviews, memory, sessions, and visibility."
 ---
 
 All tools respond in the form `{ success: boolean, data?, error? }`.
@@ -463,3 +463,32 @@ Retrieve the `workflow` configuration from `agents.yml`.
   }>;
 }
 ```
+
+---
+
+## Visibility
+
+### broadcast_thinking
+
+Push an agent's current intent to the dashboard as an `agent:thinking` WebSocket event.
+Fire-and-forget — does not write to the database.
+Add this to your agent's `tools` list and call it before each significant operation.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string; // calling agent ID
+  content: string;  // what the agent is about to do or thinking about
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+}
+```
+
+:::tip
+Call `broadcast_thinking` before each significant operation to make the agent's intent visible in the dashboard Thoughts panel.
+:::

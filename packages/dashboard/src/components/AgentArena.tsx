@@ -32,12 +32,19 @@ export function AgentArena({
   collapsed,
   onToggleCollapse,
 }: Props) {
-  // Pre-compute per-agent task counts and last messages — avoids repeated iteration on each render
+  // Pre-compute per-agent task counts and last activity — avoids repeated iteration on each render
   const agentData = useMemo(() => {
     const inProgressByAgent: Record<string, number> = {};
+    // Most recent assigned task title per agent (used as fallback activity text)
+    const lastTaskByAgent: Record<string, string> = {};
     for (const t of tasks) {
-      if (t.assignee && (t.status === "in_progress" || t.status === "in_review")) {
-        inProgressByAgent[t.assignee] = (inProgressByAgent[t.assignee] ?? 0) + 1;
+      if (t.assignee) {
+        if (t.status === "in_progress" || t.status === "in_review") {
+          inProgressByAgent[t.assignee] = (inProgressByAgent[t.assignee] ?? 0) + 1;
+        }
+        if (!lastTaskByAgent[t.assignee]) {
+          lastTaskByAgent[t.assignee] = `Task: ${t.title}`;
+        }
       }
     }
 
@@ -47,7 +54,13 @@ export function AgentArena({
       if (m.to_agent && !lastMessageByAgent[m.to_agent]) lastMessageByAgent[m.to_agent] = m.content;
     }
 
-    return { inProgressByAgent, lastMessageByAgent };
+    // Unified activity: prefer last message, fall back to last task assignment
+    const lastActivityByAgent: Record<string, string> = {
+      ...lastTaskByAgent,
+      ...lastMessageByAgent,
+    };
+
+    return { inProgressByAgent, lastActivityByAgent };
   }, [tasks, messages]);
 
   // Collapsed: render only a thin rail
@@ -210,7 +223,7 @@ export function AgentArena({
             emoji={agent.emoji}
             status={statuses[agent.id] ?? "idle"}
             thinkingChunk={thinkingChunks[agent.id] ?? ""}
-            lastMessage={agentData.lastMessageByAgent[agent.id] ?? null}
+            lastMessage={agentData.lastActivityByAgent[agent.id] ?? null}
             inProgressCount={agentData.inProgressByAgent[agent.id] ?? 0}
             isSelected={selectedAgent === agent.id}
             onClick={() => onSelectAgent(selectedAgent === agent.id ? null : agent.id)}

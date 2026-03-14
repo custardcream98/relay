@@ -96,6 +96,7 @@ relay (plugin)
 | 세션 | `save_session_summary` | 세션 요약 저장 |
 | 세션 | `list_sessions` | 과거 세션 목록 |
 | 세션 | `get_session_summary` | 특정 세션 요약 조회 |
+| 가시성 | `broadcast_thinking` | 에이전트 의도를 대시보드에 실시간 전송 |
 
 오케스트레이터는 추가로 `list_agents`를 사용해 런타임에 페르소나 설정을 읽어요.
 

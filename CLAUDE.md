@@ -149,6 +149,8 @@ agents.default.yml        # Framework skeleton — DO NOT MODIFY
 - Always include `agent_id` in parameters (to track who called)
 - All tools respond with `{ success: boolean, data?, error? }`
 - Memory tools use the `RELAY_DIR` env var path (default: `cwd()/.relay`)
+- `broadcast_thinking(agent_id, content)` — fire-and-forget; emits `agent:thinking` WebSocket event
+  to the dashboard. No DB write. Agents call this before significant operations for visibility.
 
 ## Workflow
 

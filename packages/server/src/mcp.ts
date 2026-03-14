@@ -390,6 +390,24 @@ export function createMcpServer(): McpServer {
     }
   );
 
+  // Broadcast an agent's current thinking to the dashboard (agent:thinking WebSocket event)
+  server.tool(
+    "broadcast_thinking",
+    {
+      agent_id: z.string().describe("ID of the agent sharing their thinking"),
+      content: z.string().describe("What the agent is about to do or thinking about"),
+    },
+    async (input) => {
+      broadcast({
+        type: "agent:thinking",
+        agentId: input.agent_id,
+        chunk: input.content,
+        timestamp: Date.now(),
+      });
+      return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
+    }
+  );
+
   // --- agents tools ---
 
   // Lazy agent cache — populated on first list_agents call, after setProjectRoot() has been set.

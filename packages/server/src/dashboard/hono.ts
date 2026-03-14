@@ -6,16 +6,18 @@ import { fileURLToPath } from "node:url";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { loadAgents } from "../agents/loader";
-import { getRelayDir } from "../config";
+import { getRelayDir, getSessionId } from "../config";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
 import { getEventsBySession } from "../db/queries/events";
 import { getAllMessages } from "../db/queries/messages";
+import { getAllSessions } from "../db/queries/sessions";
 import { getAllTasks } from "../db/queries/tasks";
 import { handleGetSessionSummary } from "../tools/sessions";
 import { broadcast } from "./websocket";
 
-const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
+// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
+const SESSION_ID = getSessionId();
 
 // Bundled: resolve dashboard/ relative to this file's location
 // Dev: override with RELAY_DASHBOARD_DIR env var (e.g. packages/dashboard/dist)
@@ -55,6 +57,15 @@ app.get("/api/session", (c) => {
     messages: getAllMessages(db, SESSION_ID),
     artifacts: getAllArtifacts(db, SESSION_ID),
   });
+});
+
+// API: list all sessions — used by FE session replay UI
+app.get("/api/sessions", (c) => {
+  try {
+    return c.json(getAllSessions());
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
 });
 
 // API: session events (for history replay)

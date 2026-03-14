@@ -2,7 +2,7 @@
 // Chronological stream of all relay events
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import { getAgentAccent } from "../constants/agents";
 import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
 
@@ -35,10 +35,39 @@ function eventIcon(type: TimelineEntry["type"]): string {
   }
 }
 
+// 타입 필터 설정 — 각 타입의 레이블과 아이콘
+type FilterableType = TimelineEntry["type"];
+
+interface FilterDef {
+  type: FilterableType;
+  label: string;
+  icon: string;
+}
+
+const FILTER_DEFS: FilterDef[] = [
+  { type: "message:new", label: "Messages", icon: "💬" },
+  { type: "task:updated", label: "Tasks", icon: "✅" },
+  { type: "artifact:posted", label: "Artifacts", icon: "📦" },
+  { type: "agent:thinking", label: "Thinking", icon: "🧠" },
+  { type: "agent:status", label: "Status", icon: "⚡" },
+  { type: "memory:updated", label: "Memory", icon: "💾" },
+  { type: "review:requested", label: "Review", icon: "🔍" },
+];
+
+// 초기값: 모든 타입 on
+function buildDefaultFilters(): Set<FilterableType> {
+  return new Set(FILTER_DEFS.map((f) => f.type));
+}
+
 export function EventTimeline({ entries, focusAgent }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
+
+  // 이벤트 타입별 필터 상태 — 컴포넌트 내부 useState로 관리
+  const [activeFilters, setActiveFilters] = useState<Set<FilterableType>>(buildDefaultFilters);
+  // 필터 패널 열림/닫힘
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Refresh relative timestamps every 30 seconds
   const [, setTick] = useState(0);
@@ -47,8 +76,13 @@ export function EventTimeline({ entries, focusAgent }: Props) {
     return () => clearInterval(id);
   }, []);
 
-  // Focus Mode: filter entries to the selected agent
-  const filtered = focusAgent ? entries.filter((e) => e.agentId === focusAgent) : entries;
+  // focusAgent 필터 + 타입 필터를 AND 조합으로 적용
+  const filtered = entries.filter((e) => {
+    if (focusAgent && e.agentId !== focusAgent) return false;
+    // team:composed는 필터 목록에 없으므로 항상 통과
+    if (e.type === "team:composed") return true;
+    return activeFilters.has(e.type);
+  });
 
   // Auto-scroll to bottom on new events, unless user has scrolled up
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on entry count change
@@ -65,38 +99,173 @@ export function EventTimeline({ entries, focusAgent }: Props) {
     isUserScrollingRef.current = distFromBottom > 80;
   }, []);
 
-  if (filtered.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full" style={{ gap: 10 }}>
-        <span style={{ fontSize: 28, opacity: 0.2 }}>📡</span>
-        <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
-          {focusAgent ? `No events for ${focusAgent}` : "Waiting for events…"}
-        </span>
-        <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
-          {focusAgent
-            ? "Events will appear when this agent is active"
-            : "Start a relay session to see live events"}
-        </span>
-      </div>
-    );
-  }
+  const toggleFilter = useCallback((type: FilterableType) => {
+    setActiveFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  }, []);
+
+  const allOn = activeFilters.size === FILTER_DEFS.length;
+  const toggleAll = useCallback(() => {
+    setActiveFilters(allOn ? new Set() : buildDefaultFilters());
+  }, [allOn]);
+
+  const isFiltered = activeFilters.size < FILTER_DEFS.length;
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full overflow-y-auto"
-      onScroll={handleScroll}
-      style={{ padding: "12px 0" }}
-    >
-      {filtered.map((entry, idx) => {
-        const accentColor = entry.agentId
-          ? (AGENT_ACCENT_HEX[entry.agentId] ?? DEFAULT_AGENT_ACCENT)
-          : "#4a4a55";
-        const isLast = idx === filtered.length - 1;
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* 필터 pill 행 */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          padding: "5px 12px",
+          borderBottom: "1px solid var(--color-border-subtle)",
+          background: "var(--color-surface-base)",
+          flexShrink: 0,
+          flexWrap: "nowrap",
+          overflowX: "auto",
+        }}
+      >
+        {/* 필터 토글 버튼 */}
+        <button
+          type="button"
+          onClick={() => setFilterOpen((v) => !v)}
+          title="Toggle filter panel"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            padding: "2px 7px",
+            borderRadius: 4,
+            fontSize: 10,
+            fontWeight: 500,
+            cursor: "pointer",
+            border: `1px solid ${isFiltered ? "#60a5fa50" : "var(--color-border-subtle)"}`,
+            background: isFiltered ? "#60a5fa15" : "transparent",
+            color: isFiltered ? "#60a5fa" : "var(--color-text-tertiary)",
+            flexShrink: 0,
+            transition: "background 100ms, border-color 100ms, color 100ms",
+          }}
+        >
+          <span style={{ fontSize: 11 }}>⚙</span>
+          Filter
+          {isFiltered && (
+            <span
+              style={{
+                fontSize: 9,
+                background: "#60a5fa",
+                color: "#fff",
+                borderRadius: 9999,
+                padding: "0 4px",
+                fontWeight: 600,
+              }}
+            >
+              {FILTER_DEFS.length - activeFilters.size} off
+            </span>
+          )}
+        </button>
 
-        return <EventCard key={entry.id} entry={entry} accentColor={accentColor} isLast={isLast} />;
-      })}
-      <div ref={bottomRef} style={{ height: 1 }} />
+        {/* 필터 패널이 열려있을 때 pill 행 */}
+        {filterOpen && (
+          <>
+            {/* 전체 on/off 토글 */}
+            <button
+              type="button"
+              onClick={toggleAll}
+              style={{
+                padding: "2px 7px",
+                borderRadius: 4,
+                fontSize: 10,
+                fontWeight: 500,
+                cursor: "pointer",
+                border: "1px solid var(--color-border-default)",
+                background: "transparent",
+                color: "var(--color-text-tertiary)",
+                flexShrink: 0,
+              }}
+            >
+              {allOn ? "All off" : "All on"}
+            </button>
+
+            {FILTER_DEFS.map((def) => {
+              const isActive = activeFilters.has(def.type);
+              return (
+                <button
+                  key={def.type}
+                  type="button"
+                  onClick={() => toggleFilter(def.type)}
+                  title={def.label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    padding: "2px 7px",
+                    borderRadius: 4,
+                    fontSize: 10,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    border: `1px solid ${isActive ? "var(--color-border-default)" : "var(--color-border-subtle)"}`,
+                    background: isActive ? "var(--color-surface-overlay)" : "transparent",
+                    color: isActive ? "var(--color-text-secondary)" : "var(--color-text-disabled)",
+                    flexShrink: 0,
+                    transition: "background 100ms, border-color 100ms, color 100ms",
+                    opacity: isActive ? 1 : 0.5,
+                  }}
+                >
+                  <span style={{ fontSize: 11 }}>{def.icon}</span>
+                  {def.label}
+                </button>
+              );
+            })}
+          </>
+        )}
+      </div>
+
+      {/* 이벤트 목록 */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center flex-1" style={{ gap: 10 }}>
+          <span style={{ fontSize: 28, opacity: 0.2 }}>📡</span>
+          <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
+            {focusAgent
+              ? `No events for ${focusAgent}`
+              : isFiltered
+                ? "No events match filter"
+                : "Waiting for events…"}
+          </span>
+          <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+            {isFiltered
+              ? "Adjust filters above to see more events"
+              : focusAgent
+                ? "Events will appear when this agent is active"
+                : "Start a relay session to see live events"}
+          </span>
+        </div>
+      ) : (
+        <div
+          ref={containerRef}
+          className="flex-1 overflow-y-auto"
+          onScroll={handleScroll}
+          style={{ padding: "12px 0" }}
+        >
+          {filtered.map((entry, idx) => {
+            const accentColor = entry.agentId ? getAgentAccent(entry.agentId) : "#4a4a55";
+            const isLast = idx === filtered.length - 1;
+
+            return (
+              <EventCard key={entry.id} entry={entry} accentColor={accentColor} isLast={isLast} />
+            );
+          })}
+          <div ref={bottomRef} style={{ height: 1 }} />
+        </div>
+      )}
     </div>
   );
 }

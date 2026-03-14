@@ -1,6 +1,6 @@
 // packages/dashboard/src/components/TaskBoard.tsx
 import { memo, useMemo } from "react";
-import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import { getAgentAccent } from "../constants/agents";
 import type { Task } from "../types";
 
 const COLUMNS = ["todo", "in_progress", "in_review", "done"] as const;
@@ -101,9 +101,7 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
               {colTasks.map((task) => {
                 const isDone = col === "done";
                 const priorityBarColor = PRIORITY_BAR_COLOR[task.priority] ?? "transparent";
-                const accentHex = task.assignee
-                  ? (AGENT_ACCENT_HEX[task.assignee] ?? DEFAULT_AGENT_ACCENT)
-                  : null;
+                const accentHex = task.assignee ? getAgentAccent(task.assignee) : null;
                 const showPriorityLabel = task.priority === "critical" || task.priority === "high";
 
                 return (
@@ -123,6 +121,8 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                       opacity: isDone ? 0.45 : 1,
                       transition: "background 100ms, border-color 100ms, box-shadow 100ms",
                       cursor: "default",
+                      // 카드가 flex 컨테이너에서 납작해지지 않도록
+                      flexShrink: 0,
                     }}
                     onMouseEnter={(e) => {
                       const el = e.currentTarget as HTMLDivElement;
@@ -163,6 +163,26 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                     >
                       {task.title}
                     </span>
+
+                    {/* Description 프리뷰 — 2줄 clamp */}
+                    {task.description && (
+                      <p
+                        title={task.description}
+                        style={{
+                          fontSize: 11,
+                          lineHeight: 1.5,
+                          color: "var(--color-text-tertiary)",
+                          margin: "4px 0 0",
+                          overflow: "hidden",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {task.description}
+                      </p>
+                    )}
 
                     {/* Meta row — assignee chip + priority label */}
                     {(task.assignee || showPriorityLabel) && (

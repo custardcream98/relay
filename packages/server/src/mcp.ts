@@ -7,7 +7,7 @@ import yaml from "js-yaml";
 import { z } from "zod";
 import { getWorkflow, loadAgents, loadPool } from "./agents/loader";
 import type { AgentPersona } from "./agents/types";
-import { getRelayDir, setProjectRoot, uriToPath } from "./config";
+import { getRelayDir, getSessionId, setProjectRoot, uriToPath } from "./config";
 import { broadcast } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getTaskById } from "./db/queries/tasks";
@@ -29,8 +29,8 @@ import {
   handleUpdateTask,
 } from "./tools/tasks";
 
-// Current session ID (injected via environment variable, defaults to "default")
-const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
+// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
+const SESSION_ID = getSessionId();
 
 export function createMcpServer(): McpServer {
   const server = new McpServer({

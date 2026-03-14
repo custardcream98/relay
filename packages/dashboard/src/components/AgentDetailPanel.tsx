@@ -3,7 +3,7 @@
 // Tabs: Thoughts | Messages | Tasks
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import { DEFAULT_AGENT_ACCENT, getAgentAccent } from "../constants/agents";
 import type { AgentId, Message, Task } from "../types";
 import { formatTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
@@ -28,7 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tasks }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("thoughts");
-  const accentColor = AGENT_ACCENT_HEX[agentId] ?? DEFAULT_AGENT_ACCENT;
+  const accentColor = getAgentAccent(agentId);
 
   // Filter messages and tasks for this agent
   const agentMessages = messages.filter((m) => m.from_agent === agentId || m.to_agent === agentId);
@@ -245,9 +245,7 @@ function MessagesTab({
       {messages.map((msg) => {
         const isSent = msg.from_agent === agentId;
         const otherAgent = isSent ? msg.to_agent : msg.from_agent;
-        const otherColor = otherAgent
-          ? (AGENT_ACCENT_HEX[otherAgent] ?? DEFAULT_AGENT_ACCENT)
-          : DEFAULT_AGENT_ACCENT;
+        const otherColor = otherAgent ? getAgentAccent(otherAgent) : DEFAULT_AGENT_ACCENT;
 
         return (
           <div

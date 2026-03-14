@@ -52,3 +52,31 @@ export function uriToPath(uri: string): string {
   }
   return uri;
 }
+
+// 서버 프로세스당 한 번 생성되는 세션 ID — 모든 모듈이 동일한 ID를 사용하도록 싱글턴으로 관리
+let _sessionId: string | null = null;
+
+/**
+ * 현재 서버 프로세스의 세션 ID를 반환한다.
+ * Priority:
+ * 1. RELAY_SESSION_ID env var (명시적 설정)
+ * 2. 서버 시작 시 자동 생성 (YYYY-MM-DD-HHmmss 형식)
+ *
+ * 자동 생성 덕분에 매번 서버를 새로 시작할 때마다 새 세션이 시작되어
+ * 대시보드 태스크 보드에 이전 세션 데이터가 섞이지 않는다.
+ */
+export function getSessionId(): string {
+  if (_sessionId) return _sessionId;
+  if (process.env.RELAY_SESSION_ID) {
+    _sessionId = process.env.RELAY_SESSION_ID;
+    return _sessionId;
+  }
+  // YYYY-MM-DD-HHmmss 형식으로 자동 생성
+  const now = new Date();
+  const date = now.toISOString().slice(0, 10);
+  const hh = String(now.getHours()).padStart(2, "0");
+  const mm = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+  _sessionId = `${date}-${hh}${mm}${ss}`;
+  return _sessionId;
+}

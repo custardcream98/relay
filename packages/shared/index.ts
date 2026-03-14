@@ -48,9 +48,29 @@ export type RelayEvent =
     }
   | {
       type: "session:snapshot";
-      tasks: unknown[];
-      messages: unknown[];
-      artifacts: unknown[];
+      tasks: Array<{
+        id: string;
+        title: string;
+        assignee: string | null;
+        status: string;
+        priority: string;
+        description: string | null;
+      }>;
+      messages: Array<{
+        id: string;
+        from_agent: string;
+        to_agent: string | null;
+        content: string;
+        thread_id: string | null;
+        created_at: number;
+      }>;
+      artifacts: Array<{ id: string; name: string; type: string; created_by: string }>;
+      /** RELAY_INSTANCE env var — undefined when single-server mode */
+      instanceId?: string;
+      /** Actual dashboard HTTP/WS port */
+      port: number;
+      /** Loaded agent metadata — for SessionTeamBadge initial hydration */
+      agents?: Array<{ id: string; name: string; emoji: string }>;
       timestamp: number;
     }
   | { type: "memory:updated"; agentId: AgentId; timestamp: number };

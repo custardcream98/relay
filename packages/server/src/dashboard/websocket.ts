@@ -1,10 +1,11 @@
 // packages/server/src/dashboard/websocket.ts
 import type { WebSocket } from "ws";
+import { getSessionId } from "../config";
 import { insertEvent } from "../db/queries/events.ts";
 import type { RelayEvent } from "./events";
 
-// Current session ID (injected via environment variable, defaults to "default")
-const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
+// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
+const SESSION_ID = getSessionId();
 
 // Set of currently connected WebSocket clients
 const clients = new Set<WebSocket>();

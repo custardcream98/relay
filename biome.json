@@ -25,7 +25,14 @@
     }
   },
   "files": {
-    "includes": ["**", "!!**/node_modules", "!!**/dist", "!!packages/docs/.astro", "!!**/*.db"]
+    "includes": [
+      "**",
+      "!!**/node_modules",
+      "!!**/dist",
+      "!!packages/docs/.astro",
+      "!!**/*.db",
+      "!!.relay"
+    ]
   },
   "overrides": [
     {

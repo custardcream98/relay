@@ -14,6 +14,7 @@ export interface Task {
   assignee: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  description?: string | null;
 }
 
 export interface Message {

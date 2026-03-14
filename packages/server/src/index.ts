@@ -3,6 +3,8 @@
 import { createServer } from "node:net";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
+import { loadAgents } from "./agents/loader";
+import { getSessionId } from "./config";
 import { app } from "./dashboard/hono";
 import { addClient, removeClient } from "./dashboard/websocket";
 import { getDb } from "./db/client";
@@ -87,7 +89,8 @@ async function resolvePort(): Promise<number> {
 }
 
 const DASHBOARD_PORT = await resolvePort();
-const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
+// 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
+const SESSION_ID = getSessionId();
 
 // Dashboard HTTP + WebSocket server.
 // EADDRINUSE is emitted asynchronously on the server's "error" event — not catchable via try/catch.
@@ -120,11 +123,26 @@ dashboardServer.on("upgrade", (request, socket, head) => {
       // Send current session snapshot on new connection — for dashboard initial hydration
       try {
         const db = getDb();
+        // Load agent metadata for SessionTeamBadge hydration
+        let agentMeta: Array<{ id: string; name: string; emoji: string }> = [];
+        try {
+          const agents = loadAgents();
+          agentMeta = Object.values(agents).map((a) => ({
+            id: a.id,
+            name: a.name,
+            emoji: a.emoji,
+          }));
+        } catch {
+          // Agent loading failure should not block snapshot delivery
+        }
         const snapshot = JSON.stringify({
           type: "session:snapshot",
           tasks: getAllTasks(db, SESSION_ID),
           messages: getAllMessages(db, SESSION_ID),
           artifacts: getAllArtifacts(db, SESSION_ID),
+          instanceId: process.env.RELAY_INSTANCE,
+          port: DASHBOARD_PORT,
+          agents: agentMeta,
           timestamp: Date.now(),
         });
         ws.send(snapshot);

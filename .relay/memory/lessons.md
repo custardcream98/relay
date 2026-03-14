@@ -45,3 +45,28 @@ _2026-03-14_
 - QA prep (baseline scan, test gap analysis) during first spawn was valuable — QA immediately knew what to test on re-spawn
 - Multi-server feature was mostly already env-var-driven; the main additions were DB path isolation and auto port selection
 
+
+---
+_2026-03-14_
+
+_2026-03-14_
+
+## Session 2026-03-14-002: Dashboard Enhancement
+
+**Accomplishments:**
+- FE: getAgentAccent() applied to all 6 components (pool agent color consistency fixed)
+- FE: MessageFeed panel added (Slack-style, TaskBoard ↔ Messages tab in right panel, unread badge)
+- FE: EventTimeline type filter (7 pill toggles: Messages/Tasks/Artifacts/Thinking/Status/Memory/Review)
+- FE: TaskBoard card description 2-line clamp + hover tooltip
+- FE: Reconnect UI (useRelaySocket extended with reconnecting/attempt/nextRetryIn/retryNow, offline banner)
+- FE: Session replay UI (SessionReplay.tsx, GET /api/sessions dropdown, event playback controls)
+- BE: session:snapshot type safety (unknown[] → concrete types, instanceId/port/agents fields added)
+- BE: GET /api/sessions endpoint + getAllSessions() query (events GROUP BY session_id)
+- BE: WebSocket snapshot now includes instanceId, port, agents metadata
+- QA: 65/65 tests pass, dashboard build 0 errors, all 8 feature items verified
+
+**Lessons:**
+- BE completing type changes first unblocked FE type casting removal cleanly
+- designer running concurrently with PM (UX spec ready before FE started) was valuable
+- QA minor note: App.tsx line 184 has 1 residual `as Task[]` cast for status type narrowing — non-blocking
+

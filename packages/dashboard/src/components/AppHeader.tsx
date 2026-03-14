@@ -8,6 +8,7 @@ import { SessionTeamBadge } from "./SessionTeamBadge";
 
 interface Props {
   connected: boolean;
+  reconnecting?: boolean; // 재연결 대기 중
   agentCount: number;
   selectedAgent: AgentId | null;
   onClearFocus: () => void;
@@ -25,6 +26,7 @@ interface Props {
 
 export const AppHeader = memo(function AppHeader({
   connected,
+  reconnecting = false,
   agentCount,
   selectedAgent,
   onClearFocus,
@@ -223,9 +225,11 @@ export const AppHeader = memo(function AppHeader({
               color: "var(--color-text-disabled)",
               fontFamily: "var(--font-mono)",
               letterSpacing: "0.04em",
+              // 재연결 중이면 깜빡임 애니메이션
+              animation: reconnecting && !connected ? "blink 1.2s step-end infinite" : "none",
             }}
           >
-            {connected ? "live" : "offline"}
+            {connected ? "live" : reconnecting ? "reconnecting..." : "offline"}
           </span>
         </div>
       </div>

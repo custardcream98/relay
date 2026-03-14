@@ -2,7 +2,7 @@
 // Agent card — avatar, status badge, activity preview, task count
 
 import { memo } from "react";
-import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
+import { getAgentAccent } from "../constants/agents";
 import type { AgentId } from "../types";
 
 interface Props {
@@ -36,7 +36,7 @@ export const AgentCard = memo(function AgentCard({
   isSelected,
   onClick,
 }: Props) {
-  const accentColor = AGENT_ACCENT_HEX[id] ?? DEFAULT_AGENT_ACCENT;
+  const accentColor = getAgentAccent(id);
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
 

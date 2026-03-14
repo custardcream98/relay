@@ -7,6 +7,8 @@ import { AgentArena } from "./components/AgentArena";
 import { AgentDetailPanel } from "./components/AgentDetailPanel";
 import { AppHeader } from "./components/AppHeader";
 import { EventTimeline } from "./components/EventTimeline";
+import { MessageFeed } from "./components/MessageFeed";
+import { SessionReplay } from "./components/SessionReplay";
 import { TaskBoard } from "./components/TaskBoard";
 import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
@@ -177,20 +179,13 @@ function reducer(state: DashboardState, action: Action): DashboardState {
 
       switch (event.type) {
         case "session:snapshot": {
-          // Rebuild timeline from snapshot messages and tasks
-          const snapshotMessages = event.messages as Message[];
-          const snapshotTasks = event.tasks as Task[];
-
-          // Read instanceId and port if BE has added them to the snapshot payload
-          const snap = event as RelayEvent & {
-            instanceId?: string;
-            port?: number;
-            agents?: AgentMeta[];
-          };
+          // Snapshot payload is now fully typed — no casting needed
+          const snapshotMessages: Message[] = event.messages;
+          const snapshotTasks: Task[] = event.tasks as Task[];
 
           // Rebuild session team from snapshot if present
           const teamFromSnapshot: AgentMeta[] =
-            snap.agents && snap.agents.length > 0 ? snap.agents : state.sessionTeam;
+            event.agents && event.agents.length > 0 ? event.agents : state.sessionTeam;
 
           const snapshotEntries: TimelineEntry[] = [
             ...snapshotMessages.map((m) => ({
@@ -227,8 +222,8 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             messages: snapshotMessages,
             timeline: snapshotEntries,
             agentStatuses: { ...state.agentStatuses, ...restoredStatuses },
-            instanceId: snap.instanceId ?? state.instanceId,
-            instancePort: snap.port ?? state.instancePort,
+            instanceId: event.instanceId ?? state.instanceId,
+            instancePort: event.port ?? state.instancePort,
             sessionTeam: teamFromSnapshot,
           };
         }
@@ -365,7 +360,9 @@ export default function App() {
   const handleEvent = useCallback((event: RelayEvent) => {
     dispatch({ type: "EVENT", event: event as DashboardEvent });
   }, []);
-  const { connected } = useRelaySocket({ onEvent: handleEvent });
+  const { connected, reconnecting, attempt, nextRetryIn, retryNow } = useRelaySocket({
+    onEvent: handleEvent,
+  });
   const {
     tasks,
     messages,
@@ -379,6 +376,31 @@ export default function App() {
   } = state;
 
   const isFocusMode = selectedAgent !== null;
+
+  // 우측 하단 패널 탭 상태 — "tasks" | "messages"
+  type BottomTab = "tasks" | "messages";
+  const [bottomTab, setBottomTab] = useState<BottomTab>("tasks");
+
+  // 새 메시지 도착 시 메시지 탭 미읽음 카운터 추적
+  const [seenMessageCount, setSeenMessageCount] = useState(0);
+  const unreadMessages = messages.length - seenMessageCount;
+
+  // 세션 리플레이 모드 — 라이브 WS 이벤트와 분리된 타임라인 제공
+  const [replayMode, setReplayMode] = useState(false);
+  const [replayTimeline, setReplayTimeline] = useState<TimelineEntry[]>([]);
+
+  const handleStartReplay = useCallback((entries: TimelineEntry[]) => {
+    setReplayTimeline(entries);
+    setReplayMode(true);
+  }, []);
+
+  const handleExitReplay = useCallback(() => {
+    setReplayMode(false);
+    setReplayTimeline([]);
+  }, []);
+
+  // 리플레이 중이면 replayTimeline 사용, 아니면 라이브 timeline
+  const displayTimeline = replayMode ? replayTimeline : timeline;
 
   // Fetch agent list — passed as props to AgentArena
   const [agents, setAgents] = useState<AgentMeta[]>([]);
@@ -447,6 +469,7 @@ export default function App() {
     >
       <AppHeader
         connected={connected}
+        reconnecting={reconnecting}
         agentCount={agents.length}
         selectedAgent={selectedAgent}
         onClearFocus={() => dispatch({ type: "SELECT_AGENT", agentId: null })}
@@ -458,6 +481,47 @@ export default function App() {
         onSwitchServer={handleSwitchServer}
         onAddServer={handleAddServer}
       />
+
+      {/* 오프라인 배너 — 재연결 중일 때만 표시 */}
+      {!connected && reconnecting && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 10,
+            padding: "7px 16px",
+            background: "#92400e",
+            color: "#fef3c7",
+            fontSize: 12,
+            fontWeight: 500,
+            flexShrink: 0,
+            borderBottom: "1px solid #b45309",
+          }}
+        >
+          <span style={{ fontSize: 14 }}>⚠</span>
+          <span>
+            Connection lost — reconnecting in {nextRetryIn}s (attempt {attempt + 1}/5)
+          </span>
+          <button
+            type="button"
+            onClick={retryNow}
+            style={{
+              marginLeft: 8,
+              padding: "2px 10px",
+              borderRadius: 4,
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: "pointer",
+              border: "1px solid #fef3c7",
+              background: "transparent",
+              color: "#fef3c7",
+            }}
+          >
+            Retry now
+          </button>
+        </div>
+      )}
 
       {/* Main two-panel layout */}
       <div className="flex flex-1 overflow-hidden">
@@ -499,31 +563,196 @@ export default function App() {
               flexDirection: "column",
             }}
           >
-            <PanelHeader label="Event Timeline" badge={timeline.length} />
+            <div
+              className="flex items-center justify-between shrink-0"
+              style={{
+                height: 36,
+                borderBottom: "1px solid var(--color-border-subtle)",
+                background: "var(--color-surface-base)",
+                paddingLeft: 16,
+                paddingRight: 8,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--color-text-tertiary)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                  }}
+                >
+                  {replayMode ? "⏮ Replay" : "Event Timeline"}
+                </span>
+                <span
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    background: "var(--color-surface-overlay)",
+                    color: "var(--color-text-secondary)",
+                    padding: "1px 6px",
+                    borderRadius: 9999,
+                  }}
+                >
+                  {displayTimeline.length}
+                </span>
+              </div>
+              {/* 세션 리플레이 컨트롤 */}
+              <SessionReplay
+                onStartReplay={handleStartReplay}
+                onExitReplay={handleExitReplay}
+                isReplaying={replayMode}
+              />
+            </div>
             <div className="flex-1 overflow-hidden">
-              <EventTimeline entries={timeline} focusAgent={selectedAgent} />
+              <EventTimeline entries={displayTimeline} focusAgent={selectedAgent} />
             </div>
           </div>
 
           {/* Row resize divider */}
           <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
 
-          {/* Bottom: TaskBoard or AgentDetailPanel */}
+          {/* Bottom: TaskBoard/MessageFeed 탭 또는 AgentDetailPanel (포커스 모드) */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <PanelHeader label={isFocusMode ? `${selectedAgent} — detail` : "Task Board"} />
-            <div className="flex-1 overflow-hidden">
-              {isFocusMode && selectedAgent ? (
-                <AgentDetailPanel
-                  agentId={selectedAgent}
-                  status={agentStatuses[selectedAgent] ?? "idle"}
-                  thinkingChunk={thinkingChunks[selectedAgent] ?? ""}
-                  messages={messages}
-                  tasks={tasks}
-                />
-              ) : (
-                <TaskBoard tasks={tasks} />
-              )}
-            </div>
+            {isFocusMode ? (
+              // 포커스 모드: AgentDetailPanel이 전체를 차지
+              <>
+                <PanelHeader label={`${selectedAgent} — detail`} />
+                <div className="flex-1 overflow-hidden">
+                  <AgentDetailPanel
+                    agentId={selectedAgent ?? ""}
+                    status={agentStatuses[selectedAgent ?? ""] ?? "idle"}
+                    thinkingChunk={thinkingChunks[selectedAgent ?? ""] ?? ""}
+                    messages={messages}
+                    tasks={tasks}
+                  />
+                </div>
+              </>
+            ) : (
+              // 일반 모드: TaskBoard ↔ Messages 탭 전환
+              <>
+                {/* 탭 헤더 */}
+                <div
+                  className="flex items-center shrink-0"
+                  style={{
+                    height: 36,
+                    borderBottom: "1px solid var(--color-border-subtle)",
+                    background: "var(--color-surface-base)",
+                    paddingLeft: 12,
+                    paddingRight: 12,
+                    gap: 4,
+                  }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setBottomTab("tasks")}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "3px 10px",
+                      borderRadius: 5,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      border: "none",
+                      background:
+                        bottomTab === "tasks" ? "var(--color-surface-overlay)" : "transparent",
+                      color:
+                        bottomTab === "tasks"
+                          ? "var(--color-text-secondary)"
+                          : "var(--color-text-tertiary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.07em",
+                      transition: "background 100ms, color 100ms",
+                    }}
+                  >
+                    Task Board
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 10,
+                        background: "var(--color-surface-overlay)",
+                        color: "var(--color-text-secondary)",
+                        padding: "0 4px",
+                        borderRadius: 3,
+                      }}
+                    >
+                      {tasks.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBottomTab("messages");
+                      setSeenMessageCount(messages.length);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "3px 10px",
+                      borderRadius: 5,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      border: "none",
+                      background:
+                        bottomTab === "messages" ? "var(--color-surface-overlay)" : "transparent",
+                      color:
+                        bottomTab === "messages"
+                          ? "var(--color-text-secondary)"
+                          : "var(--color-text-tertiary)",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.07em",
+                      transition: "background 100ms, color 100ms",
+                    }}
+                  >
+                    Messages
+                    {/* 새 메시지 미읽음 배지 */}
+                    {unreadMessages > 0 && bottomTab !== "messages" ? (
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: 10,
+                          background: "#60a5fa",
+                          color: "#fff",
+                          padding: "0 5px",
+                          borderRadius: 9999,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {unreadMessages}
+                      </span>
+                    ) : (
+                      <span
+                        className="font-mono"
+                        style={{
+                          fontSize: 10,
+                          background: "var(--color-surface-overlay)",
+                          color: "var(--color-text-secondary)",
+                          padding: "0 4px",
+                          borderRadius: 3,
+                        }}
+                      >
+                        {messages.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* 탭 콘텐츠 */}
+                <div className="flex-1 overflow-hidden">
+                  {bottomTab === "tasks" ? (
+                    <TaskBoard tasks={tasks} />
+                  ) : (
+                    <MessageFeed messages={messages} />
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

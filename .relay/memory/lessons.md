@@ -93,3 +93,72 @@ _2026-03-14_
 - RELAY_SESSION_AGENTS_FILE cache is pre-populated on first list_agents call, so custom session teams won't show in dashboard UI (marketer not visible). Known limitation.
 - Agent card "No activity yet" bug: task:updated events don't update agent card lastMessage — needs fix in App.tsx reducer
 
+
+---
+_2026-03-14_
+
+_2026-03-14_
+
+## Session 2026-03-14-004: Landing Page Dashboard Visual
+
+**Team**: pm, designer, docs-writer, fe
+
+**Accomplishments**:
+- Designer: detailed spec for DashboardPreview section (browser-chrome frame, 3-panel layout, CSS animations)
+- docs-writer: created `DashboardPreview.astro` — browser-chrome-framed 3-panel dashboard mockup (Kanban / Message Feed / Agent Thoughts) with pure CSS animations (blinking cursor, card pulse, message fade-in); added 11 i18n keys (en + ko-KR); integrated into index.astro + ko-KR/index.astro
+- Fixed favicon bug in Landing.astro: `${BASE_URL}favicon.svg` → `${BASE_URL}/favicon.svg` (BASE_URL is `/relay` without trailing slash, causing `/relayfavicon.svg`)
+- Build: 55 pages, 0 errors
+
+**Lessons**:
+- favicon path bug: BASE_URL in this Astro project is `/relay` (no trailing slash). Always use `${BASE_URL}/path` pattern, not `${BASE_URL}path`.
+- docs-writer proceeded with implementation in parallel with designer spec — effective for clear briefs
+- fe had no tasks this session; could be skipped for pure docs/content tasks
+
+---
+_2026-03-14_
+
+_2026-03-14_
+
+## Session 2026-03-14-005: Concurrent Session Isolation
+
+**Team**: pm, mcp-architect, be, qa
+
+**Accomplishments:**
+- mcp-architect: Designed full concurrent session isolation spec — session-scoped agentsCache Map, session-specific file naming, fallback chain separation, backward compat strategy
+- be: Implemented 3-file change (mcp.ts, SKILL.md, .gitignore). Key fix: agentsCache Map<string, Record<string, AgentPersona>>, getAgents(sessionId?) with fully separated fallback chains
+- be2 review caught BLOCKER: sessionId path was incorrectly falling back to RELAY_SESSION_AGENTS_FILE — fixed in v2
+- qa: 65/65 tests pass, final PR verified
+
+**Key decisions:**
+- sessionId present: `session-agents-{id}.yml` → `loadAgents()` (RELAY_SESSION_AGENTS_FILE skipped entirely)
+- sessionId absent: `RELAY_SESSION_AGENTS_FILE` → `loadAgents()` (legacy behavior preserved)
+- Pre-flight list_agents has NO session_id; Session Startup list_agents DOES pass session_id
+- Cache key "__default__" used when no session_id provided
+
+**Lessons:**
+- mcp-architect agent is valuable for protocol/schema design before implementation — caught edge cases (pre-flight vs session-startup cache key collision) that would have been bugs
+- be2 reviewer caught a real BLOCKER (fallback chain bug) — always use peer review for concurrency changes
+- Having mcp-architect write spec to both artifact AND .relay/memory/ file was effective — be could reference either
+
+---
+_2026-03-14_
+
+_2026-03-14_
+
+## Session 2026-03-14-006: Dashboard Improvements — Thoughts Panel + Session Switcher
+
+**Team**: pm, fe, fe2, fe3, be, be2, qa
+
+**Accomplishments:**
+- fe3: Fixed AgentArena.tsx lastTask bug — removed `if (!lastTaskByAgent[t.assignee])` guard so the latest task always overwrites, showing most recent activity
+- fe3: Added `broadcast_thinking` to 8 agents in `.relay/agents.pool.yml` (be, fe, designer, qa, mcp-architect, dx-engineer, security-reviewer, oss-maintainer)
+- fe2: Removed `SessionReplay.tsx` entirely + cleaned up all App.tsx/AppHeader.tsx references
+- fe: Added session switcher to AppHeader.tsx — dropdown fetches `/api/sessions`, selecting one loads snapshot; LIVE badge when on current session; `viewingSessionId` state in App.tsx; `SET_SESSION_SNAPSHOT` reducer action freezes TaskBoard+MessageFeed to historical data
+- be: Added `GET /api/sessions/:id/snapshot` endpoint to hono.ts — returns `{ session_id, tasks, messages, artifacts }`, session_id regex validated (400 on invalid), empty arrays on unknown session
+- Thoughts panel (`agent:thinking` WebSocket → `thinkingChunks` state → `AgentDetailPanel` Thoughts tab) was already implemented; sessions 006 completed the loop by adding `broadcast_thinking` to pool agents' tool lists
+- Build: 0 errors, 65/65 tests pass
+
+**Lessons:**
+- Context compaction mid-session caused task status drift — agents completed work but couldn't update tasks; orchestrator had to reconcile file state vs. DB state manually
+- fe2 posting PR artifact but leaving task as `todo` is a recurring pattern — task discipline enforcement remains weak
+- All code changes survived context loss intact (git-tracked filesystem) — only DB task statuses were stale

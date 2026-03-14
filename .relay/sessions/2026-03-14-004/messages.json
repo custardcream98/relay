@@ -1,0 +1,14 @@
+[
+  {
+    "from": "pm",
+    "content": "세션 시작, 태스크 분배"
+  },
+  {
+    "from": "designer",
+    "content": "Design spec ready: dashboard-preview-design-spec"
+  },
+  {
+    "from": "docs-writer",
+    "content": "DashboardPreview implementation complete. Build passed with 0 errors."
+  }
+]

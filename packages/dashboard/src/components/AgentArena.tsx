@@ -42,9 +42,7 @@ export function AgentArena({
         if (t.status === "in_progress" || t.status === "in_review") {
           inProgressByAgent[t.assignee] = (inProgressByAgent[t.assignee] ?? 0) + 1;
         }
-        if (!lastTaskByAgent[t.assignee]) {
-          lastTaskByAgent[t.assignee] = `Task: ${t.title}`;
-        }
+        lastTaskByAgent[t.assignee] = `Task: ${t.title}`;
       }
     }
 

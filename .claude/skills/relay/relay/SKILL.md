@@ -1,6 +1,6 @@
 ---
 name: relay
-description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by the full team defined in agents.yml.
+description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by a team assembled from the agent pool.
 ---
 
 The team collaborates event-driven — all agents are alive from session start and
@@ -8,18 +8,101 @@ react to messages and tasks organically, like a Slack-first team.
 
 ## Pre-flight Checks
 
-1. Confirm the relay MCP server is connected by calling `list_agents`.
-   - If no agents are returned: tell the user "No agents defined. Create agents.yml first. See agents.example.yml for reference." and stop.
-2. Verify `.relay/memory/project.md` exists.
-   - If absent: suggest running `/relay:init` first.
-3. Generate a new session ID in `YYYY-MM-DD-NNN` format.
-4. Tell the user: "Dashboard: http://localhost:3456"
+1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
+   - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
+2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
+   - If absent: suggest running `/relay:init` first to set up the pool.
+3. Generate a new session ID in `YYYY-MM-DD-NNN-XXXX` format, where `XXXX` is 4 random hex digits.
+   - Example: `2026-03-14-001-a3f7`
+   - The random suffix prevents file-name collisions when two sessions start within the same second
+     (both would write to the same `session-agents-{id}.yml` without it).
+   - If the `RELAY_INSTANCE` environment variable is set, prefix the session ID:
+     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN-XXXX` (e.g. `project-a-2026-03-14-001-a3f7`).
+4. Call `get_server_info` to get the actual dashboard URL (the server auto-selects a port from 3456–3465).
+   - Tell the user: "Dashboard: {dashboardUrl}"
+
+## Team Composition (Dynamic Agent Selection)
+
+This step runs **before** spawning any agents. Every session assembles a purpose-built team
+from the agent pool — the team is assembled fresh each session.
+
+> **Note**: The Pre-flight `list_agents` call does not pass `session_id` — the
+> session-specific file has not been written yet. `session_id` is passed only in
+> Session Startup step 1, after Team Composition writes the session-specific file.
+
+Go directly to pool selection below.
+
+### Pool Selection Conversation
+
+1. Call `list_pool_agents` to fetch all available pool entries.
+   - If it returns 0 entries, tell the user: "No agent pool configured. Create
+     `.relay/agents.pool.yml` (see `agents.pool.example.yml`)." and stop.
+
+2. Ask the user:
+   > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
+   > 'write a legal contract review')"
+
+3. Based on the user's response, use your own reasoning to suggest a team:
+   - Match the task description to agent `tags` and `description` fields.
+   - Aim for 3–6 agents unless the task clearly needs more or fewer.
+   - Show the suggested team in a concise list:
+     ```
+     Suggested team:
+     - 📋 pm — Product Manager (coordinates tasks)
+     - ⚙️ be — Backend Engineer (API + DB work)
+     - 🔍 qa — QA Engineer (testing + sign-off)
+     ```
+   - Explain briefly **why** each agent was selected.
+
+4. Let the user refine:
+   - "Looks good" or "yes" → confirm and proceed.
+   - "Remove X, add Y" → adjust the team and re-show.
+   - "Start over" → go back to step 2.
+   - **"Add N of the same agent"** (e.g. "add 3 FE engineers") → include that many instances
+     with auto-numbered IDs: `fe`, `fe2`, `fe3`. Each gets the same pool persona but a
+     distinct name (e.g. "Frontend Engineer 1", "Frontend Engineer 2", "Frontend Engineer 3").
+
+5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
+   - To build the file, call `list_pool_agents` — it returns full personas including `systemPrompt`.
+     Map each selected agent ID to its full persona config.
+   - For **single instances**, write the agent entry directly:
+     ```yaml
+     agents:
+       fe:
+         name: Frontend Engineer
+         emoji: "🎨"
+         systemPrompt: "..."
+         tools: [...]
+     ```
+   - For **multiple instances of the same pool agent**, use the `extends` pattern so the
+     session file stays compact:
+     ```yaml
+     agents:
+       fe:
+         extends: fe
+         name: "Frontend Engineer 1"
+       fe2:
+         extends: fe
+         name: "Frontend Engineer 2"
+       fe3:
+         extends: fe
+         name: "Frontend Engineer 3"
+     ```
+     The `extends` value is the pool agent ID. The server merges the pool persona with the
+     overrides (`name`, `emoji`, etc.) at load time.
+   - Write the file at `.relay/session-agents-{session_id}.yml` (use the session ID generated
+     in Pre-flight step 3).
+   - Do NOT set `RELAY_SESSION_AGENTS_FILE` — pass `session_id` directly to `list_agents` instead.
+
+> **Fallback**: if no pool is configured, the session cannot start. Prompt the user to
+> create `.relay/agents.pool.yml` (see `agents.pool.example.yml`).
 
 ## Session Startup
 
 ### Step 1: Load all agents
 
-Call `list_agents` to get the full roster. Cache the result — it will be referenced throughout.
+Call `list_agents(agent_id: "orchestrator", session_id: "{session_id}")` to get the active roster.
+Cache the result — it will be referenced throughout.
 
 Separate agents into:
 - **Base agents**: all agents returned by list_agents
@@ -48,6 +131,19 @@ to see if tasks have already been created.
 ```
 
 If no clear coordinator exists, prepend the task to the first agent alphabetically.
+
+**All agents** also receive this discipline note appended to their system prompt:
+```
+## Task Board Discipline
+- Always claim_task before starting work on a task (marks it in_progress atomically).
+- Always update_task(status: "done") immediately after finishing a task — completing a file
+  change alone does not close the task.
+- Before declaring end:_done or end:waiting, call get_my_tasks() to confirm no open tasks remain.
+
+## Visibility
+- Before each significant operation, call broadcast_thinking(content: "what you're about to do").
+  This streams your intent to the dashboard so the team can see what you're working on.
+```
 
 ### Step 3: Collect first-round declarations
 
@@ -89,7 +185,18 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     if msg.content starts with "end:waiting":
       dormant_agents[msg.from_agent] = extract reason after "|"
     elif msg.content starts with "end:_done":
-      done_agents[msg.from_agent] = extract summary after "|"
+      # Verify the agent's tasks are actually complete before accepting the declaration
+      all_tasks = get_all_tasks(agent_id: "orchestrator")
+      my_open_tasks = [t for t in all_tasks
+                       if t.assignee == msg.from_agent AND t.status in ("todo", "in_progress")]
+      if my_open_tasks:
+        # Agent has unfinished tasks — re-spawn to close them out
+        re-spawn msg.from_agent with context:
+          "You declared end:_done but still have open tasks: {my_open_tasks}.
+           Call update_task(status: 'done') for each completed task, then re-declare end:_done."
+        # Do NOT add to done_agents yet
+      else:
+        done_agents[msg.from_agent] = extract summary after "|"
     elif msg.content starts with "end:failed":
       report failure to user: "{msg.from_agent} failed: {reason}"
       ask user: abort or continue without this agent?
@@ -184,7 +291,38 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
 2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
-3. Report results to the user.
+3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
+4. Report results to the user.
+
+## Multi-Instance Notes
+
+When running multiple relay servers simultaneously (e.g. two projects in separate terminals):
+
+- Each server instance should have a unique `DASHBOARD_PORT` (e.g. 3456 and 3457).
+- Use `RELAY_INSTANCE` to give each instance a name (e.g. `project-a`, `project-b`).
+  Session IDs will be automatically prefixed: `project-a-2026-03-14-001`.
+- Each instance uses a separate SQLite DB when `RELAY_INSTANCE` is set:
+  `.relay/relay-{instance}.db` (e.g. `.relay/relay-project-a.db`).
+- The skill always operates on the MCP server it was invoked from. When Claude Code has
+  two relay MCP servers registered, use the correct one's skill invocation.
+
+Example `.mcp.json` for two instances:
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
+    },
+    "relay-b": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
+    }
+  }
+}
+```
 
 ## Failure Handling
 

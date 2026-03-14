@@ -162,3 +162,47 @@ _2026-03-14_
 - Context compaction mid-session caused task status drift — agents completed work but couldn't update tasks; orchestrator had to reconcile file state vs. DB state manually
 - fe2 posting PR artifact but leaving task as `todo` is a recurring pattern — task discipline enforcement remains weak
 - All code changes survived context loss intact (git-tracked filesystem) — only DB task statuses were stale
+
+---
+_2026-03-14_
+
+_2026-03-14_
+
+## Session 2026-03-14-007: Concurrent Session Review + agents.yml Removal + Multi-instance Agents
+
+**Team**: pm, mcp-architect, be, security-reviewer, qa
+
+**Accomplishments:**
+
+**[A] Concurrent Session Isolation Review:**
+- mcp-architect: 현 격리 설계(agentsCache Map, session-agents-{id}.yml) 안전 확인. 개선 권장: auto-generated session_id에 4자리 random hex suffix 추가
+- be: loader.ts stateless 설계 확인 (agentsCache Map 의도적 미구현), config.ts/DB 격리 정상
+- security-reviewer: HIGH 2건 발견 — updateTask/claimTask WHERE session_id 누락, list_agents sessionId path traversal
+- qa: +11 신규 세션 격리 테스트 작성 (65 → 76 pass)
+
+**[B] agents.yml 제거 + pool 전용화:**
+- loader.ts `loadPool()`: `loadAgents()` fallback 제거, pool 없으면 명확한 에러 throw
+- `getAgents(sessionId?)`: sessionId 없으면 `{}` 반환 — pre-flight은 `list_pool_agents` 사용
+- skills/relay/SKILL.md: Team Composition에서 agents.yml 질문 제거, pool 선택 항상 필수로 변경
+- skills/init/SKILL.md: agents.pool.yml 생성 플로우로 재작성
+- CLAUDE.md: 전체 agents.yml 참조 pool 기반으로 교체
+
+**[C] 동일 에이전트 다중 인스턴스:**
+- `extends` 패턴으로 코드 변경 없이 즉시 지원 (fe2: { extends: fe })
+- agents.pool.example.yml에 multi-instance 예시 주석 추가
+- skills/relay/SKILL.md Pool Selection에 "add N of same agent" UX 가이드 추가
+
+**Security Fixes (all approved by security-reviewer):**
+- updateTask/claimTask: `AND session_id = ?` WHERE 조건 추가
+- getAgents(): sessionId `/^[a-zA-Z0-9_-]+$/` 검증 추가 (path traversal 차단)
+- hono.ts /api/sessions/:id/events: sessionId 검증 추가 (400 반환)
+- index.ts + config.ts: --session / RELAY_INSTANCE 검증 추가 (exit(1) on invalid)
+
+**Final test count: 76/76 pass**
+
+**Lessons:**
+- security-reviewer가 2라운드로 실제 코드 검증까지 완료하는 패턴이 효과적
+- mcp-architect가 extends 패턴을 설계로 제안 → 코드 변경 0으로 [C-2] 해결 (loader.ts 기존 코드 활용)
+- agents.yml 제거는 loader.ts 최소 변경으로 처리 가능했음 — 하위 호환 deprecation 경고 패턴 유용
+- be가 6개 태스크(SEC x4 + B-2 + C-2)를 한 번의 스폰으로 처리 — 태스크 범위가 명확하면 효율적
+

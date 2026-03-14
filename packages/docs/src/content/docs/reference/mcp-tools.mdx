@@ -415,7 +415,7 @@ Retrieve the summary for a specific session.
 
 ### list_agents
 
-Retrieve the list of agents defined in `agents.yml`.
+Retrieve the list of agents active in the current session (loaded from the session pool file).
 
 **Parameters:**
 ```typescript
@@ -443,7 +443,7 @@ Retrieve the list of agents defined in `agents.yml`.
 
 ### get_workflow
 
-Retrieve the `workflow` configuration from `agents.yml`.
+Retrieve the `workflow` configuration from the loaded session config.
 
 **Parameters:**
 ```typescript

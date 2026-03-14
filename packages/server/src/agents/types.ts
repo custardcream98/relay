@@ -29,7 +29,7 @@ export interface WorkflowConfig {
 }
 
 export interface AgentsFile {
-  agents: Record<AgentId, Partial<AgentConfig>>;
+  agents: Record<string, Partial<AgentConfig>>;
   workflow?: WorkflowConfig;
   language?: string; // Default language for all agents (can be overridden per agent)
 }

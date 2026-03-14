@@ -1,10 +1,11 @@
 // packages/server/src/index.ts
 
 import { createServer } from "node:net";
+import type { AgentId } from "@custardcream/relay-shared";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
-import { loadAgents } from "./agents/loader";
-import { getSessionId } from "./config";
+import { loadPool } from "./agents/loader";
+import { getSessionId, setPort } from "./config";
 import { app } from "./dashboard/hono";
 import { addClient, removeClient } from "./dashboard/websocket";
 import { getDb } from "./db/client";
@@ -42,9 +43,22 @@ function parseArgs(argv: string[]): { port?: number; session?: string } {
 
 const cliArgs = parseArgs(process.argv.slice(2));
 
+// Validate --session value: only alphanumeric, hyphen, underscore allowed
+// Prevents DB path traversal via RELAY_INSTANCE (e.g. "../../tmp/malicious")
+if (cliArgs.session && !/^[a-zA-Z0-9_-]+$/.test(cliArgs.session)) {
+  console.error("[relay] invalid --session value; use alphanumeric, hyphen, underscore only");
+  process.exit(1);
+}
+
 // Apply --session CLI arg to env before any module reads RELAY_INSTANCE
 if (cliArgs.session) {
   process.env.RELAY_INSTANCE = cliArgs.session;
+}
+
+// Validate RELAY_INSTANCE env var as well (set directly without --session flag)
+if (process.env.RELAY_INSTANCE && !/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_INSTANCE)) {
+  console.error("[relay] invalid RELAY_INSTANCE value; use alphanumeric, hyphen, underscore only");
+  process.exit(1);
 }
 
 // --- Port resolution with auto-selection ---
@@ -89,6 +103,7 @@ async function resolvePort(): Promise<number> {
 }
 
 const DASHBOARD_PORT = await resolvePort();
+setPort(DASHBOARD_PORT);
 // 현재 세션 ID — 서버 시작 시 config.getSessionId()가 자동 생성
 const SESSION_ID = getSessionId();
 
@@ -124,9 +139,9 @@ dashboardServer.on("upgrade", (request, socket, head) => {
       try {
         const db = getDb();
         // Load agent metadata for SessionTeamBadge hydration
-        let agentMeta: Array<{ id: string; name: string; emoji: string }> = [];
+        let agentMeta: Array<{ id: AgentId; name: string; emoji: string }> = [];
         try {
-          const agents = loadAgents();
+          const agents = loadPool();
           agentMeta = Object.values(agents).map((a) => ({
             id: a.id,
             name: a.name,

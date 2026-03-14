@@ -1,6 +1,10 @@
 {
   "typescript.tsdk": "node_modules/typescript/lib",
   "yaml.schemas": {
-    "./agents.schema.json": ["agents.yml", ".relay/agents.yml"]
+    "./packages/docs/public/agents.schema.json": [
+      ".relay/agents.pool.yml",
+      "agents.pool.yml",
+      "agents.pool.example.yml"
+    ]
   }
 }

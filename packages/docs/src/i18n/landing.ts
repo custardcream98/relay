@@ -24,7 +24,7 @@ const ui = {
     "how.subtitle": "No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.",
     "how.step1.title": "Install",
     "how.step1.desc":
-      "Register the relay MCP server with one command. Define your team in agents.yml — any role, any domain.",
+      "Register the relay MCP server with one command. Pick agents from the pool — any role, any domain.",
     "how.step2.title": "Init",
     "how.step2.desc":
       "Run /relay:init once per project. Every agent scans the codebase in parallel and writes shared context to .relay/memory/. Commit it to git.",
@@ -40,13 +40,13 @@ const ui = {
     "roster.title1": "Any team.",
     "roster.title2": "Any domain.",
     "roster.subtitle":
-      "Define agents in agents.yml — give each one a persona and relay handles the rest. Web dev, research, marketing, legal — any workflow you can describe.",
+      "Define agents in the pool — give each one a persona and relay handles the rest. Web dev, research, marketing, legal — any workflow you can describe.",
     "roster.infoLead":
       "Each agent gets its own Claude Code session, persona, and access to the shared MCP tool set. Agents collaborate peer-to-peer — no orchestrator.",
-    "roster.examplesLabel": "example team (agents.example.yml)",
+    "roster.examplesLabel": "example team (agents.pool.example.yml)",
     "roster.domainNote":
       "This is a web-dev team — one example. Build a research team, marketing team, legal team, or any combination. Any role you can describe in a system prompt.",
-    "roster.browseLink": "Browse agents.example.yml",
+    "roster.browseLink": "Browse agents.pool.example.yml",
 
     // Features
     "features.label": "// why relay",
@@ -83,7 +83,7 @@ const ui = {
     "qs.step3.label": "Ship a feature",
     "qs.step3.comment": "# all agents start simultaneously, peer-to-peer",
     "qs.prereqNote":
-      "Note: agents.yml must exist before running /relay:init. Copy agents.example.yml to get started.",
+      "Note: Copy agents.pool.example.yml to .relay/agents.pool.yml before running /relay:init.",
 
     // DashboardPreview
     "dashboard.label": "// live dashboard",
@@ -125,7 +125,7 @@ const ui = {
       "오케스트레이터도, 추가 요금도 없습니다. Claude Code 내장 Agent 툴만 사용합니다.",
     "how.step1.title": "설치",
     "how.step1.desc":
-      "명령어 한 줄로 relay MCP 서버를 등록합니다. agents.yml에 팀을 정의하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
+      "명령어 한 줄로 relay MCP 서버를 등록합니다. 풀에서 에이전트를 선택하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
     "how.step2.title": "초기화",
     "how.step2.desc":
       "프로젝트당 한 번 /relay:init을 실행합니다. 모든 에이전트가 병렬로 코드베이스를 스캔하고 .relay/memory/에 공유 컨텍스트를 기록합니다. git에 커밋하세요.",
@@ -141,13 +141,13 @@ const ui = {
     "roster.title1": "어떤 팀이든.",
     "roster.title2": "어떤 도메인이든.",
     "roster.subtitle":
-      "agents.yml에 에이전트와 페르소나를 정의하면 나머지는 relay가 알아서 합니다. 웹 개발, 리서치, 마케팅, 법무 — 어떤 워크플로든 설명할 수 있으면 됩니다.",
+      "풀에 에이전트와 페르소나를 정의하면 나머지는 relay가 알아서 합니다. 웹 개발, 리서치, 마케팅, 법무 — 어떤 워크플로든 설명할 수 있으면 됩니다.",
     "roster.infoLead":
       "각 에이전트는 독립적인 Claude Code 세션과 페르소나, 공유 MCP 툴셋을 가집니다. 에이전트끼리 P2P로 협업하며, 오케스트레이터가 필요 없습니다.",
-    "roster.examplesLabel": "예시 팀 (agents.example.yml)",
+    "roster.examplesLabel": "예시 팀 (agents.pool.example.yml)",
     "roster.domainNote":
       "이것은 웹 개발 팀의 예시입니다. 리서치 팀, 마케팅 팀, 법무 팀 등 어떤 조합이든 구성할 수 있습니다. 시스템 프롬프트로 설명할 수 있는 역할이라면 모두 가능합니다.",
-    "roster.browseLink": "agents.example.yml 보기",
+    "roster.browseLink": "agents.pool.example.yml 보기",
 
     // Features
     "features.label": "// relay를 선택하는 이유",
@@ -184,7 +184,7 @@ const ui = {
     "qs.step3.label": "기능 출시",
     "qs.step3.comment": "# 모든 에이전트가 동시에 시작, P2P 협업",
     "qs.prereqNote":
-      "참고: /relay:init 실행 전에 agents.yml이 존재해야 합니다. agents.example.yml을 복사해서 시작하세요.",
+      "참고: /relay:init 실행 전에 agents.pool.example.yml을 .relay/agents.pool.yml로 복사해서 시작하세요.",
 
     // DashboardPreview
     "dashboard.label": "// 실시간 대시보드",

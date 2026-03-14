@@ -19,8 +19,31 @@
 # AGENT ENTRY FORMAT
 # ─────────────────────────────────────────────────────────────────────────────
 #  Required: name, emoji, tools, systemPrompt
-#  Optional: description, tags
-#  tags — descriptive array used by /relay:relay for team selection suggestions
+#  Optional: description, tags, extends
+#  tags    — descriptive array used by /relay:relay for team selection suggestions
+#  extends — inherit all fields from another pool agent; override only what differs
+#
+# MULTI-INSTANCE PATTERN (running two or more agents with the same persona)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Use `extends` in your session-agents.yml to spin up multiple instances of
+#  the same pool persona. The first instance keeps the original id; subsequent
+#  instances get a numeric suffix (fe2, fe3, ...).
+#
+#  Example session-agents.yml for two concurrent Frontend Engineers:
+#
+#    agents:
+#      fe:
+#        extends: fe        # inherits systemPrompt, tools, emoji from pool's fe
+#        name: "Frontend Engineer 1"
+#      fe2:
+#        extends: fe        # same base persona, different agent_id
+#        name: "Frontend Engineer 2"
+#      fe3:
+#        extends: fe
+#        name: "Frontend Engineer 3"
+#
+#  Each instance has a unique agent_id (fe / fe2 / fe3) so they can receive
+#  targeted messages and claim distinct tasks concurrently.
 #
 # This file ships as an example — it is NOT loaded automatically.
 # Your active pool is always .relay/agents.pool.yml.

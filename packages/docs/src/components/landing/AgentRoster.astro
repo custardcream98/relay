@@ -4,7 +4,7 @@ import { type Lang, useTranslations } from "../../i18n/landing";
 const { lang = "en" }: { lang?: Lang } = Astro.props;
 const t = useTranslations(lang);
 
-// agents.yml example — code snippet showing custom team definition directly
+// agents.pool.yml example — code snippet showing custom pool definition
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const yamlSnippet = `agents:
   pm:
@@ -22,7 +22,7 @@ const yamlSnippet = `agents:
       You are a frontend engineer.
       Build React components, request reviews.`;
 
-// Example team setup — based on agents.example.yml, noting these are not fixed roles
+// Example team setup — based on agents.pool.example.yml, noting these are not fixed roles
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const exampleAgents = [
   { id: "pm", label: "PM", color: "#C17F24" },
@@ -45,15 +45,15 @@ const exampleAgents = [
   </div>
 
   <div class="roster__body">
-    <!-- agents.yml code snippet -->
+    <!-- agents.pool.yml code snippet -->
     <div class="roster__yaml-pane">
       <div class="roster__yaml-bar" aria-hidden="true">
         <span class="roster__yaml-dot" style="background:#FF5F56"></span>
         <span class="roster__yaml-dot" style="background:#FFBD2E"></span>
         <span class="roster__yaml-dot" style="background:#27C93F"></span>
-        <span class="roster__yaml-filename">agents.yml</span>
+        <span class="roster__yaml-filename">agents.pool.yml</span>
       </div>
-      <pre class="roster__yaml-code" aria-label="Example agents.yml configuration"><code>{yamlSnippet}</code></pre>
+      <pre class="roster__yaml-code" aria-label="Example agents.pool.yml configuration"><code>{yamlSnippet}</code></pre>
     </div>
 
     <!-- Right: description + example badges -->
@@ -62,8 +62,8 @@ const exampleAgents = [
         {t("roster.infoLead")}
       </p>
 
-      <!-- Example badges — web-dev team from agents.example.yml -->
-      <div class="roster__examples" aria-label="Example agents from agents.example.yml">
+      <!-- Example badges — web-dev team from agents.pool.example.yml -->
+      <div class="roster__examples" aria-label="Example agents from agents.pool.example.yml">
         <span class="roster__examples-label">{t("roster.examplesLabel")}</span>
         <div class="roster__chips">
           {exampleAgents.map((agent) => (
@@ -82,7 +82,7 @@ const exampleAgents = [
       <p class="roster__domain-note">{t("roster.domainNote")}</p>
 
       <a
-        href="https://github.com/custardcream98/relay/blob/main/agents.example.yml"
+        href="https://github.com/custardcream98/relay/blob/main/agents.pool.example.yml"
         class="roster__link"
         target="_blank"
         rel="noopener noreferrer"

@@ -3,7 +3,7 @@ title: /relay:relay — full workflow
 description: /relay:relay runs your full agent team simultaneously — all agents spawn at once, claim tasks via MCP, and collaborate peer-to-peer until the feature is done.
 ---
 
-`/relay:relay` takes a user task and has the entire team defined in `agents.yml` collaborate to handle it.
+`/relay:relay` takes a user task and has the agents selected from the pool for this session collaborate to handle it.
 All agents spawn simultaneously at session start and work event-driven.
 
 ## Usage
@@ -23,7 +23,7 @@ Examples:
 
 Before running, the skill verifies:
 - relay MCP server connection (via `list_agents`)
-  - If no agents are found, guides the user to create `agents.yml` first
+  - If no agents are found, guides the user to create `agents.pool.yml` first
 - Whether `.relay/memory/project.md` exists (suggests `/relay:init` if not)
 - Prints dashboard URL: `http://localhost:3456`
 

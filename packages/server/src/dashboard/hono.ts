@@ -3,9 +3,10 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { markAsAgentId } from "@custardcream/relay-shared";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
-import { loadAgents } from "../agents/loader";
+import { loadPool } from "../agents/loader";
 import { getRelayDir, getSessionId } from "../config";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
@@ -30,12 +31,18 @@ export const app = new Hono();
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
 // Lazy-loaded on first /api/agents request (after MCP init, getRelayDir() returns the correct path)
-let cachedAgents: ReturnType<typeof loadAgents> | null = null;
+let cachedAgents: ReturnType<typeof loadPool> | null = null;
 
 // API: agent list
 app.get("/api/agents", (c) => {
   try {
-    if (!cachedAgents) cachedAgents = loadAgents();
+    if (!cachedAgents) {
+      try {
+        cachedAgents = loadPool();
+      } catch {
+        cachedAgents = {};
+      }
+    }
     return c.json(
       Object.values(cachedAgents).map((a) => ({
         id: a.id,
@@ -71,6 +78,10 @@ app.get("/api/sessions", (c) => {
 // API: session events (for history replay)
 app.get("/api/sessions/:id/events", (c) => {
   const sessionId = c.req.param("id");
+  // Validate session_id to prevent path traversal (consistent with /snapshot)
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return c.json({ error: "Invalid session_id format" }, 400);
+  }
   const events = getEventsBySession(sessionId);
   return c.json({ success: true, events });
 });
@@ -111,7 +122,7 @@ app.post("/api/hook/tool-use", async (c) => {
   const agent: string = body.tool_input?.agent_id ?? "unknown";
   broadcast({
     type: "agent:status",
-    agentId: agent,
+    agentId: markAsAgentId(agent),
     status: "working",
     timestamp: Date.now(),
   });

@@ -2,13 +2,22 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { markAsAgentId } from "@custardcream/relay-shared";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import yaml from "js-yaml";
 import { z } from "zod";
-import { getWorkflow, loadAgents, loadPool } from "./agents/loader";
-import type { AgentPersona } from "./agents/types";
-import { getRelayDir, getSessionId, setProjectRoot, uriToPath } from "./config";
+import { getWorkflow, loadPool } from "./agents/loader";
+import type { AgentPersona, AgentsFile } from "./agents/types";
+import {
+  getInstanceId,
+  getPort,
+  getProjectRoot,
+  getRelayDir,
+  getSessionId,
+  setProjectRoot,
+  uriToPath,
+} from "./config";
 import { broadcast } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getTaskById } from "./db/queries/tasks";
@@ -38,6 +47,32 @@ export function createMcpServer(): McpServer {
     name: "relay",
     version: "0.1.0",
   });
+
+  // Returns the actual dashboard URL and server metadata.
+  // Skills call this during pre-flight to discover the correct port (auto-selected 3456–3465).
+  server.tool(
+    "get_server_info",
+    {
+      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+    },
+    async () => {
+      const port = getPort();
+      const dashboardUrl = port ? `http://localhost:${port}` : "http://localhost:3456";
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify({
+              dashboardUrl,
+              port,
+              sessionId: getSessionId(),
+              instanceId: getInstanceId() ?? null,
+            }),
+          },
+        ],
+      };
+    }
+  );
 
   // --- messaging tools ---
 
@@ -320,7 +355,7 @@ export function createMcpServer(): McpServer {
       if (result.success) {
         broadcast({
           type: "memory:updated",
-          agentId: input.agent_id ?? "unknown",
+          agentId: markAsAgentId(input.agent_id ?? "unknown"),
           timestamp: Date.now(),
         });
       }
@@ -340,7 +375,7 @@ export function createMcpServer(): McpServer {
       if (result.success) {
         broadcast({
           type: "memory:updated",
-          agentId: input.agent_id ?? "unknown",
+          agentId: markAsAgentId(input.agent_id ?? "unknown"),
           timestamp: Date.now(),
         });
       }
@@ -401,7 +436,7 @@ export function createMcpServer(): McpServer {
     async (input) => {
       broadcast({
         type: "agent:thinking",
-        agentId: input.agent_id,
+        agentId: markAsAgentId(input.agent_id),
         chunk: input.content,
         timestamp: Date.now(),
       });
@@ -418,6 +453,11 @@ export function createMcpServer(): McpServer {
   let pool: Record<string, AgentPersona> | null = null;
 
   function getAgents(sessionId?: string): Record<string, AgentPersona> {
+    // Validate sessionId to prevent path traversal and cache key poisoning
+    if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+      return {};
+    }
+
     const cacheKey = sessionId ?? "__default__";
     if (agentsCache.has(cacheKey)) return agentsCache.get(cacheKey)!;
 
@@ -428,29 +468,23 @@ export function createMcpServer(): McpServer {
         const sessionFile = join(getRelayDir(), `session-agents-${sessionId}.yml`);
         if (existsSync(sessionFile)) {
           const parsed = yaml.load(readFileSync(sessionFile, "utf-8")) as Parameters<
-            typeof loadAgents
+            typeof loadPool
           >[0];
-          result = loadAgents(parsed ?? undefined);
+          if (!parsed) {
+            console.error(`[relay] session file is empty or malformed: ${sessionFile}`);
+          }
+          result = loadPool(parsed ?? { agents: {} });
         } else {
-          // No session-specific file — fall back directly to agents.yml.
-          // Do NOT use RELAY_SESSION_AGENTS_FILE here: sessionId takes priority over the
-          // legacy env var, and mixing them would break concurrent-session isolation.
-          result = loadAgents();
+          // No session-specific file — return empty. Pool-only architecture:
+          // teams are always composed via /relay:relay before list_agents is called with a sessionId.
+          result = {};
         }
       } else {
-        // No session_id — check legacy RELAY_SESSION_AGENTS_FILE env var first
-        const legacyFile = process.env.RELAY_SESSION_AGENTS_FILE;
-        if (legacyFile && existsSync(legacyFile)) {
-          const parsed = yaml.load(readFileSync(legacyFile, "utf-8")) as Parameters<
-            typeof loadAgents
-          >[0];
-          result = loadAgents(parsed ?? undefined);
-        } else {
-          result = loadAgents();
-        }
+        // No session_id — pre-flight uses list_pool_agents, not list_agents.
+        result = {};
       }
     } catch {
-      // No agents.yml — return empty so /relay:init phase 0 (team suggestion) can run
+      // Pool load failed — return empty
       result = {};
     }
 
@@ -462,8 +496,9 @@ export function createMcpServer(): McpServer {
     if (pool === null) {
       try {
         pool = loadPool();
-      } catch {
-        // Pool load failure is non-fatal — fall back to empty
+      } catch (err) {
+        // Pool not configured or failed to load — fall back to empty for graceful degradation
+        console.error("[relay] pool load failed:", (err as Error).message);
         pool = {};
       }
     }
@@ -478,7 +513,7 @@ export function createMcpServer(): McpServer {
         .string()
         .optional()
         .describe(
-          "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml before falling back to agents.yml"
+          "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml (written by /relay:relay Team Composition)."
         ),
     },
     async (input) => {
@@ -533,14 +568,28 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Retrieve workflow configuration (used by the orchestrator to understand execution flow)
+  // Retrieve workflow configuration from the active pool file
   server.tool(
     "get_workflow",
     {
       agent_id: z.string().describe("ID of the calling agent (for tracking)"),
     },
     async () => {
-      const workflow = getWorkflow();
+      let poolFile: AgentsFile | null = null;
+      try {
+        const relayDir = getRelayDir();
+        const projectRoot = getProjectRoot();
+        const relayPoolPath = join(relayDir, "agents.pool.yml");
+        const rootPoolPath = join(projectRoot, "agents.pool.yml");
+        if (existsSync(relayPoolPath)) {
+          poolFile = yaml.load(readFileSync(relayPoolPath, "utf-8")) as AgentsFile;
+        } else if (existsSync(rootPoolPath)) {
+          poolFile = yaml.load(readFileSync(rootPoolPath, "utf-8")) as AgentsFile;
+        }
+      } catch {
+        // Pool file read failure — return empty workflow
+      }
+      const workflow = getWorkflow(poolFile ?? { agents: {} });
       return {
         content: [{ type: "text", text: JSON.stringify(workflow) }],
       };

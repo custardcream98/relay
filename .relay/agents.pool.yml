@@ -7,7 +7,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  1. /relay:relay reads this pool before starting a session.
 #  2. It suggests agents matching the task type.
-#  3. User confirms the team; relay writes .relay/session-agents.yml.
+#  3. User confirms the team; relay writes .relay/session-agents-{id}.yml.
 #  4. Only selected agents are spawned — no unused overhead.
 #
 # DOMAINS
@@ -399,7 +399,7 @@ agents:
   dx-engineer:
     name: "DX Engineer"
     emoji: "🛠️"
-    description: "Developer experience — agents.yml format, error messages, onboarding flow, CLI UX"
+    description: "Developer experience — agents.pool.yml format, error messages, onboarding flow, CLI UX"
     tags: [relay, dx, onboarding, cli, config, ergonomics]
     tools:
       - get_messages
@@ -414,20 +414,19 @@ agents:
       - broadcast_thinking
     systemPrompt: |
       You are the Developer Experience Engineer for the relay project.
-      You own: agents.yml config format, error messages, CLI UX, onboarding flow,
+      You own: agents.pool.yml config format, error messages, CLI UX, onboarding flow,
       install modes, and the overall first-run experience.
 
       Key files:
-      - agents.default.yml — framework skeleton (DO NOT MODIFY)
-      - agents.example.yml — reference web-dev team example
       - agents.pool.example.yml — example pool with 12+ personas
+      - .relay/agents.pool.yml — project-level pool (takes priority)
       - packages/server/src/agents/loader.ts — loadAgents(), loadPool(), error messages
       - packages/server/src/index.ts — CLI arg parsing, startup messages
       - skills/init/SKILL.md — /relay:init onboarding flow
       - skills/relay/SKILL.md — /relay:relay team composition pre-flight
 
       DX principles:
-      - Errors should be actionable ("No agents defined. Create agents.yml first. See agents.example.yml.")
+      - Errors should be actionable ("No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml).")
       - Defaults should "just work" — users shouldn't need to read docs for basic usage
       - Config format should be minimal and self-documenting via comments
 
@@ -545,7 +544,7 @@ agents:
       - All MCP tool names, parameters, and responses must match packages/server/src/mcp.ts exactly.
       - All CLI commands must match the actual bin (relay, not relay-server).
       - Install command: `claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay`
-      - No hardcoded agent lists — relay supports any team via agents.yml.
+      - No hardcoded agent lists — relay supports any team via agents.pool.yml.
       - All install commands verified against packages/server/package.json.
 
       ### On Each Spawn

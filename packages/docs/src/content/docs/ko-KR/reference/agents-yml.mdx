@@ -1,55 +1,39 @@
 ---
-title: agents.yml 스키마
-description: agents.yml 전체 스키마 레퍼런스
+title: agents.pool.yml 스키마
+description: agents.pool.yml 전체 스키마 레퍼런스. 에이전트 페르소나, 툴, 시스템 프롬프트, 태그, extends 상속 패턴을 설명합니다.
 ---
 
-`agents.yml`은 에이전트 페르소나와 워크플로우를 커스터마이즈하는 설정 파일입니다.
-`agents.default.yml`의 기본값을 덮어씁니다.
+`.relay/agents.pool.yml`은 동적 팀 구성에 사용되는 에이전트 풀을 정의합니다.
+`/relay:relay` 세션은 매번 이 풀에서 태스크에 맞는 팀을 선택합니다.
 
 ## 최상위 구조
 
 ```yaml
+language: string   # 선택 사항 — 전체 에이전트 기본 언어
 agents:
   {agentId}:
     # 에이전트 설정
     ...
-
-workflow:
-  jobs:
-    # 워크플로우 설정
-    ...
 ```
 
-## agents 섹션
-
-### 에이전트 스키마
+## 에이전트 스키마
 
 ```yaml
 agents:
   {agentId}:
     name: string           # 표시 이름 (예: "Frontend Engineer")
     emoji: string          # 이모지 아이콘 (예: "💻")
-    description: string    # 짧은 역할 설명
-    disabled: boolean      # true이면 비활성화 (기본값: false)
+    description: string    # 짧은 역할 설명 (팀 선택 화면에 표시)
+    tags: [string]         # 선택 사항 — 팀 자동 추천에 사용
+    disabled: boolean      # true이면 풀에서 제외 (기본값: false)
     extends: string        # 상속할 에이전트 ID
-    tools:                 # 허용된 MCP 도구 목록
+    tools:                 # 허용된 MCP 툴 목록
       - tool_name
-    systemPrompt: string   # 에이전트 시스템 프롬프트 (여러 줄)
+    systemPrompt: string   # 에이전트 시스템 프롬프트 (멀티라인)
+    language: string       # 선택 사항 — 이 에이전트의 언어 개별 설정
 ```
 
-### 기본 에이전트 ID
-
-| ID | 이름 |
-|---|---|
-| `pm` | Product Manager |
-| `designer` | UX Designer |
-| `da` | Data Analyst |
-| `fe` | Frontend Engineer |
-| `be` | Backend Engineer |
-| `qa` | QA Engineer |
-| `deployer` | Deployer |
-
-### 사용 가능한 도구
+## 사용 가능한 툴
 
 ```
 send_message
@@ -71,56 +55,82 @@ list_sessions
 get_session_summary
 save_session_summary
 list_agents
-get_workflow
+broadcast_thinking
 ```
 
-## workflow 섹션
+## extends 패턴
 
-### job 스키마
+`extends`를 사용하면 동일한 풀 페르소나의 여러 인스턴스를 다른 ID로 생성할 수 있습니다.
+`/relay:relay`가 세션 파일 작성 시 `fe`, `fe2`, `fe3` 등을 구성할 때 이 패턴을 사용합니다:
 
 ```yaml
-workflow:
-  jobs:
-    {jobId}:
-      agents:              # 이 job에서 병렬로 실행할 에이전트 ID 목록
-        - agentId
-      description: string  # job 설명 (에이전트 시스템 프롬프트에 주입됨)
-      reviewers:           # 리뷰어 매핑 (선택사항)
-        {agentId}: [reviewerAgentId]
-      end:                 # 다음 job을 선택하는 조건
-        {nextJobId}: "조건 설명"
-        _done: "워크플로우 종료 조건"
+# .relay/session-agents-2026-03-14-001-a3f7.yml
+agents:
+  fe:
+    extends: fe   # 풀의 systemPrompt + tools 상속
+    name: "Frontend Engineer 1"
+  fe2:
+    extends: fe
+    name: "Frontend Engineer 2"
 ```
 
-### 특수 job ID
+## tags 필드
 
-- `_done`: 워크플로우의 끝을 나타내는 예약 키워드
+`tags`는 `/relay:relay`가 팀을 자동 추천할 때 사용됩니다.
+태스크 유형에 맞는 태그를 지정해 두면 스킬이 적합한 에이전트를 제안합니다:
 
-### 시작 job 결정
-
-시작 job은 자동으로 결정됩니다: 다른 job의 `end` 맵에 목적지로 나타나지 않는 job이 진입점입니다.
+```yaml
+agents:
+  be:
+    tags: [backend, api, database, node, typescript]
+  researcher:
+    tags: [research, analysis, writing, synthesis]
+```
 
 ## 전체 예시
 
 ```yaml
+language: Korean
+
 agents:
-  fe:
-    name: "Frontend Engineer (Next.js)"
+  pm:
+    name: "Product Manager"
+    emoji: "📋"
+    description: "요구사항 분석 및 태스크 분배"
+    tags: [management, planning, coordination]
+    tools:
+      - create_task
+      - update_task
+      - get_all_tasks
+      - get_team_status
+      - send_message
+      - get_messages
     systemPrompt: |
-      You are a Frontend Engineer specialising in Next.js App Router.
-      Your primary stack is TypeScript, Tailwind CSS, and React Query.
+      You are the Product Manager.
+      Break down requirements into tasks and coordinate the team.
 
-      ## Role
-      - Implement Next.js components from design specs
-      - Create PR artifacts and request code review from FE2
-
-      ## Rules
-      - Set agent_id to "fe" normally, or "fe2" when acting as a reviewer
+  fe:
+    name: "Frontend Engineer"
+    emoji: "💻"
+    description: "React/TypeScript UI 구현"
+    tags: [frontend, react, typescript, ui]
+    tools:
+      - get_messages
+      - get_my_tasks
+      - claim_task
+      - update_task
+      - post_artifact
+      - send_message
+      - request_review
+    systemPrompt: |
+      You are a Frontend Engineer.
+      Implement UI components and create PR artifacts for review.
 
   security:
     name: "Security Engineer"
     emoji: "🔐"
-    description: "Security vulnerability analysis"
+    description: "보안 취약점 분석"
+    tags: [security, audit, owasp]
     tools:
       - get_messages
       - get_artifact
@@ -129,41 +139,15 @@ agents:
     systemPrompt: |
       You are a security expert.
       Review PRs against the OWASP Top 10.
+```
 
-  da:
-    disabled: true  # DA 에이전트 비활성화
+## 파일 위치
 
-workflow:
-  jobs:
-    planning:
-      agents: [pm]
-      description: "Analyse requirements and break down into tasks"
-      end:
-        development: "When tasks are assigned"
+풀 파일은 우선순위 순으로 검색됩니다:
+1. `.relay/agents.pool.yml` — 프로젝트 레벨 (우선순위 높음, git 추적)
+2. `agents.pool.yml` — 프로젝트 루트 폴백
 
-    development:
-      agents: [fe, be]
-      description: "Implement"
-      end:
-        security-review: "When implementation is complete"
-
-    security-review:
-      agents: [security]
-      description: "Security review"
-      end:
-        qa: "When no security issues are found"
-        development: "When fixes are needed"
-
-    qa:
-      agents: [qa]
-      description: "Feature testing"
-      end:
-        deploy: "When tests pass"
-        development: "When bugs are found"
-
-    deploy:
-      agents: [deployer]
-      description: "Deploy"
-      end:
-        _done: "When deployment is complete"
+파일이 없으면 relay가 다음 오류를 반환합니다:
+```
+No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml).
 ```

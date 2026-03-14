@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { markAsAgentId } from "@custardcream/relay-shared";
 import { _setDb, closeDb } from "../client.ts";
 import { runMigrations } from "../schema.ts";
 import type { SqliteDatabase } from "../types.ts";
@@ -36,7 +37,7 @@ describe("events queries", () => {
   test("events are stored separately per session", () => {
     const makeEvent = (agentId: string) => ({
       type: "agent:status" as const,
-      agentId,
+      agentId: markAsAgentId(agentId),
       status: "working" as const,
       timestamp: Date.now(),
     });

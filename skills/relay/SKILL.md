@@ -1,6 +1,6 @@
 ---
 name: relay
-description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by the full team defined in agents.yml.
+description: Run the full multi-agent workflow from start to finish. Use when the user gives a task that should be handled by a team assembled from the agent pool.
 ---
 
 The team collaborates event-driven — all agents are alive from session start and
@@ -9,45 +9,34 @@ react to messages and tasks organically, like a Slack-first team.
 ## Pre-flight Checks
 
 1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
-   - If no agents are returned: tell the user "No agents defined. Create agents.yml first. See agents.example.yml for reference." and stop.
-2. Verify `.relay/memory/project.md` exists.
-   - If absent: suggest running `/relay:init` first.
-3. Generate a new session ID in `YYYY-MM-DD-NNN` format.
+   - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
+2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
+   - If absent: suggest running `/relay:init` first to set up the pool.
+3. Generate a new session ID in `YYYY-MM-DD-NNN-XXXX` format, where `XXXX` is 4 random hex digits.
+   - Example: `2026-03-14-001-a3f7`
+   - The random suffix prevents file-name collisions when two sessions start within the same second
+     (both would write to the same `session-agents-{id}.yml` without it).
    - If the `RELAY_INSTANCE` environment variable is set, prefix the session ID:
-     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN` (e.g. `project-a-2026-03-14-001`).
-4. Determine the dashboard URL:
-   - Check if `DASHBOARD_PORT` env var is available; if so use `http://localhost:{DASHBOARD_PORT}`.
-   - Otherwise use `http://localhost:3456` as the default.
-   - Tell the user: "Dashboard: {url}"
+     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN-XXXX` (e.g. `project-a-2026-03-14-001-a3f7`).
+4. Call `get_server_info` to get the actual dashboard URL (the server auto-selects a port from 3456–3465).
+   - Tell the user: "Dashboard: {dashboardUrl}"
 
 ## Team Composition (Dynamic Agent Selection)
 
-This step runs **before** spawning any agents. It lets you assemble a purpose-built team
-for the session rather than always using the static `agents.yml` roster.
-
-### Step 0: Check for an existing team
-
-Call `list_agents` (already done in Pre-flight step 1 — **without** `session_id`).
+This step runs **before** spawning any agents. Every session assembles a purpose-built team
+from the agent pool — the team is assembled fresh each session.
 
 > **Note**: The Pre-flight `list_agents` call does not pass `session_id` — the
 > session-specific file has not been written yet. `session_id` is passed only in
 > Session Startup step 1, after Team Composition writes the session-specific file.
 
-- **If `list_agents` returned ≥ 1 agent** — ask the user:
-  > "Use your configured team from `agents.yml`? Or would you like to pick a custom team
-  > from the agent pool for this specific task?"
-  - If the user says **use configured** → skip the rest of this section and proceed to
-    [Session Startup](#session-startup) with the agents from `list_agents`.
-  - If the user says **custom** → proceed to pool selection below.
-
-- **If `list_agents` returned 0 agents** (no `agents.yml`) → go directly to pool selection.
+Go directly to pool selection below.
 
 ### Pool Selection Conversation
 
 1. Call `list_pool_agents` to fetch all available pool entries.
    - If it returns 0 entries, tell the user: "No agent pool configured. Create
-     `.relay/agents.pool.yml` (see `agents.pool.example.yml`). Falling back to agents.yml."
-     Then proceed with whatever `list_agents` returned.
+     `.relay/agents.pool.yml` (see `agents.pool.example.yml`)." and stop.
 
 2. Ask the user:
    > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
@@ -69,21 +58,44 @@ Call `list_agents` (already done in Pre-flight step 1 — **without** `session_i
    - "Looks good" or "yes" → confirm and proceed.
    - "Remove X, add Y" → adjust the team and re-show.
    - "Start over" → go back to step 2.
+   - **"Add N of the same agent"** (e.g. "add 3 FE engineers") → include that many instances
+     with auto-numbered IDs: `fe`, `fe2`, `fe3`. Each gets the same pool persona but a
+     distinct name (e.g. "Frontend Engineer 1", "Frontend Engineer 2", "Frontend Engineer 3").
 
 5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
-   - Format is identical to `agents.yml` (an `agents:` map with only the selected entries).
-   - To build the file, call `list_agents` — it returns full personas including `systemPrompt`.
+   - To build the file, call `list_pool_agents` — it returns full personas including `systemPrompt`.
      Map each selected agent ID to its full persona config.
+   - For **single instances**, write the agent entry directly:
+     ```yaml
+     agents:
+       fe:
+         name: Frontend Engineer
+         emoji: "🎨"
+         systemPrompt: "..."
+         tools: [...]
+     ```
+   - For **multiple instances of the same pool agent**, use the `extends` pattern so the
+     session file stays compact:
+     ```yaml
+     agents:
+       fe:
+         extends: fe
+         name: "Frontend Engineer 1"
+       fe2:
+         extends: fe
+         name: "Frontend Engineer 2"
+       fe3:
+         extends: fe
+         name: "Frontend Engineer 3"
+     ```
+     The `extends` value is the pool agent ID. The server merges the pool persona with the
+     overrides (`name`, `emoji`, etc.) at load time.
    - Write the file at `.relay/session-agents-{session_id}.yml` (use the session ID generated
      in Pre-flight step 3).
    - Do NOT set `RELAY_SESSION_AGENTS_FILE` — pass `session_id` directly to `list_agents` instead.
 
-> **Fallback**: if no pool is configured and no `agents.yml` exists, the session cannot
-> start. Prompt the user to create one.
-
-> **Pool fallback**: when `list_pool_agents` is called and no pool file exists, it returns
-> the same agents as `list_agents` (the configured team). This means the pool selection
-> conversation still works — you are just selecting a subset of the configured team.
+> **Fallback**: if no pool is configured, the session cannot start. Prompt the user to
+> create `.relay/agents.pool.yml` (see `agents.pool.example.yml`).
 
 ## Session Startup
 
@@ -279,8 +291,7 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
 2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
-3. Clean up: if `.relay/session-agents-{session_id}.yml` was written during Team Composition,
-   delete it (it is ephemeral and gitignored).
+3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
 4. Report results to the user.
 
 ## Multi-Instance Notes

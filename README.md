@@ -49,7 +49,7 @@ User: "add a shopping cart"
 [Deployer] waits for QA sign-off, then ships
 ```
 
-Agents are not limited to web development. Configure any team for any domain — research, marketing, legal, education. Define the roles in `agents.yml` and relay handles the rest. No extra API costs.
+Agents are not limited to web development. Configure any team for any domain — research, marketing, legal, education. Define your agent pool in `.relay/agents.pool.yml` and relay handles the rest. No extra API costs.
 
 <br />
 
@@ -196,14 +196,15 @@ That's it. The team takes it from there.
 
 ## Configuring your team
 
-relay ships with no built-in agents. You define your team in `agents.yml`.
+relay ships with no built-in agents. You define an agent pool in `.relay/agents.pool.yml` and relay selects the best team for each task automatically.
 
 ```yaml
-# agents.yml — define any team for any domain
+# .relay/agents.pool.yml — define any pool for any domain
 agents:
   pm:
     name: Project Manager
     emoji: "📋"
+    tags: [planning, coordination]
     tools:
       [create_task, get_all_tasks, get_team_status, send_message, get_messages]
     systemPrompt: |
@@ -212,27 +213,21 @@ agents:
   researcher:
     name: Researcher
     emoji: "🔬"
+    tags: [research, analysis]
     tools:
-      [
-        send_message,
-        get_messages,
-        get_all_tasks,
-        claim_task,
-        get_team_status,
-        post_artifact,
-      ]
+      [send_message, get_messages, get_all_tasks, claim_task, post_artifact]
     systemPrompt: |
       You are a researcher. Investigate topics and post findings as artifacts...
 
-  reviewer:
+  researcher2:
     extends: researcher # inherit persona, override fields
-    name: Peer Reviewer
-    emoji: "🔍"
+    name: Senior Researcher
+    emoji: "🔭"
 ```
 
-See `agents.example.yml` for a complete web development team (PM, Designer, DA, FE, BE, QA, Deployer). Copy it to `agents.yml` to get started with a web project.
+Copy `agents.pool.example.yml` to `.relay/agents.pool.yml` to get started with a pre-built team of 12+ personas.
 
-Required fields per agent: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `language`, `disabled`, `extends`.
+Required fields per agent: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`.
 
 <br />
 
@@ -254,9 +249,7 @@ relay/
 ├── hooks/
 │   └── hooks.json               PostToolUse hook → dashboard status push
 ├── .mcp.json                    MCP server configuration
-├── agents.default.yml           framework defaults (empty — no built-in agents)
-├── agents.example.yml           example: full web-dev team (copy to agents.yml)
-└── agents.yml                   your team definition (required)
+└── agents.pool.example.yml      example: 12+ agent pool (copy to .relay/agents.pool.yml)
 ```
 
 <br />
@@ -274,6 +267,6 @@ relay/
 | Styling    | Tailwind CSS                                      |
 | Database   | `better-sqlite3`                                  |
 | Memory     | Markdown files (`.relay/memory/`)                 |
-| Personas   | YAML (`agents.yml`)                               |
+| Personas   | YAML (`.relay/agents.pool.yml`)                   |
 
 <br />

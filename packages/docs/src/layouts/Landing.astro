@@ -18,7 +18,7 @@ const description =
   Astro.props.description ??
   (lang === "ko-KR"
     ? "YAML 파일 하나로 Claude 에이전트 팀을 구성하세요. P2P 협업, 이벤트 기반, 추가 요금 없음. Claude Code 전용 멀티 에이전트 프레임워크."
-    : "relay gives you a collaborating team of Claude agents — peer-to-peer, event-driven, no orchestrator code. Define any team in agents.yml. No new API keys. No extra billing.");
+    : "relay gives you a collaborating team of Claude agents — peer-to-peer, event-driven, no orchestrator code. Pick any team from the pool. No new API keys. No extra billing.");
 
 const BASE = "https://custardcream98.github.io/relay";
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
@@ -34,7 +34,7 @@ const jsonLd = {
   "@type": "SoftwareApplication",
   name: "relay",
   description:
-    "A domain-agnostic multi-agent collaboration framework built on Claude Code. Define any team in agents.yml and agents collaborate peer-to-peer via MCP tools.",
+    "A domain-agnostic multi-agent collaboration framework built on Claude Code. Pick any team from the pool and agents collaborate peer-to-peer via MCP tools.",
   url: `${BASE}/`,
   applicationCategory: "DeveloperApplication",
   operatingSystem: "macOS, Linux, Windows",

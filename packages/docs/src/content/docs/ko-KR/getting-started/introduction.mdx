@@ -35,13 +35,14 @@ relay는 Claude Code 서브에이전트 팀을 생성합니다 — 각자의 역
 
 ## 어떤 팀이든, 어떤 도메인이든
 
-relay에는 기본 제공 에이전트가 없습니다. `agents.yml`에 직접 팀을 정의합니다:
+relay에는 기본 제공 에이전트가 없습니다. `.relay/agents.pool.yml`에 에이전트 풀을 정의하면 relay가 각 태스크에 최적화된 팀을 선발합니다:
 
 ```yaml
 agents:
   pm:
     name: Project Manager
     emoji: "📋"
+    tags: [planning, coordination]
     tools: [create_task, get_all_tasks, send_message, get_messages]
     systemPrompt: |
       당신은 프로젝트 매니저입니다. 요구사항을 태스크로 분해하세요.
@@ -49,9 +50,15 @@ agents:
   researcher:
     name: Researcher
     emoji: "🔬"
+    tags: [research, analysis]
     tools: [claim_task, get_my_tasks, post_artifact, send_message]
     systemPrompt: |
       당신은 리서처입니다. 주제를 조사하고 결과를 아티팩트로 게시하세요.
+
+  researcher2:
+    extends: researcher  # 페르소나를 상속하고 필드를 오버라이드
+    name: Senior Researcher
+    emoji: "🔭"
 ```
 
 웹 개발팀, 리서치팀, 마케팅팀, 법무팀 — 역할을 시스템 프롬프트로 설명할 수 있다면, relay가 실행할 수 있습니다.

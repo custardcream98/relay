@@ -1,8 +1,6 @@
 // packages/dashboard/src/types.ts
 // Canonical domain types for the dashboard — single source of truth
 
-import type { RelayEvent } from "@custardcream/relay-shared";
-
 export type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 
 export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
@@ -26,7 +24,7 @@ export interface Message {
 }
 
 export interface AgentMeta {
-  id: string;
+  id: AgentId;
   name: string;
   emoji: string;
 }
@@ -43,7 +41,7 @@ export interface TimelineEntry {
 
 // Pool agent — from /api/pool-agents or agents.pool.yml
 export interface PoolAgent {
-  id: string;
+  id: AgentId;
   name: string;
   emoji: string;
   description: string;

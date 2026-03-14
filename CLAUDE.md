@@ -3,7 +3,7 @@
 ## Overview
 
 A domain-agnostic multi-agent collaboration framework built on Claude Code.
-Users define any team in `agents.yml` (web-dev, research, marketing, legal — anything).
+Users define any team via an agent pool in `.relay/agents.pool.yml` (web-dev, research, marketing, legal — anything).
 Built as a Claude Code plugin with three layers: MCP server + Skills + Hooks.
 Uses only Claude Code's Agent tool — no direct Claude API calls, no extra billing.
 The MCP server handles all inter-agent communication infrastructure.
@@ -19,7 +19,7 @@ The MCP server handles all inter-agent communication infrastructure.
 - **Styling**: Tailwind CSS
 - **DB**: `better-sqlite3` (production); `bun:sqlite` (tests only — injected via `_setDb()`)
 - **Memory**: Markdown files (`.relay/memory/`)
-- **Persona config**: YAML (`agents.yml` / `agents.default.yml`)
+- **Persona config**: YAML (`.relay/agents.pool.yml` / `agents.pool.yml`)
 - **Package manager**: bun (do not use npm/yarn/pnpm)
 - **Comments**: English
 
@@ -41,20 +41,16 @@ The MCP server handles all inter-agent communication infrastructure.
 - Memory is injected into each agent's system prompt at session start
 - Agents update memory at session end via `write_memory` / `append_memory`
 
-### Personas are configured in YAML
-- `agents.default.yml`: framework skeleton — ships as `agents: {}` (empty). Do not modify.
-- `agents.example.yml`: complete web-dev team example (pm, designer, da, fe, be, qa, deployer + workflow). Copy to `agents.yml` to get started.
-- `agents.yml`: user's team definition — required; must have at least one agent
-- `packages/server/src/agents/loader.ts` handles merging; throws if 0 agents are loaded
-
-### Agent pool for dynamic team selection
+### Personas are configured in YAML (pool-only)
+- Team composition happens per-session from the pool. Every `/relay:relay` invocation selects a task-optimised team.
 - `agents.pool.example.yml`: 12+ diverse agent personas across web-dev, research, and marketing domains. Reference for building your own pool.
 - `.relay/agents.pool.yml`: project-level pool (takes priority). Copy from `agents.pool.example.yml` and customise.
 - `agents.pool.yml` (project root): fallback pool location.
 - Pool agents have an optional `tags: string[]` field used by `/relay:relay` for smart team suggestions.
 - `list_pool_agents` MCP tool returns pool metadata (no `systemPrompt`) for team selection.
-- `RELAY_SESSION_AGENTS_FILE`: env var pointing to `.relay/session-agents.yml` — overrides the active agent team for a single session. Written by `/relay:relay` Team Composition step. Gitignored.
-- `loadPool()` in `loader.ts`: reads pool file, falls back to `loadAgents()` when no pool is configured.
+- `session-agents-{sessionId}.yml`: ephemeral per-session team file written by `/relay:relay` Team Composition step. Gitignored. Filename includes session ID to avoid concurrent-session collisions.
+- `loadPool()` in `loader.ts`: reads pool file; throws a clear error when no pool is configured (no silent fallback).
+- **Multi-instance same agent**: Use `extends` in pool YAML — `fe2: { extends: fe }` inherits fe's full persona with a different agent ID. Supports parallel fe/fe2/fe3 teams.
 
 ### Install modes (global / local)
 - Global: install skills to `~/.claude/skills/` + `claude mcp add --scope user`
@@ -111,7 +107,7 @@ packages/
 │       │   └── sessions.ts    # save_session_summary, list_sessions, get_session_summary
 │       ├── agents/
 │       │   ├── types.ts       # AgentId, AgentPersona, AgentConfig types
-│       │   └── loader.ts      # load agents.yml + merge + inject memory
+│       │   └── loader.ts      # load pool + session-agents file + inject memory
 │       ├── db/
 │       │   ├── client.ts      # DB singleton
 │       │   ├── schema.ts      # table DDL
@@ -139,8 +135,6 @@ hooks/
 .mcp.json                 # MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
 
 agents.pool.example.yml   # Example pool with 12+ personas (web-dev, research, marketing)
-agents.example.yml        # Example web-dev team (copy to agents.yml to get started)
-agents.default.yml        # Framework skeleton — DO NOT MODIFY
 ```
 
 ## MCP Tool Schema Principles
@@ -234,7 +228,7 @@ bun run version-packages
 - All code comments must be in English
 - Agent persona system prompts may be Korean or English, but keep them consistent
 - Commit `.relay/memory/` files to git so the team shares memory
-- Never modify `agents.default.yml`; define your team in `agents.yml` (use `agents.example.yml` as reference)
+- Define your pool in `.relay/agents.pool.yml` (use `agents.pool.example.yml` as reference)
 - The bin name in `.mcp.json` must be specified explicitly with `--package`:
   - Correct: `["npx", "-y", "--package", "@custardcream/relay", "relay"]`
   - This ensures npx finds the `relay` binary even when the package name differs from the bin name

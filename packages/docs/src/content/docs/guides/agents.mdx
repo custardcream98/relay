@@ -1,81 +1,73 @@
 ---
 title: Customising agents
-description: "Learn how to define agent personas, roles, and tools in agents.yml — create any team for any domain: web dev, research, marketing, legal, or custom workflows."
+description: "Learn how to define agent personas, roles, and tools in the agent pool — create any team for any domain: web dev, research, marketing, legal, or custom workflows."
 ---
 
-Agent personas in relay are fully customisable via a YAML file.
+Agent personas in relay are defined in an agent pool. Each `/relay:relay` session selects a task-optimised team from the pool via conversational team composition.
 
 ## File structure
 
 ```
-relay/
-├── agents.default.yml   # default personas (do not modify)
-└── agents.yml           # your customisations (edit this file)
+your-project/
+└── .relay/
+    └── agents.pool.yml   # your agent pool (edit this file)
 ```
 
-Do not modify `agents.default.yml`. All customisations go in `agents.yml`.
-`agents.yml` overrides `agents.default.yml`.
+Copy `agents.pool.example.yml` (shipped with relay) to `.relay/agents.pool.yml` to get started.
 
-## Basic structure of agents.yml
+## Basic structure of agents.pool.yml
 
 ```yaml
 agents:
   fe:
-    # only specify fields you want to override
+    name: "Frontend Engineer"
+    emoji: "🎨"
+    description: "React, TypeScript, and UI implementation"
+    tags: [frontend, react, typescript]
+    tools:
+      - get_messages
+      - get_my_tasks
+      - claim_task
+      - update_task
+      - post_artifact
+      - send_message
+      - request_review
     systemPrompt: |
-      You are a React and TypeScript expert.
-      ...
-```
-
-## Override
-
-Change only certain fields of an existing agent:
-
-```yaml
-agents:
-  fe:
-    name: "Frontend Engineer (React specialist)"
-    systemPrompt: |
-      You are a Frontend Engineer at a startup.
-      Your primary stack is React, TypeScript, and Tailwind CSS.
+      You are a Frontend Engineer specialising in React and TypeScript.
       ...
 ```
 
 ## extends
 
-Inherit and extend another agent's configuration:
+Inherit and extend another agent's configuration. This is useful for running multiple instances of the same role:
 
 ```yaml
 agents:
-  fe-mobile:
-    extends: fe          # inherit from the fe persona
-    name: "Mobile Frontend Engineer"
+  fe:
+    name: "Frontend Engineer"
+    emoji: "🎨"
+    tags: [frontend]
+    tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
     systemPrompt: |
-      You are a Frontend Engineer specialising in React Native.
+      You are a Frontend Engineer specialising in React and TypeScript.
       ...
+
+  fe2:
+    extends: fe          # inherit from the fe persona
+    name: "Frontend Engineer (Reviewer)"
+    emoji: "🔍"
 ```
 
-## disabled
+## tags field
 
-Disable a specific agent:
-
-```yaml
-agents:
-  da:
-    disabled: true       # disable the DA agent
-```
-
-Disabled agents are excluded from `list_agents` results and from all workflows.
-
-## Adding custom agents
-
-You can add entirely new personas beyond the defaults:
+Tags are used by `/relay:relay` for smart team suggestion matching. Add tags that describe the agent's domain and skills:
 
 ```yaml
 agents:
   security:
     name: "Security Engineer"
     emoji: "🔐"
+    tags: [security, owasp, vulnerability]
     description: "Security vulnerability analysis and remediation"
     tools:
       - get_messages

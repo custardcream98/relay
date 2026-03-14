@@ -12,12 +12,12 @@ If `.relay/memory/` does not exist, running `/relay:relay` will automatically su
 - relay MCP server must be connected
 - Required once per project; re-run is recommended when the project structure changes significantly
 
-## Phase 0: team suggestion (when agents.yml is absent)
+## Phase 0: team suggestion (when no pool is configured)
 
-If `list_agents` returns an empty array, `agents.yml` has not been created yet.
-relay analyses the project, proposes a suitable team for the domain, and auto-generates `agents.yml`.
+If `list_agents` returns an empty array, no agent pool has been configured yet.
+relay analyses the project, proposes a suitable team for the domain, and guides the user to create `.relay/agents.pool.yml`.
 
-After the file is generated, restart the MCP server and then run `/relay:init` again.
+After the file is created, restart the MCP server and then run `/relay:init` again.
 
 ## Phase 1: parallel project scan
 
@@ -49,7 +49,7 @@ After init completes, the `.relay/memory/` directory is created:
 └── memory/
     ├── project.md               # consolidated summary written by the coordinator
     └── agents/
-        ├── {agentId}.md         # each agent's personal memory (one per agent in agents.yml)
+        ├── {agentId}.md         # each agent's personal memory (one per agent in the pool)
         └── ...
 ```
 

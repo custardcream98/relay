@@ -42,7 +42,7 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    updateTask(db, "task-2", { status: "in_progress" });
+    updateTask(db, "task-2", "sess-1", { status: "in_progress" });
     const task = getTaskById(db, "task-2");
     expect(task?.status).toBe("in_progress");
   });
@@ -85,6 +85,6 @@ describe("task queries", () => {
       priority: "medium",
       created_by: "pm",
     });
-    expect(() => updateTask(db, "task-3", {})).not.toThrow();
+    expect(() => updateTask(db, "task-3", "sess-1", {})).not.toThrow();
   });
 });

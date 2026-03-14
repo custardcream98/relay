@@ -27,7 +27,6 @@ await build({
   platform: "node",
   format: "esm",
   external: ["better-sqlite3", "ws"],
-  loader: { ".yml": "text" }, // bundle .yml files as strings (replaces Bun's with { type: "text" } import attribute)
   minify: false,
   sourcemap: false,
 });

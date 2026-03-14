@@ -208,7 +208,7 @@ export function AgentArena({
                 maxWidth: 180,
               }}
             >
-              Define agents in agents.yml
+              Define agents in agents.pool.yml
             </span>
           </div>
         )}

@@ -36,16 +36,16 @@ export function handleCreateTask(
 }
 
 // Update a task's status or assignee.
-// Returns success: false if the task does not exist.
+// Returns success: false if the task does not exist or belongs to a different session.
 export function handleUpdateTask(
   db: SqliteDatabase,
-  _sessionId: string,
+  sessionId: string,
   input: { agent_id: string; task_id: string; status?: string; assignee?: string }
 ) {
   const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};
   if (input.status !== undefined) updates.status = input.status;
   if (input.assignee !== undefined) updates.assignee = input.assignee;
-  const updated = updateTask(db, input.task_id, updates);
+  const updated = updateTask(db, input.task_id, sessionId, updates);
   if (!updated) return { success: false, error: "task not found" };
   return { success: true };
 }
@@ -61,12 +61,13 @@ export function handleGetMyTasks(
 }
 
 // Atomically claim a task. Returns claimed: true only if the task is 'todo' and assigned to (or unassigned from) the agent.
+// session_id is passed to prevent cross-session claims.
 export function handleClaimTask(
   db: SqliteDatabase,
-  _sessionId: string,
+  sessionId: string,
   input: { agent_id: string; task_id: string }
 ) {
-  const claimed = claimTask(db, input.task_id, input.agent_id);
+  const claimed = claimTask(db, input.task_id, input.agent_id, sessionId);
   if (!claimed) {
     return {
       success: true,

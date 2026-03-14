@@ -1,7 +1,7 @@
 {
   "name": "relay",
   "version": "0.7.0",
-  "description": "Domain-agnostic multi-agent collaboration framework for Claude Code. Define any team in agents.yml and let them collaborate event-driven.",
+  "description": "Domain-agnostic multi-agent collaboration framework for Claude Code. Assemble any team from your agent pool and let them collaborate event-driven.",
   "author": {
     "name": "relay contributors"
   },

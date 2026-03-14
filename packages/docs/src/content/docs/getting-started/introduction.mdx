@@ -35,13 +35,14 @@ No phases. No turn-taking. Just a team working in parallel.
 
 ## Define any team, for any domain
 
-relay ships with no built-in agents. You define your team in `agents.yml`:
+relay ships with no built-in agents. You define an agent pool in `.relay/agents.pool.yml` and relay selects the best team for each task:
 
 ```yaml
 agents:
   pm:
     name: Project Manager
     emoji: "📋"
+    tags: [planning, coordination]
     tools: [create_task, get_all_tasks, send_message, get_messages]
     systemPrompt: |
       You are the project manager. Break down requirements into tasks.
@@ -49,9 +50,15 @@ agents:
   researcher:
     name: Researcher
     emoji: "🔬"
+    tags: [research, analysis]
     tools: [claim_task, get_my_tasks, post_artifact, send_message]
     systemPrompt: |
       You are a researcher. Investigate topics and post findings as artifacts.
+
+  researcher2:
+    extends: researcher  # inherit persona, override fields
+    name: Senior Researcher
+    emoji: "🔭"
 ```
 
 Web dev team, research team, marketing team, legal team — if you can describe a role in a system prompt, relay can run it.

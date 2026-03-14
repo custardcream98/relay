@@ -1,12 +1,20 @@
 // packages/shared/index.ts
-// AgentId is a string — users can add custom agents in agents.yml, so a closed union is not possible
-export type AgentId = string;
+type Brand<T, B> = T & { __brand: B };
+
+// AgentId is a branded string — cast from raw YAML keys at the loader boundary
+export type AgentId = Brand<string, "AgentId">;
+export const markAsAgentId = (id: string): AgentId => id as AgentId;
 
 // Timestamp unit conventions:
 // - outer envelope timestamp field: milliseconds (Date.now())
 // - message payload created_at sub-field: seconds (Unix epoch, matching SQLite unixepoch())
 export type RelayEvent =
-  | { type: "agent:thinking"; agentId: AgentId; chunk: string; timestamp: number }
+  | {
+      type: "agent:thinking";
+      agentId: AgentId;
+      chunk: string;
+      timestamp: number;
+    }
   | {
       type: "agent:status";
       agentId: AgentId;
@@ -43,7 +51,12 @@ export type RelayEvent =
     }
   | {
       type: "review:requested";
-      review: { id: string; artifact_id: string; reviewer: string; requester: string };
+      review: {
+        id: string;
+        artifact_id: string;
+        reviewer: string;
+        requester: string;
+      };
       timestamp: number;
     }
   | {
@@ -64,7 +77,12 @@ export type RelayEvent =
         thread_id: string | null;
         created_at: number;
       }>;
-      artifacts: Array<{ id: string; name: string; type: string; created_by: string }>;
+      artifacts: Array<{
+        id: string;
+        name: string;
+        type: string;
+        created_by: string;
+      }>;
       /** RELAY_INSTANCE env var — undefined when single-server mode */
       instanceId?: string;
       /** Actual dashboard HTTP/WS port */

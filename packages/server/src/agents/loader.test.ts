@@ -1,15 +1,11 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
+import { markAsAgentId } from "@custardcream/relay-shared";
 import { buildSystemPromptWithMemory, getWorkflow, loadAgents, loadPool } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("loadAgents", () => {
-  test("throws a clear error when 0 agents are defined", () => {
-    const emptyFile: AgentsFile = { agents: {} };
-    expect(() => loadAgents(emptyFile)).toThrow("No agents defined");
-  });
-
-  test("loads successfully when agents.yml has agents", () => {
+  test("loads successfully with explicit agent file", () => {
     const customFile: AgentsFile = {
       agents: {
         researcher: {
@@ -155,7 +151,7 @@ describe("language setting", () => {
 
   test("buildSystemPromptWithMemory includes language directive", () => {
     const persona = {
-      id: "writer",
+      id: markAsAgentId("writer"),
       name: "Writer",
       emoji: "✍️",
       tools: [],
@@ -168,7 +164,7 @@ describe("language setting", () => {
 
   test("omits language directive when language is not set", () => {
     const persona = {
-      id: "writer",
+      id: markAsAgentId("writer"),
       name: "Writer",
       emoji: "✍️",
       tools: [],
@@ -206,9 +202,8 @@ describe("loadPool", () => {
     expect(pool.writer).toBeDefined();
   });
 
-  test("falls back gracefully when no pool file exists (returns loadAgents result)", () => {
-    // No override + no pool file on disk — should fall back to loadAgents()
-    // We cannot control filesystem in unit tests, so we test via override path instead.
+  test("loads successfully with explicit override (no filesystem access needed)", () => {
+    // We cannot control the filesystem in unit tests, so we test via override path.
     const minimalPool: AgentsFile = {
       agents: {
         helper: {

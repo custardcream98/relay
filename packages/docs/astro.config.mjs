@@ -17,7 +17,7 @@ export default defineConfig({
     starlight({
       title: "relay",
       description:
-        "relay is a multi-agent collaboration framework for Claude Code. Define any team in agents.yml — web dev, research, marketing — and agents collaborate peer-to-peer via MCP. No extra API costs.",
+        "relay is a multi-agent collaboration framework for Claude Code. Assemble any team from your agent pool — web dev, research, marketing — and agents collaborate peer-to-peer via MCP. No extra API costs.",
       social: [
         {
           icon: "github",
@@ -110,11 +110,6 @@ export default defineConfig({
               slug: "guides/agents",
             },
             {
-              label: "Workflow config",
-              translations: { "ko-KR": "워크플로 설정" },
-              slug: "guides/workflow",
-            },
-            {
               label: "Dashboard",
               translations: { "ko-KR": "대시보드" },
               slug: "guides/dashboard",
@@ -131,14 +126,9 @@ export default defineConfig({
               slug: "reference/mcp-tools",
             },
             {
-              label: "agents.yml schema",
-              translations: { "ko-KR": "agents.yml 스키마" },
+              label: "agents.pool.yml schema",
+              translations: { "ko-KR": "agents.pool.yml 스키마" },
               slug: "reference/agents-yml",
-            },
-            {
-              label: "Workflow schema",
-              translations: { "ko-KR": "워크플로 스키마" },
-              slug: "reference/workflow",
             },
             {
               label: "Memory structure",

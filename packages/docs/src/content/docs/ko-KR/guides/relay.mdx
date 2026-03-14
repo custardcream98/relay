@@ -1,9 +1,9 @@
 ---
 title: /relay:relay — 전체 워크플로우
-description: agents.yml에 정의된 팀 전체를 이벤트 드리븐 협업으로 실행하는 메인 Skill
+description: 풀에서 선발된 팀 전체를 이벤트 드리븐 협업으로 실행하는 메인 Skill
 ---
 
-`/relay:relay`는 사용자의 태스크를 받아 `agents.yml`에 정의된 팀 전체가 협업해 처리합니다.
+`/relay:relay`는 사용자의 태스크를 받아 이번 세션을 위해 풀에서 선발된 팀이 협업해 처리합니다.
 세션 시작 시 모든 에이전트가 동시에 실행되고, 이벤트 드리븐 방식으로 작업합니다.
 
 ## 사용법
@@ -23,7 +23,7 @@ description: agents.yml에 정의된 팀 전체를 이벤트 드리븐 협업으
 
 실행 전에 다음 사항을 확인합니다:
 - relay MCP 서버 연결 여부 (`list_agents` 호출)
-  - 에이전트가 없으면 먼저 `agents.yml`을 생성하도록 안내
+  - 에이전트가 없으면 먼저 `agents.pool.yml`을 생성하도록 안내
 - `.relay/memory/project.md` 존재 여부 (없으면 `/relay:init` 실행 제안)
 - 대시보드 URL 출력: `http://localhost:3456`
 

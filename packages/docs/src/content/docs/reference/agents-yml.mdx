@@ -1,55 +1,39 @@
 ---
-title: agents.yml schema
-description: Complete agents.yml schema reference — all fields for agent personas, tools, system prompts, and the extends inheritance pattern for building your relay team.
+title: agents.pool.yml schema
+description: Complete schema reference for agents.pool.yml — all fields for agent personas, tools, system prompts, tags, and the extends inheritance pattern.
 ---
 
-`agents.yml` is the configuration file for customising agent personas and workflows.
-It overrides the defaults in `agents.default.yml`.
+`.relay/agents.pool.yml` defines the pool of agents available for dynamic team selection.
+Every `/relay:relay` session picks a task-specific team from this pool.
 
 ## Top-level structure
 
 ```yaml
+language: string   # optional — default language for all agents
 agents:
   {agentId}:
     # agent configuration
     ...
-
-workflow:
-  jobs:
-    # workflow configuration
-    ...
 ```
 
-## agents section
-
-### Agent schema
+## Agent schema
 
 ```yaml
 agents:
   {agentId}:
     name: string           # display name (e.g. "Frontend Engineer")
     emoji: string          # emoji icon (e.g. "💻")
-    description: string    # short role description
-    disabled: boolean      # disable the agent when true (default: false)
+    description: string    # short role description (shown during team selection)
+    tags: [string]         # optional — used for smart team suggestions
+    disabled: boolean      # exclude from pool when true (default: false)
     extends: string        # agent ID to inherit from
     tools:                 # list of allowed MCP tools
       - tool_name
     systemPrompt: string   # agent system prompt (multiline)
+    language: string       # optional — override global language for this agent
 ```
 
-### Default agent IDs
-
-| ID | Name |
-|---|---|
-| `pm` | Product Manager |
-| `designer` | UX Designer |
-| `da` | Data Analyst |
-| `fe` | Frontend Engineer |
-| `be` | Backend Engineer |
-| `qa` | QA Engineer |
-| `deployer` | Deployer |
-
-### Available tools
+## Available tools
 
 ```
 send_message
@@ -71,56 +55,82 @@ list_sessions
 get_session_summary
 save_session_summary
 list_agents
-get_workflow
+broadcast_thinking
 ```
 
-## workflow section
+## extends pattern
 
-### job schema
+Use `extends` to create multiple instances of the same pool persona with different IDs.
+The session file written by `/relay:relay` uses this to spin up `fe`, `fe2`, `fe3`, etc.:
 
 ```yaml
-workflow:
-  jobs:
-    {jobId}:
-      agents:              # list of agent IDs to run in parallel in this job
-        - agentId
-      description: string  # job description (injected into agent system prompts)
-      reviewers:           # reviewer mapping (optional)
-        {agentId}: [reviewerAgentId]
-      end:                 # conditions for choosing the next job
-        {nextJobId}: "condition description"
-        _done: "workflow end condition"
+# .relay/session-agents-2026-03-14-001-a3f7.yml
+agents:
+  fe:
+    extends: fe   # inherits systemPrompt + tools from pool
+    name: "Frontend Engineer 1"
+  fe2:
+    extends: fe
+    name: "Frontend Engineer 2"
 ```
 
-### Special job IDs
+## tags field
 
-- `_done`: reserved keyword that marks the end of the workflow
+Tags are used by `/relay:relay` for smart team suggestions.
+Match tags to the task type so the skill can propose the right agents:
 
-### Start job detection
-
-The start job is determined automatically: the job that does not appear as a destination in any other job's `end` map is the entry point.
+```yaml
+agents:
+  be:
+    tags: [backend, api, database, node, typescript]
+  researcher:
+    tags: [research, analysis, writing, synthesis]
+```
 
 ## Full example
 
 ```yaml
+language: English
+
 agents:
-  fe:
-    name: "Frontend Engineer (Next.js)"
+  pm:
+    name: "Product Manager"
+    emoji: "📋"
+    description: "Requirements analysis and task breakdown"
+    tags: [management, planning, coordination]
+    tools:
+      - create_task
+      - update_task
+      - get_all_tasks
+      - get_team_status
+      - send_message
+      - get_messages
     systemPrompt: |
-      You are a Frontend Engineer specialising in Next.js App Router.
-      Your primary stack is TypeScript, Tailwind CSS, and React Query.
+      You are the Product Manager.
+      Break down requirements into tasks and coordinate the team.
 
-      ## Role
-      - Implement Next.js components from design specs
-      - Create PR artifacts and request code review from FE2
-
-      ## Rules
-      - Set agent_id to "fe" normally, or "fe2" when acting as a reviewer
+  fe:
+    name: "Frontend Engineer"
+    emoji: "💻"
+    description: "React/TypeScript UI implementation"
+    tags: [frontend, react, typescript, ui]
+    tools:
+      - get_messages
+      - get_my_tasks
+      - claim_task
+      - update_task
+      - post_artifact
+      - send_message
+      - request_review
+    systemPrompt: |
+      You are a Frontend Engineer.
+      Implement UI components and create PR artifacts for review.
 
   security:
     name: "Security Engineer"
     emoji: "🔐"
     description: "Security vulnerability analysis"
+    tags: [security, audit, owasp]
     tools:
       - get_messages
       - get_artifact
@@ -129,41 +139,15 @@ agents:
     systemPrompt: |
       You are a security expert.
       Review PRs against the OWASP Top 10.
+```
 
-  da:
-    disabled: true  # disable the DA agent
+## File locations
 
-workflow:
-  jobs:
-    planning:
-      agents: [pm]
-      description: "Analyse requirements and break down into tasks"
-      end:
-        development: "When tasks are assigned"
+Pool files are searched in priority order:
+1. `.relay/agents.pool.yml` — project-level (takes priority, git-tracked)
+2. `agents.pool.yml` — project root fallback
 
-    development:
-      agents: [fe, be]
-      description: "Implement"
-      end:
-        security-review: "When implementation is complete"
-
-    security-review:
-      agents: [security]
-      description: "Security review"
-      end:
-        qa: "When no security issues are found"
-        development: "When fixes are needed"
-
-    qa:
-      agents: [qa]
-      description: "Feature testing"
-      end:
-        deploy: "When tests pass"
-        development: "When bugs are found"
-
-    deploy:
-      agents: [deployer]
-      description: "Deploy"
-      end:
-        _done: "When deployment is complete"
+If neither file exists, relay throws:
+```
+No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml).
 ```

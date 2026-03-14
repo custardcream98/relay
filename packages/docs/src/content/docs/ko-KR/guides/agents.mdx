@@ -1,81 +1,73 @@
 ---
 title: 에이전트 커스터마이즈
-description: agents.yml로 에이전트 페르소나를 커스터마이즈하는 방법
+description: 에이전트 풀로 팀을 구성하는 방법 — 웹 개발, 리서치, 마케팅, 법무 등 어떤 도메인이든 가능합니다.
 ---
 
-relay의 에이전트 페르소나는 YAML 파일을 통해 완전히 커스터마이즈할 수 있습니다.
+relay의 에이전트 페르소나는 에이전트 풀에 정의됩니다. `/relay:relay` 세션마다 대화형 팀 구성 과정을 통해 태스크에 최적화된 팀을 풀에서 선발합니다.
 
 ## 파일 구조
 
 ```
-relay/
-├── agents.default.yml   # 기본 페르소나 (수정하지 마세요)
-└── agents.yml           # 커스터마이즈 파일 (이 파일을 수정하세요)
+your-project/
+└── .relay/
+    └── agents.pool.yml   # 에이전트 풀 (이 파일을 수정하세요)
 ```
 
-`agents.default.yml`은 수정하지 마세요. 모든 커스터마이즈는 `agents.yml`에서 합니다.
-`agents.yml`이 `agents.default.yml`을 덮어씁니다.
+시작하려면 relay에 포함된 `agents.pool.example.yml`을 `.relay/agents.pool.yml`로 복사하세요.
 
-## agents.yml 기본 구조
+## agents.pool.yml 기본 구조
 
 ```yaml
 agents:
   fe:
-    # 변경할 필드만 지정하면 됩니다
+    name: "Frontend Engineer"
+    emoji: "🎨"
+    description: "React, TypeScript, UI 구현"
+    tags: [frontend, react, typescript]
+    tools:
+      - get_messages
+      - get_my_tasks
+      - claim_task
+      - update_task
+      - post_artifact
+      - send_message
+      - request_review
     systemPrompt: |
-      You are a React and TypeScript expert.
-      ...
-```
-
-## 오버라이드
-
-기존 에이전트의 특정 필드만 변경합니다:
-
-```yaml
-agents:
-  fe:
-    name: "Frontend Engineer (React specialist)"
-    systemPrompt: |
-      You are a Frontend Engineer at a startup.
-      Your primary stack is React, TypeScript, and Tailwind CSS.
+      You are a Frontend Engineer specialising in React and TypeScript.
       ...
 ```
 
 ## extends
 
-다른 에이전트의 설정을 상속해 확장합니다:
+다른 에이전트의 설정을 상속해 확장합니다. 같은 역할을 여러 인스턴스로 실행할 때 유용합니다:
 
 ```yaml
 agents:
-  fe-mobile:
-    extends: fe          # fe 페르소나를 상속
-    name: "Mobile Frontend Engineer"
+  fe:
+    name: "Frontend Engineer"
+    emoji: "🎨"
+    tags: [frontend]
+    tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
     systemPrompt: |
-      You are a Frontend Engineer specialising in React Native.
+      You are a Frontend Engineer specialising in React and TypeScript.
       ...
+
+  fe2:
+    extends: fe          # fe 페르소나를 상속
+    name: "Frontend Engineer (Reviewer)"
+    emoji: "🔍"
 ```
 
-## disabled
+## tags 필드
 
-특정 에이전트를 비활성화합니다:
-
-```yaml
-agents:
-  da:
-    disabled: true       # DA 에이전트 비활성화
-```
-
-비활성화된 에이전트는 `list_agents` 결과에서 제외되고 모든 워크플로우에서 사용되지 않습니다.
-
-## 커스텀 에이전트 추가
-
-기본 에이전트 외에 완전히 새로운 페르소나를 추가할 수 있습니다:
+`tags`는 `/relay:relay`가 스마트 팀 제안 매칭에 사용합니다. 에이전트의 도메인과 기술을 설명하는 태그를 추가하세요:
 
 ```yaml
 agents:
   security:
     name: "Security Engineer"
     emoji: "🔐"
+    tags: [security, owasp, vulnerability]
     description: "Security vulnerability analysis and remediation"
     tools:
       - get_messages

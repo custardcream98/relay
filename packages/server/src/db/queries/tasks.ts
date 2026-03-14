@@ -39,19 +39,21 @@ const ALLOWED_UPDATE_KEYS = new Set(["status", "assignee", "description"]);
 // Update a task's status, assignee, or description.
 // Returns early (false) if updates is empty or contains only disallowed keys.
 // Returns true if at least one row was affected, false otherwise.
+// session_id is required to prevent cross-session writes.
 export function updateTask(
   db: SqliteDatabase,
   id: string,
+  sessionId: string,
   updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">>
 ): boolean {
   const keys = Object.keys(updates).filter((k) => ALLOWED_UPDATE_KEYS.has(k));
   if (keys.length === 0) return false;
   const fields = keys.map((k) => `${k} = ?`).join(", ");
   const values = keys.map((k) => (updates as Record<string, string | number | null>)[k] ?? null);
-  // Positional params: field values first, then id for WHERE clause
+  // Positional params: field values first, then id and session_id for WHERE clause
   const result = db
-    .prepare(`UPDATE tasks SET ${fields}, updated_at = unixepoch() WHERE id = ?`)
-    .run(...values, id);
+    .prepare(`UPDATE tasks SET ${fields}, updated_at = unixepoch() WHERE id = ? AND session_id = ?`)
+    .run(...values, id, sessionId);
   return result.changes > 0;
 }
 
@@ -79,17 +81,24 @@ export function getAllTasks(db: SqliteDatabase, sessionId: string): TaskRow[] {
 }
 
 // Atomically claim a task — transitions to 'in_progress' only if currently 'todo' and assigned to (or unassigned from) the agent.
+// session_id is required to prevent cross-session claims.
 // Returns true on success, false if the claim was rejected.
-export function claimTask(db: SqliteDatabase, taskId: string, agentId: string): boolean {
+export function claimTask(
+  db: SqliteDatabase,
+  taskId: string,
+  agentId: string,
+  sessionId: string
+): boolean {
   const result = db
     .prepare(`
     UPDATE tasks
     SET status = 'in_progress', updated_at = unixepoch()
     WHERE id = ?
+      AND session_id = ?
       AND status = 'todo'
       AND (assignee = ? OR assignee IS NULL)
   `)
-    .run(taskId, agentId);
+    .run(taskId, sessionId, agentId);
   return result.changes > 0;
 }
 

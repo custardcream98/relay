@@ -1,6 +1,6 @@
 ---
 name: init
-description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. If no agents.yml exists, analyzes the project and suggests a team. Spawns all configured agents in parallel to read the codebase and write .relay/memory/ files.
+description: Run this when using relay for the first time on a project, or when the team needs to re-scan project context. Analyzes the project, suggests an agent pool, and spawns all pool agents in parallel to read the codebase and write .relay/memory/ files.
 ---
 
 Run this to initialize project memory for your relay team.
@@ -8,17 +8,17 @@ If `.relay/memory/` is absent when `/relay:relay` runs, it will automatically su
 
 ## Pre-flight Checks
 
-1. Verify the relay MCP server is connected: call `list_agents`.
-   - If list_agents returns agents: proceed to Phase 1.
-   - If list_agents returns an empty list: **run Phase 0 (Team Suggestion)** instead of stopping.
+1. Verify the relay MCP server is connected: call `list_pool_agents`.
+   - If it returns agents: proceed to Phase 0 (pool confirmation) or Phase 1 directly if pool is already configured.
+   - If it returns an empty list: **run Phase 0 (Pool Suggestion)** to help the user set up a pool.
 2. Check whether the `.relay/memory/` directory exists.
-3. Tell the user: "Dashboard: http://localhost:3456"
-4. Show the user the loaded agent list: "{emoji} {name}" for each agent.
+3. Call `get_server_info` to get the actual dashboard URL (port is auto-selected from 3456–3465).
+   - Tell the user: "Dashboard: {dashboardUrl}"
 
-## Phase 0: Team Suggestion (runs only when no agents are defined)
+## Phase 0: Pool Suggestion (runs only when no pool is configured)
 
-When `list_agents` returns an empty list, the user has not set up `agents.yml` yet.
-Analyze the project and suggest a team tailored to it.
+When `list_pool_agents` returns an empty list, the user has not set up an agent pool yet.
+Analyze the project and suggest a pool tailored to it.
 
 ### Step 1: Project Analysis
 
@@ -30,12 +30,12 @@ Explore the project directory to understand:
 
 Look at: `README.md`, `package.json`, `pyproject.toml`, `Cargo.toml`, file structure, main source directories.
 
-### Step 2: Generate team suggestion
+### Step 2: Generate pool suggestion
 
 Based on the analysis, propose 3–6 agents that fit this project's domain.
 Think beyond web development:
 
-| Domain | Example team |
+| Domain | Example pool |
 |--------|-------------|
 | Web app | pm, designer, da, fe, be, qa, deployer |
 | Research | lead-researcher, researcher, data-analyst, writer, reviewer |
@@ -56,7 +56,7 @@ For each suggested agent, specify:
 
 Show the user:
 ```
-Based on your project, I suggest this team:
+Based on your project, I suggest this agent pool:
 
 📋 pm — Product Manager
    Breaks down requirements into tasks and coordinates the team.
@@ -65,32 +65,32 @@ Based on your project, I suggest this team:
    ...
 
 Do you want me to:
-  [1] Create agents.yml with this team (recommended)
-  [2] Use the web-dev example (agents.example.yml)
-  [3] I'll create agents.yml myself
+  [1] Create .relay/agents.pool.yml with this pool (recommended)
+  [2] Use the example pool (agents.pool.example.yml)
+  [3] I'll create agents.pool.yml myself
 ```
 
-### Step 4: Create agents.yml (if user chooses 1)
+### Step 4: Create .relay/agents.pool.yml (if user chooses 1)
 
-Write `agents.yml` to the project root with the suggested team.
+Write `.relay/agents.pool.yml` with the suggested pool entries.
 Include helpful comments for each agent.
 
-**Important:** The MCP server loads `agents.yml` once at startup. After creating the file, tell the user:
-> "agents.yml created. Please restart Claude Code (or the MCP server) for the new team to take effect,
+**Important:** The MCP server loads the pool file once at startup. After creating the file, tell the user:
+> ".relay/agents.pool.yml created. Please restart Claude Code (or the MCP server) for the pool to take effect,
 >  then re-run `/relay:init` to scan your codebase."
 
 Then stop — do not proceed to Phase 1 in this session.
 
-If the user chooses 2, copy `agents.example.yml` content to `agents.yml` and give the same restart instruction.
-If the user chooses 3, stop and tell them to create `agents.yml`, then re-run `/relay:init`.
+If the user chooses 2, copy `agents.pool.example.yml` content to `.relay/agents.pool.yml` and give the same restart instruction.
+If the user chooses 3, stop and tell them to create `.relay/agents.pool.yml`, then re-run `/relay:init`.
 
 ---
 
 ## Phase 1: Parallel Codebase Scan
 
-Spawn **all agents from list_agents simultaneously**.
+Spawn **all agents from list_pool_agents simultaneously**.
 
-For each agent, load their persona via `list_agents` and send this common instruction:
+For each agent, load their persona via `list_pool_agents` and send this common instruction:
 
 > "This is init mode — you are seeing this project for the first time.
 >  Your role: {agent.name} — {agent.description}
@@ -111,7 +111,7 @@ Wait until all agents have broadcast "init-done", or up to 5 minutes (proceed wi
 
 Find the agent whose description or name suggests a coordinator role (look for keywords like
 "manager", "coordinator", "lead", "pm", "strategist"). If found, use that agent to synthesize.
-Otherwise, use the first agent in the list.
+Otherwise, use the first agent in the pool list.
 
 The synthesizer agent:
 1. Calls `read_memory(agent_id: "{each_agent_id}")` for all agents.
@@ -120,6 +120,6 @@ The synthesizer agent:
 ## Phase 3: Completion Report
 
 Report to the user:
-- Agent team loaded: {list of agents}
+- Agent pool loaded: {list of agents}
 - Memory files written: {list of keys}
 - Ready to start: `/relay:relay "describe your task"`

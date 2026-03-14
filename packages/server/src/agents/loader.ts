@@ -1,10 +1,9 @@
 // packages/server/src/agents/loader.ts
-// Loads agents.default.yml + agents.yml (optional) and returns merged agent personas.
+// Loads agent personas from an explicit AgentsFile override or from the pool file.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { markAsAgentId } from "@custardcream/relay-shared";
 import yaml from "js-yaml";
-// Embeds file content as string at build time — no path issues after bundling/npm publish
-import defaultYmlText from "../../../../agents.default.yml";
 import { getProjectRoot, getRelayDir } from "../config";
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
@@ -17,50 +16,19 @@ function readYml(path: string): AgentsFile | null {
   return yaml.load(readFileSync(path, "utf-8")) as AgentsFile;
 }
 
-/** Parse the default AgentsFile embedded in the bundle */
-function parseDefaultYml(): AgentsFile {
-  // esbuild bundles .yml as a string; bun:test imports it as a parsed object
-  if (typeof defaultYmlText === "string") {
-    return yaml.load(defaultYmlText) as AgentsFile;
-  }
-  return defaultYmlText as unknown as AgentsFile;
-}
-
 /**
- * Load agent personas.
- * Applies the optional override file; otherwise reads agents.yml from the project root.
+ * Load agent personas from an explicit AgentsFile.
  * Disabled agents are excluded from the result.
  * When using extends, the specified agent's config is inherited and then overridden.
  */
-export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> {
-  // 1. Use embedded defaults from build time (no filesystem access needed)
-  const defaultFile = parseDefaultYml();
-
-  // 2. Load user customizations — .relay/agents.yml takes priority, fallback to root agents.yml
-  const customFile = override ??
-    readYml(join(getRelayDir(), "agents.yml")) ??
-    readYml(join(getProjectRoot(), "agents.yml")) ?? { agents: {} };
-
-  // 3. Merge defaults with custom overrides
-  const defaults = defaultFile.agents;
-  const customs = customFile.agents;
-
+export function loadAgents(override: AgentsFile): Record<string, AgentPersona> {
+  const agents = override.agents;
   const merged: Record<string, AgentPersona> = {};
 
   // Global language setting (fallback when per-agent language is absent)
-  const globalLanguage = customFile.language;
+  const globalLanguage = override.language;
 
-  // Process built-in agents
-  for (const [id, config] of Object.entries(defaults)) {
-    const custom = customs[id] ?? {};
-    if (custom.disabled) continue;
-    const language = custom.language ?? globalLanguage;
-    merged[id] = { id, ...config, ...custom, ...(language ? { language } : {}) } as AgentPersona;
-  }
-
-  // Process custom-only agents (extends or brand-new)
-  for (const [id, config] of Object.entries(customs)) {
-    if (id in merged) continue; // Already processed above
+  for (const [id, config] of Object.entries(agents)) {
     if (config.disabled) continue;
 
     const language = config.language ?? globalLanguage;
@@ -72,28 +40,24 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
       merged[id] = {
         ...base,
         ...config,
-        id,
+        id: markAsAgentId(id),
         extends: undefined,
         ...(language ? { language } : {}),
       } as AgentPersona;
     } else {
-      // New custom agent without extends must have all required fields
+      // Agent without extends must have all required fields
       const { name, emoji, tools, systemPrompt } = config;
       if (!name || !emoji || !tools || !systemPrompt) {
         throw new Error(
-          `custom agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
+          `agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
         );
       }
-      merged[id] = { id, ...config, ...(language ? { language } : {}) } as AgentPersona;
+      merged[id] = {
+        id: markAsAgentId(id),
+        ...config,
+        ...(language ? { language } : {}),
+      } as AgentPersona;
     }
-  }
-
-  if (Object.keys(merged).length === 0) {
-    throw new Error(
-      "No agents defined. Create agents.yml in your project root with at least one agent.\n" +
-        "See agents.example.yml for a complete example.\n" +
-        "Required fields: name, emoji, tools, systemPrompt"
-    );
   }
 
   return merged;
@@ -102,51 +66,13 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 /**
  * Load agent pool personas.
  * Reads .relay/agents.pool.yml first, then agents.pool.yml at project root.
- * Falls back to loadAgents() result when no pool file is found (backward compatibility).
+ * Throws a clear error when no pool file is found — no silent fallback.
  * Disabled agents are excluded. The pool does NOT enforce the "at least one agent" check.
  */
 export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
   if (override) {
-    // When an explicit override is provided, use it directly as a pool
-    const defaultFile = parseDefaultYml();
-    const defaults = defaultFile.agents;
-    const customs = override.agents;
-    const merged: Record<string, AgentPersona> = {};
-    const globalLanguage = override.language;
-
-    for (const [id, config] of Object.entries(defaults)) {
-      const custom = customs[id] ?? {};
-      if (custom.disabled) continue;
-      const language = custom.language ?? globalLanguage;
-      merged[id] = { id, ...config, ...custom, ...(language ? { language } : {}) } as AgentPersona;
-    }
-
-    for (const [id, config] of Object.entries(customs)) {
-      if (id in merged) continue;
-      if (config.disabled) continue;
-      const language = config.language ?? globalLanguage;
-      if (config.extends) {
-        const base = merged[config.extends];
-        if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
-        merged[id] = {
-          ...base,
-          ...config,
-          id,
-          extends: undefined,
-          ...(language ? { language } : {}),
-        } as AgentPersona;
-      } else {
-        const { name, emoji, tools, systemPrompt } = config;
-        if (!name || !emoji || !tools || !systemPrompt) {
-          throw new Error(
-            `pool agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
-          );
-        }
-        merged[id] = { id, ...config, ...(language ? { language } : {}) } as AgentPersona;
-      }
-    }
-
-    return merged;
+    // When an explicit override is provided, load it as agents directly
+    return loadAgents(override);
   }
 
   // Try .relay/agents.pool.yml, then root-level agents.pool.yml
@@ -158,8 +84,10 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
     return loadPool(poolFile);
   }
 
-  // No pool file found — fall back to the configured agent team
-  return loadAgents();
+  // No pool file found — throw a clear, actionable error
+  throw new Error(
+    "No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml)."
+  );
 }
 
 /**
@@ -194,24 +122,10 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
 }
 
 /**
- * Load workflow configuration.
+ * Load workflow configuration from an explicit AgentsFile.
  * If a custom workflow.jobs override exists, merge it with the defaults at the job level.
  */
-export function getWorkflow(override?: AgentsFile): WorkflowConfig {
-  const defaultFile = parseDefaultYml();
-
-  const customFile = override ??
-    readYml(join(getRelayDir(), "agents.yml")) ??
-    readYml(join(getProjectRoot(), "agents.yml")) ?? { agents: {} };
-
-  const defaultJobs = defaultFile.workflow?.jobs ?? {};
-  const customJobs = customFile.workflow?.jobs ?? {};
-
-  // Override at the job level (merge individual job fields)
-  const mergedJobs = { ...defaultJobs };
-  for (const [jobId, jobOverride] of Object.entries(customJobs)) {
-    mergedJobs[jobId] = { ...mergedJobs[jobId], ...jobOverride };
-  }
-
-  return { jobs: mergedJobs };
+export function getWorkflow(override: AgentsFile): WorkflowConfig {
+  const jobs = override.workflow?.jobs ?? {};
+  return { jobs };
 }

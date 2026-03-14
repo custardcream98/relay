@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/custardcream98/relay/agents.schema.json",
-  "title": "relay agents.yml",
-  "description": "Configuration schema for relay agent personas and workflow",
+  "title": "relay agents.pool.yml",
+  "description": "Configuration schema for relay agent pool personas",
   "type": "object",
   "additionalProperties": false,
   "properties": {
@@ -25,7 +25,7 @@
   "$defs": {
     "AgentConfig": {
       "type": "object",
-      "description": "Partial agent configuration. Unset fields fall back to agents.default.yml.",
+      "description": "Agent configuration.",
       "additionalProperties": false,
       "properties": {
         "name": {

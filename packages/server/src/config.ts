@@ -45,6 +45,17 @@ export function getDbPath(): string {
   return join(getRelayDir(), "relay.db");
 }
 
+// Actual dashboard port — set by index.ts after port resolution
+let _port: number | null = null;
+
+export function setPort(port: number): void {
+  _port = port;
+}
+
+export function getPort(): number | null {
+  return _port;
+}
+
 // Convert a file:// URI to an absolute path
 export function uriToPath(uri: string): string {
   if (uri.startsWith("file://")) {

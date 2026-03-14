@@ -18,12 +18,12 @@ interface Props {
 
 type Tab = "thoughts" | "messages" | "tasks";
 
-// Status colors
+// Status colors — use consistent hex values to allow alpha suffix (e.g. `${COLOR}18`)
 const STATUS_COLOR: Record<string, string> = {
   todo: "var(--color-text-disabled)",
   in_progress: "#60a5fa",
   in_review: "#fbbf24",
-  done: "var(--color-status-working)",
+  done: "#818cf8",
 };
 
 export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tasks }: Props) {

@@ -227,3 +227,28 @@ _2026-03-14_
 - Designer's P1 suggestion (AgentTeamDiagram.astro — animated SVG with agent accent colors) is a good future enhancement
 - Real screenshots still needed: run relay session → capture `localhost:3456` at 1280×800 → place in `packages/docs/public/screenshots/dashboard.png`
 
+
+---
+_2026-03-14_
+
+## Session 2026-03-14-008: Dashboard UX Overhaul
+
+**Team**: pm, designer, be, fe, fe2, qa, docs-writer
+
+**Accomplishments:**
+- fe: `ActivityFeed.tsx` (new) — replaces EventTimeline with chat-style unified feed. 7 event variants (broadcast/DM/thinking/task/artifact/review/end), filter persistence, auto-scroll, focus agent filter.
+- fe: `useTheme.ts` + light mode CSS tokens + AppHeader toggle (☀/☾)
+- fe: 3 bug fixes — STATUS_COLOR.done, snapshot task timestamps, Korean comments
+- fe2: `MessageFeed.tsx` full redesign — chronological, avatar+group threading, left-border bubbles, auto-scroll, system pills for end:* messages
+- fe2: `AgentCard.tsx` — thinking bubble with blinking cursor, status-based empty states
+- be: `GET /api/servers` missing endpoint added; `task:updated` description field added to WebSocket events; Korean → English comments
+- docs-writer: Real screenshots (dashboard-en.png + dashboard-ko.png, 1280×800) captured and saved
+- Tests: 76/76 pass, dashboard build 0 errors
+
+**Lessons:**
+- fe + fe2 parallel pattern worked well — ActivityFeed and MessageFeed worked on separately with mutual code review
+- be gap analysis before fe implementation was valuable — caught the missing GET /api/servers and task:updated description field early
+- designer spec artifact significantly guided fe/fe2 implementation (same as session 003 lesson)
+- QA proactively finding bugs during initial pass (before fe PRs) saved a re-spawn cycle
+- Session-agents file uses a logical session ID (2026-03-14-008) while server uses auto-generated session ID — task updates must use the server's session ID, not the logical one
+

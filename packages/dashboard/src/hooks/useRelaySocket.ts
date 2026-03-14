@@ -12,10 +12,10 @@ interface UseRelaySocketOptions {
 
 interface UseRelaySocketResult {
   connected: boolean;
-  reconnecting: boolean; // 재연결 대기 중
-  attempt: number; // 현재 시도 횟수 (0-indexed)
-  nextRetryIn: number; // 다음 재연결까지 남은 초
-  retryNow: () => void; // 즉시 재연결 시도
+  reconnecting: boolean; // waiting to reconnect
+  attempt: number; // current attempt index (0-indexed)
+  nextRetryIn: number; // seconds until next reconnect attempt
+  retryNow: () => void; // trigger an immediate reconnect
 }
 
 // Type guard: checks if an incoming WebSocket message is a RelayEvent
@@ -39,7 +39,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activeRef = useRef(true);
-  // connectRef: 재연결 함수 참조 (retryNow에서 사용)
+  // connectRef: reference to the connect function, used by retryNow
   const connectRef = useRef<(() => void) | null>(null);
 
   // Keep the latest onEvent reference to avoid stale closures
@@ -47,7 +47,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
     onEventRef.current = onEvent;
   }, [onEvent]);
 
-  // 카운트다운 타이머 클리어 헬퍼
+  // Clear the countdown interval helper
   const clearCountdown = useCallback(() => {
     if (countdownRef.current !== null) {
       clearInterval(countdownRef.current);
@@ -61,7 +61,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
     function connect() {
       if (!activeRef.current) return;
 
-      // 이전 카운트다운 정리
+      // Clear any in-progress countdown before (re)connecting
       clearCountdown();
       setReconnecting(false);
 
@@ -106,7 +106,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
         setAttempt(currentAttempt);
         setReconnecting(true);
 
-        // 카운트다운: 1초마다 nextRetryIn 감소
+        // Countdown: decrement nextRetryIn every second
         const delaySec = Math.ceil(delay / 1000);
         setNextRetryIn(delaySec);
         countdownRef.current = setInterval(() => {
@@ -123,7 +123,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
         timerRef.current = setTimeout(connect, delay);
       };
 
-      // connectRef 갱신 (retryNow에서 사용)
+      // Update connectRef so retryNow always calls the latest connect closure
       connectRef.current = connect;
     }
 
@@ -140,7 +140,7 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
     };
   }, [clearCountdown]); // Run only once on mount
 
-  // 즉시 재연결 시도
+  // Immediately trigger a reconnect attempt, cancelling any pending timer
   const retryNow = useCallback(() => {
     if (timerRef.current !== null) {
       clearTimeout(timerRef.current);

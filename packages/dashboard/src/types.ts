@@ -14,6 +14,9 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   description?: string | null;
+  // Unix seconds — present in snapshot responses from the server
+  created_at?: number;
+  updated_at?: number;
 }
 
 export interface Message {

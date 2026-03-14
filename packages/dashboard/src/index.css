@@ -57,6 +57,22 @@
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-border-subtle);
   --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-border-default);
 
+  /* Activity Feed — thinking card */
+  --color-thinking-bg: rgba(255, 255, 255, 0.02);
+  --color-thinking-border: rgba(255, 255, 255, 0.08);
+
+  /* Activity Feed — review action card */
+  --color-review-bg: rgba(251, 191, 36, 0.08);
+  --color-review-border: rgba(251, 191, 36, 0.25);
+
+  /* Activity Feed — end declaration colors */
+  --color-end-done: #818cf8;
+  --color-end-waiting: #fbbf24;
+  --color-end-failed: #ef4444;
+
+  /* Timeline separator */
+  --color-timeline-separator: rgba(255, 255, 255, 0.04);
+
   /* Multi-server + modal surfaces */
   --color-pool-added: rgba(232, 168, 58, 0.08);
   --color-pool-added-border: rgba(232, 168, 58, 0.25);
@@ -65,6 +81,42 @@
   --color-server-dead: #ef4444;
   --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.72), 0 0 0 1px var(--color-border-default);
   --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-border-default);
+}
+
+/* Light mode overrides — applied when <html data-theme="light"> */
+:root[data-theme="light"] {
+  /* Surfaces — warm off-white */
+  --color-surface-root: #f5f0e8;
+  --color-surface-base: #ede8df;
+  --color-surface-raised: #e5dfd5;
+  --color-surface-overlay: #ddd8ce;
+  --color-surface-inset: #f9f6f1;
+
+  /* Borders */
+  --color-border-subtle: #ccc6bc;
+  --color-border-default: #b8b0a4;
+  --color-border-strong: #9e9488;
+
+  /* Text */
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #3d3530;
+  --color-text-tertiary: #6b5f54;
+  --color-text-disabled: #9a8c80;
+
+  /* Accent — warm amber (darker for contrast on light bg) */
+  --color-accent: #b45309;
+  --color-accent-light: #d97706;
+  --color-accent-glow: rgba(180, 83, 9, 0.10);
+
+  /* Status */
+  --color-status-idle: #ddd8ce;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.12), 0 0 0 1px var(--color-border-subtle);
+  --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.18), 0 0 0 1px var(--color-border-default);
+  --color-modal-backdrop: rgba(245, 240, 232, 0.72);
+  --shadow-modal: 0 24px 64px rgba(0, 0, 0, 0.22), 0 0 0 1px var(--color-border-default);
+  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px var(--color-border-default);
 }
 
 body {
@@ -119,10 +171,22 @@ body {
   }
 }
 
-/* EventTimeline 이벤트 카드 슬라이드인 */
+/* EventTimeline / ActivityFeed entry slide-in */
 @keyframes slide-in-top {
   from {
     transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ActivityFeed entry slide-up (chat direction — from bottom) */
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(6px);
     opacity: 0;
   }
   to {

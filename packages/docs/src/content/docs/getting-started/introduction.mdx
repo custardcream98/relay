@@ -4,10 +4,13 @@ description: relay turns Claude Code into a collaborating team of AI agents. Def
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+import DashboardPreviewDocs from "../../../components/DashboardPreviewDocs.astro";
 
 You describe a feature. A full team of AI agents figures out how to build it together.
 
-That's relay.
+That's relay. No turn-taking. No phases. A real team — in parallel.
+
+<DashboardPreviewDocs />
 
 ## The problem with single-agent AI
 
@@ -23,16 +26,13 @@ No phases. No turn-taking. Just a team working in parallel.
 
 ## Watch it happen live
 
-Every task claim, agent message, and reasoning step is visible in the real-time dashboard at `http://localhost:3456` — updating over WebSocket as the work unfolds.
+The real-time dashboard at `http://localhost:3456` updates over WebSocket as agents work:
 
-![relay dashboard — live session in progress](/relay/screenshots/dashboard-en.png)
-
-Three panels update simultaneously:
 - **Task Board** — Kanban view of every task: `todo` → `in_progress` → `in_review` → `done`
 - **Messages** — Slack-style feed of all inter-agent communication
 - **Agent Thoughts** — Live stream of the selected agent's reasoning before each tool call
 
-Every session is also stored in SQLite for full replay after the fact.
+Every session is stored in SQLite for full replay after the fact.
 
 ## Define any team, for any domain
 

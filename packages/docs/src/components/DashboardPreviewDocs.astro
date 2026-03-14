@@ -98,12 +98,30 @@
           </div>
         </div>
 
-        <div class="dpd__msg dpd__msg--new">
+        <div class="dpd__msg">
           <span class="dpd__msg-avatar" style="background:rgba(52,211,153,0.15);color:#34d399">⚙️</span>
           <div class="dpd__msg-body">
             <span class="dpd__msg-name" style="color:#34d399">be</span>
+            <span class="dpd__msg-time">45s ago</span>
+            <p class="dpd__msg-text">API deployed ✓ Color tokens ready</p>
+          </div>
+        </div>
+
+        <div class="dpd__msg">
+          <span class="dpd__msg-avatar" style="background:rgba(244,114,182,0.15);color:#f472b6">🎨</span>
+          <div class="dpd__msg-body">
+            <span class="dpd__msg-name" style="color:#f472b6">designer</span>
+            <span class="dpd__msg-time">30s ago</span>
+            <p class="dpd__msg-text">Light palette finalized — 12 tokens covered</p>
+          </div>
+        </div>
+
+        <div class="dpd__msg dpd__msg--new">
+          <span class="dpd__msg-avatar" style="background:rgba(96,165,250,0.15);color:#60a5fa">💻</span>
+          <div class="dpd__msg-body">
+            <span class="dpd__msg-name" style="color:#60a5fa">fe</span>
             <span class="dpd__msg-time">just now</span>
-            <p class="dpd__msg-text">API deployed ✓ Color tokens available</p>
+            <p class="dpd__msg-text">Toggle wired ✓ Requesting review</p>
           </div>
         </div>
 
@@ -121,7 +139,7 @@
       </div>
       <div class="dpd__thoughts">
         <p class="dpd__thoughts-text">
-          Reading the existing color system... I see CSS custom properties are already set up. I'll hook into <code class="dpd__inline-code">var(--color-bg-surface)</code> and add a toggle class to <code class="dpd__inline-code">:root</code><span class="dpd__cursor" aria-hidden="true">|</span>
+          <span class="dpd__thinking-label">[thinking]</span> CSS vars already set up — hooking into <code class="dpd__inline-code">var(--color-bg-surface)</code> and toggling <code class="dpd__inline-code">:root[data-theme]</code><span class="dpd__cursor" aria-hidden="true">|</span>
         </p>
       </div>
     </div>
@@ -211,7 +229,7 @@
     display: grid;
     grid-template-columns: 1.8fr 1.6fr 1.4fr;
     background-color: #0f1117;
-    min-height: 240px;
+    min-height: 280px;
   }
 
   .dpd__panel {
@@ -324,7 +342,8 @@
   }
 
   .dpd__card--done {
-    opacity: 0.45;
+    opacity: 0.58;
+    filter: grayscale(25%);
   }
 
   /* ─── Messages ─── */
@@ -333,7 +352,7 @@
     flex-direction: column;
     padding: 0.625rem;
     flex: 1;
-    overflow: hidden;
+    overflow: auto;
   }
 
   .dpd__msg {
@@ -428,6 +447,13 @@
     word-break: break-word;
   }
 
+  .dpd__thinking-label {
+    font-family: var(--sl-font-mono, monospace);
+    font-size: 0.625rem;
+    color: rgba(96, 165, 250, 0.6);
+    margin-right: 0.25rem;
+  }
+
   .dpd__inline-code {
     font-family: var(--sl-font-mono, monospace);
     font-size: 0.6875rem;
@@ -476,6 +502,10 @@
 
     .dpd__kanban {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .dpd__col-label {
+      font-size: 0.5rem;
     }
   }
 </style>

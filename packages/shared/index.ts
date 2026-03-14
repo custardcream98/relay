@@ -41,6 +41,7 @@ export type RelayEvent =
         assignee: string | null;
         status: string;
         priority: string;
+        description: string | null;
       };
       timestamp: number;
     }

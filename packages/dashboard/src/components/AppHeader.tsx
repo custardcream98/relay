@@ -32,6 +32,9 @@ interface Props {
   viewingSessionId: string | null;
   onSelectSession: (sessionId: string) => void;
   onBackToLive: () => void;
+  // Theme toggle
+  theme: "dark" | "light";
+  onToggleTheme: () => void;
 }
 
 function formatSessionDate(unixSec: number): string {
@@ -59,6 +62,8 @@ export const AppHeader = memo(function AppHeader({
   viewingSessionId,
   onSelectSession,
   onBackToLive,
+  theme,
+  onToggleTheme,
 }: Props) {
   // Instance label: "relay (project-a) @ :3457" or "relay @ :3456"
   const portLabel = instancePort ?? window.location.port ?? "3456";
@@ -525,6 +530,40 @@ export const AppHeader = memo(function AppHeader({
             {agentCount} agents
           </span>
         )}
+
+        {/* Theme toggle button */}
+        <button
+          type="button"
+          onClick={onToggleTheme}
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            border: "1px solid var(--color-border-default)",
+            background: "transparent",
+            color: "var(--color-text-tertiary)",
+            cursor: "pointer",
+            fontSize: 14,
+            flexShrink: 0,
+            transition: "background 100ms, border-color 100ms, color 100ms",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background =
+              "var(--color-surface-overlay)";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-tertiary)";
+          }}
+        >
+          {theme === "dark" ? "☀" : "☾"}
+        </button>
 
         {/* biome-ignore lint/a11y/useSemanticElements: div layout required */}
         <div

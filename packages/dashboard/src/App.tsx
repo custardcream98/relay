@@ -1,16 +1,16 @@
 // packages/dashboard/src/App.tsx
-// Two-panel layout: left (AgentArena) + right (EventTimeline + TaskBoard/AgentDetailPanel)
+// Two-panel layout: left (AgentArena) + right (ActivityFeed + TaskBoard/AgentDetailPanel)
 
 import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useEffect, useReducer, useState } from "react";
+import { ActivityFeed } from "./components/ActivityFeed";
 import { AgentArena } from "./components/AgentArena";
 import { AgentDetailPanel } from "./components/AgentDetailPanel";
 import { AppHeader } from "./components/AppHeader";
-import { EventTimeline } from "./components/EventTimeline";
-import { MessageFeed } from "./components/MessageFeed";
 import { TaskBoard } from "./components/TaskBoard";
 import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
+import { useTheme } from "./hooks/useTheme";
 import type {
   AgentMeta,
   DashboardEvent,
@@ -228,7 +228,8 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               type: "task:updated" as const,
               agentId: t.assignee,
               description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
-              timestamp: Date.now(),
+              // Use task's actual timestamp for correct chronological ordering
+              timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
             })),
           ].sort((a, b) => a.timestamp - b.timestamp);
 
@@ -339,7 +340,8 @@ function reducer(state: DashboardState, action: Action): DashboardState {
           type: "task:updated" as const,
           agentId: t.assignee,
           description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
-          timestamp: Date.now(),
+          // Use task's actual timestamp for correct chronological ordering in history replay
+          timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
         })),
       ].sort((a, b) => a.timestamp - b.timestamp);
 
@@ -490,13 +492,7 @@ export default function App() {
 
   const isFocusMode = selectedAgent !== null;
 
-  // 우측 하단 패널 탭 상태 — "tasks" | "messages"
-  type BottomTab = "tasks" | "messages";
-  const [bottomTab, setBottomTab] = useState<BottomTab>("tasks");
-
-  // 새 메시지 도착 시 메시지 탭 미읽음 카운터 추적
-  const [seenMessageCount, setSeenMessageCount] = useState(0);
-  const unreadMessages = messages.length - seenMessageCount;
+  // (Messages tab removed — messages are displayed in ActivityFeed above)
 
   // Fetch agent list — passed as props to AgentArena
   const [agents, setAgents] = useState<AgentMeta[]>([]);
@@ -558,6 +554,8 @@ export default function App() {
     onToggleCollapse,
   } = usePanelResize();
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div
       className="h-screen flex flex-col overflow-hidden"
@@ -579,9 +577,11 @@ export default function App() {
         viewingSessionId={viewingSessionId}
         onSelectSession={handleSelectSession}
         onBackToLive={handleBackToLive}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
-      {/* 오프라인 배너 — 재연결 중일 때만 표시 */}
+      {/* Offline banner — shown only while reconnecting */}
       {!connected && reconnecting && (
         <div
           style={{
@@ -653,7 +653,7 @@ export default function App() {
 
         {/* Right: activity area */}
         <div ref={activityRef} className="flex flex-col flex-1 overflow-hidden">
-          {/* Top: EventTimeline — drag-resizable height */}
+          {/* Top: ActivityFeed — drag-resizable height */}
           <div
             style={{
               height: `${timelinePct}%`,
@@ -682,7 +682,7 @@ export default function App() {
                     letterSpacing: "0.07em",
                   }}
                 >
-                  Event Timeline
+                  Activity
                 </span>
                 <span
                   className="font-mono"
@@ -699,17 +699,22 @@ export default function App() {
               </div>
             </div>
             <div className="flex-1 overflow-hidden">
-              <EventTimeline entries={timeline} focusAgent={selectedAgent} />
+              <ActivityFeed
+                entries={timeline}
+                focusAgent={selectedAgent}
+                thinkingChunks={thinkingChunks}
+                agentStatuses={agentStatuses}
+              />
             </div>
           </div>
 
           {/* Row resize divider */}
           <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
 
-          {/* Bottom: TaskBoard/MessageFeed 탭 또는 AgentDetailPanel (포커스 모드) */}
+          {/* Bottom: TaskBoard/MessageFeed tabs, or AgentDetailPanel in focus mode */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {isFocusMode ? (
-              // 포커스 모드: AgentDetailPanel이 전체를 차지
+              // Focus mode: AgentDetailPanel takes the full bottom area
               <>
                 <PanelHeader label={`${selectedAgent} — detail`} />
                 <div className="flex-1 overflow-hidden">
@@ -723,126 +728,11 @@ export default function App() {
                 </div>
               </>
             ) : (
-              // 일반 모드: TaskBoard ↔ Messages 탭 전환
+              // Normal mode: Task Board (messages are in ActivityFeed above)
               <>
-                {/* 탭 헤더 */}
-                <div
-                  className="flex items-center shrink-0"
-                  style={{
-                    height: 36,
-                    borderBottom: "1px solid var(--color-border-subtle)",
-                    background: "var(--color-surface-base)",
-                    paddingLeft: 12,
-                    paddingRight: 12,
-                    gap: 4,
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setBottomTab("tasks")}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      padding: "3px 10px",
-                      borderRadius: 5,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      border: "none",
-                      background:
-                        bottomTab === "tasks" ? "var(--color-surface-overlay)" : "transparent",
-                      color:
-                        bottomTab === "tasks"
-                          ? "var(--color-text-secondary)"
-                          : "var(--color-text-tertiary)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.07em",
-                      transition: "background 100ms, color 100ms",
-                    }}
-                  >
-                    Task Board
-                    <span
-                      className="font-mono"
-                      style={{
-                        fontSize: 10,
-                        background: "var(--color-surface-overlay)",
-                        color: "var(--color-text-secondary)",
-                        padding: "0 4px",
-                        borderRadius: 3,
-                      }}
-                    >
-                      {tasks.length}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setBottomTab("messages");
-                      setSeenMessageCount(messages.length);
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      padding: "3px 10px",
-                      borderRadius: 5,
-                      fontSize: 11,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      border: "none",
-                      background:
-                        bottomTab === "messages" ? "var(--color-surface-overlay)" : "transparent",
-                      color:
-                        bottomTab === "messages"
-                          ? "var(--color-text-secondary)"
-                          : "var(--color-text-tertiary)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.07em",
-                      transition: "background 100ms, color 100ms",
-                    }}
-                  >
-                    Messages
-                    {/* 새 메시지 미읽음 배지 */}
-                    {unreadMessages > 0 && bottomTab !== "messages" ? (
-                      <span
-                        className="font-mono"
-                        style={{
-                          fontSize: 10,
-                          background: "#60a5fa",
-                          color: "#fff",
-                          padding: "0 5px",
-                          borderRadius: 9999,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {unreadMessages}
-                      </span>
-                    ) : (
-                      <span
-                        className="font-mono"
-                        style={{
-                          fontSize: 10,
-                          background: "var(--color-surface-overlay)",
-                          color: "var(--color-text-secondary)",
-                          padding: "0 4px",
-                          borderRadius: 3,
-                        }}
-                      >
-                        {messages.length}
-                      </span>
-                    )}
-                  </button>
-                </div>
-
-                {/* 탭 콘텐츠 */}
+                <PanelHeader label="Task Board" badge={tasks.length} />
                 <div className="flex-1 overflow-hidden">
-                  {bottomTab === "tasks" ? (
-                    <TaskBoard tasks={tasks} />
-                  ) : (
-                    <MessageFeed messages={messages} />
-                  )}
+                  <TaskBoard tasks={tasks} />
                 </div>
               </>
             )}

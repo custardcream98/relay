@@ -191,21 +191,51 @@ export const AgentCard = memo(function AgentCard({
         </div>
 
         {/* Activity preview */}
-        {activityText ? (
+        {isWorking && thinkingChunk ? (
+          // Thinking bubble — chat bubble style with blinking cursor
+          <div
+            style={{
+              fontSize: 12,
+              lineHeight: 1.55,
+              color: "var(--color-text-secondary)",
+              background: `${accentColor}10`,
+              border: `1px solid ${accentColor}28`,
+              borderRadius: 6,
+              padding: "4px 8px",
+              fontFamily: "var(--font-mono)",
+              overflow: "hidden",
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+            }}
+          >
+            {activityText}
+            {/* Blinking cursor — reuses blink keyframe from index.css */}
+            <span
+              style={{
+                display: "inline-block",
+                width: 6,
+                height: 11,
+                background: accentColor,
+                marginLeft: 2,
+                verticalAlign: "text-bottom",
+                animation: "blink 1.1s step-end infinite",
+                opacity: 0.8,
+              }}
+            />
+          </div>
+        ) : activityText ? (
           <p
             style={{
               fontSize: 12,
               lineHeight: 1.5,
-              color: isWorking ? "var(--color-text-secondary)" : "var(--color-text-tertiary)",
+              color: "var(--color-text-tertiary)",
               overflow: "hidden",
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
               margin: 0,
-              fontFamily: isWorking ? "var(--font-mono)" : "var(--font-sans)",
-              // accent-flash effect on thinking text while working
-              animation:
-                isWorking && thinkingChunk ? "accent-flash 2s ease-in-out infinite" : "none",
+              fontFamily: "var(--font-sans)",
             }}
           >
             {activityText}
@@ -214,12 +244,12 @@ export const AgentCard = memo(function AgentCard({
           <p
             style={{
               fontSize: 12,
-              color: "var(--color-text-tertiary)",
+              color: "var(--color-text-disabled)",
               margin: 0,
               fontStyle: "italic",
             }}
           >
-            No activity yet
+            {status === "waiting" ? "Waiting for work…" : status === "done" ? "Session complete" : "No activity yet"}
           </p>
         )}
       </div>

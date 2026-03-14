@@ -415,12 +415,14 @@ Retrieve the summary for a specific session.
 
 ### list_agents
 
-Retrieve the list of agents active in the current session (loaded from the session pool file).
+Retrieve the list of agents for the given session (loaded from `.relay/session-agents-{session_id}.yml` if present, otherwise from the pool file).
 
 **Parameters:**
 ```typescript
 {
-  agent_id: string; // calling agent ID
+  agent_id: string;      // calling agent ID
+  session_id?: string;   // session ID — when provided, loads the session-specific team file
+                         // written by /relay:relay Team Composition step
 }
 ```
 

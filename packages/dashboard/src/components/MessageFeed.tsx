@@ -84,13 +84,7 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
         {sorted.map((msg, idx) => {
           const endKind = getEndKind(msg.content ?? "");
           if (endKind !== null) {
-            return (
-              <SystemNotification
-                key={msg.id}
-                message={msg}
-                endKind={endKind}
-              />
-            );
+            return <SystemNotification key={msg.id} message={msg} endKind={endKind} />;
           }
           const prevMsg = idx > 0 ? sorted[idx - 1] : null;
           const isGrouped =
@@ -98,9 +92,7 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
             prevMsg.from_agent === msg.from_agent &&
             getEndKind(prevMsg.content ?? "") === null &&
             msg.created_at - prevMsg.created_at < 60; // group messages within 60s
-          return (
-            <MessageBubble key={msg.id} message={msg} isGrouped={isGrouped} />
-          );
+          return <MessageBubble key={msg.id} message={msg} isGrouped={isGrouped} />;
         })}
         <div ref={bottomRef} style={{ height: 1 }} />
       </div>
@@ -136,8 +128,7 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
               "var(--color-surface-overlay)";
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "var(--color-surface-raised)";
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-raised)";
           }}
         >
           <span style={{ fontSize: 10 }}>▼</span>

@@ -106,7 +106,7 @@
   /* Accent — warm amber (darker for contrast on light bg) */
   --color-accent: #b45309;
   --color-accent-light: #d97706;
-  --color-accent-glow: rgba(180, 83, 9, 0.10);
+  --color-accent-glow: rgba(180, 83, 9, 0.1);
 
   /* Status */
   --color-status-idle: #ddd8ce;

@@ -249,7 +249,11 @@ export const AgentCard = memo(function AgentCard({
               fontStyle: "italic",
             }}
           >
-            {status === "waiting" ? "Waiting for work…" : status === "done" ? "Session complete" : "No activity yet"}
+            {status === "waiting"
+              ? "Waiting for work…"
+              : status === "done"
+                ? "Session complete"
+                : "No activity yet"}
           </p>
         )}
       </div>

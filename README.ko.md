@@ -136,14 +136,7 @@ your-project/
 
 MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께 제공해요.
 
-```
-+----------------------------------------------------------+
-|  [PM  ]  [Designer -]  [DA -]  [FE  ]  [BE  ]  [QA -]   |
-+-------------------+------------------+-------------------+
-|    Task Board     |   Message Feed   |   Agent Thoughts  |
-|    (Kanban)       |   (Slack 스타일)  |   (실시간 스트림)  |
-+-------------------+------------------+-------------------+
-```
+![relay 대시보드](./packages/docs/public/screenshots/dashboard-ko.png)
 
 **Task Board** — 전체 이슈 현황 Kanban. 태스크 상태 변경 시 실시간으로 업데이트돼요.
 

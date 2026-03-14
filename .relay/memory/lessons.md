@@ -206,3 +206,24 @@ _2026-03-14_
 - agents.yml 제거는 loader.ts 최소 변경으로 처리 가능했음 — 하위 호환 deprecation 경고 패턴 유용
 - be가 6개 태스크(SEC x4 + B-2 + C-2)를 한 번의 스폰으로 처리 — 태스크 범위가 명확하면 효율적
 
+
+---
+_2026-03-14_
+
+---
+_2026-03-14_
+
+## Session 2026-03-14-001: Docs Intro Visual Hook + README Rewrite
+
+**Team**: pm, docs-writer, oss-maintainer, designer
+
+**Accomplishments:**
+- docs-writer: Created `DashboardPreviewDocs.astro` (standalone i18n-free version of DashboardPreview for MDX use); updated `introduction.mdx` (EN + ko-KR) with "Watch it happen live" section embedding animated 3-panel dashboard mockup; created `packages/docs/public/screenshots/` dir with capture guide README + placeholder SVG. Build: 47 pages, 0 errors.
+- oss-maintainer: Full README.md rewrite — problem-first hook ("Stop prompting one agent. Ship with a whole team."), benefit-focused copy, dashboard screenshot placeholder, install commands preserved, strong closing CTA.
+- designer: Visual strategy audit — posted spec recommending P0 DashboardPreview embed in intro (done), P0 README dashboard section improvement (done), P1 AgentTeamDiagram.astro for animated team diagram (future work).
+
+**Lessons:**
+- `DashboardPreviewDocs.astro` pattern (i18n-free copy of landing component) is useful for embedding in MDX docs pages
+- Designer's P1 suggestion (AgentTeamDiagram.astro — animated SVG with agent accent colors) is a good future enhancement
+- Real screenshots still needed: run relay session → capture `localhost:3456` at 1280×800 → place in `packages/docs/public/screenshots/dashboard.png`
+

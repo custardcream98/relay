@@ -1,5 +1,19 @@
 # @custardcream/relay
 
+## 0.8.0
+
+### Minor Changes
+
+- Migrate to pool-only architecture with branded AgentId type
+
+  - Remove `agents.default.yml`, `agents.example.yml`, and legacy `agents.yml` concept
+  - All team composition now goes through `agents.pool.yml` (pool-only workflow)
+  - Introduce branded `AgentId` type (`Brand<string, "AgentId">`) with `markAsAgentId()` helper in shared package
+  - Fix `get_workflow` MCP tool to load actual pool file instead of returning empty jobs
+  - Add comprehensive cross-session isolation tests (messages, tasks, artifacts, reviews)
+  - Add `claim_task` race condition safety tests
+  - Remove `agents.yml` references from docs, README, and CLAUDE.md
+
 ## 0.7.0
 
 ### Minor Changes

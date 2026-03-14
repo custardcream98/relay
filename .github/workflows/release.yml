@@ -58,8 +58,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # Always attempt publish — changeset publish skips versions already on npm
       - name: Build and publish to npm
-        if: steps.check.outputs.has_changesets == 'true'
         run: bun run release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

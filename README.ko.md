@@ -159,26 +159,19 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께
 ### 사전 준비
 
 - [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 해요
-- [Node.js](https://nodejs.org) v18 이상 (또는 호환 런타임)
+- [Node.js](https://nodejs.org) v18 이상
 
-### 1. 마켓플레이스 추가
+### 1. MCP 서버 등록
 
-```
-/plugin marketplace add https://github.com/custardcream98/relay
-```
-
-### 2. 플러그인 설치
-
-```
-/plugin install relay
+```bash
+claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
 ```
 
-다음이 자동으로 설정돼요:
-- Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)
-- MCP 서버 (`.mcp.json` 기반)
-- PostToolUse 훅 (`hooks/hooks.json` 기반)
+relay를 전역으로 등록해요. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)와 훅이 플러그인 로드 시 자동으로 설치돼요. 실행 후 Claude Code를 재시작하세요.
 
-### 3. 프로젝트에서 사용하기
+> 특정 프로젝트에만 적용하려면 `--scope local`을 사용하세요.
+
+### 2. 프로젝트에서 사용하기
 
 프로젝트 최초 사용 시:
 
@@ -291,4 +284,4 @@ relay/
 - [x] 범용 에이전트 아키텍처 (어떤 도메인이든)
 - [ ] 에이전트 thinking 대시보드 스트리밍
 - [ ] 세션 replay UI
-- [ ] 공개 문서 사이트
+- [x] 공개 문서 사이트

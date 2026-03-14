@@ -447,7 +447,10 @@ export function createMcpServer(): McpServer {
                 emoji: a.emoji,
                 description: a.description,
                 tools: a.tools,
-                systemPrompt: a.systemPrompt, // For persona injection
+                // Include language instruction so the orchestrating skill applies it when spawning
+                systemPrompt: a.language
+                  ? `${a.systemPrompt}\n\n## Language\n\nYou MUST respond in ${a.language} at all times.`
+                  : a.systemPrompt,
               }))
             ),
           },

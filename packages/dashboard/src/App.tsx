@@ -24,7 +24,7 @@ import type {
 interface DashboardState {
   tasks: Task[];
   messages: Message[];
-  agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
+  agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting" | "done">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
   timeline: TimelineEntry[];
@@ -210,12 +210,23 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             })),
           ].sort((a, b) => a.timestamp - b.timestamp);
 
+          // Reconstruct agent statuses from the last end: declaration in snapshot messages
+          const restoredStatuses: DashboardState["agentStatuses"] = {};
+          for (const m of snapshotMessages) {
+            if (!m.from_agent) continue;
+            const c = m.content ?? "";
+            if (c.startsWith("end:waiting")) restoredStatuses[m.from_agent] = "waiting";
+            else if (c.startsWith("end:_done") || c.startsWith("end:failed"))
+              restoredStatuses[m.from_agent] = "done";
+          }
+
           return {
             ...state,
             ...baseUpdates,
             tasks: snapshotTasks,
             messages: snapshotMessages,
             timeline: snapshotEntries,
+            agentStatuses: { ...state.agentStatuses, ...restoredStatuses },
             instanceId: snap.instanceId ?? state.instanceId,
             instancePort: snap.port ?? state.instancePort,
             sessionTeam: teamFromSnapshot,
@@ -240,12 +251,24 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               [event.agentId]: (state.thinkingChunks[event.agentId] ?? "") + event.chunk,
             },
           };
-        case "message:new":
+        case "message:new": {
+          // Detect end declarations to update agent status without a separate agent:status event
+          const content = event.message.content ?? "";
+          const fromAgent = event.message.from_agent;
+          let statusOverride: "waiting" | "done" | null = null;
+          if (content.startsWith("end:waiting")) statusOverride = "waiting";
+          else if (content.startsWith("end:_done") || content.startsWith("end:failed"))
+            statusOverride = "done";
           return {
             ...state,
             ...baseUpdates,
             messages: [event.message, ...state.messages],
+            agentStatuses:
+              statusOverride && fromAgent
+                ? { ...state.agentStatuses, [fromAgent]: statusOverride }
+                : state.agentStatuses,
           };
+        }
         case "task:updated": {
           // Shared type uses string for status, but runtime only receives TaskStatus values
           const incomingTask = event.task as Task;

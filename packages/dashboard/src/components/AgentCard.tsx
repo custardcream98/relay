@@ -9,7 +9,7 @@ interface Props {
   id: AgentId;
   name: string;
   emoji: string;
-  status: "idle" | "working" | "waiting";
+  status: "idle" | "working" | "waiting" | "done";
   thinkingChunk: string;
   lastMessage: string | null;
   inProgressCount: number;
@@ -21,6 +21,7 @@ interface Props {
 const STATUS_BADGE_COLOR: Record<string, string> = {
   working: "#34d399",
   waiting: "#fbbf24",
+  done: "#818cf8",
   idle: "#4a4a55",
 };
 

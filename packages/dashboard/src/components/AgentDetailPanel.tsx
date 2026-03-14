@@ -10,7 +10,7 @@ import { MarkdownContent } from "./MarkdownContent";
 
 interface Props {
   agentId: AgentId;
-  status: "idle" | "working" | "waiting";
+  status: "idle" | "working" | "waiting" | "done";
   thinkingChunk: string;
   messages: Message[];
   tasks: Task[];

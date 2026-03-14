@@ -9,7 +9,7 @@ interface Props {
   agents: AgentMeta[];
   agentsLoading: boolean;
   agentsError: boolean;
-  statuses: Partial<Record<AgentId, "idle" | "working" | "waiting">>;
+  statuses: Partial<Record<AgentId, "idle" | "working" | "waiting" | "done">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   tasks: Task[];
   messages: Message[];

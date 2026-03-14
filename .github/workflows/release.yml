@@ -31,6 +31,8 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
+          # version: runs changeset version + syncs plugin.json/marketplace.json
+          version: bun run version-packages
           # Version Packages PR이 merge되면 이 스크립트로 publish
           publish: bun run release
           title: "chore: version packages"

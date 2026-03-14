@@ -29,3 +29,8 @@ Bundle: ~217KB JS / ~12KB CSS
 - fe: React/Tailwind 구현
 - qa: 빌드 + 스펙 대조 검증
 - deployer: 최종 빌드 확인
+
+---
+_2026-03-14_
+
+Session 2026-03-14-001: Built dynamic agent composition + multi-server support. MINOR bump changeset created.

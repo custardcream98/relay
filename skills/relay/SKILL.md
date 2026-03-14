@@ -13,13 +13,80 @@ react to messages and tasks organically, like a Slack-first team.
 2. Verify `.relay/memory/project.md` exists.
    - If absent: suggest running `/relay:init` first.
 3. Generate a new session ID in `YYYY-MM-DD-NNN` format.
-4. Tell the user: "Dashboard: http://localhost:3456"
+   - If the `RELAY_INSTANCE` environment variable is set, prefix the session ID:
+     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN` (e.g. `project-a-2026-03-14-001`).
+4. Determine the dashboard URL:
+   - Check if `DASHBOARD_PORT` env var is available; if so use `http://localhost:{DASHBOARD_PORT}`.
+   - Otherwise use `http://localhost:3456` as the default.
+   - Tell the user: "Dashboard: {url}"
+
+## Team Composition (Dynamic Agent Selection)
+
+This step runs **before** spawning any agents. It lets you assemble a purpose-built team
+for the session rather than always using the static `agents.yml` roster.
+
+### Step 0: Check for an existing team
+
+Call `list_agents` (already done in Pre-flight step 1).
+
+- **If `list_agents` returned ≥ 1 agent** — ask the user:
+  > "Use your configured team from `agents.yml`? Or would you like to pick a custom team
+  > from the agent pool for this specific task?"
+  - If the user says **use configured** → skip the rest of this section and proceed to
+    [Session Startup](#session-startup) with the agents from `list_agents`.
+  - If the user says **custom** → proceed to pool selection below.
+
+- **If `list_agents` returned 0 agents** (no `agents.yml`) → go directly to pool selection.
+
+### Pool Selection Conversation
+
+1. Call `list_pool_agents` to fetch all available pool entries.
+   - If it returns 0 entries, tell the user: "No agent pool configured. Create
+     `.relay/agents.pool.yml` (see `agents.pool.example.yml`). Falling back to agents.yml."
+     Then proceed with whatever `list_agents` returned.
+
+2. Ask the user:
+   > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
+   > 'write a legal contract review')"
+
+3. Based on the user's response, use your own reasoning to suggest a team:
+   - Match the task description to agent `tags` and `description` fields.
+   - Aim for 3–6 agents unless the task clearly needs more or fewer.
+   - Show the suggested team in a concise list:
+     ```
+     Suggested team:
+     - 📋 pm — Product Manager (coordinates tasks)
+     - ⚙️ be — Backend Engineer (API + DB work)
+     - 🔍 qa — QA Engineer (testing + sign-off)
+     ```
+   - Explain briefly **why** each agent was selected.
+
+4. Let the user refine:
+   - "Looks good" or "yes" → confirm and proceed.
+   - "Remove X, add Y" → adjust the team and re-show.
+   - "Start over" → go back to step 2.
+
+5. Once confirmed, write the selected team to `.relay/session-agents.yml`:
+   - Format is identical to `agents.yml` (an `agents:` map with only the selected entries).
+   - To build the file, call `list_agents` — it returns full personas including `systemPrompt`.
+     Map each selected agent ID to its full persona config.
+   - Write the file at `.relay/session-agents.yml`.
+   - Set the `RELAY_SESSION_AGENTS_FILE` environment variable to the absolute path of this
+     file so the server picks it up on its next `list_agents` call.
+
+> **Fallback**: if no pool is configured and no `agents.yml` exists, the session cannot
+> start. Prompt the user to create one.
+
+> **Pool fallback**: when `list_pool_agents` is called and no pool file exists, it returns
+> the same agents as `list_agents` (the configured team). This means the pool selection
+> conversation still works — you are just selecting a subset of the configured team.
 
 ## Session Startup
 
 ### Step 1: Load all agents
 
-Call `list_agents` to get the full roster. Cache the result — it will be referenced throughout.
+Call `list_agents` to get the active roster (reflects any `session-agents.yml` override).
+Cache the result — it will be referenced throughout.
 
 Separate agents into:
 - **Base agents**: all agents returned by list_agents
@@ -184,7 +251,39 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
 2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
-3. Report results to the user.
+3. Clean up: if `.relay/session-agents.yml` was written during Team Composition, delete it
+   (it is ephemeral and gitignored).
+4. Report results to the user.
+
+## Multi-Instance Notes
+
+When running multiple relay servers simultaneously (e.g. two projects in separate terminals):
+
+- Each server instance should have a unique `DASHBOARD_PORT` (e.g. 3456 and 3457).
+- Use `RELAY_INSTANCE` to give each instance a name (e.g. `project-a`, `project-b`).
+  Session IDs will be automatically prefixed: `project-a-2026-03-14-001`.
+- Each instance uses a separate SQLite DB when `RELAY_INSTANCE` is set:
+  `.relay/relay-{instance}.db` (e.g. `.relay/relay-project-a.db`).
+- The skill always operates on the MCP server it was invoked from. When Claude Code has
+  two relay MCP servers registered, use the correct one's skill invocation.
+
+Example `.mcp.json` for two instances:
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
+    },
+    "relay-b": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
+    }
+  }
+}
+```
 
 ## Failure Handling
 

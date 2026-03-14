@@ -1,14 +1,26 @@
 // packages/dashboard/src/components/AppHeader.tsx
-// App top header — docs nav 스타일과 통일
+// App top header — shows instance info, session team badge, and optional server switcher
 
 import { memo } from "react";
-import type { AgentId } from "../types";
+import type { AgentId, AgentMeta, ServerEntry } from "../types";
+import { ServerSwitcher } from "./ServerSwitcher";
+import { SessionTeamBadge } from "./SessionTeamBadge";
 
 interface Props {
   connected: boolean;
   agentCount: number;
   selectedAgent: AgentId | null;
   onClearFocus: () => void;
+  // Instance info — populated from session:snapshot once BE ships; defaults to current port
+  instanceId?: string;
+  instancePort?: number;
+  // Current session team — populated from team:composed event or session:snapshot
+  sessionTeam: AgentMeta[];
+  // Multi-server support — populated from GET /api/servers; empty until BE ships
+  servers: ServerEntry[];
+  activeServer: string;
+  onSwitchServer: (url: string) => void;
+  onAddServer: (url: string) => void;
 }
 
 export const AppHeader = memo(function AppHeader({
@@ -16,7 +28,20 @@ export const AppHeader = memo(function AppHeader({
   agentCount,
   selectedAgent,
   onClearFocus,
+  instanceId,
+  instancePort,
+  sessionTeam,
+  servers,
+  activeServer,
+  onSwitchServer,
+  onAddServer,
 }: Props) {
+  // Instance label: "relay (project-a) @ :3457" or "relay @ :3456"
+  const portLabel = instancePort ?? window.location.port ?? "3456";
+  const instanceLabel = instanceId
+    ? `relay (${instanceId}) @ :${portLabel}`
+    : `relay @ :${portLabel}`;
+
   return (
     <div
       className="flex items-center justify-between px-5 shrink-0"
@@ -31,30 +56,68 @@ export const AppHeader = memo(function AppHeader({
         zIndex: 50,
       }}
     >
-      {/* 왼쪽: relay_ 워드마크 */}
+      {/* Left: relay_ wordmark + optional server switcher */}
       <div className="flex items-center gap-3">
-        <span
-          style={{
-            fontSize: 15,
-            fontWeight: 500,
-            letterSpacing: "-0.04em",
-            fontFamily: "var(--font-mono)",
-            color: "var(--color-text-primary)",
-            display: "flex",
-            alignItems: "baseline",
-          }}
-        >
-          relay
+        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+          {/* relay_ wordmark */}
           <span
             style={{
-              color: "var(--color-accent)",
-              animation: "blink 1.1s step-end infinite",
-              fontWeight: 400,
+              fontSize: 15,
+              fontWeight: 500,
+              letterSpacing: "-0.04em",
+              fontFamily: "var(--font-mono)",
+              color: "var(--color-text-primary)",
+              display: "flex",
+              alignItems: "baseline",
             }}
           >
-            _
+            relay
+            <span
+              style={{
+                color: "var(--color-accent)",
+                animation: "blink 1.1s step-end infinite",
+                fontWeight: 400,
+              }}
+            >
+              _
+            </span>
           </span>
-        </span>
+
+          {/* Separator + server switcher (multi-server) or instance label (single) */}
+          {servers.length > 1 ? (
+            <>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "var(--color-text-disabled)",
+                  margin: "0 2px",
+                  alignSelf: "center",
+                }}
+              >
+                /
+              </span>
+              <ServerSwitcher
+                servers={servers}
+                activeServer={activeServer}
+                onSwitch={onSwitchServer}
+                onAdd={onAddServer}
+              />
+            </>
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                fontFamily: "var(--font-mono)",
+                color: "var(--color-text-disabled)",
+                letterSpacing: "0.02em",
+                alignSelf: "center",
+              }}
+            >
+              {instanceLabel}
+            </span>
+          )}
+        </div>
+
         <span
           style={{
             fontSize: 10,
@@ -74,7 +137,7 @@ export const AppHeader = memo(function AppHeader({
         </span>
       </div>
 
-      {/* 중앙: Focus Mode 배지 */}
+      {/* Center: Focus Mode badge */}
       {selectedAgent && (
         <div
           style={{
@@ -117,8 +180,11 @@ export const AppHeader = memo(function AppHeader({
         </div>
       )}
 
-      {/* 오른쪽: 에이전트 수 + 연결 상태 */}
+      {/* Right: session team badge + agent count + connection status */}
       <div className="flex items-center gap-4">
+        {/* Session team badge — shows when session has a composed team */}
+        <SessionTeamBadge agents={sessionTeam} />
+
         {agentCount > 0 && (
           <span
             style={{

@@ -47,10 +47,52 @@ The MCP server handles all inter-agent communication infrastructure.
 - `agents.yml`: user's team definition — required; must have at least one agent
 - `packages/server/src/agents/loader.ts` handles merging; throws if 0 agents are loaded
 
+### Agent pool for dynamic team selection
+- `agents.pool.example.yml`: 12+ diverse agent personas across web-dev, research, and marketing domains. Reference for building your own pool.
+- `.relay/agents.pool.yml`: project-level pool (takes priority). Copy from `agents.pool.example.yml` and customise.
+- `agents.pool.yml` (project root): fallback pool location.
+- Pool agents have an optional `tags: string[]` field used by `/relay:relay` for smart team suggestions.
+- `list_pool_agents` MCP tool returns pool metadata (no `systemPrompt`) for team selection.
+- `RELAY_SESSION_AGENTS_FILE`: env var pointing to `.relay/session-agents.yml` — overrides the active agent team for a single session. Written by `/relay:relay` Team Composition step. Gitignored.
+- `loadPool()` in `loader.ts`: reads pool file, falls back to `loadAgents()` when no pool is configured.
+
 ### Install modes (global / local)
 - Global: install skills to `~/.claude/skills/` + `claude mcp add --scope user`
 - Local: install skills to `.claude/skills/` + `claude mcp add --scope local`
 - Local overrides global
+
+### Multi-server support
+Run multiple relay instances simultaneously without port or session data conflicts.
+
+Environment variables:
+- `DASHBOARD_PORT`: HTTP/WebSocket port (default: auto-selected from 3456–3465)
+- `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the session ID is prefixed (`project-a-2026-03-14-001`) and the DB file becomes `.relay/relay-{instance}.db`.
+- `RELAY_DB_PATH`: explicit DB file path override (overrides RELAY_INSTANCE default).
+- `RELAY_SESSION_ID`: session identifier (default: `"default"`).
+
+CLI args (alternative to env vars):
+- `relay --port 3457` — set dashboard port
+- `relay --session project-b` — set instance name (equivalent to RELAY_INSTANCE)
+
+Auto port selection: if `DASHBOARD_PORT` is not set and 3456 is occupied, the server tries 3457–3465 before falling back.
+
+Example `.mcp.json` for two instances:
+```json
+{
+  "mcpServers": {
+    "relay": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
+    },
+    "relay-b": {
+      "command": "npx",
+      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
+    }
+  }
+}
+```
 
 ## Directory Structure
 
@@ -95,6 +137,10 @@ hooks/
 └── plugin.json           # plugin manifest
 
 .mcp.json                 # MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
+
+agents.pool.example.yml   # Example pool with 12+ personas (web-dev, research, marketing)
+agents.example.yml        # Example web-dev team (copy to agents.yml to get started)
+agents.default.yml        # Framework skeleton — DO NOT MODIFY
 ```
 
 ## MCP Tool Schema Principles

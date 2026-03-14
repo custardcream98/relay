@@ -3,7 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AGENT_ACCENT_HEX, DEFAULT_AGENT_ACCENT } from "../constants/agents";
-import type { AgentId, RelayEvent, TimelineEntry } from "../types";
+import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 // Icon per event type
-function eventIcon(type: RelayEvent["type"]): string {
+function eventIcon(type: TimelineEntry["type"]): string {
   switch (type) {
     case "message:new":
       return "💬";
@@ -28,6 +28,8 @@ function eventIcon(type: RelayEvent["type"]): string {
       return "⚡";
     case "memory:updated":
       return "💾";
+    case "team:composed":
+      return "👥";
     default:
       return "·";
   }

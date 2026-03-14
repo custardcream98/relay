@@ -1,9 +1,11 @@
 // packages/server/src/mcp.ts
 
+import { existsSync, readFileSync } from "node:fs";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import yaml from "js-yaml";
 import { z } from "zod";
-import { getWorkflow, loadAgents } from "./agents/loader";
+import { getWorkflow, loadAgents, loadPool } from "./agents/loader";
 import type { AgentPersona } from "./agents/types";
 import { getRelayDir, setProjectRoot, uriToPath } from "./config";
 import { broadcast } from "./dashboard/websocket";
@@ -393,17 +395,39 @@ export function createMcpServer(): McpServer {
   // Lazy agent cache — populated on first list_agents call, after setProjectRoot() has been set.
   // Loading at createMcpServer() time would use CWD=/tmp (bunx behavior) and always return [].
   let agents: Record<string, AgentPersona> | null = null;
+  let pool: Record<string, AgentPersona> | null = null;
 
   function getAgents(): Record<string, AgentPersona> {
     if (agents === null) {
       try {
-        agents = loadAgents();
+        // RELAY_SESSION_AGENTS_FILE allows the relay skill to override the active team per session
+        const sessionAgentsFile = process.env.RELAY_SESSION_AGENTS_FILE;
+        if (sessionAgentsFile && existsSync(sessionAgentsFile)) {
+          const parsed = yaml.load(readFileSync(sessionAgentsFile, "utf-8")) as Parameters<
+            typeof loadAgents
+          >[0];
+          agents = loadAgents(parsed ?? undefined);
+        } else {
+          agents = loadAgents();
+        }
       } catch {
         // No agents.yml — return empty so /relay:init phase 0 (team suggestion) can run
         agents = {};
       }
     }
     return agents;
+  }
+
+  function getPool(): Record<string, AgentPersona> {
+    if (pool === null) {
+      try {
+        pool = loadPool();
+      } catch {
+        // Pool load failure is non-fatal — fall back to empty
+        pool = {};
+      }
+    }
+    return pool;
   }
 
   server.tool(
@@ -424,6 +448,34 @@ export function createMcpServer(): McpServer {
                 description: a.description,
                 tools: a.tools,
                 systemPrompt: a.systemPrompt, // For persona injection
+              }))
+            ),
+          },
+        ],
+      };
+    }
+  );
+
+  // Returns all available pool agents (metadata only — no systemPrompt) for team selection
+  server.tool(
+    "list_pool_agents",
+    {
+      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+    },
+    async () => {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              Object.values(getPool()).map((a) => ({
+                id: a.id,
+                name: a.name,
+                emoji: a.emoji,
+                description: a.description,
+                tags: a.tags,
+                tools: a.tools,
+                // systemPrompt intentionally omitted — pool metadata only
               }))
             ),
           },

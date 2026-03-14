@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
-import { getRelayDir } from "../config";
+import { getDbPath } from "../config";
 import { runMigrations } from "./schema";
 import type { SqliteDatabase } from "./types";
 
@@ -10,9 +10,10 @@ let _db: SqliteDatabase | null = null;
 
 // Returns the DB instance.
 // Initializes and migrates the DB on first call.
+// DB path is resolved via getDbPath() — supports RELAY_DB_PATH, RELAY_INSTANCE, and default.
 export function getDb(): SqliteDatabase {
   if (!_db) {
-    const path = process.env.DB_PATH ?? `${getRelayDir()}/relay.db`;
+    const path = getDbPath();
     // Create the directory if it does not exist yet
     const dir = dirname(path);
     if (dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });

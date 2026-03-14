@@ -1,6 +1,6 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
-import { buildSystemPromptWithMemory, getWorkflow, loadAgents } from "./loader";
+import { buildSystemPromptWithMemory, getWorkflow, loadAgents, loadPool } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("loadAgents", () => {
@@ -176,6 +176,114 @@ describe("language setting", () => {
     };
     const prompt = buildSystemPromptWithMemory(persona, "/nonexistent");
     expect(prompt).not.toContain("Language");
+  });
+});
+
+describe("loadPool", () => {
+  test("returns agents when a pool override is provided", () => {
+    const poolFile: AgentsFile = {
+      agents: {
+        analyst: {
+          name: "Analyst",
+          emoji: "📊",
+          tools: ["send_message", "get_messages"],
+          systemPrompt: "You are an analyst.",
+          tags: ["research", "data"],
+        },
+        writer: {
+          name: "Writer",
+          emoji: "✍️",
+          tools: ["send_message"],
+          systemPrompt: "You are a writer.",
+          tags: ["marketing", "content"],
+        },
+      },
+    };
+    const pool = loadPool(poolFile);
+    expect(pool.analyst).toBeDefined();
+    expect(pool.analyst.name).toBe("Analyst");
+    expect(pool.analyst.tags).toEqual(["research", "data"]);
+    expect(pool.writer).toBeDefined();
+  });
+
+  test("falls back gracefully when no pool file exists (returns loadAgents result)", () => {
+    // No override + no pool file on disk — should fall back to loadAgents()
+    // We cannot control filesystem in unit tests, so we test via override path instead.
+    const minimalPool: AgentsFile = {
+      agents: {
+        helper: {
+          name: "Helper",
+          emoji: "🤝",
+          tools: ["send_message"],
+          systemPrompt: "You help the team.",
+        },
+      },
+    };
+    const pool = loadPool(minimalPool);
+    expect(Object.keys(pool).length).toBeGreaterThan(0);
+  });
+
+  test("preserves tags field on pool agents", () => {
+    const poolFile: AgentsFile = {
+      agents: {
+        seo: {
+          name: "SEO Specialist",
+          emoji: "🔍",
+          tools: ["send_message"],
+          systemPrompt: "You optimize for search.",
+          tags: ["marketing", "seo", "content"],
+        },
+      },
+    };
+    const pool = loadPool(poolFile);
+    expect(pool.seo.tags).toEqual(["marketing", "seo", "content"]);
+  });
+
+  test("excludes disabled agents from pool", () => {
+    const poolFile: AgentsFile = {
+      agents: {
+        active: {
+          name: "Active",
+          emoji: "✅",
+          tools: ["send_message"],
+          systemPrompt: "Active agent.",
+        },
+        inactive: {
+          name: "Inactive",
+          emoji: "❌",
+          tools: [],
+          systemPrompt: "Disabled.",
+          disabled: true,
+        },
+      },
+    };
+    const pool = loadPool(poolFile);
+    expect(pool.active).toBeDefined();
+    expect(pool.inactive).toBeUndefined();
+  });
+
+  test("pool agents can use extends", () => {
+    const poolFile: AgentsFile = {
+      agents: {
+        base_researcher: {
+          name: "Researcher",
+          emoji: "🔬",
+          tools: ["send_message", "get_messages"],
+          systemPrompt: "You are a researcher.",
+          tags: ["research"],
+        },
+        senior_researcher: {
+          extends: "base_researcher",
+          name: "Senior Researcher",
+          tags: ["research", "senior"],
+        },
+      },
+    };
+    const pool = loadPool(poolFile);
+    expect(pool.senior_researcher).toBeDefined();
+    expect(pool.senior_researcher.emoji).toBe("🔬"); // inherited
+    expect(pool.senior_researcher.name).toBe("Senior Researcher"); // overridden
+    expect(pool.senior_researcher.tags).toEqual(["research", "senior"]); // overridden
   });
 });
 

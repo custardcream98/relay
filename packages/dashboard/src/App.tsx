@@ -10,7 +10,15 @@ import { EventTimeline } from "./components/EventTimeline";
 import { TaskBoard } from "./components/TaskBoard";
 import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
-import type { AgentMeta, Message, Task, TimelineEntry } from "./types";
+import type {
+  AgentMeta,
+  DashboardEvent,
+  Message,
+  ServerEntry,
+  Task,
+  TeamComposedEvent,
+  TimelineEntry,
+} from "./types";
 
 // Global dashboard state
 interface DashboardState {
@@ -20,11 +28,16 @@ interface DashboardState {
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
   timeline: TimelineEntry[];
+  // Instance info — from session:snapshot (once BE ships instanceId/port)
+  instanceId: string | undefined;
+  instancePort: number | undefined;
+  // Session team — from team:composed or session:snapshot
+  sessionTeam: AgentMeta[];
   _seq: number; // sequence counter for pure reducer
 }
 
 type Action =
-  | { type: "EVENT"; event: RelayEvent }
+  | { type: "EVENT"; event: DashboardEvent }
   | { type: "SELECT_AGENT"; agentId: AgentId | null };
 
 const initialState: DashboardState = {
@@ -34,11 +47,19 @@ const initialState: DashboardState = {
   thinkingChunks: {},
   selectedAgent: null,
   timeline: [],
+  instanceId: undefined,
+  instancePort: undefined,
+  sessionTeam: [],
   _seq: 0,
 };
 
+// Type guard: check if an event is team:composed
+function isTeamComposedEvent(event: DashboardEvent): event is TeamComposedEvent {
+  return event.type === "team:composed";
+}
+
 // Convert RelayEvent to TimelineEntry
-function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | null {
+function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry | null {
   switch (event.type) {
     case "message:new":
       return {
@@ -98,6 +119,14 @@ function eventToTimelineEntry(event: RelayEvent, id: string): TimelineEntry | nu
         description: "Memory updated",
         timestamp: event.timestamp,
       };
+    case "team:composed":
+      return {
+        id,
+        type: "team:composed",
+        agentId: null,
+        description: `Team composed: ${event.agents.map((a) => a.name).join(", ")}`,
+        timestamp: event.timestamp,
+      };
     default:
       return null;
   }
@@ -133,11 +162,36 @@ function reducer(state: DashboardState, action: Action): DashboardState {
         baseUpdates.timeline = newTimeline;
       }
 
+      // Handle team:composed before the switch so TypeScript narrows correctly
+      if (isTeamComposedEvent(event)) {
+        return {
+          ...state,
+          ...baseUpdates,
+          sessionTeam: event.agents.map((a) => ({
+            id: a.id,
+            name: a.name,
+            emoji: a.emoji,
+          })),
+        };
+      }
+
       switch (event.type) {
         case "session:snapshot": {
           // Rebuild timeline from snapshot messages and tasks
           const snapshotMessages = event.messages as Message[];
           const snapshotTasks = event.tasks as Task[];
+
+          // Read instanceId and port if BE has added them to the snapshot payload
+          const snap = event as RelayEvent & {
+            instanceId?: string;
+            port?: number;
+            agents?: AgentMeta[];
+          };
+
+          // Rebuild session team from snapshot if present
+          const teamFromSnapshot: AgentMeta[] =
+            snap.agents && snap.agents.length > 0 ? snap.agents : state.sessionTeam;
+
           const snapshotEntries: TimelineEntry[] = [
             ...snapshotMessages.map((m) => ({
               id: `snap-msg-${m.id}`,
@@ -155,12 +209,16 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               timestamp: Date.now(),
             })),
           ].sort((a, b) => a.timestamp - b.timestamp);
+
           return {
             ...state,
             ...baseUpdates,
             tasks: snapshotTasks,
             messages: snapshotMessages,
             timeline: snapshotEntries,
+            instanceId: snap.instanceId ?? state.instanceId,
+            instancePort: snap.port ?? state.instancePort,
+            sessionTeam: teamFromSnapshot,
           };
         }
         case "agent:status":
@@ -282,10 +340,20 @@ function PanelHeader({ label, badge }: { label: string; badge?: number | string 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const handleEvent = useCallback((event: RelayEvent) => {
-    dispatch({ type: "EVENT", event });
+    dispatch({ type: "EVENT", event: event as DashboardEvent });
   }, []);
   const { connected } = useRelaySocket({ onEvent: handleEvent });
-  const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent, timeline } = state;
+  const {
+    tasks,
+    messages,
+    agentStatuses,
+    thinkingChunks,
+    selectedAgent,
+    timeline,
+    instanceId,
+    instancePort,
+    sessionTeam,
+  } = state;
 
   const isFocusMode = selectedAgent !== null;
 
@@ -310,6 +378,33 @@ export default function App() {
       });
   }, []);
 
+  // Fetch server list — BE will add GET /api/servers; graceful fallback to empty array
+  const [servers, setServers] = useState<ServerEntry[]>([]);
+  const currentServerUrl = `${window.location.protocol}//${window.location.host}`;
+
+  useEffect(() => {
+    fetch("/api/servers")
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<ServerEntry[]>;
+      })
+      .then((data) => setServers(data))
+      .catch(() => {
+        // Graceful: /api/servers not yet available — single-server mode, no switcher shown
+        setServers([]);
+      });
+  }, []);
+
+  // Handle server switch — clear state and reconnect (future: pass new URL to useRelaySocket)
+  const handleSwitchServer = useCallback((_url: string) => {
+    // TODO: reconnect WebSocket to new server when useRelaySocket supports dynamic URLs
+    // For now this is a no-op placeholder; ServerSwitcher renders null for single server
+  }, []);
+
+  const handleAddServer = useCallback((url: string) => {
+    setServers((prev) => [...prev, { url, label: url, status: "connecting", isActive: false }]);
+  }, []);
+
   // Panel resize state and handlers
   const {
     arenaWidth,
@@ -332,6 +427,13 @@ export default function App() {
         agentCount={agents.length}
         selectedAgent={selectedAgent}
         onClearFocus={() => dispatch({ type: "SELECT_AGENT", agentId: null })}
+        instanceId={instanceId}
+        instancePort={instancePort}
+        sessionTeam={sessionTeam}
+        servers={servers}
+        activeServer={currentServerUrl}
+        onSwitchServer={handleSwitchServer}
+        onAddServer={handleAddServer}
       />
 
       {/* Main two-panel layout */}

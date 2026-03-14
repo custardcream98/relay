@@ -23,6 +23,28 @@ export function getRelayDir(): string {
   return process.env.RELAY_DIR ?? join(getProjectRoot(), ".relay");
 }
 
+/**
+ * Returns the relay instance ID, or undefined for the default (single) instance.
+ * Set via RELAY_INSTANCE env var or --session CLI arg.
+ */
+export function getInstanceId(): string | undefined {
+  return process.env.RELAY_INSTANCE ?? undefined;
+}
+
+/**
+ * Returns the SQLite DB file path for this instance.
+ * Priority:
+ * 1. RELAY_DB_PATH env var (explicit override)
+ * 2. .relay/relay-{instance}.db when RELAY_INSTANCE is set
+ * 3. .relay/relay.db (default)
+ */
+export function getDbPath(): string {
+  if (process.env.RELAY_DB_PATH) return process.env.RELAY_DB_PATH;
+  const instance = getInstanceId();
+  if (instance) return join(getRelayDir(), `relay-${instance}.db`);
+  return join(getRelayDir(), "relay.db");
+}
+
 // Convert a file:// URI to an absolute path
 export function uriToPath(uri: string): string {
   if (uri.startsWith("file://")) {

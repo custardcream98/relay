@@ -14,6 +14,7 @@ export interface AgentConfig {
   language?: string; // Force response language (e.g. "Korean", "English", "Japanese")
   disabled?: boolean; // when true, this agent is excluded from the registry
   extends?: string; // inherit another agent's config and override
+  tags?: string[]; // taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
 }
 
 export interface WorkflowJob {
@@ -36,4 +37,5 @@ export interface AgentsFile {
 // Fully resolved persona returned by loader after merging defaults and custom overrides
 export interface AgentPersona extends AgentConfig {
   id: AgentId;
+  tags?: string[]; // Optional taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
 }

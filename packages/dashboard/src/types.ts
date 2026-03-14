@@ -33,9 +33,37 @@ export interface AgentMeta {
 // Timeline entry for the EventTimeline display component
 export interface TimelineEntry {
   id: string;
-  type: RelayEvent["type"];
+  type: RelayEvent["type"] | "team:composed";
   agentId: string | null;
   description: string;
   detail?: string;
   timestamp: number; // ms
 }
+
+// Pool agent — from /api/pool-agents or agents.pool.yml
+export interface PoolAgent {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  tags: string[];
+  inCurrentSession: boolean;
+}
+
+// Server entry — from /api/servers (multi-server support)
+export interface ServerEntry {
+  url: string;
+  label: string;
+  status: "live" | "offline" | "connecting";
+  isActive: boolean;
+}
+
+// team:composed WS event (extended beyond shared package until BE ships it)
+export interface TeamComposedEvent {
+  type: "team:composed";
+  agents: Array<{ id: string; name: string; emoji: string }>;
+  timestamp: number;
+}
+
+// Extended event union that includes dashboard-only events
+export type DashboardEvent = RelayEvent | TeamComposedEvent;

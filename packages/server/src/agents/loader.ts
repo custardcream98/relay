@@ -100,6 +100,69 @@ export function loadAgents(override?: AgentsFile): Record<string, AgentPersona> 
 }
 
 /**
+ * Load agent pool personas.
+ * Reads .relay/agents.pool.yml first, then agents.pool.yml at project root.
+ * Falls back to loadAgents() result when no pool file is found (backward compatibility).
+ * Disabled agents are excluded. The pool does NOT enforce the "at least one agent" check.
+ */
+export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
+  if (override) {
+    // When an explicit override is provided, use it directly as a pool
+    const defaultFile = parseDefaultYml();
+    const defaults = defaultFile.agents;
+    const customs = override.agents;
+    const merged: Record<string, AgentPersona> = {};
+    const globalLanguage = override.language;
+
+    for (const [id, config] of Object.entries(defaults)) {
+      const custom = customs[id] ?? {};
+      if (custom.disabled) continue;
+      const language = custom.language ?? globalLanguage;
+      merged[id] = { id, ...config, ...custom, ...(language ? { language } : {}) } as AgentPersona;
+    }
+
+    for (const [id, config] of Object.entries(customs)) {
+      if (id in merged) continue;
+      if (config.disabled) continue;
+      const language = config.language ?? globalLanguage;
+      if (config.extends) {
+        const base = merged[config.extends];
+        if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
+        merged[id] = {
+          ...base,
+          ...config,
+          id,
+          extends: undefined,
+          ...(language ? { language } : {}),
+        } as AgentPersona;
+      } else {
+        const { name, emoji, tools, systemPrompt } = config;
+        if (!name || !emoji || !tools || !systemPrompt) {
+          throw new Error(
+            `pool agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
+          );
+        }
+        merged[id] = { id, ...config, ...(language ? { language } : {}) } as AgentPersona;
+      }
+    }
+
+    return merged;
+  }
+
+  // Try .relay/agents.pool.yml, then root-level agents.pool.yml
+  const poolFile =
+    readYml(join(getRelayDir(), "agents.pool.yml")) ??
+    readYml(join(getProjectRoot(), "agents.pool.yml"));
+
+  if (poolFile) {
+    return loadPool(poolFile);
+  }
+
+  // No pool file found — fall back to the configured agent team
+  return loadAgents();
+}
+
+/**
  * Inject memory into an agent's system prompt.
  * Prepends project memory (project.md), team retrospectives (lessons.md),
  * and the agent's personal memory (agents/{id}.md) in that order.

@@ -1,5 +1,6 @@
 // packages/server/src/index.ts
 
+import { createServer } from "node:net";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import { app } from "./dashboard/hono";
@@ -20,7 +21,72 @@ if (process.stdin.isTTY) {
   process.exit(1);
 }
 
-const DASHBOARD_PORT = Number(process.env.DASHBOARD_PORT ?? 3456);
+// --- CLI arg parsing (minimal, no deps) ---
+// Supports: --port <number>  --session <id>
+function parseArgs(argv: string[]): { port?: number; session?: string } {
+  const result: { port?: number; session?: string } = {};
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--port" && argv[i + 1]) {
+      const p = Number(argv[i + 1]);
+      if (!Number.isNaN(p)) result.port = p;
+      i++;
+    } else if (argv[i] === "--session" && argv[i + 1]) {
+      result.session = argv[i + 1];
+      i++;
+    }
+  }
+  return result;
+}
+
+const cliArgs = parseArgs(process.argv.slice(2));
+
+// Apply --session CLI arg to env before any module reads RELAY_INSTANCE
+if (cliArgs.session) {
+  process.env.RELAY_INSTANCE = cliArgs.session;
+}
+
+// --- Port resolution with auto-selection ---
+// Priority: --port CLI arg → DASHBOARD_PORT env var → auto-select starting at 3456
+const PORT_AUTO_START = 3456;
+const PORT_AUTO_END = 3465;
+
+/** Returns true if the given TCP port is available (not in use). */
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", () => resolve(false));
+    server.once("listening", () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+/** Finds an available port in the range [start, end]. Returns null if all are occupied. */
+async function findAvailablePort(start: number, end: number): Promise<number | null> {
+  for (let port = start; port <= end; port++) {
+    if (await isPortAvailable(port)) return port;
+  }
+  return null;
+}
+
+async function resolvePort(): Promise<number> {
+  // CLI arg takes highest priority
+  if (cliArgs.port) return cliArgs.port;
+  // Explicit env var — use it as-is (caller owns the choice)
+  if (process.env.DASHBOARD_PORT) return Number(process.env.DASHBOARD_PORT);
+  // Auto-select from pool
+  const found = await findAvailablePort(PORT_AUTO_START, PORT_AUTO_END);
+  if (found === null) {
+    console.error(
+      `[relay] no available port found in range ${PORT_AUTO_START}-${PORT_AUTO_END} — falling back to ${PORT_AUTO_START}`
+    );
+    return PORT_AUTO_START;
+  }
+  return found;
+}
+
+const DASHBOARD_PORT = await resolvePort();
 const SESSION_ID = process.env.RELAY_SESSION_ID ?? "default";
 
 // Dashboard HTTP + WebSocket server.

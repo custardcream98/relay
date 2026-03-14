@@ -10,6 +10,11 @@ export interface SessionRow {
 /**
  * List all sessions ordered by first event time descending.
  * Derived from the events table — no separate sessions table needed.
+ *
+ * Note: session:started events are not persisted (intentional — they are
+ * transient live signals). A session that produced no other events after
+ * start_session will not appear here. This is acceptable since the XXXX
+ * random suffix in the session ID is the authoritative collision guard.
  */
 export function getAllSessions(limit = 20): SessionRow[] {
   const db = getDb();

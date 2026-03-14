@@ -215,6 +215,15 @@ git push
 # 3. Merge the "Version Packages" PR → CI publishes to npm automatically
 ```
 
+**Local version bump** (when not using CI):
+
+```bash
+# Runs changeset version + syncs plugin.json/marketplace.json in one step.
+# Do NOT run `bunx changeset version` directly — the version hook is not
+# reliably triggered in bun workspaces and plugin files will fall out of sync.
+bun run version-packages
+```
+
 ## Notes
 
 - Never add code that calls the Claude API directly (incurs extra billing)

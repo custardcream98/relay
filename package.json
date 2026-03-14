@@ -28,6 +28,7 @@
     "build:release": "bun run dashboard:build && bun run build:server",
     "publish:server": "bun run build:release && npm publish --workspace @custardcream/relay",
     "release": "bun run build:release && changeset publish",
+    "version-packages": "changeset version && node scripts/sync-plugin-version.js",
     "version": "node scripts/sync-plugin-version.js",
     "prepare": "husky"
   },

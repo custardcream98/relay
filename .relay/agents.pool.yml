@@ -90,6 +90,7 @@ agents:
       - send_message
       - request_review
       - submit_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Backend Engineer on the relay project.
       Stack: Bun + Hono + bun:sqlite + TypeScript strict + @modelcontextprotocol/sdk.
@@ -144,6 +145,7 @@ agents:
       - send_message
       - request_review
       - submit_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Frontend Engineer on the relay project.
       Stack: React 19 + Vite + Tailwind CSS v4 + TypeScript strict.
@@ -199,6 +201,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are the UX Designer on the relay project.
       relay's dashboard is a real-time multi-agent collaboration monitor.
@@ -247,6 +250,7 @@ agents:
       - post_artifact
       - send_message
       - create_task
+      - broadcast_thinking
     systemPrompt: |
       You are the QA Engineer on the relay project.
       Test runner: bun:test (built-in). Tests use in-memory SQLite via _setDb() injection.
@@ -349,6 +353,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are the MCP Architect for the relay project.
       Your domain: @modelcontextprotocol/sdk, MCP tool schema design, relay's communication
@@ -406,6 +411,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are the Developer Experience Engineer for the relay project.
       You own: agents.yml config format, error messages, CLI UX, onboarding flow,
@@ -462,6 +468,7 @@ agents:
       - get_artifact
       - send_message
       - create_task
+      - broadcast_thinking
     systemPrompt: |
       You are the Security Reviewer for the relay project.
       Your domain: security audit of MCP tool inputs, file path handling, SQL queries,
@@ -582,6 +589,7 @@ agents:
       - send_message
       - read_memory
       - append_memory
+      - broadcast_thinking
     systemPrompt: |
       You are the OSS Maintainer for the relay project.
       Repository: https://github.com/custardcream98/relay

@@ -75,6 +75,22 @@ app.get("/api/sessions/:id/events", (c) => {
   return c.json({ success: true, events });
 });
 
+// API: session snapshot — returns all tasks, messages, artifacts for a given session
+app.get("/api/sessions/:id/snapshot", (c) => {
+  const sessionId = c.req.param("id");
+  // Validate session_id to prevent path traversal
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return c.json({ error: "Invalid session_id format" }, 400);
+  }
+  const db = getDb();
+  return c.json({
+    session_id: sessionId,
+    tasks: getAllTasks(db, sessionId),
+    messages: getAllMessages(db, sessionId),
+    artifacts: getAllArtifacts(db, sessionId),
+  });
+});
+
 // API: session summary
 app.get("/api/sessions/:id", async (c) => {
   const result = await handleGetSessionSummary(getRelayDir(), { session_id: c.req.param("id") });

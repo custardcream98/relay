@@ -8,7 +8,6 @@ import { AgentDetailPanel } from "./components/AgentDetailPanel";
 import { AppHeader } from "./components/AppHeader";
 import { EventTimeline } from "./components/EventTimeline";
 import { MessageFeed } from "./components/MessageFeed";
-import { SessionReplay } from "./components/SessionReplay";
 import { TaskBoard } from "./components/TaskBoard";
 import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
@@ -21,6 +20,14 @@ import type {
   TeamComposedEvent,
   TimelineEntry,
 } from "./types";
+
+// Snapshot response from GET /api/sessions/:id/snapshot
+interface SessionSnapshotData {
+  session_id: string;
+  tasks: Task[];
+  messages: Message[];
+  artifacts: unknown[];
+}
 
 // Global dashboard state
 interface DashboardState {
@@ -35,12 +42,18 @@ interface DashboardState {
   instancePort: number | undefined;
   // Session team — from team:composed or session:snapshot
   sessionTeam: AgentMeta[];
+  // Session switcher — null = live current session, string = viewing historical session
+  viewingSessionId: string | null;
+  // Live state backup — saved when switching to historical session, restored on Back to Live
+  _liveSnapshot: { tasks: Task[]; messages: Message[]; timeline: TimelineEntry[] } | null;
   _seq: number; // sequence counter for pure reducer
 }
 
 type Action =
   | { type: "EVENT"; event: DashboardEvent }
-  | { type: "SELECT_AGENT"; agentId: AgentId | null };
+  | { type: "SELECT_AGENT"; agentId: AgentId | null }
+  | { type: "SET_SESSION_SNAPSHOT"; snapshot: SessionSnapshotData }
+  | { type: "CLEAR_SESSION_SNAPSHOT" };
 
 const initialState: DashboardState = {
   tasks: [],
@@ -52,6 +65,8 @@ const initialState: DashboardState = {
   instanceId: undefined,
   instancePort: undefined,
   sessionTeam: [],
+  viewingSessionId: null,
+  _liveSnapshot: null,
   _seq: 0,
 };
 
@@ -137,6 +152,12 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
+      // Skip live WebSocket events when viewing a historical session
+      // (tasks and messages are frozen to the snapshot; only let session:snapshot through for reconnect)
+      if (state.viewingSessionId !== null && action.event.type !== "session:snapshot") {
+        return state;
+      }
+
       const event = action.event;
 
       // Build timeline entry — agent:thinking replaces previous entry from the same agent
@@ -280,6 +301,57 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     }
     case "SELECT_AGENT":
       return { ...state, selectedAgent: action.agentId };
+
+    case "SET_SESSION_SNAPSHOT": {
+      const { snapshot } = action;
+      // Build timeline from snapshot tasks + messages
+      const snapEntries: TimelineEntry[] = [
+        ...snapshot.messages.map((m) => ({
+          id: `hsnap-msg-${m.id}`,
+          type: "message:new" as const,
+          agentId: m.from_agent,
+          description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
+          detail: m.content,
+          timestamp: m.created_at * 1000,
+        })),
+        ...snapshot.tasks.map((t) => ({
+          id: `hsnap-task-${t.id}`,
+          type: "task:updated" as const,
+          agentId: t.assignee,
+          description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
+          timestamp: Date.now(),
+        })),
+      ].sort((a, b) => a.timestamp - b.timestamp);
+
+      return {
+        ...state,
+        viewingSessionId: snapshot.session_id,
+        // Save current live state so we can restore it on CLEAR_SESSION_SNAPSHOT
+        _liveSnapshot:
+          state.viewingSessionId === null
+            ? { tasks: state.tasks, messages: state.messages, timeline: state.timeline }
+            : state._liveSnapshot,
+        tasks: snapshot.tasks,
+        messages: snapshot.messages,
+        timeline: snapEntries,
+      };
+    }
+
+    case "CLEAR_SESSION_SNAPSHOT": {
+      // Restore live state saved before switching to historical session
+      if (state._liveSnapshot) {
+        return {
+          ...state,
+          viewingSessionId: null,
+          _liveSnapshot: null,
+          tasks: state._liveSnapshot.tasks,
+          messages: state._liveSnapshot.messages,
+          timeline: state._liveSnapshot.timeline,
+        };
+      }
+      return { ...state, viewingSessionId: null, _liveSnapshot: null };
+    }
+
     default:
       return state;
   }
@@ -373,7 +445,28 @@ export default function App() {
     instanceId,
     instancePort,
     sessionTeam,
+    viewingSessionId,
   } = state;
+
+  // Session switcher — load a historical session snapshot
+  const handleSelectSession = useCallback((sessionId: string) => {
+    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<SessionSnapshotData>;
+      })
+      .then((snapshot) => {
+        dispatch({ type: "SET_SESSION_SNAPSHOT", snapshot });
+      })
+      .catch(() => {
+        // Silently ignore fetch errors
+      });
+  }, []);
+
+  // Back to Live — restore live state and resume WebSocket updates
+  const handleBackToLive = useCallback(() => {
+    dispatch({ type: "CLEAR_SESSION_SNAPSHOT" });
+  }, []);
 
   const isFocusMode = selectedAgent !== null;
 
@@ -384,23 +477,6 @@ export default function App() {
   // 새 메시지 도착 시 메시지 탭 미읽음 카운터 추적
   const [seenMessageCount, setSeenMessageCount] = useState(0);
   const unreadMessages = messages.length - seenMessageCount;
-
-  // 세션 리플레이 모드 — 라이브 WS 이벤트와 분리된 타임라인 제공
-  const [replayMode, setReplayMode] = useState(false);
-  const [replayTimeline, setReplayTimeline] = useState<TimelineEntry[]>([]);
-
-  const handleStartReplay = useCallback((entries: TimelineEntry[]) => {
-    setReplayTimeline(entries);
-    setReplayMode(true);
-  }, []);
-
-  const handleExitReplay = useCallback(() => {
-    setReplayMode(false);
-    setReplayTimeline([]);
-  }, []);
-
-  // 리플레이 중이면 replayTimeline 사용, 아니면 라이브 timeline
-  const displayTimeline = replayMode ? replayTimeline : timeline;
 
   // Fetch agent list — passed as props to AgentArena
   const [agents, setAgents] = useState<AgentMeta[]>([]);
@@ -480,6 +556,9 @@ export default function App() {
         activeServer={currentServerUrl}
         onSwitchServer={handleSwitchServer}
         onAddServer={handleAddServer}
+        viewingSessionId={viewingSessionId}
+        onSelectSession={handleSelectSession}
+        onBackToLive={handleBackToLive}
       />
 
       {/* 오프라인 배너 — 재연결 중일 때만 표시 */}
@@ -583,7 +662,7 @@ export default function App() {
                     letterSpacing: "0.07em",
                   }}
                 >
-                  {replayMode ? "⏮ Replay" : "Event Timeline"}
+                  Event Timeline
                 </span>
                 <span
                   className="font-mono"
@@ -595,18 +674,12 @@ export default function App() {
                     borderRadius: 9999,
                   }}
                 >
-                  {displayTimeline.length}
+                  {timeline.length}
                 </span>
               </div>
-              {/* 세션 리플레이 컨트롤 */}
-              <SessionReplay
-                onStartReplay={handleStartReplay}
-                onExitReplay={handleExitReplay}
-                isReplaying={replayMode}
-              />
             </div>
             <div className="flex-1 overflow-hidden">
-              <EventTimeline entries={displayTimeline} focusAgent={selectedAgent} />
+              <EventTimeline entries={timeline} focusAgent={selectedAgent} />
             </div>
           </div>
 

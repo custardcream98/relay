@@ -1,10 +1,16 @@
 // packages/dashboard/src/components/AppHeader.tsx
-// App top header — shows instance info, session team badge, and optional server switcher
+// App top header — shows instance info, session team badge, session switcher, and optional server switcher
 
-import { memo } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { AgentId, AgentMeta, ServerEntry } from "../types";
 import { ServerSwitcher } from "./ServerSwitcher";
 import { SessionTeamBadge } from "./SessionTeamBadge";
+
+interface SessionRow {
+  id: string;
+  created_at: number; // unix seconds
+  event_count: number;
+}
 
 interface Props {
   connected: boolean;
@@ -22,6 +28,19 @@ interface Props {
   activeServer: string;
   onSwitchServer: (url: string) => void;
   onAddServer: (url: string) => void;
+  // Session switcher
+  viewingSessionId: string | null;
+  onSelectSession: (sessionId: string) => void;
+  onBackToLive: () => void;
+}
+
+function formatSessionDate(unixSec: number): string {
+  return new Date(unixSec * 1000).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 export const AppHeader = memo(function AppHeader({
@@ -37,12 +56,58 @@ export const AppHeader = memo(function AppHeader({
   activeServer,
   onSwitchServer,
   onAddServer,
+  viewingSessionId,
+  onSelectSession,
+  onBackToLive,
 }: Props) {
   // Instance label: "relay (project-a) @ :3457" or "relay @ :3456"
   const portLabel = instancePort ?? window.location.port ?? "3456";
   const instanceLabel = instanceId
     ? `relay (${instanceId}) @ :${portLabel}`
     : `relay @ :${portLabel}`;
+
+  // Session switcher dropdown state
+  const [sessionDropdownOpen, setSessionDropdownOpen] = useState(false);
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const sessionDropdownRef = useRef<HTMLDivElement>(null);
+
+  const fetchSessions = useCallback(() => {
+    setSessionsLoading(true);
+    fetch("/api/sessions")
+      .then((r) => r.json())
+      .then((data: SessionRow[]) => {
+        setSessions(data);
+        setSessionsLoading(false);
+      })
+      .catch(() => setSessionsLoading(false));
+  }, []);
+
+  const handleSessionDropdownToggle = useCallback(() => {
+    if (!sessionDropdownOpen) fetchSessions();
+    setSessionDropdownOpen((v) => !v);
+  }, [sessionDropdownOpen, fetchSessions]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (sessionDropdownRef.current && !sessionDropdownRef.current.contains(e.target as Node)) {
+        setSessionDropdownOpen(false);
+      }
+    }
+    if (sessionDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [sessionDropdownOpen]);
+
+  const handleSessionSelect = useCallback(
+    (sessionId: string) => {
+      setSessionDropdownOpen(false);
+      onSelectSession(sessionId);
+    },
+    [onSelectSession]
+  );
 
   return (
     <div
@@ -182,8 +247,269 @@ export const AppHeader = memo(function AppHeader({
         </div>
       )}
 
-      {/* Right: session team badge + agent count + connection status */}
+      {/* Right: session switcher + session team badge + agent count + connection status */}
       <div className="flex items-center gap-4">
+        {/* Session switcher dropdown */}
+        <div ref={sessionDropdownRef} style={{ position: "relative" }}>
+          {/* Back to Live button — shown only when viewing a historical session */}
+          {viewingSessionId !== null && (
+            <button
+              type="button"
+              onClick={onBackToLive}
+              style={{
+                marginRight: 6,
+                padding: "3px 10px",
+                borderRadius: 4,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: "pointer",
+                border: "1px solid #60a5fa",
+                background: "#60a5fa18",
+                color: "#60a5fa",
+                letterSpacing: "0.03em",
+              }}
+            >
+              ▶ Back to Live
+            </button>
+          )}
+
+          {/* Session dropdown trigger */}
+          <button
+            type="button"
+            onClick={handleSessionDropdownToggle}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "3px 10px",
+              borderRadius: 4,
+              fontSize: 11,
+              fontWeight: 500,
+              cursor: "pointer",
+              border:
+                viewingSessionId !== null
+                  ? "1px solid #fbbf24"
+                  : "1px solid var(--color-border-default)",
+              background: viewingSessionId !== null ? "#fbbf2415" : "transparent",
+              color: viewingSessionId !== null ? "#fbbf24" : "var(--color-text-tertiary)",
+              fontFamily: "var(--font-mono)",
+              letterSpacing: "0.03em",
+              transition: "background 100ms, border-color 100ms, color 100ms",
+            }}
+          >
+            {viewingSessionId !== null ? (
+              // Viewing a historical session — show truncated session ID
+              <span>
+                {viewingSessionId.length > 20
+                  ? `${viewingSessionId.slice(0, 20)}…`
+                  : viewingSessionId}
+              </span>
+            ) : (
+              // Live mode — green dot + LIVE label
+              <>
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--color-connection-live)",
+                    boxShadow: "0 0 0 2px rgba(52,211,153,0.25)",
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+                LIVE
+              </>
+            )}
+            <span style={{ fontSize: 9, opacity: 0.7 }}>▾</span>
+          </button>
+
+          {/* Sessions dropdown panel */}
+          {sessionDropdownOpen && (
+            <div
+              style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                right: 0,
+                minWidth: 280,
+                background: "var(--color-surface-raised)",
+                border: "1px solid var(--color-border-default)",
+                borderRadius: 8,
+                boxShadow: "var(--shadow-dropdown, 0 8px 24px rgba(0,0,0,0.35))",
+                zIndex: 200,
+                overflow: "hidden",
+              }}
+            >
+              {/* Dropdown header */}
+              <div
+                style={{
+                  padding: "8px 12px",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: "var(--color-text-disabled)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.07em",
+                  borderBottom: "1px solid var(--color-border-subtle)",
+                }}
+              >
+                Sessions
+              </div>
+
+              {/* Live option — always shown at top */}
+              {/* biome-ignore lint/a11y/noStaticElementInteractions: session row acts as button */}
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents: session row acts as button */}
+              <div
+                onClick={() => {
+                  setSessionDropdownOpen(false);
+                  onBackToLive();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "9px 12px",
+                  cursor: "pointer",
+                  borderBottom: "1px solid var(--color-border-subtle)",
+                  background:
+                    viewingSessionId === null ? "var(--color-surface-overlay)" : "transparent",
+                  transition: "background 80ms",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    "var(--color-surface-overlay)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLDivElement).style.background =
+                    viewingSessionId === null ? "var(--color-surface-overlay)" : "transparent";
+                }}
+              >
+                <span
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "var(--color-connection-live)",
+                    boxShadow: "0 0 0 2px rgba(52,211,153,0.25)",
+                    display: "inline-block",
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--color-text-primary)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  ● LIVE
+                </span>
+              </div>
+
+              {/* Loading state */}
+              {sessionsLoading && (
+                <div
+                  style={{
+                    padding: "16px 12px",
+                    fontSize: 12,
+                    color: "var(--color-text-tertiary)",
+                    textAlign: "center",
+                  }}
+                >
+                  Loading…
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!sessionsLoading && sessions.length === 0 && (
+                <div
+                  style={{
+                    padding: "16px 12px",
+                    fontSize: 12,
+                    color: "var(--color-text-tertiary)",
+                    textAlign: "center",
+                  }}
+                >
+                  No past sessions
+                </div>
+              )}
+
+              {/* Session list */}
+              {!sessionsLoading &&
+                sessions.map((session) => (
+                  // biome-ignore lint/a11y/noStaticElementInteractions: session row acts as button
+                  // biome-ignore lint/a11y/useKeyWithClickEvents: session row acts as button
+                  <div
+                    key={session.id}
+                    onClick={() => handleSessionSelect(session.id)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "9px 12px",
+                      cursor: "pointer",
+                      borderBottom: "1px solid var(--color-border-subtle)",
+                      background:
+                        viewingSessionId === session.id
+                          ? "var(--color-surface-overlay)"
+                          : "transparent",
+                      transition: "background 80ms",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        "var(--color-surface-overlay)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLDivElement).style.background =
+                        viewingSessionId === session.id
+                          ? "var(--color-surface-overlay)"
+                          : "transparent";
+                    }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 500,
+                          color: "var(--color-text-primary)",
+                          fontFamily: "var(--font-mono)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {session.id}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--color-text-tertiary)",
+                          marginTop: 2,
+                        }}
+                      >
+                        {formatSessionDate(session.created_at)}
+                      </div>
+                    </div>
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 10,
+                        color: "var(--color-text-disabled)",
+                        background: "var(--color-surface-overlay)",
+                        padding: "1px 6px",
+                        borderRadius: 3,
+                        flexShrink: 0,
+                        marginLeft: 8,
+                      }}
+                    >
+                      {session.event_count} events
+                    </span>
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
+
         {/* Session team badge — shows when session has a composed team */}
         <SessionTeamBadge agents={sessionTeam} />
 

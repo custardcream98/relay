@@ -253,20 +253,3 @@ relay/
 ```
 
 <br />
-
-## Tech stack
-
-| Layer      | Technology                                        |
-| ---------- | ------------------------------------------------- |
-| Runtime    | Node.js (distributed via npx)                     |
-| Language   | TypeScript (strict)                               |
-| MCP server | `@modelcontextprotocol/sdk` + `@hono/node-server` |
-| API server | Hono                                              |
-| Real-time  | `ws` WebSocket                                    |
-| Frontend   | React + Vite                                      |
-| Styling    | Tailwind CSS                                      |
-| Database   | `better-sqlite3`                                  |
-| Memory     | Markdown files (`.relay/memory/`)                 |
-| Personas   | YAML (`.relay/agents.pool.yml`)                   |
-
-<br />

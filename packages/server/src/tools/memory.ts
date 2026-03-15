@@ -24,11 +24,6 @@ function projectMemoryPath(relayDir: string): string {
   return join(relayDir, "memory", "project.md");
 }
 
-// Path to the shared team retrospectives file
-function lessonsMemoryPath(relayDir: string): string {
-  return join(relayDir, "memory", "lessons.md");
-}
-
 // Ensure the memory/agents directory exists
 function ensureDir(relayDir: string): void {
   mkdirSync(join(relayDir, "memory", "agents"), { recursive: true });
@@ -36,7 +31,7 @@ function ensureDir(relayDir: string): void {
 
 /**
  * Read memory.
- * Without agent_id: returns project.md + lessons.md combined.
+ * Without agent_id: returns project.md only.
  * With agent_id: returns that agent's file (null if absent).
  */
 export async function handleReadMemory(relayDir: string, input: { agent_id?: string }) {
@@ -49,12 +44,7 @@ export async function handleReadMemory(relayDir: string, input: { agent_id?: str
       const project = existsSync(projectMemoryPath(relayDir))
         ? await readFile(projectMemoryPath(relayDir), "utf-8")
         : null;
-      const lessons = existsSync(lessonsMemoryPath(relayDir))
-        ? await readFile(lessonsMemoryPath(relayDir), "utf-8")
-        : null;
-      const content =
-        [project, lessons].filter((s): s is string => s !== null).join("\n\n---\n\n") || null;
-      return { success: true, content };
+      return { success: true, content: project };
     }
 
     const path = agentMemoryPath(relayDir, input.agent_id);
@@ -134,25 +124,28 @@ export async function handleWriteMemory(
 }
 
 /**
- * Append to memory.
- * Without agent_id: appends to the shared lessons.md.
- * With agent_id: appends to the agent's personal file with a datestamp.
+ * Append to an agent's personal memory file with a datestamp.
+ * agent_id is required — use save_session_summary for session retrospectives.
  */
 export async function handleAppendMemory(
   relayDir: string,
   input: { agent_id?: string; content: string }
 ) {
+  if (input.agent_id === undefined) {
+    return {
+      success: false,
+      error:
+        "append_memory without agent_id is no longer supported. " +
+        "Use save_session_summary to persist session retrospectives.",
+    };
+  }
   // Validate agent_id to prevent path traversal
-  if (input.agent_id !== undefined && !isValidId(input.agent_id)) {
+  if (!isValidId(input.agent_id)) {
     return { success: false, error: "invalid ID format" };
   }
   try {
     ensureDir(relayDir);
-    // Without agent_id: append to the shared lessons.md (project.md is write_memory-only)
-    const path = input.agent_id
-      ? agentMemoryPath(relayDir, input.agent_id)
-      : lessonsMemoryPath(relayDir);
-
+    const path = agentMemoryPath(relayDir, input.agent_id);
     const timestamp = new Date().toISOString().split("T")[0];
     const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
 

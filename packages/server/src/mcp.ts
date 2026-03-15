@@ -509,8 +509,7 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .optional()
-        .describe("Agent ID. Omit to append to lessons.md"),
+        .describe("Agent ID. Use save_session_summary for session retrospectives."),
       content: z.string().max(131072).describe("Content to append"),
     },
     async (input) => {

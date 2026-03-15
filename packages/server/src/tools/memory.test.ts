@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { existsSync, mkdirSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { handleAppendMemory, handleReadMemory, handleWriteMemory } from "./memory";
 
@@ -48,19 +48,23 @@ describe("memory tool", () => {
     expect(result.content).toContain("Second memory entry");
   });
 
-  test("append_memory: saves to lessons.md when agent_id is omitted", async () => {
-    await handleAppendMemory(TEST_DIR, { content: "Team retro: watch out for auth headers" });
-    expect(existsSync(join(TEST_DIR, "memory/lessons.md"))).toBe(true);
-    // Should not write to project.md
-    expect(existsSync(join(TEST_DIR, "memory/project.md"))).toBe(false);
+  test("append_memory: returns error when agent_id is omitted", async () => {
+    const result = await handleAppendMemory(TEST_DIR, {
+      content: "Team retro: watch out for auth headers",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("save_session_summary");
+    // lessons.md must not be created
+    expect(existsSync(join(TEST_DIR, "memory/lessons.md"))).toBe(false);
   });
 
-  test("read_memory: merges project + lessons when agent_id is omitted", async () => {
+  test("read_memory: returns only project.md when agent_id is omitted", async () => {
     await handleWriteMemory(TEST_DIR, { key: "summary", content: "Project summary" });
-    await handleAppendMemory(TEST_DIR, { content: "Lessons content" });
+    // Simulate a leftover lessons.md from a previous version
+    writeFileSync(join(TEST_DIR, "memory/lessons.md"), "Old lessons content");
     const result = await handleReadMemory(TEST_DIR, {});
     expect(result.content).toContain("Project summary");
-    expect(result.content).toContain("Lessons content");
+    expect(result.content).not.toContain("Old lessons content");
   });
 
   test("write_memory: replaces section when same key is rewritten", async () => {

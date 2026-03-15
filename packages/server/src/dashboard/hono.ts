@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { loadPool } from "../agents/loader";
 import { getRelayDir, getSessionId } from "../config";
 import { getDb } from "../db/client";
@@ -24,20 +25,50 @@ const DASHBOARD_DIST =
 
 export const app = new Hono();
 
+// CORS middleware — restrict all /api/* and WebSocket origins to localhost only.
+// Prevents cross-origin requests from arbitrary web pages while allowing the
+// dashboard (served from the same localhost origin) to function normally.
+app.use(
+  "/api/*",
+  cors({
+    origin: (origin) => {
+      // Allow requests from localhost (any port) and 127.0.0.1 (any port).
+      // Also allow requests with no Origin header (e.g. same-origin requests, curl).
+      if (!origin) return origin;
+      try {
+        const url = new URL(origin);
+        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+          return origin;
+        }
+      } catch {
+        // Malformed origin — deny
+      }
+      return null;
+    },
+    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type"],
+  })
+);
+
 // Serve static files from the built React app
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
-// Lazy-loaded on first /api/agents request (after MCP init, getRelayDir() returns the correct path)
+// Pool cache for /api/agents — matches MCP server TTL so pool changes reflect within 5 minutes.
+const AGENTS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 let cachedAgents: ReturnType<typeof loadPool> | null = null;
+let cachedAgentsAt = 0;
 
 // API: agent list
 app.get("/api/agents", (c) => {
   try {
-    if (!cachedAgents) {
+    const now = Date.now();
+    if (cachedAgents === null || now - cachedAgentsAt >= AGENTS_CACHE_TTL_MS) {
       try {
         cachedAgents = loadPool();
+        cachedAgentsAt = now;
       } catch {
-        cachedAgents = {};
+        // Pool not configured or failed — keep stale cache if available, otherwise empty
+        if (cachedAgents === null) cachedAgents = {};
       }
     }
     return c.json(
@@ -55,13 +86,17 @@ app.get("/api/agents", (c) => {
 
 // API: session snapshot (used for initial dashboard load)
 app.get("/api/session", (c) => {
-  const db = getDb();
-  const sessionId = getSessionId();
-  return c.json({
-    tasks: getAllTasks(db, sessionId),
-    messages: getAllMessages(db, sessionId),
-    artifacts: getAllArtifacts(db, sessionId),
-  });
+  try {
+    const db = getDb();
+    const sessionId = getSessionId();
+    return c.json({
+      tasks: getAllTasks(db, sessionId),
+      messages: getAllMessages(db, sessionId),
+      artifacts: getAllArtifacts(db, sessionId),
+    });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
 });
 
 // API: list all sessions — used by FE session replay UI
@@ -109,6 +144,20 @@ app.get("/api/sessions/:id", async (c) => {
 
 // Called by the PostToolUse hook — broadcasts agent:status events to the dashboard
 app.post("/api/hook/tool-use", async (c) => {
+  // Only accept requests from localhost origins (or same-origin with no Origin header).
+  // This prevents cross-origin POST abuse since the hook endpoint is unauthenticated.
+  const origin = c.req.header("origin");
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
+        return c.json({ error: "forbidden" }, 403);
+      }
+    } catch {
+      return c.json({ error: "forbidden" }, 403);
+    }
+  }
+
   // Claude Code delivers a payload via stdin with the structure:
   // { tool_name: "mcp__relay__send_message", tool_input: { agent_id: "pm", ... }, ... }
   let body: { tool_input?: { agent_id?: string } };

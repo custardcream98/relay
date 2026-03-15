@@ -3,11 +3,25 @@
 import type { RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
+const DEFAULT_WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
 const RECONNECT_DELAY_MS = [1000, 2000, 4000, 8000, 16000]; // exponential back-off
+
+// Convert an HTTP(S) server URL to the corresponding WebSocket URL
+function toWsUrl(serverUrl: string): string {
+  try {
+    const parsed = new URL(serverUrl);
+    const wsProtocol = parsed.protocol === "https:" ? "wss:" : "ws:";
+    return `${wsProtocol}//${parsed.host}/ws`;
+  } catch {
+    return DEFAULT_WS_URL;
+  }
+}
 
 interface UseRelaySocketOptions {
   onEvent: (event: RelayEvent) => void;
+  // Optional: connect to a specific relay server instead of the current origin.
+  // Pass an HTTP(S) URL (e.g. "http://localhost:3457") — the hook derives the WS URL.
+  serverUrl?: string;
 }
 
 interface UseRelaySocketResult {
@@ -28,7 +42,10 @@ function isRelayEvent(v: unknown): v is RelayEvent {
   );
 }
 
-export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySocketResult {
+export function useRelaySocket({
+  onEvent,
+  serverUrl,
+}: UseRelaySocketOptions): UseRelaySocketResult {
   const [connected, setConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -41,6 +58,8 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
   const activeRef = useRef(true);
   // connectRef: reference to the connect function, used by retryNow
   const connectRef = useRef<(() => void) | null>(null);
+  // socketRef: tracks the active WebSocket so it can be explicitly closed on cleanup
+  const socketRef = useRef<WebSocket | null>(null);
 
   // Keep the latest onEvent reference to avoid stale closures
   useEffect(() => {
@@ -55,8 +74,16 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
     }
   }, []);
 
+  // Derived WebSocket URL — recalculated whenever serverUrl changes
+  const wsUrl = serverUrl ? toWsUrl(serverUrl) : DEFAULT_WS_URL;
+
   useEffect(() => {
     activeRef.current = true;
+    // Reset reconnect attempt counter when the target server changes
+    attemptRef.current = 0;
+    setAttempt(0);
+    setConnected(false);
+    setReconnecting(false);
 
     function connect() {
       if (!activeRef.current) return;
@@ -65,7 +92,8 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
       clearCountdown();
       setReconnecting(false);
 
-      const socket = new WebSocket(WS_URL);
+      const socket = new WebSocket(wsUrl);
+      socketRef.current = socket;
 
       socket.onopen = () => {
         if (!activeRef.current) {
@@ -137,8 +165,15 @@ export function useRelaySocket({ onEvent }: UseRelaySocketOptions): UseRelaySock
         timerRef.current = null;
       }
       clearCountdown();
+      // Explicitly close the active socket to prevent ghost reconnect after serverUrl change
+      if (socketRef.current !== null) {
+        socketRef.current.close();
+        socketRef.current = null;
+      }
     };
-  }, [clearCountdown]); // Run only once on mount
+    // Re-run when the target WebSocket URL changes (server switch)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearCountdown, wsUrl]);
 
   // Immediately trigger a reconnect attempt, cancelling any pending timer
   const retryNow = useCallback(() => {

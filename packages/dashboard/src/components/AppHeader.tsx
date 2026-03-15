@@ -14,7 +14,7 @@ interface SessionRow {
 
 interface Props {
   connected: boolean;
-  reconnecting?: boolean; // 재연결 대기 중
+  reconnecting?: boolean; // waiting to reconnect
   agentCount: number;
   selectedAgent: AgentId | null;
   onClearFocus: () => void;
@@ -77,16 +77,21 @@ export const AppHeader = memo(function AppHeader({
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const sessionDropdownRef = useRef<HTMLDivElement>(null);
 
+  // Fetch sessions from the active server — uses activeServer as base URL so server switching works
   const fetchSessions = useCallback(() => {
     setSessionsLoading(true);
-    fetch("/api/sessions")
-      .then((r) => r.json())
+    const base = activeServer.replace(/\/$/, "");
+    fetch(`${base}/api/sessions`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data: SessionRow[]) => {
         setSessions(data);
         setSessionsLoading(false);
       })
       .catch(() => setSessionsLoading(false));
-  }, []);
+  }, [activeServer]);
 
   const handleSessionDropdownToggle = useCallback(() => {
     if (!sessionDropdownOpen) fetchSessions();
@@ -590,7 +595,7 @@ export const AppHeader = memo(function AppHeader({
               color: "var(--color-text-disabled)",
               fontFamily: "var(--font-mono)",
               letterSpacing: "0.04em",
-              // 재연결 중이면 깜빡임 애니메이션
+              // blink animation while reconnecting
               animation: reconnecting && !connected ? "blink 1.2s step-end infinite" : "none",
             }}
           >

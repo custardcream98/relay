@@ -89,8 +89,14 @@ async function findAvailablePort(start: number, end: number): Promise<number | n
 async function resolvePort(): Promise<number> {
   // CLI arg takes highest priority
   if (cliArgs.port) return cliArgs.port;
-  // Explicit env var — use it as-is (caller owns the choice)
-  if (process.env.DASHBOARD_PORT) return Number(process.env.DASHBOARD_PORT);
+  // Explicit env var — validate and use it (caller owns the choice)
+  if (process.env.DASHBOARD_PORT) {
+    const p = Number(process.env.DASHBOARD_PORT);
+    if (!Number.isNaN(p) && p > 0) return p;
+    console.error(
+      `[relay] invalid DASHBOARD_PORT "${process.env.DASHBOARD_PORT}" — falling back to auto-select`
+    );
+  }
   // Auto-select from pool
   const found = await findAvailablePort(PORT_AUTO_START, PORT_AUTO_END);
   if (found === null) {
@@ -112,8 +118,13 @@ const dashboardServer = serve({ fetch: app.fetch, port: DASHBOARD_PORT });
 
 dashboardServer.on("error", (err: NodeJS.ErrnoException) => {
   if (err.code === "EADDRINUSE") {
+    // Port is occupied — clear the port so get_server_info reports no dashboard URL
+    // instead of pointing agents at a server that belongs to another instance.
+    setPort(null);
     console.error(
-      `[relay] dashboard port ${DASHBOARD_PORT} already in use — skipping dashboard, MCP server will still start`
+      `[relay] dashboard port ${DASHBOARD_PORT} already in use — dashboard unavailable, MCP server will still start.\n` +
+        `  To fix: set a unique DASHBOARD_PORT for each relay instance in .mcp.json.\n` +
+        `  Example: DASHBOARD_PORT=3457 for a second instance.`
     );
   } else {
     console.error("[relay] dashboard server error:", err);
@@ -128,6 +139,23 @@ dashboardServer.on("listening", () => {
 const wss = new WebSocketServer({ noServer: true });
 
 dashboardServer.on("upgrade", (request, socket, head) => {
+  // Reject WebSocket upgrades from non-localhost origins.
+  // This prevents arbitrary web pages from subscribing to all real-time events.
+  const origin = request.headers.origin;
+  if (origin) {
+    try {
+      const parsedOrigin = new URL(origin);
+      if (parsedOrigin.hostname !== "localhost" && parsedOrigin.hostname !== "127.0.0.1") {
+        socket.destroy();
+        return;
+      }
+    } catch {
+      // Malformed origin header — reject
+      socket.destroy();
+      return;
+    }
+  }
+
   const url = new URL(request.url ?? "/", `http://localhost:${DASHBOARD_PORT}`);
   if (url.pathname === "/ws") {
     wss.handleUpgrade(request, socket, head, (ws) => {
@@ -151,6 +179,7 @@ dashboardServer.on("upgrade", (request, socket, head) => {
         }
         const snapshot = JSON.stringify({
           type: "session:snapshot",
+          sessionId,
           tasks: getAllTasks(db, sessionId),
           messages: getAllMessages(db, sessionId),
           artifacts: getAllArtifacts(db, sessionId),

@@ -35,28 +35,40 @@ export function AgentArena({
   // Pre-compute per-agent task counts and last activity — avoids repeated iteration on each render
   const agentData = useMemo(() => {
     const inProgressByAgent: Record<string, number> = {};
-    // Most recent assigned task title per agent (used as fallback activity text)
-    const lastTaskByAgent: Record<string, string> = {};
+
+    // Track both label and timestamp per agent so the most recent activity wins
+    const lastActivityRaw: Record<string, { label: string; ts: number }> = {};
+
+    const updateActivity = (agentId: string, label: string, ts: number) => {
+      if (!lastActivityRaw[agentId] || ts > lastActivityRaw[agentId].ts) {
+        lastActivityRaw[agentId] = { label, ts };
+      }
+    };
+
+    // Tasks: use updated_at (or created_at) as the activity timestamp
     for (const t of tasks) {
       if (t.assignee) {
         if (t.status === "in_progress" || t.status === "in_review") {
           inProgressByAgent[t.assignee] = (inProgressByAgent[t.assignee] ?? 0) + 1;
         }
-        lastTaskByAgent[t.assignee] = `Task: ${t.title}`;
+        // updated_at / created_at are Unix seconds — convert to ms for uniform comparison
+        const taskTs = (t.updated_at ?? t.created_at ?? 0) * 1000;
+        updateActivity(t.assignee, `Task: ${t.title}`, taskTs);
       }
     }
 
-    const lastMessageByAgent: Record<string, string> = {};
+    // Messages: created_at is Unix seconds — first-seen wins per agent per direction
     for (const m of messages) {
-      if (!lastMessageByAgent[m.from_agent]) lastMessageByAgent[m.from_agent] = m.content;
-      if (m.to_agent && !lastMessageByAgent[m.to_agent]) lastMessageByAgent[m.to_agent] = m.content;
+      const msgTs = m.created_at * 1000;
+      updateActivity(m.from_agent, m.content, msgTs);
+      if (m.to_agent) updateActivity(m.to_agent, m.content, msgTs);
     }
 
-    // Unified activity: prefer last message, fall back to last task assignment
-    const lastActivityByAgent: Record<string, string> = {
-      ...lastTaskByAgent,
-      ...lastMessageByAgent,
-    };
+    // Flatten to label-only map consumed by AgentCard
+    const lastActivityByAgent: Record<string, string> = {};
+    for (const [agentId, { label }] of Object.entries(lastActivityRaw)) {
+      lastActivityByAgent[agentId] = label;
+    }
 
     return { inProgressByAgent, lastActivityByAgent };
   }, [tasks, messages]);

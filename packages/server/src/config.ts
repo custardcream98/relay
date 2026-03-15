@@ -45,10 +45,11 @@ export function getDbPath(): string {
   return join(getRelayDir(), "relay.db");
 }
 
-// Actual dashboard port — set by index.ts after port resolution
+// Actual dashboard port — set by index.ts after port resolution.
+// Set to null when the dashboard failed to bind (e.g. EADDRINUSE).
 let _port: number | null = null;
 
-export function setPort(port: number): void {
+export function setPort(port: number | null): void {
   _port = port;
 }
 
@@ -64,17 +65,17 @@ export function uriToPath(uri: string): string {
   return uri;
 }
 
-// 서버 프로세스당 한 번 생성되는 세션 ID — 모든 모듈이 동일한 ID를 사용하도록 싱글턴으로 관리
+// Session ID singleton — one ID per server process; all modules share the same ID
 let _sessionId: string | null = null;
 
 /**
- * 현재 서버 프로세스의 세션 ID를 반환한다.
+ * Returns the session ID for the current server process.
  * Priority:
- * 1. RELAY_SESSION_ID env var (명시적 설정)
- * 2. 서버 시작 시 자동 생성 (YYYY-MM-DD-HHmmss 형식)
+ * 1. RELAY_SESSION_ID env var (explicit override)
+ * 2. Auto-generated on first call (YYYY-MM-DD-HHmmss format, all UTC)
  *
- * 자동 생성 덕분에 매번 서버를 새로 시작할 때마다 새 세션이 시작되어
- * 대시보드 태스크 보드에 이전 세션 데이터가 섞이지 않는다.
+ * Auto-generation ensures a new session starts on each server restart,
+ * preventing stale data from bleeding into the live dashboard view.
  */
 export function getSessionId(): string {
   if (_sessionId) return _sessionId;
@@ -82,12 +83,13 @@ export function getSessionId(): string {
     _sessionId = process.env.RELAY_SESSION_ID;
     return _sessionId;
   }
-  // YYYY-MM-DD-HHmmss 형식으로 자동 생성
+  // Auto-generate in YYYY-MM-DD-HHmmss format using UTC consistently
+  // (toISOString() returns UTC — use getUTC* for H/M/S to match the UTC date)
   const now = new Date();
   const date = now.toISOString().slice(0, 10);
-  const hh = String(now.getHours()).padStart(2, "0");
-  const mm = String(now.getMinutes()).padStart(2, "0");
-  const ss = String(now.getSeconds()).padStart(2, "0");
+  const hh = String(now.getUTCHours()).padStart(2, "0");
+  const mm = String(now.getUTCMinutes()).padStart(2, "0");
+  const ss = String(now.getUTCSeconds()).padStart(2, "0");
   _sessionId = `${date}-${hh}${mm}${ss}`;
   return _sessionId;
 }

@@ -18,9 +18,10 @@ interface Props {
 
 type Tab = "thoughts" | "messages" | "tasks";
 
-// Status colors — use consistent hex values to allow alpha suffix (e.g. `${COLOR}18`)
+// Status colors — hex values only so that alpha suffix (e.g. `${COLOR}18`) is valid CSS
+// "todo" uses a hardcoded hex instead of a CSS var for the same reason
 const STATUS_COLOR: Record<string, string> = {
-  todo: "var(--color-text-disabled)",
+  todo: "#6b7280",
   in_progress: "#60a5fa",
   in_review: "#fbbf24",
   done: "#818cf8",

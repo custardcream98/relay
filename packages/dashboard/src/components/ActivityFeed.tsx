@@ -32,7 +32,8 @@ const FILTER_DEFS: FilterDef[] = [
   { type: "task:updated", label: "Tasks", icon: "✅", defaultOn: true },
   { type: "artifact:posted", label: "Artifacts", icon: "📦", defaultOn: true },
   { type: "agent:thinking", label: "Thinking", icon: "🧠", defaultOn: true },
-  { type: "review:requested", label: "Review", icon: "🔍", defaultOn: true },
+  { type: "review:requested", label: "Review req.", icon: "🔍", defaultOn: true },
+  { type: "review:updated", label: "Review result", icon: "✔", defaultOn: true },
   { type: "agent:status", label: "Status", icon: "⚡", defaultOn: false },
   { type: "memory:updated", label: "Memory", icon: "💾", defaultOn: false },
 ];
@@ -437,6 +438,65 @@ function ReviewEntry({ entry }: { entry: TimelineEntry }) {
   );
 }
 
+// [F2] Review updated card — outcome of a review (approved/rejected/changes_requested)
+function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
+  if (!entry.agentId) return null;
+  const statusText = entry.description; // e.g. "Review approved: reviewer-id"
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 10,
+        padding: "10px 16px",
+        borderBottom: "1px solid var(--color-border-subtle)",
+        animation: "slide-in-bottom 180ms ease-out both",
+      }}
+    >
+      <AgentAvatar agentId={entry.agentId} size={30} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+          <AgentChip agentId={entry.agentId} />
+          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>
+            submitted review
+          </span>
+          <span
+            className="font-mono"
+            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
+          >
+            {relativeTime(entry.timestamp)}
+          </span>
+        </div>
+        <div
+          style={{
+            padding: "7px 10px",
+            background: "var(--color-surface-raised)",
+            border: "1px solid var(--color-border-default)",
+            borderRadius: 5,
+            fontSize: 12,
+            color: "var(--color-text-secondary)",
+          }}
+        >
+          {statusText}
+          {entry.detail && (
+            <p
+              style={{
+                fontSize: 11,
+                marginTop: 4,
+                marginBottom: 0,
+                color: "var(--color-text-tertiary)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+              }}
+            >
+              {entry.detail}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // [G] End declaration — inline pill (waiting / done / failed)
 function EndDeclarationEntry({
   agentId,
@@ -564,6 +624,8 @@ function EntryRenderer({ entry }: { entry: TimelineEntry }) {
       return <ArtifactEntry entry={entry} />;
     case "review:requested":
       return <ReviewEntry entry={entry} />;
+    case "review:updated":
+      return <ReviewUpdatedEntry entry={entry} />;
     case "team:composed":
       return <TeamComposedEntry entry={entry} />;
     case "agent:status":

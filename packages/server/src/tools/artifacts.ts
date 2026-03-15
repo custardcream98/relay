@@ -12,17 +12,21 @@ export async function handlePostArtifact(
     task_id?: string;
   }
 ) {
-  const id = crypto.randomUUID();
-  insertArtifact(db, {
-    id,
-    session_id: sessionId,
-    name: input.name,
-    type: input.type,
-    content: input.content,
-    created_by: input.agent_id,
-    task_id: input.task_id ?? null,
-  });
-  return { success: true, artifact_id: id };
+  try {
+    const id = crypto.randomUUID();
+    insertArtifact(db, {
+      id,
+      session_id: sessionId,
+      name: input.name,
+      type: input.type,
+      content: input.content,
+      created_by: input.agent_id,
+      task_id: input.task_id ?? null,
+    });
+    return { success: true, artifact_id: id };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 }
 
 export async function handleGetArtifact(
@@ -30,13 +34,17 @@ export async function handleGetArtifact(
   sessionId: string,
   input: { agent_id: string; name: string }
 ) {
-  const artifact = getArtifactByName(db, sessionId, input.name);
-  if (!artifact) {
-    return {
-      success: false,
-      artifact: null,
-      error: "artifact not found",
-    };
+  try {
+    const artifact = getArtifactByName(db, sessionId, input.name);
+    if (!artifact) {
+      return {
+        success: false,
+        artifact: null,
+        error: "artifact not found",
+      };
+    }
+    return { success: true, artifact };
+  } catch (err) {
+    return { success: false, artifact: null, error: String(err) };
   }
-  return { success: true, artifact };
 }

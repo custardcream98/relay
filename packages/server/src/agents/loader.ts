@@ -7,6 +7,35 @@ import yaml from "js-yaml";
 import { getProjectRoot, getRelayDir } from "../config";
 import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
 
+// Complete list of MCP tool names registered by createMcpServer() in mcp.ts.
+// Validated against agent config tools[] to catch typos before runtime.
+export const REGISTERED_MCP_TOOLS = new Set([
+  "get_server_info",
+  "start_session",
+  "send_message",
+  "get_messages",
+  "create_task",
+  "update_task",
+  "get_my_tasks",
+  "claim_task",
+  "get_team_status",
+  "get_all_tasks",
+  "post_artifact",
+  "get_artifact",
+  "request_review",
+  "submit_review",
+  "read_memory",
+  "write_memory",
+  "append_memory",
+  "save_session_summary",
+  "list_sessions",
+  "get_session_summary",
+  "broadcast_thinking",
+  "list_agents",
+  "list_pool_agents",
+  "get_workflow",
+]);
+
 /**
  * Read a YAML file and parse it as AgentsFile.
  * Returns null if the file does not exist.
@@ -28,36 +57,54 @@ export function loadAgents(override: AgentsFile): Record<string, AgentPersona> {
   // Global language setting (fallback when per-agent language is absent)
   const globalLanguage = override.language;
 
-  for (const [id, config] of Object.entries(agents)) {
+  // Two-pass resolution: first resolve base agents, then extends agents.
+  // This makes YAML declaration order irrelevant for extends chains.
+  const entries = Object.entries(agents);
+
+  // Pass 1: resolve agents without extends
+  for (const [id, config] of entries) {
     if (config.disabled) continue;
+    if (config.extends) continue; // handled in pass 2
 
     const language = config.language ?? globalLanguage;
 
-    if (config.extends) {
-      // Extending a disabled or nonexistent agent is an error
-      const base = merged[config.extends];
-      if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
-      merged[id] = {
-        ...base,
-        ...config,
-        id: markAsAgentId(id),
-        extends: undefined,
-        ...(language ? { language } : {}),
-      } as AgentPersona;
-    } else {
-      // Agent without extends must have all required fields
-      const { name, emoji, tools, systemPrompt } = config;
-      if (!name || !emoji || !tools || !systemPrompt) {
-        throw new Error(
-          `agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`
-        );
-      }
-      merged[id] = {
-        id: markAsAgentId(id),
-        ...config,
-        ...(language ? { language } : {}),
-      } as AgentPersona;
+    // Agent without extends must have all required fields
+    const { name, emoji, tools, systemPrompt } = config;
+    if (!name || !emoji || !tools || !systemPrompt) {
+      throw new Error(`agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`);
     }
+    // Validate that all listed tools are registered MCP tools
+    const unknownTools = tools.filter((t) => !REGISTERED_MCP_TOOLS.has(t));
+    if (unknownTools.length > 0) {
+      throw new Error(
+        `agent "${id}" lists unknown tools: ${unknownTools.join(", ")}. ` +
+          `Valid tools: ${[...REGISTERED_MCP_TOOLS].sort().join(", ")}`
+      );
+    }
+    merged[id] = {
+      id: markAsAgentId(id),
+      ...config,
+      ...(language ? { language } : {}),
+    } as AgentPersona;
+  }
+
+  // Pass 2: resolve agents that use extends (base agents are all resolved now)
+  for (const [id, config] of entries) {
+    if (config.disabled) continue;
+    if (!config.extends) continue; // already handled in pass 1
+
+    const language = config.language ?? globalLanguage;
+
+    // Extending a disabled or nonexistent agent is an error
+    const base = merged[config.extends];
+    if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
+    merged[id] = {
+      ...base,
+      ...config,
+      id: markAsAgentId(id),
+      extends: undefined,
+      ...(language ? { language } : {}),
+    } as AgentPersona;
   }
 
   return merged;

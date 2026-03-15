@@ -76,6 +76,36 @@ describe("loadAgents", () => {
     };
     expect(() => loadAgents(custom)).toThrow();
   });
+
+  test("throws when agent tools list contains unknown tool names", () => {
+    const custom: AgentsFile = {
+      agents: {
+        bad_agent: {
+          name: "Bad Agent",
+          emoji: "🚫",
+          tools: ["send_message", "nonexistent_tool", "another_fake_tool"],
+          systemPrompt: "Agent with invalid tools.",
+        },
+      },
+    };
+    expect(() => loadAgents(custom)).toThrow(/unknown tools.*nonexistent_tool.*another_fake_tool/);
+  });
+
+  test("accepts agents with an empty tools list", () => {
+    const custom: AgentsFile = {
+      agents: {
+        quiet_agent: {
+          name: "Quiet Agent",
+          emoji: "🔇",
+          tools: [],
+          systemPrompt: "Agent with no tools.",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.quiet_agent).toBeDefined();
+    expect(result.quiet_agent.tools).toEqual([]);
+  });
 });
 
 describe("language setting", () => {
@@ -303,5 +333,137 @@ describe("workflow loader", () => {
     const workflow = getWorkflow(custom);
     expect(workflow.jobs.research).toBeDefined();
     expect(workflow.jobs.research.description).toBe("Research phase");
+  });
+});
+
+describe("loadPool — no filesystem pool", () => {
+  test("throws a clear error when no pool file is found and no override is provided", () => {
+    // Point RELAY_DIR and RELAY_PROJECT_ROOT to a temp dir with no pool file
+    const original_relay_dir = process.env.RELAY_DIR;
+    const original_project_root = process.env.RELAY_PROJECT_ROOT;
+
+    process.env.RELAY_DIR = "/tmp/relay-qa-test-nonexistent-dir";
+    process.env.RELAY_PROJECT_ROOT = "/tmp/relay-qa-test-nonexistent-dir";
+
+    try {
+      expect(() => loadPool()).toThrow("No agent pool configured");
+    } finally {
+      // Always restore env vars to avoid bleeding into other tests
+      if (original_relay_dir === undefined) {
+        delete process.env.RELAY_DIR;
+      } else {
+        process.env.RELAY_DIR = original_relay_dir;
+      }
+      if (original_project_root === undefined) {
+        delete process.env.RELAY_PROJECT_ROOT;
+      } else {
+        process.env.RELAY_PROJECT_ROOT = original_project_root;
+      }
+    }
+  });
+});
+
+describe("buildSystemPromptWithMemory — memory injection", () => {
+  test("injects project memory when project.md exists", async () => {
+    const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const tmpDir = "/tmp/relay-qa-memory-test";
+    mkdirSync(join(tmpDir, "memory"), { recursive: true });
+    writeFileSync(join(tmpDir, "memory", "project.md"), "Project context here.");
+
+    const persona = {
+      id: markAsAgentId("writer"),
+      name: "Writer",
+      emoji: "✍️",
+      tools: [],
+      systemPrompt: "You are a writer.",
+    };
+
+    const prompt = buildSystemPromptWithMemory(persona, tmpDir);
+    expect(prompt).toContain("Project Memory");
+    expect(prompt).toContain("Project context here.");
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("injects agent-specific memory when agents/{id}.md exists", async () => {
+    const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const tmpDir = "/tmp/relay-qa-agent-memory-test";
+    mkdirSync(join(tmpDir, "memory", "agents"), { recursive: true });
+    writeFileSync(join(tmpDir, "memory", "agents", "analyst.md"), "Analyst personal notes.");
+
+    const persona = {
+      id: markAsAgentId("analyst"),
+      name: "Analyst",
+      emoji: "📊",
+      tools: [],
+      systemPrompt: "You are an analyst.",
+    };
+
+    const prompt = buildSystemPromptWithMemory(persona, tmpDir);
+    expect(prompt).toContain("My Memory");
+    expect(prompt).toContain("Analyst personal notes.");
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("returns only system prompt when no memory files exist", () => {
+    const persona = {
+      id: markAsAgentId("ghost"),
+      name: "Ghost",
+      emoji: "👻",
+      tools: [],
+      systemPrompt: "You are a ghost.",
+    };
+    const prompt = buildSystemPromptWithMemory(persona, "/tmp/relay-qa-no-memory-at-all-xyz");
+    expect(prompt).toBe("You are a ghost.");
+  });
+
+  test("injects lessons.md as team retrospectives section", async () => {
+    const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const tmpDir = "/tmp/relay-qa-lessons-test";
+    mkdirSync(join(tmpDir, "memory"), { recursive: true });
+    writeFileSync(join(tmpDir, "memory", "lessons.md"), "Lesson: always write tests.");
+
+    const persona = {
+      id: markAsAgentId("dev"),
+      name: "Dev",
+      emoji: "💻",
+      tools: [],
+      systemPrompt: "You are a developer.",
+    };
+
+    const prompt = buildSystemPromptWithMemory(persona, tmpDir);
+    expect(prompt).toContain("Team Retrospectives");
+    expect(prompt).toContain("Lesson: always write tests.");
+
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("injects all three memory sources when all files exist", async () => {
+    const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const tmpDir = "/tmp/relay-qa-all-memory-test";
+    mkdirSync(join(tmpDir, "memory", "agents"), { recursive: true });
+    writeFileSync(join(tmpDir, "memory", "project.md"), "Project: relay.");
+    writeFileSync(join(tmpDir, "memory", "lessons.md"), "Lessons learned here.");
+    writeFileSync(join(tmpDir, "memory", "agents", "writer.md"), "Writer personal notes.");
+
+    const persona = {
+      id: markAsAgentId("writer"),
+      name: "Writer",
+      emoji: "✍️",
+      tools: [],
+      systemPrompt: "You are a writer.",
+    };
+
+    const prompt = buildSystemPromptWithMemory(persona, tmpDir);
+    expect(prompt).toContain("Project Memory");
+    expect(prompt).toContain("Team Retrospectives");
+    expect(prompt).toContain("My Memory");
+
+    rmSync(tmpDir, { recursive: true, force: true });
   });
 });

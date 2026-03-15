@@ -1,7 +1,7 @@
 // packages/dashboard/src/hooks/usePanelResize.ts
 // Custom hook encapsulating panel resize state and drag handlers
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const ARENA_DEFAULT_WIDTH = 320;
 const ARENA_MIN_WIDTH = 180;
@@ -16,6 +16,18 @@ export function usePanelResize() {
   const [isDraggingArena, setIsDraggingArena] = useState(false);
   const [timelinePct, setTimelinePct] = useState(TIMELINE_DEFAULT_PCT);
   const activityRef = useRef<HTMLDivElement>(null);
+
+  // Refs to track active drag cleanup functions so they can be called on unmount
+  const hDragCleanupRef = useRef<(() => void) | null>(null);
+  const vDragCleanupRef = useRef<(() => void) | null>(null);
+
+  // Clean up any active drag listeners on unmount
+  useEffect(() => {
+    return () => {
+      hDragCleanupRef.current?.();
+      vDragCleanupRef.current?.();
+    };
+  }, []);
 
   // Horizontal (left-right) drag handler
   const onHDividerMouseDown = useCallback(
@@ -33,9 +45,16 @@ export function usePanelResize() {
         setIsDraggingArena(false);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
+        hDragCleanupRef.current = null;
       };
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
+      // Store cleanup so unmount can remove listeners if drag is in progress
+      hDragCleanupRef.current = () => {
+        setIsDraggingArena(false);
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
     },
     [arenaWidth]
   );
@@ -56,14 +75,24 @@ export function usePanelResize() {
       const onUp = () => {
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
+        vDragCleanupRef.current = null;
       };
       window.addEventListener("mousemove", onMove);
       window.addEventListener("mouseup", onUp);
+      // Store cleanup so unmount can remove listeners if drag is in progress
+      vDragCleanupRef.current = () => {
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
     },
     [timelinePct]
   );
 
   const onToggleCollapse = useCallback(() => setArenaCollapsed((v) => !v), []);
+
+  // Task Board collapse state (bottom-right panel)
+  const [taskBoardCollapsed, setTaskBoardCollapsed] = useState(false);
+  const onToggleTaskBoard = useCallback(() => setTaskBoardCollapsed((v) => !v), []);
 
   return {
     arenaWidth,
@@ -74,5 +103,7 @@ export function usePanelResize() {
     onHDividerMouseDown,
     onVDividerMouseDown,
     onToggleCollapse,
+    taskBoardCollapsed,
+    onToggleTaskBoard,
   };
 }

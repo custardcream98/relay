@@ -2,30 +2,30 @@
 @import "tailwindcss";
 
 :root {
-  /* 배경 — docs 다크 모드와 동일한 웜 잉크 팔레트 */
+  /* Surface — warm ink palette matching docs dark mode */
   --color-surface-root: #0f0d0a;
   --color-surface-base: #181410;
   --color-surface-raised: #1e1a14;
   --color-surface-overlay: #252018;
   --color-surface-inset: #0a0806;
 
-  /* 보더 — 웜 톤, 가시성 확보 */
+  /* Borders — warm tone for sufficient contrast */
   --color-border-subtle: #2e2620;
   --color-border-default: #3d3428;
   --color-border-strong: #544838;
 
-  /* 텍스트 — 강한 대비 */
+  /* Text — high contrast */
   --color-text-primary: #f8f2e8;
   --color-text-secondary: #d0bea4;
   --color-text-tertiary: #9a8a74;
   --color-text-disabled: #6e5e4e;
 
-  /* UI 강조색 — docs와 동일한 앰버/골드 */
+  /* Accent — amber/gold matching docs */
   --color-accent: #e8a83a;
   --color-accent-light: #f5c860;
   --color-accent-glow: rgba(232, 168, 58, 0.12);
 
-  /* 에이전트 역할별 색상 — 기능적 식별용 유지 */
+  /* Per-role agent accent colors — for functional identification */
   --color-accent-pm: #c084fc;
   --color-accent-designer: #f472b6;
   --color-accent-da: #fbbf24;
@@ -34,26 +34,26 @@
   --color-accent-qa: #fb923c;
   --color-accent-deployer: #f97316;
 
-  /* 상태 */
+  /* Status */
   --color-status-working: #34d399;
   --color-status-waiting: #fbbf24;
   --color-status-idle: #2a2318;
 
-  /* 우선순위 */
+  /* Priority */
   --color-priority-critical: #ef4444;
   --color-priority-high: #f97316;
   --color-priority-medium: #eab308;
 
-  /* 연결 상태 */
+  /* Connection state */
   --color-connection-live: #34d399;
   --color-connection-dead: #ef4444;
 
-  /* 폰트 — docs와 동일 */
+  /* Fonts — matching docs */
   --font-sans: "DM Sans", "Noto Sans KR", system-ui, -apple-system, sans-serif;
   --font-mono: "DM Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
   --font-display: "DM Serif Display", Georgia, serif;
 
-  /* 그림자 — 웜 틴트 */
+  /* Shadows — warm tint */
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-border-subtle);
   --shadow-card-hover: 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px var(--color-border-default);
 
@@ -147,7 +147,7 @@ body {
   font-family: var(--font-mono);
 }
 
-/* 커서 깜빡임 — docs nav와 동일 */
+/* Cursor blink — matching docs nav */
 @keyframes blink {
   0%,
   100% {
@@ -158,7 +158,7 @@ body {
   }
 }
 
-/* AgentCard 아바타 링 펄스 — working 상태 */
+/* AgentCard avatar ring pulse — working state */
 @keyframes ring-pulse {
   0%,
   100% {
@@ -195,7 +195,7 @@ body {
   }
 }
 
-/* AgentCard thinking 텍스트 플래시 */
+/* AgentCard thinking text flash */
 @keyframes accent-flash {
   0%,
   100% {

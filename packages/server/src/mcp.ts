@@ -55,13 +55,16 @@ export function createMcpServer(): McpServer {
     },
     async () => {
       const port = getPort();
-      const dashboardUrl = port ? `http://localhost:${port}` : "http://localhost:3456";
+      // When port is null the dashboard failed to bind (EADDRINUSE) — do not fabricate a URL
+      const dashboardUrl = port != null ? `http://localhost:${port}` : null;
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify({
+              success: true,
               dashboardUrl,
+              dashboardAvailable: port != null,
               port,
               sessionId: getSessionId(),
               instanceId: getInstanceId() ?? null,
@@ -107,7 +110,7 @@ export function createMcpServer(): McpServer {
     {
       agent_id: z.string().describe("ID of the sending agent (e.g. pm, fe, be, qa)"),
       to: z.string().nullable().describe("ID of the recipient agent. null for broadcast"),
-      content: z.string().describe("Message content"),
+      content: z.string().max(65536).describe("Message content"),
       thread_id: z.string().optional().describe("Thread ID (optional)"),
     },
     async (input) => {
@@ -279,7 +282,7 @@ export function createMcpServer(): McpServer {
       type: z
         .enum(["figma_spec", "pr", "report", "analytics_plan", "design"])
         .describe("Artifact type"),
-      content: z.string().describe("Artifact content (JSON or Markdown)"),
+      content: z.string().max(524288).describe("Artifact content (JSON or Markdown)"),
       task_id: z.string().optional().describe("Associated task ID"),
     },
     async (input) => {
@@ -352,6 +355,13 @@ export function createMcpServer(): McpServer {
     },
     async (input) => {
       const result = await handleSubmitReview(getDb(), getSessionId(), input);
+      if (result.success && result.review) {
+        broadcast({
+          type: "review:updated",
+          review: result.review,
+          timestamp: Date.now(),
+        });
+      }
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -376,7 +386,7 @@ export function createMcpServer(): McpServer {
     {
       agent_id: z.string().optional().describe("Agent ID. Omit to write to project.md"),
       key: z.string().describe("Memory section key (e.g. conventions, api-patterns)"),
-      content: z.string().describe("Content to store"),
+      content: z.string().max(131072).describe("Content to store"),
     },
     async (input) => {
       const result = await handleWriteMemory(getRelayDir(), input);
@@ -396,7 +406,7 @@ export function createMcpServer(): McpServer {
     "append_memory",
     {
       agent_id: z.string().optional().describe("Agent ID. Omit to append to lessons.md"),
-      content: z.string().describe("Content to append"),
+      content: z.string().max(131072).describe("Content to append"),
     },
     async (input) => {
       const result = await handleAppendMemory(getRelayDir(), input);
@@ -476,9 +486,15 @@ export function createMcpServer(): McpServer {
 
   // Lazy agent cache — populated on first list_agents call, after setProjectRoot() has been set.
   // Loading at createMcpServer() time would use CWD=/tmp (bunx behavior) and always return [].
+  // Session-specific files are written once per /relay:relay run and never mutate; no TTL needed.
   // Key: session_id string, or "__default__" for the no-session-id case.
   const agentsCache = new Map<string, Record<string, AgentPersona>>();
+
+  // Pool cache with TTL — pool file can change between sessions (e.g. during development).
+  // Stale-after-5-minutes ensures users see the updated pool without restarting the server.
+  const POOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   let pool: Record<string, AgentPersona> | null = null;
+  let poolCachedAt = 0;
 
   function getAgents(sessionId?: string): Record<string, AgentPersona> {
     // Validate sessionId to prevent path traversal and cache key poisoning
@@ -522,14 +538,18 @@ export function createMcpServer(): McpServer {
   }
 
   function getPool(): Record<string, AgentPersona> {
-    if (pool === null) {
-      try {
-        pool = loadPool();
-      } catch (err) {
-        // Pool not configured or failed to load — fall back to empty for graceful degradation
-        console.error("[relay] pool load failed:", (err as Error).message);
-        pool = {};
-      }
+    const now = Date.now();
+    if (pool !== null && now - poolCachedAt < POOL_CACHE_TTL_MS) {
+      return pool;
+    }
+    try {
+      pool = loadPool();
+      poolCachedAt = now;
+    } catch (err) {
+      // Pool not configured or failed to load — fall back to empty for graceful degradation
+      console.error("[relay] pool load failed:", (err as Error).message);
+      // Return stale cache if available, otherwise empty
+      if (pool === null) pool = {};
     }
     return pool;
   }
@@ -550,8 +570,9 @@ export function createMcpServer(): McpServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              Object.values(getAgents(input.session_id)).map((a) => ({
+            text: JSON.stringify({
+              success: true,
+              agents: Object.values(getAgents(input.session_id)).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,
@@ -561,8 +582,8 @@ export function createMcpServer(): McpServer {
                 systemPrompt: a.language
                   ? `${a.systemPrompt}\n\n## Language\n\nYou MUST respond in ${a.language} at all times.`
                   : a.systemPrompt,
-              }))
-            ),
+              })),
+            }),
           },
         ],
       };
@@ -580,8 +601,9 @@ export function createMcpServer(): McpServer {
         content: [
           {
             type: "text",
-            text: JSON.stringify(
-              Object.values(getPool()).map((a) => ({
+            text: JSON.stringify({
+              success: true,
+              agents: Object.values(getPool()).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,
@@ -589,8 +611,8 @@ export function createMcpServer(): McpServer {
                 tags: a.tags,
                 tools: a.tools,
                 // systemPrompt intentionally omitted — pool metadata only
-              }))
-            ),
+              })),
+            }),
           },
         ],
       };
@@ -620,7 +642,7 @@ export function createMcpServer(): McpServer {
       }
       const workflow = getWorkflow(poolFile ?? { agents: {} });
       return {
-        content: [{ type: "text", text: JSON.stringify(workflow) }],
+        content: [{ type: "text", text: JSON.stringify({ success: true, workflow }) }],
       };
     }
   );

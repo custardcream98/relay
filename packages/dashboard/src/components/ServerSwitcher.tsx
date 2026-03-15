@@ -35,9 +35,20 @@ function StatusDot({ status }: { status: ServerEntry["status"] }) {
   );
 }
 
+// Only localhost and 127.0.0.1 are permitted to prevent SSRF via the Add Server input.
+function isLocalhostUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
 export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props) {
   const [open, setOpen] = useState(false);
   const [addInput, setAddInput] = useState("");
+  const [addError, setAddError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click or Escape
@@ -151,7 +162,10 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
               aria-selected={server.isActive}
               onClick={() => {
                 if (!server.isActive) {
-                  onSwitch(server.url);
+                  // Validate stored URLs on switch as a defense-in-depth measure
+                  if (isLocalhostUrl(server.url)) {
+                    onSwitch(server.url);
+                  }
                 }
                 setOpen(false);
               }}
@@ -204,7 +218,13 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                   flexShrink: 0,
                 }}
               >
-                {new URL(server.url).port || "80"}
+                {(() => {
+                  try {
+                    return new URL(server.url).port || "80";
+                  } catch {
+                    return "?";
+                  }
+                })()}
               </span>
               {server.isActive && (
                 <span
@@ -249,18 +269,39 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
             >
               Add server
             </div>
+            {addError && (
+              <div
+                style={{
+                  fontSize: 10,
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--color-server-dead, #f87171)",
+                  marginBottom: 4,
+                }}
+                role="alert"
+              >
+                {addError}
+              </div>
+            )}
             <div style={{ display: "flex", gap: 6 }}>
               <input
                 type="text"
                 value={addInput}
-                onChange={(e) => setAddInput(e.target.value)}
+                onChange={(e) => {
+                  setAddInput(e.target.value);
+                  setAddError(null);
+                }}
                 placeholder="localhost:3457"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && addInput.trim()) {
                     const raw = addInput.trim();
                     const url = raw.startsWith("http") ? raw : `http://${raw}`;
+                    if (!isLocalhostUrl(url)) {
+                      setAddError("Only localhost or 127.0.0.1 is allowed.");
+                      return;
+                    }
                     onAdd(url);
                     setAddInput("");
+                    setAddError(null);
                     setOpen(false);
                   }
                 }}
@@ -268,7 +309,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                   flex: 1,
                   padding: "4px 8px",
                   borderRadius: 4,
-                  border: "1px solid var(--color-border-subtle)",
+                  border: `1px solid ${addError ? "var(--color-server-dead, #f87171)" : "var(--color-border-subtle)"}`,
                   background: "var(--color-surface-overlay)",
                   color: "var(--color-text-primary)",
                   fontFamily: "var(--font-mono)",
@@ -282,8 +323,13 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                   if (addInput.trim()) {
                     const raw = addInput.trim();
                     const url = raw.startsWith("http") ? raw : `http://${raw}`;
+                    if (!isLocalhostUrl(url)) {
+                      setAddError("Only localhost or 127.0.0.1 is allowed.");
+                      return;
+                    }
                     onAdd(url);
                     setAddInput("");
+                    setAddError(null);
                     setOpen(false);
                   }
                 }}

@@ -9,8 +9,16 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 ## Execution
 
 1. Call `list_agents` to see the available agents.
-2. Call `get_server_info` to get the actual dashboard URL (port is auto-selected from 3456–3465).
-   - Tell the user: "Dashboard: {dashboardUrl}"
+2. In parallel, call `get_server_info` and `list_sessions` to get the dashboard URL and compute a new session ID.
+   - **Compute session ID** (same pattern as `/relay:relay`):
+     - Today's date prefix: `YYYY-MM-DD`.
+     - If `instanceId` is non-null (from `get_server_info`), filter sessions starting with `{instanceId}-YYYY-MM-DD-`; else filter for `YYYY-MM-DD-`.
+     - For each match, parse the segment at index 3 as an integer (the NNN counter).
+     - Next NNN = max of all parsed counters + 1, or 1 if none match today.
+     - Format: `YYYY-MM-DD-NNN-XXXX` (XXXX = 4 random hex digits). Prefix with `{instanceId}-` if set.
+   - Call `start_session(agent_id: "orchestrator", session_id: "{composedId}")`.
+     This clears the live dashboard and scopes all subsequent MCP tool calls to the new session.
+   - Tell the user: "Session: {session_id} | Dashboard: {dashboardUrl}"
 3. Load the specified agent's persona + memory.
 4. Spawn that agent alone.
    - Restrict tools to those listed in the agent's `tools` array from `list_agents`.

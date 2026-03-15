@@ -11,15 +11,7 @@ import { TaskBoard } from "./components/TaskBoard";
 import { usePanelResize } from "./hooks/usePanelResize";
 import { useRelaySocket } from "./hooks/useRelaySocket";
 import { useTheme } from "./hooks/useTheme";
-import type {
-  AgentMeta,
-  DashboardEvent,
-  Message,
-  ServerEntry,
-  Task,
-  TeamComposedEvent,
-  TimelineEntry,
-} from "./types";
+import type { AgentMeta, DashboardEvent, Message, ServerEntry, Task, TimelineEntry } from "./types";
 
 // Snapshot response from GET /api/sessions/:id/snapshot
 interface SessionSnapshotData {
@@ -42,6 +34,8 @@ interface DashboardState {
   instancePort: number | undefined;
   // Session team — from team:composed or session:snapshot
   sessionTeam: AgentMeta[];
+  // The session ID of the live session currently shown (from session:snapshot or session:started)
+  liveSessionId: string | null;
   // Session switcher — null = live current session, string = viewing historical session
   viewingSessionId: string | null;
   // Live state backup — saved when switching to historical session, restored on Back to Live
@@ -65,15 +59,11 @@ const initialState: DashboardState = {
   instanceId: undefined,
   instancePort: undefined,
   sessionTeam: [],
+  liveSessionId: null,
   viewingSessionId: null,
   _liveSnapshot: null,
   _seq: 0,
 };
-
-// Type guard: check if an event is team:composed
-function isTeamComposedEvent(event: DashboardEvent): event is TeamComposedEvent {
-  return event.type === "team:composed";
-}
 
 // Convert RelayEvent to TimelineEntry
 function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry | null {
@@ -120,6 +110,15 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
         description: `Review requested from ${event.review.reviewer}`,
         timestamp: event.timestamp,
       };
+    case "review:updated":
+      return {
+        id,
+        type: event.type,
+        agentId: event.review.reviewer,
+        description: `Review ${event.review.status.replaceAll("_", " ")}: ${event.review.reviewer}`,
+        detail: event.review.comments ?? undefined,
+        timestamp: event.timestamp,
+      };
     case "agent:status":
       return {
         id,
@@ -139,9 +138,9 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
     case "team:composed":
       return {
         id,
-        type: "team:composed",
+        type: "team:composed" as const,
         agentId: null,
-        description: `Team composed: ${event.agents.map((a: { name: string }) => a.name).join(", ")}`,
+        description: `Team composed: ${event.agents.map((a) => a.name).join(", ")}`,
         timestamp: event.timestamp,
       };
     default:
@@ -189,20 +188,17 @@ function reducer(state: DashboardState, action: Action): DashboardState {
         baseUpdates.timeline = newTimeline;
       }
 
-      // Handle team:composed before the switch so TypeScript narrows correctly
-      if (isTeamComposedEvent(event)) {
-        return {
-          ...state,
-          ...baseUpdates,
-          sessionTeam: event.agents.map((a) => ({
-            id: a.id as AgentId,
-            name: a.name,
-            emoji: a.emoji,
-          })),
-        };
-      }
-
       switch (event.type) {
+        case "team:composed":
+          return {
+            ...state,
+            ...baseUpdates,
+            sessionTeam: event.agents.map((a) => ({
+              id: a.id as AgentId,
+              name: a.name,
+              emoji: a.emoji,
+            })),
+          };
         case "session:snapshot": {
           // Snapshot payload is now fully typed — no casting needed
           const snapshotMessages: Message[] = event.messages;
@@ -253,6 +249,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             instanceId: event.instanceId ?? state.instanceId,
             instancePort: event.port ?? state.instancePort,
             sessionTeam: teamFromSnapshot,
+            liveSessionId: event.sessionId,
           };
         }
         case "agent:status":
@@ -302,6 +299,9 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               : [...state.tasks, incomingTask];
           return { ...state, ...baseUpdates, tasks };
         }
+        case "review:updated":
+          // Timeline entry is already added via eventToTimelineEntry — no state mutation needed beyond that
+          return { ...state, ...baseUpdates };
         case "session:started":
           // A new relay session started — clear all live state so the dashboard shows a fresh run
           return {
@@ -313,6 +313,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             selectedAgent: null,
             timeline: [],
             sessionTeam: [],
+            liveSessionId: event.sessionId,
             viewingSessionId: null,
             _liveSnapshot: null,
           };
@@ -451,11 +452,19 @@ function PanelHeader({ label, badge }: { label: string; badge?: number | string 
 
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState);
+
+  // Active relay server URL — must be declared before useRelaySocket so the hook gets the URL
+  const [activeServer, setActiveServer] = useState<string>(
+    `${window.location.protocol}//${window.location.host}`
+  );
+
   const handleEvent = useCallback((event: RelayEvent) => {
     dispatch({ type: "EVENT", event: event as DashboardEvent });
   }, []);
   const { connected, reconnecting, attempt, nextRetryIn, retryNow } = useRelaySocket({
     onEvent: handleEvent,
+    // Pass the active server URL so the hook reconnects when the user switches servers
+    serverUrl: activeServer,
   });
   const {
     tasks,
@@ -471,19 +480,24 @@ export default function App() {
   } = state;
 
   // Session switcher — load a historical session snapshot
-  const handleSelectSession = useCallback((sessionId: string) => {
-    fetch(`/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<SessionSnapshotData>;
-      })
-      .then((snapshot) => {
-        dispatch({ type: "SET_SESSION_SNAPSHOT", snapshot });
-      })
-      .catch(() => {
-        // Silently ignore fetch errors
-      });
-  }, []);
+  // Uses activeServer as base URL so switching servers works correctly
+  const handleSelectSession = useCallback(
+    (sessionId: string) => {
+      const base = activeServer.replace(/\/$/, "");
+      fetch(`${base}/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
+        .then((r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json() as Promise<SessionSnapshotData>;
+        })
+        .then((snapshot) => {
+          dispatch({ type: "SET_SESSION_SNAPSHOT", snapshot });
+        })
+        .catch(() => {
+          // Silently ignore fetch errors
+        });
+    },
+    [activeServer]
+  );
 
   // Back to Live — restore live state and resume WebSocket updates
   const handleBackToLive = useCallback(() => {
@@ -499,8 +513,12 @@ export default function App() {
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState(false);
 
+  // Re-fetch agent list when the active server changes
   useEffect(() => {
-    fetch("/api/agents")
+    setAgentsLoading(true);
+    setAgentsError(false);
+    const base = activeServer.replace(/\/$/, "");
+    fetch(`${base}/api/agents`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -513,14 +531,14 @@ export default function App() {
         setAgentsError(true);
         setAgentsLoading(false);
       });
-  }, []);
+  }, [activeServer]);
 
   // Fetch server list — BE will add GET /api/servers; graceful fallback to empty array
   const [servers, setServers] = useState<ServerEntry[]>([]);
-  const currentServerUrl = `${window.location.protocol}//${window.location.host}`;
 
   useEffect(() => {
-    fetch("/api/servers")
+    const base = activeServer.replace(/\/$/, "");
+    fetch(`${base}/api/servers`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ServerEntry[]>;
@@ -530,13 +548,21 @@ export default function App() {
         // Graceful: /api/servers not yet available — single-server mode, no switcher shown
         setServers([]);
       });
-  }, []);
+  }, [activeServer]);
 
-  // Handle server switch — clear state and reconnect (future: pass new URL to useRelaySocket)
-  const handleSwitchServer = useCallback((_url: string) => {
-    // TODO: reconnect WebSocket to new server when useRelaySocket supports dynamic URLs
-    // For now this is a no-op placeholder; ServerSwitcher renders null for single server
-  }, []);
+  // Switch active relay server: reconnects the WebSocket and clears stale state
+  const handleSwitchServer = useCallback(
+    (url: string) => {
+      // No-op when already connected to the same server
+      if (url === activeServer) return;
+      setActiveServer(url);
+      // Update isActive flags in the server list to reflect the new selection
+      setServers((prev) => prev.map((s) => ({ ...s, isActive: s.url === url })));
+      // Clear stale session data from the previous server
+      dispatch({ type: "CLEAR_SESSION_SNAPSHOT" });
+    },
+    [activeServer]
+  );
 
   const handleAddServer = useCallback((url: string) => {
     setServers((prev) => [...prev, { url, label: url, status: "connecting", isActive: false }]);
@@ -552,6 +578,8 @@ export default function App() {
     onHDividerMouseDown,
     onVDividerMouseDown,
     onToggleCollapse,
+    taskBoardCollapsed,
+    onToggleTaskBoard,
   } = usePanelResize();
 
   const { theme, toggleTheme } = useTheme();
@@ -571,7 +599,7 @@ export default function App() {
         instancePort={instancePort}
         sessionTeam={sessionTeam}
         servers={servers}
-        activeServer={currentServerUrl}
+        activeServer={activeServer}
         onSwitchServer={handleSwitchServer}
         onAddServer={handleAddServer}
         viewingSessionId={viewingSessionId}
@@ -712,7 +740,15 @@ export default function App() {
           <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
 
           {/* Bottom: TaskBoard/MessageFeed tabs, or AgentDetailPanel in focus mode */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div
+            style={{
+              // When task board is collapsed (and not in focus mode), shrink to fit the rail
+              flex: !isFocusMode && taskBoardCollapsed ? "0 0 auto" : "1 1 0",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+            }}
+          >
             {isFocusMode ? (
               // Focus mode: AgentDetailPanel takes the full bottom area
               <>
@@ -727,10 +763,126 @@ export default function App() {
                   />
                 </div>
               </>
+            ) : taskBoardCollapsed ? (
+              // Collapsed task board: thin horizontal rail with expand button
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  height: 28,
+                  flexShrink: 0,
+                  paddingLeft: 8,
+                  borderTop: "1px solid var(--color-border-subtle)",
+                  background: "var(--color-surface-base)",
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={onToggleTaskBoard}
+                  title="Expand Task Board"
+                  style={{
+                    width: 20,
+                    height: 20,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: 4,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "var(--color-text-disabled)",
+                    fontSize: 12,
+                    flexShrink: 0,
+                  }}
+                >
+                  ^
+                </button>
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 500,
+                    color: "var(--color-text-tertiary)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.07em",
+                  }}
+                >
+                  Task Board
+                </span>
+                <span
+                  className="font-mono"
+                  style={{
+                    fontSize: 11,
+                    background: "var(--color-surface-overlay)",
+                    color: "var(--color-text-secondary)",
+                    padding: "1px 6px",
+                    borderRadius: 9999,
+                  }}
+                >
+                  {tasks.length}
+                </span>
+              </div>
             ) : (
               // Normal mode: Task Board (messages are in ActivityFeed above)
               <>
-                <PanelHeader label="Task Board" badge={tasks.length} />
+                <div
+                  className="flex items-center justify-between shrink-0"
+                  style={{
+                    height: 36,
+                    borderBottom: "1px solid var(--color-border-subtle)",
+                    background: "var(--color-surface-base)",
+                    paddingLeft: 16,
+                    paddingRight: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: "var(--color-text-tertiary)",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.07em",
+                      }}
+                    >
+                      Task Board
+                    </span>
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 11,
+                        background: "var(--color-surface-overlay)",
+                        color: "var(--color-text-secondary)",
+                        padding: "1px 6px",
+                        borderRadius: 9999,
+                      }}
+                    >
+                      {tasks.length}
+                    </span>
+                  </div>
+                  {/* Collapse button */}
+                  <button
+                    type="button"
+                    onClick={onToggleTaskBoard}
+                    title="Collapse Task Board"
+                    style={{
+                      width: 20,
+                      height: 20,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 4,
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: "var(--color-text-disabled)",
+                      fontSize: 12,
+                      flexShrink: 0,
+                    }}
+                  >
+                    v
+                  </button>
+                </div>
                 <div className="flex-1 overflow-hidden">
                   <TaskBoard tasks={tasks} />
                 </div>

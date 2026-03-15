@@ -36,7 +36,7 @@ export interface AgentMeta {
 // Timeline entry for the EventTimeline display component
 export interface TimelineEntry {
   id: string;
-  type: RelayEvent["type"] | "team:composed";
+  type: RelayEvent["type"];
   agentId: string | null;
   description: string;
   detail?: string;
@@ -61,12 +61,6 @@ export interface ServerEntry {
   isActive: boolean;
 }
 
-// team:composed WS event (extended beyond shared package until BE ships it)
-export interface TeamComposedEvent {
-  type: "team:composed";
-  agents: Array<{ id: string; name: string; emoji: string }>;
-  timestamp: number;
-}
-
-// Extended event union that includes dashboard-only events
-export type DashboardEvent = RelayEvent | TeamComposedEvent;
+// team:composed is now part of RelayEvent in @custardcream/relay-shared
+// DashboardEvent is an alias kept for clarity
+export type DashboardEvent = RelayEvent;

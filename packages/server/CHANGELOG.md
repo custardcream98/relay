@@ -1,5 +1,68 @@
 # @custardcream/relay
 
+## 0.10.0
+
+### Minor Changes
+
+- feat: dashboard improvements, security hardening, and orchestrator robustness
+
+  ## Dashboard
+
+  - Task Board collapsible panel (toggle button, same as left AgentArena panel)
+  - Session switcher: load any historical session snapshot from the header
+  - Dark/light mode toggle
+  - ActivityFeed: unified chat-style event feed replacing EventTimeline
+  - AgentArena: fixed lastActivity bug (most-recent-wins across tasks and messages)
+  - ServerSwitcher: WebSocket reconnects on server URL change; SSRF-safe URL validation
+  - Removed dead files: EventTimeline.tsx, MessageFeed.tsx
+
+  ## Bug Fixes
+
+  - Port conflict: `EADDRINUSE` now clears the port so `get_server_info` returns `dashboardUrl: null` + `dashboardAvailable: false` instead of pointing agents at the wrong instance's dashboard
+  - `session:snapshot` WebSocket event now includes `sessionId` for multi-server disambiguation
+  - `shared/index.ts`: `task:updated` and `session:snapshot` task types now include `created_at`/`updated_at` fields
+  - `useRelaySocket`: socket properly closed on `serverUrl` change (ghost-socket leak fixed)
+  - `review:updated` event now broadcast on `submit_review` and handled in dashboard reducer
+  - API fetches correctly use `activeServer`-prefixed URLs (no more hardcoded relative paths)
+
+  ## Security
+
+  - CORS middleware on all Hono routes (localhost-only)
+  - WebSocket origin validation (`socket.destroy()` for non-localhost origins)
+  - Content length limits: `send_message` 64KB, `post_artifact` 512KB, memory writes 128KB
+  - ServerSwitcher SSRF: `isLocalhostUrl()` validation before connecting
+
+  ## MCP / Server
+
+  - `get_server_info` returns `dashboardAvailable: boolean`
+  - `broadcast_thinking` added to pool agent tool lists (be, fe, qa, designer, etc.)
+  - `try/catch` added to all MCP tool handlers (was missing system-wide)
+  - UTC consistency fix in session ID generation (`getUTCHours` instead of `getHours`)
+  - `loader.ts`: two-pass extends resolution bug fixed; per-agent language support
+
+  ## Skills
+
+  - `/relay:relay`: orchestrator now detects question-type `end:waiting` (e.g. "should I proceed?") and re-spawns immediately with a "yes, proceed" answer — prevents agents silently dropping without completing their work
+  - `/relay:relay`: agents that complete without broadcasting `end:` are treated as implicit `end:waiting` and re-spawned with a nudge
+  - `/relay:agent`: now calls `start_session` before spawning (fixes stale session ID scoping)
+
+  ## Tests
+
+  - 76 → 129 tests (+53): hono.test.ts (new, 14 tests), sessions.test.ts (+7), review.test.ts (+4), loader.test.ts (+3), config.test.ts (+18), websocket.test.ts (new), sessions isolation tests (+11)
+
+### Patch Changes
+
+- fix: /relay:agent now calls start_session before spawning the agent
+
+  Previously, `/relay:agent` did not call `start_session`, causing all MCP tool
+  calls from the spawned agent to be scoped to the previous `/relay:relay`
+  session's ID. This made the dashboard show stale data from the last full-team
+  session instead of starting fresh.
+
+  Now `/relay:agent` computes a new session ID (same YYYY-MM-DD-NNN-XXXX format
+  as `/relay:relay`) and calls `start_session` before spawning the agent, which
+  clears the dashboard and scopes all MCP data to the new session.
+
 ## 0.9.0
 
 ### Minor Changes

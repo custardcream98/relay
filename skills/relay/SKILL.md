@@ -158,12 +158,16 @@ If no clear coordinator exists, prepend the task to the first agent alphabetical
 
 ### Step 3: Collect first-round declarations
 
-After all agents complete their first run, collect their `end:` messages from broadcasts.
+After all agent spawns return, **immediately** call `get_messages(agent_id: "orchestrator")`.
 
-Each agent broadcasts one of:
-- `end:waiting | {reason}` — no current work, but session continues
-- `end:_done | {summary}` — fully done
-- `end:failed | {reason}` — unrecoverable error → abort workflow, report to user
+For each base agent, determine their state:
+- Message starts with `end:waiting` → add to `dormant_agents` with reason
+- Message starts with `end:_done` → add to `done_agents` with summary
+- Message starts with `end:failed` → report failure to user
+- **No `end:` message found** → treat as implicitly `end:waiting | no declaration` (the agent
+  completed its Agent call without broadcasting — assume it needs a follow-up)
+
+Then immediately enter the Main Event Loop below.
 
 ## Main Event Loop
 
@@ -176,13 +180,43 @@ agent_last_seen = {}       # agentId → last message ID seen at their last spaw
 
 while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
-  # 1. Check if any dormant agent has new todo tasks
+  # 1. Re-spawn dormant agents that have actionable conditions
   all_tasks = get_all_tasks(agent_id: "orchestrator")
-  for each dormant_agent in dormant_agents:
+  for each dormant_agent, reason in dormant_agents.items():
+
+    # 1a. New todo tasks assigned to this agent
     my_tasks = [t for t in all_tasks if t.assignee == dormant_agent AND t.status == 'todo']
     if my_tasks:
       re-spawn dormant_agent (see Re-spawn Pattern)
       remove dormant_agent from dormant_agents
+      continue
+
+    # 1b. Agent is waiting on a question or ambiguity — re-spawn immediately with "proceed" answer
+    # Heuristics for question-type waits (apply ANY):
+    # - reason contains "?" (explicit question mark)
+    # - reason contains words like "proceed", "confirm", "should", "approve", "진행", "확인", "수정"
+    # - reason is very short (< 20 chars) and not a well-known wait reason like "waiting for review"
+    is_question_wait = ("?" in reason
+                        OR any(kw in reason.lower() for kw in
+                               ["proceed", "confirm", "should", "approve", "진행", "확인", "수정"])
+                        OR (len(reason) < 20 AND "review" not in reason.lower()
+                                             AND "team" not in reason.lower()))
+    if is_question_wait:
+      re-spawn dormant_agent with context:
+        "Your previous run ended with: '{reason}'.
+         Yes — proceed with the implementation. Do not ask for further confirmation.
+         Check get_messages() for full context, then complete your work."
+      remove dormant_agent from dormant_agents
+      continue
+
+    # 1c. Agent declared no end: at all (implicit waiting) — re-spawn with a nudge
+    if reason == "no declaration":
+      re-spawn dormant_agent with context:
+        "Your previous run ended without an end: declaration.
+         Check get_messages() and get_my_tasks() for context.
+         Complete any remaining work, then declare end:waiting or end:_done."
+      remove dormant_agent from dormant_agents
+      continue
 
   # 2. Process new broadcast messages
   all_messages = get_messages(agent_id: "orchestrator")  # broadcasts + messages to "orchestrator"

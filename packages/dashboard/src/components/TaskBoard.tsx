@@ -121,7 +121,7 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
                       opacity: isDone ? 0.45 : 1,
                       transition: "background 100ms, border-color 100ms, box-shadow 100ms",
                       cursor: "default",
-                      // 카드가 flex 컨테이너에서 납작해지지 않도록
+                      // prevent card from being flattened in flex container
                       flexShrink: 0,
                     }}
                     onMouseEnter={(e) => {

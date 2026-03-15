@@ -42,6 +42,9 @@ export type RelayEvent =
         status: string;
         priority: string;
         description: string | null;
+        // Unix seconds — present in DB snapshot responses
+        created_at?: number;
+        updated_at?: number;
       };
       timestamp: number;
     }
@@ -61,7 +64,19 @@ export type RelayEvent =
       timestamp: number;
     }
   | {
+      type: "review:updated";
+      review: {
+        id: string;
+        status: "approved" | "changes_requested";
+        reviewer: string;
+        comments: string | null;
+      };
+      timestamp: number;
+    }
+  | {
       type: "session:snapshot";
+      /** Session ID this snapshot belongs to — for multi-server/reconnect disambiguation */
+      sessionId: string;
       tasks: Array<{
         id: string;
         title: string;
@@ -69,6 +84,9 @@ export type RelayEvent =
         status: string;
         priority: string;
         description: string | null;
+        // Unix seconds — present in DB snapshot responses
+        created_at?: number;
+        updated_at?: number;
       }>;
       messages: Array<{
         id: string;
@@ -96,5 +114,10 @@ export type RelayEvent =
   | {
       type: "session:started";
       sessionId: string;
+      timestamp: number;
+    }
+  | {
+      type: "team:composed";
+      agents: Array<{ id: string; name: string; emoji: string }>;
       timestamp: number;
     };

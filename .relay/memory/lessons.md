@@ -252,3 +252,137 @@ _2026-03-14_
 - QA proactively finding bugs during initial pass (before fe PRs) saved a re-spawn cycle
 - Session-agents file uses a logical session ID (2026-03-14-008) while server uses auto-generated session ID — task updates must use the server's session ID, not the logical one
 
+
+---
+_2026-03-14_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-001: Sprint A — Dashboard Bug Fixes
+
+**Team**: pm, be, fe, fe2, qa
+
+**Accomplishments:**
+- BE: Added `review:updated` to RelayEvent union (packages/shared/index.ts); `submit_review` in mcp.ts now broadcasts the event with full review payload; added integration test via DB assertion pattern (no mock/spy needed — broadcast writes to events table)
+- FE: Fixed `lastActivityByAgent` in AgentArena.tsx — now uses `updateActivity(agentId, label, ts)` helper comparing Unix-ms timestamps across both tasks and messages; most-recent-wins per agent; "No activity yet" only for genuinely inactive agents
+- FE: Added `review:updated` case to App.tsx reducer (timeline entry + baseUpdates)
+- FE2: Implemented ServerSwitcher WebSocket reconnection — `useRelaySocket` now accepts `serverUrl?: string`; `toWsUrl()` helper converts HTTP→WS URL; effect re-runs on URL change; `handleSwitchServer` in App.tsx updates `activeServer` state, clears snapshot, guards same-server no-op
+- FE2: Fixed TDZ bug — `activeServer` useState moved above `useRelaySocket` call in App.tsx
+- BE: Added review:updated broadcast test (83 tests total)
+- Tests: 83/83 pass, dashboard build 0 errors
+
+**Lessons:**
+- QA found TDZ bug (activeServer declared after useRelaySocket usage) that fe2 had introduced — good catch. Pattern: always declare useState hooks used by other hooks BEFORE those hook calls.
+- DB-assertion pattern for broadcast testing (getEventsBySession as oracle) works cleanly without mocks — reuse this pattern for future broadcast tests
+- /relay:agent skill was fixed this session to call start_session — previously agent MCP tool calls were scoped to the previous session's ID
+
+
+---
+_2026-03-14_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-002: Comprehensive Code Review + Security Hardening
+
+**Team**: pm, be, fe, security-reviewer, mcp-architect, qa
+
+**Accomplishments:**
+
+**BE (6 bugs fixed):**
+- config.ts: UTC inconsistency in session ID generation (getHours → getUTCHours)
+- tools/review.ts, tasks.ts, messaging.ts, artifacts.ts: all lacked try/catch — added structured error returns to all handlers
+- hono.ts /api/session: unguarded DB failure now returns JSON error
+
+**FE (5 bugs fixed + cleanup):**
+- useRelaySocket.ts: socket not closed on serverUrl change → added socketRef + cleanup
+- ActivityFeed.tsx: review:updated event silently dropped (no case) → added ReviewUpdatedEntry + filter
+- App.tsx + AppHeader.tsx: API fetches used hardcoded relative URLs, ignored activeServer → fixed all to use activeServer-prefixed absolute URLs
+- ServerSwitcher.tsx: URL parse crash → try/catch fallback
+- Deleted dead files: EventTimeline.tsx, MessageFeed.tsx (orphaned, never imported)
+
+**Security (4 fixes):**
+- H1 CRITICAL: CORS middleware added to Hono (localhost-only)
+- H2 HIGH: WebSocket origin validation (socket.destroy() for non-localhost)
+- H3 HIGH: ServerSwitcher SSRF — isLocalhostUrl() validation + inline error UI
+- M1 MEDIUM: Content length limits on Zod schemas (send_message 64KB, post_artifact 512KB, memory 128KB)
+
+**MCP Architect (5 fixes + findings):**
+- agent:thinking excluded from DB persistence
+- get_server_info, list_agents, list_pool_agents, get_workflow: added success: true envelope
+- loader.ts: extends two-pass resolution bug fixed
+- Remaining low-priority: session:snapshot not emitted via WS, team:composed missing from RelayEvent, tools array not validated
+
+**QA (test coverage):**
+- 83 → 111 tests (+28): hono.test.ts (14), sessions.test.ts (+7), review.test.ts (+4), loader.test.ts (+3)
+
+**PM (direct fixes):**
+- Korean comments in production code translated to English
+
+**Final: 111/111 tests pass, build 0 errors**
+
+**Lessons:**
+- Missing try/catch was systemic across all tool handlers — good pattern to enforce in code review
+- API fetches that ignore activeServer are a common bug when adding multi-server support; always grep for hardcoded relative URLs after such features
+- security-reviewer + be two-pass pattern (audit then fix) continues to work well
+- Dead file detection: always check for orphaned imports after component reorganization
+
+
+---
+_2026-03-14_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-003-c4d8: Follow-up Review Pass
+
+**Team**: pm, be, fe, qa
+
+**Accomplishments:**
+
+**BE:**
+- `team:composed` added to RelayEvent union in packages/shared/index.ts; local `TeamComposedEvent` workaround removed from dashboard/src/types.ts; App.tsx switch updated
+- `REGISTERED_MCP_TOOLS` set added to loader.ts; loadAgents() now throws on unknown tool names; 2 new tests added
+- 5-min TTL added to pool cache in mcp.ts and cachedAgents in hono.ts
+- `DASHBOARD_PORT` env var NaN validation added to index.ts
+- session:snapshot confirmed already present in RelayEvent (no change needed)
+
+**FE (3 bugs fixed):**
+- AgentDetailPanel.tsx: `STATUS_COLOR.todo` was a CSS var — alpha suffix `${statusColor}18` was invalid CSS; fixed to hex `#6b7280`
+- AppHeader.tsx: `fetchSessions` missing `r.ok` check before `r.json()` — added HTTP error guard
+- usePanelResize.ts: window drag listeners leaked on unmount — added useEffect cleanup refs
+
+**QA:**
+- Updated QA baseline in .relay/agents.pool.yml from 65 → 111
+- Added 16 new tests: websocket.test.ts (5), config.test.ts (10), loader.test.ts (2)
+- Final test count: 129 pass, 0 fail
+
+**Lessons:**
+- CSS var alpha-suffix pattern (`${cssVar}18`) silently produces invalid CSS — always use hex literals for opacity variants
+- Always check `r.ok` before calling `.json()` in fetch handlers — non-2xx responses return HTML error bodies
+- Event listener cleanup on unmount is easy to miss for drag handlers attached to `window` (not the component's element)
+- Team:composed was referenced in code comments but missing from the shared RelayEvent union — always cross-check event type mentions in comments/docs against the actual union
+
+---
+_2026-03-14_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-003: Dashboard Loading Fix + Task Board Collapse Verification
+
+**Team**: pm, be, fe, qa
+
+**Accomplishments:**
+- BE: Port conflict root cause identified — second instance hitting EADDRINUSE but `get_server_info` still returning stale URL. Fixed: `setPort(null)` on EADDRINUSE; `get_server_info` now returns `dashboardUrl: null` + `dashboardAvailable: false`
+- FE: Task Board collapse was already implemented in `usePanelResize.ts` + `App.tsx` — confirmed working
+- FE: Fixed type mismatch in shared/index.ts — `task:updated.task` and `session:snapshot.tasks` missing `created_at?/updated_at?` fields
+- Tests: 111 → 129 pass (+18 new: hono.test.ts +14, sessions/review/loader additions)
+
+**Key lessons:**
+- Before implementing a feature, check if it already exists — Task Board collapse was already there
+- Port conflict "dashboard not showing" was caused by EADDRINUSE being swallowed silently; making it explicit (null URL + dashboardAvailable: false) is the correct fix
+- FE initial hydration relies 100% on WebSocket session:snapshot — if WS connection fails or delays, screen stays blank; this is by design but worth noting
+- session:snapshot missing sessionId field is a known gap for multi-server scenarios
+

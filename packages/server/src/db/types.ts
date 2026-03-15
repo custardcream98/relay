@@ -1,5 +1,5 @@
 // packages/server/src/db/types.ts
-// Common DB interface satisfied by both better-sqlite3 (production) and bun:sqlite (tests)
+// DB interface satisfied by bun:sqlite (used in both production and tests)
 
 export interface SqliteStatement {
   run(...params: unknown[]): { changes: number; lastInsertRowid?: number | bigint };

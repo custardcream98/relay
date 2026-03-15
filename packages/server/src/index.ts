@@ -108,26 +108,6 @@ async function resolvePort(): Promise<number> {
   return found;
 }
 
-// SQLite health check — fail early with a clear error if native bindings are unavailable.
-// better-sqlite3 requires native compilation; on Node.js ABI mismatches it silently fails
-// and only surfaces errors at first tool call (e.g. send_message), which is very confusing
-// because other tools (read_memory, write_memory) still work fine in the meantime.
-try {
-  getDb();
-} catch (err) {
-  const msg = (err as Error).message ?? String(err);
-  console.error(
-    `[relay] SQLite initialization failed: ${msg}\n\n` +
-      "This usually means better-sqlite3 native bindings are not compiled for your Node.js version.\n" +
-      "Fix options:\n" +
-      "  1. Rebuild native modules:\n" +
-      "       npm rebuild better-sqlite3 --prefix $(npm root -g)/@custardcream/relay\n" +
-      "  2. Use a supported Node.js version (Node.js 18–22 is recommended).\n" +
-      "  3. See https://github.com/custardcream98/relay for troubleshooting."
-  );
-  process.exit(1);
-}
-
 const DASHBOARD_PORT = await resolvePort();
 setPort(DASHBOARD_PORT);
 

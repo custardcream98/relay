@@ -1,6 +1,7 @@
+// packages/server/src/db/client.ts
+import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import Database from "better-sqlite3";
 import { getDbPath } from "../config";
 import { runMigrations } from "./schema";
 import type { SqliteDatabase } from "./types";
@@ -17,10 +18,10 @@ export function getDb(): SqliteDatabase {
     // Create the directory if it does not exist yet
     const dir = dirname(path);
     if (dir !== "." && !existsSync(dir)) mkdirSync(dir, { recursive: true });
-    const betterDb = new Database(path);
-    // Enable WAL mode — better-sqlite3-specific API; must be called before casting to SqliteDatabase
-    betterDb.pragma("journal_mode = WAL");
-    _db = betterDb as unknown as SqliteDatabase;
+    const db = new Database(path);
+    // Enable WAL mode for better concurrent read performance
+    db.exec("PRAGMA journal_mode = WAL");
+    _db = db as unknown as SqliteDatabase;
     runMigrations(_db);
     // Enforce FK constraints at runtime (SQLite disables them by default)
     _db.exec("PRAGMA foreign_keys = ON");

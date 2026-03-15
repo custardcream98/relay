@@ -10,7 +10,7 @@ The MCP server handles all inter-agent communication infrastructure.
 
 ## Tech Stack & Conventions
 
-- **Runtime**: Node.js (production); Bun (dev tooling — `bun run`, `bun test`)
+- **Runtime**: Bun (both production and dev — `bun run`, `bun test`; requires Bun installed on end-user machines)
 - **Language**: TypeScript (strict mode)
 - **MCP server**: `@modelcontextprotocol/sdk` + `@hono/node-server`
 - **API server**: Hono (runs in the same process as the MCP server)
@@ -224,8 +224,9 @@ bun run version-packages
 ## Notes
 
 - Never add code that calls the Claude API directly (incurs extra billing)
-- Use `node:` built-ins for production code; Bun APIs are only for dev tooling (test runner, build)
-  - `tsconfig.json` includes `"bun"` in `types` to support `bun:test` / `bun:sqlite` in test files — do NOT use Bun APIs in `src/` production code
+- Bun APIs (`bun:sqlite`, `Bun.*`) are available in production code — the server runs on Bun
+  - `tsconfig.json` includes `"bun"` in `types` for `bun:test` / `bun:sqlite` support in both src/ and test files
+  - Use `node:` built-ins where they provide cleaner APIs (fs, path, etc.) — Bun implements them
 - All code comments must be in English
 - Agent persona system prompts may be Korean or English, but keep them consistent
 - Commit `.relay/memory/` files to git so the team shares memory

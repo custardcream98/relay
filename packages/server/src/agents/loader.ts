@@ -171,18 +171,15 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
 
 /**
  * Inject memory into an agent's system prompt.
- * Prepends project memory (project.md), team retrospectives (lessons.md),
- * and the agent's personal memory (agents/{id}.md) in that order.
+ * Prepends project memory (project.md) and the agent's personal memory (agents/{id}.md).
  * If persona.language is set, appends a language instruction at the end.
  */
 export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: string): string {
   const memoryPath = join(relayDir, "memory", "agents", `${persona.id}.md`);
   const projectPath = join(relayDir, "memory", "project.md");
-  const lessonsPath = join(relayDir, "memory", "lessons.md");
 
   const agentMemory = existsSync(memoryPath) ? readFileSync(memoryPath, "utf-8") : null;
   const projectMemory = existsSync(projectPath) ? readFileSync(projectPath, "utf-8") : null;
-  const lessonsMemory = existsSync(lessonsPath) ? readFileSync(lessonsPath, "utf-8") : null;
 
   // Language instruction — appended last to give it the highest priority
   const languageInstruction = persona.language
@@ -191,7 +188,6 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
 
   const parts: string[] = [
     projectMemory ? `## Project Memory\n\n${projectMemory}` : null,
-    lessonsMemory ? `## Team Retrospectives & Decision History\n\n${lessonsMemory}` : null,
     agentMemory ? `## My Memory (learned from previous sessions)\n\n${agentMemory}` : null,
   ].filter((s): s is string => s !== null);
 

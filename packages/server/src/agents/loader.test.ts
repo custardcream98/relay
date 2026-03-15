@@ -580,7 +580,7 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
     expect(prompt).toBe("You are a ghost.");
   });
 
-  test("injects lessons.md as team retrospectives section", async () => {
+  test("does not inject lessons.md even if file exists", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
     const tmpDir = `${tmpdir()}/${randomUUID()}`;
@@ -596,13 +596,13 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
     };
 
     const prompt = buildSystemPromptWithMemory(persona, tmpDir);
-    expect(prompt).toContain("Team Retrospectives");
-    expect(prompt).toContain("Lesson: always write tests.");
+    expect(prompt).not.toContain("Team Retrospectives");
+    expect(prompt).not.toContain("Lesson: always write tests.");
 
     rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  test("injects all three memory sources when all files exist", async () => {
+  test("injects project and agent memory when both files exist", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
     const tmpDir = `${tmpdir()}/${randomUUID()}`;
@@ -621,7 +621,8 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
 
     const prompt = buildSystemPromptWithMemory(persona, tmpDir);
     expect(prompt).toContain("Project Memory");
-    expect(prompt).toContain("Team Retrospectives");
+    expect(prompt).not.toContain("Team Retrospectives");
+    expect(prompt).not.toContain("Lessons learned here.");
     expect(prompt).toContain("My Memory");
 
     rmSync(tmpDir, { recursive: true, force: true });

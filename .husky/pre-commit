@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
-# 커밋 전 Biome check — lint + format 검사
+# Pre-commit: lint + format check, then TypeScript type check
 bun run check
+bunx tsc --noEmit -p packages/server/tsconfig.json

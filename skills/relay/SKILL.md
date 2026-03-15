@@ -9,6 +9,7 @@ react to messages and tasks organically, like a Slack-first team.
 ## Pre-flight Checks
 
 1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
+   - Note: `list_agents` is used here only to verify MCP connectivity. Pool browsing uses `list_pool_agents` (Team Composition step 1) — that tool returns metadata without `systemPrompt` and does not require a session file.
    - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
 2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
    - If absent: suggest running `/relay:init` first to set up the pool.
@@ -17,7 +18,10 @@ react to messages and tasks organically, like a Slack-first team.
    **3a. Compute the next NNN counter** using `list_sessions` result:
    - Today's date prefix: `YYYY-MM-DD` (current date).
    - If `instanceId` is non-null (from `get_server_info`), filter for sessions whose IDs start with `{instanceId}-YYYY-MM-DD-`; otherwise filter for sessions starting with `YYYY-MM-DD-`.
-   - For each matching session ID, strip the `{instanceId}-` prefix if present, then split by `-` and parse the **segment at index 3** as an integer (that is the NNN counter).
+   - For each matching session ID, strip the `{instanceId}-` prefix if present
+     (i.e. `sessionId.slice(instanceId.length + 1)` — `+1` accounts for the `-` separator),
+     then split by `-` and parse the **segment at index 3** as an integer (that is the NNN counter).
+     Example: `project-a-2026-03-14-007-a3f7` → strip `project-a-` → `2026-03-14-007-a3f7` → index 3 = `007`.
    - Next NNN = max of all parsed counters + 1, or 1 if no sessions match today.
    - Format NNN as a 3-digit zero-padded integer (e.g. `001`, `007`).
 

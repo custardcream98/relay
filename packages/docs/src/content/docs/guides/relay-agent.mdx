@@ -28,7 +28,7 @@ Check the IDs from the `list_agents` result.
 ## Execution steps
 
 1. Check available agents via `list_agents`
-2. Print dashboard URL: `http://localhost:3456`
+2. Call `get_server_info` to get the dashboard URL (auto-selected port, default 3456)
 3. Load the specified agent's persona and memory
 4. Spawn the agent in isolation with its `tools` array restricting MCP tool access
 5. On completion, save learnings via `append_memory`

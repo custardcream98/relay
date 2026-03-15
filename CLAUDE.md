@@ -64,7 +64,7 @@ Environment variables:
 - `DASHBOARD_PORT`: HTTP/WebSocket port (default: auto-selected from 3456–3465)
 - `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the session ID is prefixed (`project-a-2026-03-14-007-a3f7`) and the DB file becomes `.relay/relay-{instance}.db`.
 - `RELAY_DB_PATH`: explicit DB file path override (overrides RELAY_INSTANCE default).
-- `RELAY_SESSION_ID`: session identifier (default: auto-generated `YYYY-MM-DD-HHmmss` in UTC on first call).
+- `RELAY_SESSION_ID`: session identifier (default: auto-generated `YYYY-MM-DD-HHmmss-XXXX` in UTC on first call, where `XXXX` is 4 random hex digits).
 
 CLI args (alternative to env vars):
 - `relay --port 3457` — set dashboard port

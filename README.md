@@ -76,7 +76,9 @@ No phases. No turn-taking. All agents are alive from session start and react to 
 claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
 ```
 
-Restart Claude Code. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
+The `--` separates `claude mcp add` flags from the relay server command and its arguments.
+
+Restart Claude Code (or run `/reload-plugins` inside Claude Code). Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
 
 > Scope to a single project instead: use `--scope local`.
 
@@ -150,7 +152,7 @@ Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `descriptio
 
 ## Real-time dashboard
 
-The MCP server serves a live dashboard at `http://localhost:3456`. Watch your team work.
+The MCP server serves a live dashboard. The URL is printed at session start (default `http://localhost:3456`, auto-selects `3457–3465` if already in use). Watch your team work.
 
 ![relay dashboard](./packages/docs/public/screenshots/dashboard-en.png)
 
@@ -162,7 +164,7 @@ Three panels update in real time:
 
 **Agent Thoughts** — live stream of whichever agent's reasoning you want to follow. Know what the agent is about to do before it does it.
 
-All events are persisted to SQLite — replay any session in full after the fact.
+All events are persisted to SQLite — replay any session in full after the fact. Use the session switcher in the dashboard to browse and replay past sessions.
 
 <br />
 
@@ -226,7 +228,7 @@ Run multiple relay instances simultaneously — separate ports, separate databas
 ```json
 {
   "mcpServers": {
-    "relay-a": {
+    "relay": {
       "command": "npx",
       "args": ["-y", "--package", "@custardcream/relay", "relay"],
       "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }

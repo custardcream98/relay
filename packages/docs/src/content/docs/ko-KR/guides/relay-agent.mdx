@@ -28,7 +28,7 @@ description: 특정 에이전트 하나를 독립적으로 호출하기
 ## 실행 단계
 
 1. `list_agents`로 사용 가능한 에이전트 확인
-2. 대시보드 URL 출력: `http://localhost:3456`
+2. `get_server_info`로 대시보드 URL 조회 (자동 선택 포트, 기본값 3456)
 3. 지정된 에이전트의 페르소나와 메모리 로드
 4. `tools` 배열로 MCP 도구 접근을 제한해 에이전트를 독립적으로 실행
 5. 완료 후 `append_memory`로 학습 내용 저장

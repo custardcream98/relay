@@ -19,9 +19,16 @@
 # AGENT ENTRY FORMAT
 # ─────────────────────────────────────────────────────────────────────────────
 #  Required: name, emoji, tools, systemPrompt
-#  Optional: description, tags, extends
-#  tags    — descriptive array used by /relay:relay for team selection suggestions
-#  extends — inherit all fields from another pool agent; override only what differs
+#  Optional: description, tags, extends, language
+#  tags     — descriptive array used by /relay:relay for team selection suggestions
+#  extends  — inherit all fields from another pool agent; override only what differs
+#  language — force agent responses to a specific language, e.g. language: "Korean"
+#             (overrides the top-level language default for this agent only)
+#
+# TOP-LEVEL language FIELD (optional)
+# ─────────────────────────────────────────────────────────────────────────────
+#  Set a default response language for all agents in this pool:
+#    language: "Korean"   # all agents respond in Korean unless overridden per-agent
 #
 # MULTI-INSTANCE PATTERN (running two or more agents with the same persona)
 # ─────────────────────────────────────────────────────────────────────────────

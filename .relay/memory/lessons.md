@@ -509,3 +509,82 @@ _2026-03-15_
 - Parallel agent execution means each agent's test count reflects their own view — always run bun test after all agents finish to get the authoritative count
 - Biome import ordering: bun:test imports must come before node:* imports (third-party before built-in) — check import order whenever adding new node:* imports to test files
 
+
+---
+_2026-03-15_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-007-a4b2: Deep Audit Pass (5-agent specialist team)
+
+**Team**: be, qa, security-reviewer, mcp-architect, dx-engineer
+
+**Findings & Fixes — 28 issues total, all fixed:**
+
+**BE (4 fixed):**
+- config.ts: auto-generated session IDs had no random suffix → same-second collision risk. Fixed: YYYY-MM-DD-HHmmss-XXXX (4-char hex)
+- hono.ts: /api/sessions/:id/events and /snapshot had no try/catch → unhandled DB exceptions
+- mcp.ts: getAgents() returned {} (not null) on malformed YAML → silently treated as empty team
+- review.ts: handleSubmitReview could return { success: true, review: null } on re-fetch failure
+- db/queries/sessions.ts + websocket.ts: .ts extension in module imports (invalid in Node ESM builds)
+
+**Security (8 fixes in mcp.ts):**
+- title .max(256), description .max(8192) on create_task
+- summary .max(131072) on save_session_summary
+- content .max(65536) on broadcast_thinking
+- list_agents session_id: .regex + .max(128)
+- post_artifact/get_artifact name .max(256)
+- submit_review comments .max(16384)
+- send_message thread_id: .regex added
+- DASHBOARD_PORT: p <= 65535 guard
+
+**QA (+24 tests, 136 → 160):**
+- memory.test.ts: isValidMemoryKey edge cases (empty, >256, \n, \r), agent_id path-traversal rejection
+- loader.test.ts: YAML key validation (space, slash, dots, extends)
+- config.test.ts: path.resolve() on relative env vars
+- artifacts.test.ts: get_artifact not-found, post_artifact without task_id
+- schema.test.ts: runMigrations idempotency + index existence
+
+**MCP Architect (1 fix):**
+- review.ts: handleSubmitReview null re-fetch now returns proper error (confirmed above)
+- Confirmed: 24 tools registered, REGISTERED_MCP_TOOLS matches exactly, all RelayEvent types covered
+- Low-priority: session:snapshot hydrates agents from pool (not session-specific team file)
+
+**DX (8 fixes):**
+- agents.pool.example.yml: broadcast_thinking missing from ALL 12 agent tool lists (CRITICAL — calls would silently fail)
+- skills/agent/SKILL.md: list_agents → list_pool_agents in pre-flight (list_agents returns empty without session file)
+- CLAUDE.md: RELAY_SESSION_ID default, session ID format, build commands, tasks.ts tool list
+- skills/relay/SKILL.md: session ID format NNN → NNN-XXXX
+- agents.pool.example.yml: comment typo session-agents.yml → session-agents-{session_id}.yml
+
+**Lessons:**
+- broadcast_thinking missing from agents.pool.example.yml is a critical DX bug class: the skill injects the tool into agent prompts but pool file didn't list it → calls blocked silently. Always cross-check skill-injected tool names against pool file tool arrays.
+- Session ID collision was a real risk: two server processes starting in the same UTC second would share a session ID and mix data. The 4-char hex suffix + already-present session_id + rowid tiebreaker together make collisions statistically impossible.
+- MCP tool count drifts from persona descriptions as tools are added — mcp-architect persona said "18 tools" but actual count was 24. Consider generating this count dynamically or adding a CI check.
+- session:snapshot uses pool agents (loadPool()) not the session-specific team for agent metadata — this means the dashboard shows all pool agents, not just the active session team. Low priority but worth noting.
+
+
+---
+_2026-03-15_
+
+_2026-03-15_
+
+## Session 2026-03-15-008-f3c9: User Flow Audit
+
+**Team**: dx-engineer, be, docs-writer, mcp-architect
+
+**Critical finding**: hooks.json `http` type hook URL field does NOT support shell variable expansion in Claude Code hook runner. `${DASHBOARD_PORT:-3456}` was silently failing as a literal URL string. Fixed by replacing `http` type with `command` type (curl) — shell expansion works in command strings.
+
+**Key pattern**: Always use `command` type with curl for hooks that need env var interpolation. `http` type URL is a literal string.
+
+**DX audit lessons**:
+- Skills can contain false guidance (init skill said "restart MCP server" after pool file creation — wrong, loadPool() reads fresh each call)
+- Docs and CLAUDE.md had several stale values (session_id format, RELAY_SESSION_ID default, CLI flag names) — need to update docs whenever config behavior changes
+- loader.ts error messages without next-action guidance frustrate new users — always include "Run X to fix" in error messages
+
+**Remaining low-priority known gaps** (not fixed this session):
+- session:snapshot agents field never populated → SessionTeamBadge always empty
+- /api/agents returns pool agents (not session-specific team) → extends instances (fe2, fe3) missing from dashboard
+- pre-flight list_agents always empty — can't confirm server connectivity this way
+

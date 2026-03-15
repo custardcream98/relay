@@ -25,7 +25,7 @@ Before running, the skill verifies:
 - relay MCP server connection (via `list_agents`)
   - If no agents are found, guides the user to create `agents.pool.yml` first
 - Whether `.relay/memory/project.md` exists (suggests `/relay:init` if not)
-- Prints dashboard URL: `http://localhost:3456`
+- Calls `get_server_info` to get the actual dashboard URL (auto-selected port, default 3456)
 
 ## Session start
 

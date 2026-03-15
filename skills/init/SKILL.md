@@ -75,13 +75,12 @@ Do you want me to:
 Write `.relay/agents.pool.yml` with the suggested pool entries.
 Include helpful comments for each agent.
 
-**Important:** The MCP server loads the pool file once at startup. After creating the file, tell the user:
-> ".relay/agents.pool.yml created. Please restart Claude Code (or the MCP server) for the pool to take effect,
->  then re-run `/relay:init` to scan your codebase."
+**Important:** The MCP server auto-reloads the pool file (5-minute TTL cache). After creating the file, tell the user:
+> ".relay/agents.pool.yml created. Re-run `/relay:init` to start the codebase scan."
 
 Then stop — do not proceed to Phase 1 in this session.
 
-If the user chooses 2, copy `agents.pool.example.yml` content to `.relay/agents.pool.yml` and give the same restart instruction.
+If the user chooses 2, copy `agents.pool.example.yml` content to `.relay/agents.pool.yml` and give the same instruction.
 If the user chooses 3, stop and tell them to create `.relay/agents.pool.yml`, then re-run `/relay:init`.
 
 ---

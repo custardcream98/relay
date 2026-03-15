@@ -8,10 +8,18 @@ relay MCP 서버는 웹 대시보드도 함께 제공합니다.
 
 ## 접속
 
-MCP 서버가 시작되면 대시보드가 자동으로 실행됩니다:
+MCP 서버가 시작되면 대시보드가 자동으로 실행됩니다.
+기본 포트는 `3456`이지만, 이미 사용 중이면 `3456–3465` 범위에서 자동 선택됩니다.
+
+실제 대시보드 URL은 `get_server_info`로 확인할 수 있습니다:
+
+```typescript
+get_server_info({ agent_id: "orchestrator" })
+// → { dashboardUrl: "http://localhost:3456", port: 3456, ... }
+```
 
 ```
-http://localhost:3456
+http://localhost:3456   # 기본값 — 자동 선택된 경우 다를 수 있음
 ```
 
 ## 세 가지 패널
@@ -48,7 +56,10 @@ http://localhost:3456
 | `task:updated` | 태스크 상태 변경 |
 | `artifact:posted` | 새 아티팩트 공유 |
 | `review:requested` | 리뷰 요청 발생 |
+| `review:updated` | 리뷰 결과 제출 (approved/changes_requested) |
 | `memory:updated` | 에이전트 메모리 업데이트 |
+| `session:started` | 새 세션 활성화 (대시보드 초기화) |
+| `session:snapshot` | WebSocket 연결 시 전체 세션 상태 전송 (초기 로딩용) |
 
 ## 히스토리 재생
 
@@ -64,9 +75,11 @@ http://localhost:3456
 대시보드는 Hono 기반 REST API도 제공합니다:
 
 ```
-GET  /api/session               # 현재 세션 스냅샷 (태스크, 메시지, 아티팩트)
-GET  /api/sessions/:id          # 특정 세션 요약 (summary.md)
-GET  /api/sessions/:id/events   # 세션 이벤트 목록 (히스토리 재생용)
-GET  /api/agents                # 에이전트 목록
-POST /api/hook/tool-use         # PostToolUse 훅 수신기 (내부용)
+GET  /api/session                  # 현재 세션 스냅샷 (태스크, 메시지, 아티팩트)
+GET  /api/sessions                 # 전체 세션 목록
+GET  /api/sessions/:id             # 특정 세션 요약 (summary.md)
+GET  /api/sessions/:id/events      # 세션 이벤트 목록 (히스토리 재생용)
+GET  /api/sessions/:id/snapshot    # 과거 세션 전체 스냅샷 (태스크, 메시지, 아티팩트)
+GET  /api/agents                   # 에이전트 목록
+POST /api/hook/tool-use            # PostToolUse 훅 수신기 (내부용)
 ```

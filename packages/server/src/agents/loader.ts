@@ -86,7 +86,10 @@ export function loadAgents(
     const { name, emoji, tools } = config;
     const systemPrompt = config.systemPrompt ?? poolAgents?.[id]?.systemPrompt;
     if (!name || !emoji || !tools || !systemPrompt) {
-      throw new Error(`agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`);
+      throw new Error(
+        `agent "${id}" is missing required fields (name, emoji, tools, systemPrompt). ` +
+          `If this is a session-agents file, ensure the agent ID matches a pool entry so systemPrompt can be resolved from the pool.`
+      );
     }
     // Validate that all listed tools are registered MCP tools
     const unknownTools = tools.filter((t) => !REGISTERED_MCP_TOOLS.has(t));
@@ -162,7 +165,7 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
 
   // No pool file found — throw a clear, actionable error
   throw new Error(
-    "No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml)."
+    "No agent pool configured. Run `/relay:init` to set up your team, or create .relay/agents.pool.yml manually (see agents.pool.example.yml)."
   );
 }
 

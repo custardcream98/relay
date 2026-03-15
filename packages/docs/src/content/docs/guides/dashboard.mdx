@@ -8,10 +8,19 @@ You can watch agents think and communicate with each other in real time.
 
 ## Accessing
 
-The dashboard starts automatically when the MCP server starts:
+The dashboard starts automatically when the MCP server starts.
+The default port is `3456`, but if that port is already in use the server auto-selects
+the next available port in the range `3456–3465`.
+
+Call `get_server_info` to get the actual dashboard URL for the running instance:
+
+```typescript
+get_server_info({ agent_id: "orchestrator" })
+// → { dashboardUrl: "http://localhost:3456", port: 3456, ... }
+```
 
 ```
-http://localhost:3456
+http://localhost:3456   # default — may differ if auto-selected
 ```
 
 ## Three panels
@@ -48,7 +57,10 @@ All events follow the `{ type, timestamp, ...payload }` structure — there is n
 | `task:updated` | Task state change |
 | `artifact:posted` | New artifact shared |
 | `review:requested` | Review request raised |
+| `review:updated` | Review decision submitted (approved/changes_requested) |
 | `memory:updated` | Agent memory updated |
+| `session:started` | New session activated (resets dashboard view) |
+| `session:snapshot` | Full session state sent on WebSocket connect (for initial hydration) |
 
 ## History replay
 
@@ -64,9 +76,11 @@ Even after a session ends, you can select a session from the dashboard and repla
 The dashboard also exposes a Hono-based REST API:
 
 ```
-GET  /api/session               # current session snapshot (tasks, messages, artifacts)
-GET  /api/sessions/:id          # specific session summary (summary.md)
-GET  /api/sessions/:id/events   # session event list (for history replay)
-GET  /api/agents                # agent list
-POST /api/hook/tool-use         # PostToolUse hook receiver (internal)
+GET  /api/session                  # current session snapshot (tasks, messages, artifacts)
+GET  /api/sessions                 # list all sessions
+GET  /api/sessions/:id             # specific session summary (summary.md)
+GET  /api/sessions/:id/events      # session event list (for history replay)
+GET  /api/sessions/:id/snapshot    # full snapshot for a past session (tasks, messages, artifacts)
+GET  /api/agents                   # agent list
+POST /api/hook/tool-use            # PostToolUse hook receiver (internal)
 ```

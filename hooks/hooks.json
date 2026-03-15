@@ -5,8 +5,8 @@
         "matcher": "mcp__relay__(send_message|create_task|update_task|post_artifact|request_review|submit_review)",
         "hooks": [
           {
-            "type": "http",
-            "url": "http://localhost:${DASHBOARD_PORT:-3456}/api/hook/tool-use",
+            "type": "command",
+            "command": "curl -s -X POST \"http://localhost:${DASHBOARD_PORT:-3456}/api/hook/tool-use\" -H 'Content-Type: application/json' -d @-",
             "async": true
           }
         ]

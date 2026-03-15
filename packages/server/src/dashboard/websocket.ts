@@ -16,8 +16,8 @@ export function removeClient(ws: WebSocket): void {
 }
 
 export function broadcast(event: RelayEvent): void {
-  // session:started resets the active session — do not persist it so history replay is unaffected.
-  // agent:thinking is fire-and-forget (streaming chunk) — spec says no DB write.
+  // session:started is a transient live signal — do not persist it.
+  // agent:thinking is fire-and-forget (streaming chunk) — no DB write.
   if (event.type !== "session:started" && event.type !== "agent:thinking") {
     try {
       insertEvent(getSessionId(), event);

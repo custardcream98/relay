@@ -6,7 +6,7 @@ import {
   insertEvent as storeInsertEvent,
 } from "../../store";
 
-// Persist an event to the in-memory store for history replay.
+// Persist an event to the in-memory store for session state tracking.
 export function insertEvent(sessionId: string, event: RelayEvent): void {
   storeInsertEvent(
     sessionId,

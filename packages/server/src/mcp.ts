@@ -467,7 +467,7 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .optional()
-        .describe("Agent ID. Omit to return project.md + lessons.md"),
+        .describe("Agent ID. Omit to return project.md only."),
     },
     async (input) => {
       const result = await handleReadMemory(getRelayDir(), input);

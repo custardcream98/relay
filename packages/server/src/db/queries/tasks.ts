@@ -57,9 +57,13 @@ export function updateTask(
   return result.changes > 0;
 }
 
-// Look up a task by ID
-export function getTaskById(db: SqliteDatabase, id: string): TaskRow | null {
-  return (db.prepare("SELECT * FROM tasks WHERE id = ?").get(id) as TaskRow | undefined) ?? null;
+// Look up a task by ID, scoped to a session to prevent cross-session reads
+export function getTaskById(db: SqliteDatabase, id: string, sessionId: string): TaskRow | null {
+  return (
+    (db.prepare("SELECT * FROM tasks WHERE id = ? AND session_id = ?").get(id, sessionId) as
+      | TaskRow
+      | undefined) ?? null
+  );
 }
 
 // Fetch all tasks assigned to a specific agent in a session

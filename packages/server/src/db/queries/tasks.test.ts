@@ -25,7 +25,7 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    const task = getTaskById(db, "task-1");
+    const task = getTaskById(db, "task-1", "sess-1");
     expect(task?.title).toBe("Implement login UI");
     expect(task?.status).toBe("todo");
   });
@@ -43,7 +43,7 @@ describe("task queries", () => {
     });
 
     updateTask(db, "task-2", "sess-1", { status: "in_progress" });
-    const task = getTaskById(db, "task-2");
+    const task = getTaskById(db, "task-2", "sess-1");
     expect(task?.status).toBe("in_progress");
   });
 

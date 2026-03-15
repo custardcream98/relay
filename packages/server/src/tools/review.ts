@@ -43,7 +43,7 @@ export function handleSubmitReview(
     if (!review) return { success: false, error: "review not found" };
     if (review.reviewer !== input.agent_id)
       return { success: false, error: "permission denied: not the assigned reviewer" };
-    updateReviewStatus(db, input.review_id, input.status, input.comments ?? null);
+    updateReviewStatus(db, input.review_id, sessionId, input.status, input.comments ?? null);
     const updated = getReviewById(db, input.review_id, sessionId);
     return {
       success: true,

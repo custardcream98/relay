@@ -191,7 +191,7 @@ function ThoughtsTab({
           background: status === "working" ? accentColor : "var(--color-text-disabled)",
           marginLeft: 2,
           verticalAlign: "text-bottom",
-          animation: status !== "working" ? "blink 1.2s step-end infinite" : "none",
+          animation: status === "working" ? "blink 1.2s step-end infinite" : "none",
         }}
       />
       <div ref={bottomRef} />

@@ -1,7 +1,7 @@
 // packages/server/src/tools/memory.ts
 // Tool for reading and writing agent memory as Markdown files
 import { existsSync, mkdirSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Validate agent_id to prevent path traversal attacks
@@ -140,8 +140,9 @@ export async function handleAppendMemory(
     const timestamp = new Date().toISOString().split("T")[0];
     const entry = `\n---\n_${timestamp}_\n\n${input.content}\n`;
 
-    const existing = existsSync(path) ? await readFile(path, "utf-8") : "";
-    await writeFile(path, existing + entry);
+    // Use appendFile for atomic append — avoids read-then-write race when multiple agents
+    // call append_memory concurrently at session end
+    await appendFile(path, entry);
     return { success: true };
   } catch (err) {
     return { success: false, error: String(err) };

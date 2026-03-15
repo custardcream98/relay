@@ -35,11 +35,13 @@ function StatusDot({ status }: { status: ServerEntry["status"] }) {
   );
 }
 
-// Only localhost and 127.0.0.1 are permitted to prevent SSRF via the Add Server input.
+// Only http/https localhost or 127.0.0.1 are permitted to prevent SSRF via the Add Server input.
 function isLocalhostUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+    return isLocalhost && isHttp;
   } catch {
     return false;
   }

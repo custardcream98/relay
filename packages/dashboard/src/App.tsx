@@ -47,7 +47,8 @@ type Action =
   | { type: "EVENT"; event: DashboardEvent }
   | { type: "SELECT_AGENT"; agentId: AgentId | null }
   | { type: "SET_SESSION_SNAPSHOT"; snapshot: SessionSnapshotData }
-  | { type: "CLEAR_SESSION_SNAPSHOT" };
+  | { type: "CLEAR_SESSION_SNAPSHOT" }
+  | { type: "SWITCH_SERVER" };
 
 const initialState: DashboardState = {
   tasks: [],
@@ -375,6 +376,14 @@ function reducer(state: DashboardState, action: Action): DashboardState {
       return { ...state, viewingSessionId: null, _liveSnapshot: null };
     }
 
+    case "SWITCH_SERVER":
+      // Clear all session-specific state when switching to a different relay server.
+      // The new server will send session:snapshot/session:started to repopulate.
+      return {
+        ...initialState,
+        // Preserve resize/UI preferences — not server-specific
+      };
+
     default:
       return state;
   }
@@ -558,8 +567,9 @@ export default function App() {
       setActiveServer(url);
       // Update isActive flags in the server list to reflect the new selection
       setServers((prev) => prev.map((s) => ({ ...s, isActive: s.url === url })));
-      // Clear stale session data from the previous server
-      dispatch({ type: "CLEAR_SESSION_SNAPSHOT" });
+      // Reset all session state — agentStatuses, thinkingChunks, tasks, messages etc.
+      // are server-specific and must not bleed across server switches
+      dispatch({ type: "SWITCH_SERVER" });
     },
     [activeServer]
   );

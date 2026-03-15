@@ -185,7 +185,7 @@ export function createMcpServer(): McpServer {
     async (input) => {
       const result = await handleUpdateTask(getDb(), getSessionId(), input);
       if (result.success) {
-        const task = getTaskById(getDb(), input.task_id);
+        const task = getTaskById(getDb(), input.task_id, getSessionId());
         if (task) {
           broadcast({
             type: "task:updated",
@@ -227,7 +227,7 @@ export function createMcpServer(): McpServer {
     async (input) => {
       const result = await handleClaimTask(getDb(), getSessionId(), input);
       if (result.claimed) {
-        const task = getTaskById(getDb(), input.task_id);
+        const task = getTaskById(getDb(), input.task_id, getSessionId());
         if (task) {
           broadcast({
             type: "task:updated",
@@ -527,17 +527,22 @@ export function createMcpServer(): McpServer {
           }
           result = loadAgents(parsed ?? { agents: {} }, poolAgents);
         } else {
-          // No session-specific file — return empty. Pool-only architecture:
-          // teams are always composed via /relay:relay before list_agents is called with a sessionId.
-          result = {};
+          // Session file not yet written — return WITHOUT caching so callers can retry
+          // after the file is written (e.g. orchestrator writes it then immediately calls list_agents).
+          console.error(`[relay] session file not found: ${sessionFile}`);
+          return {};
         }
       } else {
         // No session_id — pre-flight uses list_pool_agents, not list_agents.
         result = {};
       }
-    } catch {
+    } catch (err) {
       // Load failed — do NOT cache the empty result so callers can retry
       // after fixing the underlying issue (e.g. malformed YAML, missing file).
+      console.error(
+        `[relay] failed to load agents for session "${sessionId ?? "__default__"}":`,
+        (err as Error).message
+      );
       return {};
     }
 
@@ -556,7 +561,8 @@ export function createMcpServer(): McpServer {
     } catch (err) {
       // Pool not configured or failed to load — fall back to empty for graceful degradation
       console.error("[relay] pool load failed:", (err as Error).message);
-      // Return stale cache if available, otherwise empty
+      // Update poolCachedAt to prevent retry spam on every call — TTL still applies
+      poolCachedAt = now;
       if (pool === null) pool = {};
     }
     return pool;

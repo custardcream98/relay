@@ -31,17 +31,18 @@ export function insertReview(
   );
 }
 
-// Update a review's status and comments
+// Update a review's status and comments, scoped to session to prevent cross-session writes
 export function updateReviewStatus(
   db: SqliteDatabase,
   id: string,
+  sessionId: string,
   status: string,
   comments: string | null
 ): void {
   db.prepare(`
     UPDATE reviews SET status = ?, comments = ?, updated_at = unixepoch()
-    WHERE id = ?
-  `).run(status, comments, id);
+    WHERE id = ? AND session_id = ?
+  `).run(status, comments, id, sessionId);
 }
 
 // Look up a review by ID (used for ownership validation)

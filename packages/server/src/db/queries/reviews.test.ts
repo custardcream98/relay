@@ -35,7 +35,7 @@ describe("review queries", () => {
       status: "pending",
       comments: null,
     });
-    updateReviewStatus(db, "rev-2", "approved", "LGTM!");
+    updateReviewStatus(db, "rev-2", "sess-1", "approved", "LGTM!");
     const reviews = getReviewsByReviewer(db, "sess-1", "be2");
     expect(reviews[0].status).toBe("approved");
     expect(reviews[0].comments).toBe("LGTM!");

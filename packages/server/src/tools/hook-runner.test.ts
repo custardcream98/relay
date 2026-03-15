@@ -15,7 +15,7 @@ describe("runHook", () => {
   test("fails on non-zero exit", async () => {
     const result = await runHook("exit 1", {}, CWD, 5000);
     expect(result.success).toBe(false);
-    expect(result.exitCode).not.toBe(0);
+    expect(result.exitCode).toBe(1);
   });
 
   test("captures combined stdout and stderr", async () => {

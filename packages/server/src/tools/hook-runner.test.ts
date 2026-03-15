@@ -37,6 +37,35 @@ describe("runHook", () => {
     expect(result.exitCode).toBeNull();
     expect(result.output).toContain("timed out");
   });
+
+  test("truncates output exceeding MAX_OUTPUT_CHARS", async () => {
+    // Generate >2000 chars using Node.js (always available, no python3 dependency)
+    const result = await runHook(`node -e "process.stdout.write('x'.repeat(3000))"`, {}, CWD, 5000);
+    expect(result.success).toBe(true);
+    expect(result.output).toContain("...[truncated]");
+    // 2000 chars of content + "\n...[truncated]" (15 chars) = 2015 chars max
+    expect(result.output.length).toBeLessThanOrEqual(2015);
+  });
+
+  test("injects RELAY_TASK_ID and RELAY_SESSION_ID env vars", async () => {
+    const result = await runHook(
+      "echo $RELAY_TASK_ID $RELAY_SESSION_ID",
+      { RELAY_TASK_ID: "task-123", RELAY_SESSION_ID: "sess-456" },
+      CWD,
+      5000
+    );
+    expect(result.success).toBe(true);
+    expect(result.output).toContain("task-123");
+    expect(result.output).toContain("sess-456");
+  });
+
+  test("never rejects on empty command string", async () => {
+    // exec("") throws synchronously on some Node.js versions — must not reject
+    const result = await runHook("", {}, CWD, 5000);
+    expect(result.success).toBe(false);
+    expect(result.exitCode).toBeNull();
+    expect(result.output).toContain("Failed to spawn hook");
+  });
 });
 
 describe("runHooks", () => {

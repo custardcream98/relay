@@ -86,6 +86,10 @@ export async function handleUpdateTask(
         updateTask(db, input.task_id, sessionId, { status: "in_review" });
         return {
           success: false,
+          // hook_failed: true distinguishes this from "task not found" (success: false without hook_failed).
+          // Agents should treat hook_failed as "fix the issue and retry update_task(done)"
+          // vs. task-not-found as a permanent error requiring a different recovery strategy.
+          hook_failed: true,
           error: `after_task hook failed (exit ${hookResult.exitCode ?? "timeout"}): ${hookResult.output}`,
         };
       }

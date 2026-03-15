@@ -181,12 +181,18 @@ export function loadAgents(
       ...(language ? { language } : {}),
     } as AgentPersona;
 
-    // Normalize hooks: false → undefined (opt-out clears inherited hooks)
-    if ((configOverrides as { hooks?: unknown }).hooks === false) {
+    // Normalize hooks from this agent's config entry (if present).
+    // - hooks: false  → explicit opt-out, clear inherited hooks
+    // - hooks: {...}  → re-normalize in case the config uses string (not string[])
+    // - hooks absent  → base.hooks is already ResolvedAgentHooks, no action needed
+    const configHooks = (configOverrides as { hooks?: unknown }).hooks;
+    if (configHooks === false) {
       merged_persona.hooks = undefined;
-    } else if (merged_persona.hooks) {
-      merged_persona.hooks = resolveHooks(merged_persona.hooks as unknown as AgentHooks);
+    } else if (configHooks != null) {
+      // Config provided new hooks — normalize string | string[] → string[]
+      merged_persona.hooks = resolveHooks(configHooks as AgentHooks);
     }
+    // else: inherited from base, already resolved — no re-normalization needed
 
     merged[id] = merged_persona;
   }

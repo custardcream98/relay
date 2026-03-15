@@ -2,11 +2,12 @@
 // Git-hook style shell command executor for before_task / after_task hooks.
 // Never rejects — always resolves with a HookResult.
 
+import type { ChildProcess } from "node:child_process";
 import { exec } from "node:child_process";
 
 const MAX_OUTPUT_CHARS = 2000;
-const DEFAULT_BEFORE_TIMEOUT_MS = 30_000;
-const DEFAULT_AFTER_TIMEOUT_MS = 120_000;
+export const DEFAULT_BEFORE_TIMEOUT_MS = 30_000;
+export const DEFAULT_AFTER_TIMEOUT_MS = 120_000;
 
 export interface HookResult {
   success: boolean;
@@ -37,31 +38,48 @@ export function runHook(
       }
     };
 
-    const child = exec(
-      command,
-      { cwd, env: { ...process.env, ...env }, maxBuffer: 10 * 1024 * 1024 },
-      (error, stdout, stderr) => {
-        clearTimeout(timer);
-        const combined = `${stdout}${stderr}`.trim();
-        const output =
-          combined.length > MAX_OUTPUT_CHARS
-            ? `${combined.slice(0, MAX_OUTPUT_CHARS)}\n...[truncated]`
-            : combined;
-        settle({
-          success: !error,
-          exitCode: error
-            ? (((error as NodeJS.ErrnoException).code as unknown as number) ?? null)
-            : 0,
-          output,
-        });
-      }
-    );
+    // Guard against exec() throwing synchronously (e.g. empty command string on some platforms).
+    // Without this, a sync throw inside the Promise constructor propagates as a rejection,
+    // violating the "never rejects" contract.
+    let child: ChildProcess;
+    try {
+      child = exec(
+        command,
+        { cwd, env: { ...process.env, ...env }, maxBuffer: 10 * 1024 * 1024 },
+        (error, stdout, stderr) => {
+          clearTimeout(timer);
+          const combined = `${stdout}${stderr}`.trim();
+          const output =
+            combined.length > MAX_OUTPUT_CHARS
+              ? `${combined.slice(0, MAX_OUTPUT_CHARS)}\n...[truncated]`
+              : combined;
+          // error.code is a number (exit code) for non-zero exits, but a POSIX string
+          // (e.g. "ENOENT") for spawn/syscall failures. Only use it when it is numeric.
+          // error is null on success, so the code access is guarded by the outer ternary.
+          settle({
+            success: !error,
+            exitCode: error
+              ? (() => {
+                  const code = (error as NodeJS.ErrnoException).code;
+                  return typeof code === "number" ? code : null;
+                })()
+              : 0,
+            output,
+          });
+        }
+      );
+    } catch (err) {
+      settle({ success: false, exitCode: null, output: `Failed to spawn hook: ${String(err)}` });
+      return;
+    }
 
     const timer = setTimeout(() => {
       child.kill("SIGTERM");
+      // SIGKILL escalation: only kill if the process hasn't already exited
+      // (child.exitCode is set when the process exits, preventing a stale kill on a recycled PID)
       setTimeout(() => {
         try {
-          child.kill("SIGKILL");
+          if (child.exitCode === null) child.kill("SIGKILL");
         } catch {
           // Process may already be gone
         }
@@ -92,5 +110,3 @@ export async function runHooks(
   }
   return { success: true, exitCode: 0, output: "" };
 }
-
-export { DEFAULT_BEFORE_TIMEOUT_MS, DEFAULT_AFTER_TIMEOUT_MS };

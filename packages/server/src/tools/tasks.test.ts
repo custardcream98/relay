@@ -277,10 +277,39 @@ describe("tasks tool", () => {
         { before_task: [], after_task: ["exit 1"] }
       );
       expect(result.success).toBe(false);
+      // hook_failed discriminates "hook blocked done" from "task not found" (no hook_failed)
+      expect((result as Record<string, unknown>).hook_failed).toBe(true);
       expect(result.error).toContain("after_task hook failed");
       // Status must be reverted to in_review
       const { tasks } = await handleGetAllTasks(db, "sess-1", { agent_id: "fe" });
       expect(tasks[0].status).toBe("in_review");
+    });
+
+    test("after_task hook failure → retry with passing hook succeeds", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "task with retryable after hook",
+        assignee: "fe",
+        priority: "high",
+      });
+      await handleClaimTask(db, "sess-1", { agent_id: "fe", task_id: task_id as string });
+      // First attempt: hook fails, status reverted to in_review
+      await handleUpdateTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string, status: "done" },
+        { before_task: [], after_task: ["exit 1"] }
+      );
+      // Second attempt: hook passes, status should reach done
+      const retry = await handleUpdateTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string, status: "done" },
+        { before_task: [], after_task: ["echo ok"] }
+      );
+      expect(retry.success).toBe(true);
+      const { tasks } = await handleGetAllTasks(db, "sess-1", { agent_id: "fe" });
+      expect(tasks[0].status).toBe("done");
     });
 
     test("after_task hook success keeps status as done", async () => {

@@ -128,7 +128,8 @@ Separate agents into:
 
 Spawn all base agents simultaneously. For each agent:
 1. Load persona from the cached `list_agents` result.
-2. Load memory: `read_memory(agent_id)` + `read_memory()` (project + lessons).
+2. Load memory: `read_memory(agent_id: "{agentId}")` (personal memory) + `read_memory()` (project.md).
+   - For recent session history, call `list_sessions` then `get_session_summary` on the last 1–2 sessions only when the task requires historical context (e.g. "continue from last session").
 3. Build system prompt: persona systemPrompt + memory.
 4. Restrict available tools to the agent's `tools` array from `list_agents`.
 
@@ -309,7 +310,10 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
 When re-spawning a dormant agent:
 
-1. Load their persona + memory (same as initial spawn).
+1. Load personal memory only: `read_memory(agent_id: "{agentId}")`.
+   (project.md was already injected at initial spawn. While agents can call write_memory
+   mid-session to update project.md, critical updates are communicated via messages —
+   this trade-off is intentional to reduce context load on re-spawns.)
 2. Fetch all messages: `get_messages(agent_id: "{agentId}")`.
 3. Compute new messages since last spawn:
    - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
@@ -365,8 +369,7 @@ Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
 
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
-1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
-2. Archive: `save_session_summary(session_id, summary)`.
+1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
 3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
 4. Report results to the user.
 

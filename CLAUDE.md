@@ -68,7 +68,7 @@ Environment variables:
 
 CLI args (alternative to env vars):
 - `relay --port 3457` — set dashboard port
-- `relay --instance project-b` — set instance name (equivalent to RELAY_INSTANCE); `--session` is a deprecated alias
+- `relay --instance project-b` — set instance name (equivalent to RELAY_INSTANCE)
 
 Auto port selection: if `DASHBOARD_PORT` is not set and 3456 is occupied, the server tries 3457–3465 before falling back.
 

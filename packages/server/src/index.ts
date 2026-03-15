@@ -55,7 +55,7 @@ if (cliArgs.instance) {
   process.env.RELAY_INSTANCE = cliArgs.instance;
 }
 
-// Validate RELAY_INSTANCE env var as well (set directly without --session flag)
+// Validate RELAY_INSTANCE env var as well (set directly without --instance flag)
 if (process.env.RELAY_INSTANCE && !/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_INSTANCE)) {
   console.error("[relay] invalid RELAY_INSTANCE value; use alphanumeric, hyphen, underscore only");
   process.exit(1);

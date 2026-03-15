@@ -25,7 +25,7 @@ export function getRelayDir(): string {
 
 /**
  * Returns the relay instance ID, or undefined for the default (single) instance.
- * Set via RELAY_INSTANCE env var or --instance CLI arg (--session is a deprecated alias).
+ * Set via RELAY_INSTANCE env var or --instance CLI arg.
  */
 export function getInstanceId(): string | undefined {
   return process.env.RELAY_INSTANCE ?? undefined;

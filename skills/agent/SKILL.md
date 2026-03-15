@@ -32,8 +32,9 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
      - When finished, call send_message(to: null, content: "end:_done | {summary}").
        This is mandatory — do not skip it.
      ```
-5. After completion, call `save_session_summary(agent_id: "{agentId}", session_id: "{session_id}", summary: "{summary}")` to persist session learnings.
-   Call `write_memory(agent_id: "{agentId}", key: "...", content: "...")` for personal knowledge worth keeping across sessions.
+5. After completion:
+   - Always call `save_session_summary(agent_id: "{agentId}", session_id: "{session_id}", summary: "{what you did and key decisions}")` to archive this session.
+   - If you discovered reusable patterns or conventions (e.g. API shape, test setup, component structure), persist them with `write_memory(agent_id: "{agentId}", key: "conventions", content: "...")`. Use descriptive keys (e.g. `api-patterns`, `test-setup`, `component-structure`). Skip if nothing new was learned.
 
 ## Unknown agent handling
 

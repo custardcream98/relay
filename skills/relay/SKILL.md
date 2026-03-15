@@ -310,10 +310,13 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
 When re-spawning a dormant agent:
 
-1. Load personal memory only: `read_memory(agent_id: "{agentId}")`.
-   (project.md was already injected at initial spawn. While agents can call write_memory
-   mid-session to update project.md, critical updates are communicated via messages —
-   this trade-off is intentional to reduce context load on re-spawns.)
+1. Rebuild the system prompt:
+   - Start with the cached persona `systemPrompt` from `list_agents`.
+   - Load personal memory: `read_memory(agent_id: "{agentId}")` and prepend it.
+   - Re-inject the Task Board Discipline, Visibility, and Mandatory Communication Protocol
+     blocks from Session Startup step 2.
+   - (project.md is intentionally skipped — it was already injected at initial spawn.
+     Mid-session project.md updates are communicated via messages to reduce re-spawn context load.)
 2. Fetch all messages: `get_messages(agent_id: "{agentId}")`.
 3. Compute new messages since last spawn:
    - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
@@ -370,8 +373,8 @@ Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
-3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
-4. Report results to the user.
+2. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
+3. Report results to the user.
 
 ## Multi-Instance Notes
 

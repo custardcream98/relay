@@ -1,5 +1,7 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { tmpdir } from "node:os";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import { buildSystemPromptWithMemory, getWorkflow, loadAgents, loadPool } from "./loader";
 import type { AgentsFile } from "./types";
@@ -457,7 +459,7 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
   test("injects project memory when project.md exists", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const tmpDir = "/tmp/relay-qa-memory-test";
+    const tmpDir = `${tmpdir()}/${randomUUID()}`;
     mkdirSync(join(tmpDir, "memory"), { recursive: true });
     writeFileSync(join(tmpDir, "memory", "project.md"), "Project context here.");
 
@@ -479,7 +481,7 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
   test("injects agent-specific memory when agents/{id}.md exists", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const tmpDir = "/tmp/relay-qa-agent-memory-test";
+    const tmpDir = `${tmpdir()}/${randomUUID()}`;
     mkdirSync(join(tmpDir, "memory", "agents"), { recursive: true });
     writeFileSync(join(tmpDir, "memory", "agents", "analyst.md"), "Analyst personal notes.");
 
@@ -506,14 +508,14 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
       tools: [],
       systemPrompt: "You are a ghost.",
     };
-    const prompt = buildSystemPromptWithMemory(persona, "/tmp/relay-qa-no-memory-at-all-xyz");
+    const prompt = buildSystemPromptWithMemory(persona, `${tmpdir()}/${randomUUID()}`);
     expect(prompt).toBe("You are a ghost.");
   });
 
   test("injects lessons.md as team retrospectives section", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const tmpDir = "/tmp/relay-qa-lessons-test";
+    const tmpDir = `${tmpdir()}/${randomUUID()}`;
     mkdirSync(join(tmpDir, "memory"), { recursive: true });
     writeFileSync(join(tmpDir, "memory", "lessons.md"), "Lesson: always write tests.");
 
@@ -535,7 +537,7 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
   test("injects all three memory sources when all files exist", async () => {
     const { mkdirSync, writeFileSync, rmSync } = await import("node:fs");
     const { join } = await import("node:path");
-    const tmpDir = "/tmp/relay-qa-all-memory-test";
+    const tmpDir = `${tmpdir()}/${randomUUID()}`;
     mkdirSync(join(tmpDir, "memory", "agents"), { recursive: true });
     writeFileSync(join(tmpDir, "memory", "project.md"), "Project: relay.");
     writeFileSync(join(tmpDir, "memory", "lessons.md"), "Lessons learned here.");

@@ -136,7 +136,7 @@ dashboardServer.on("listening", () => {
 });
 
 // WebSocket server — handles /ws upgrade requests
-const wss = new WebSocketServer({ noServer: true });
+const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 });
 
 dashboardServer.on("upgrade", (request, socket, head) => {
   // Reject WebSocket upgrades from non-localhost origins.

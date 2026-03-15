@@ -1,7 +1,7 @@
 // packages/server/src/config.ts
 // Shared config module that resolves the project root from the MCP client (Claude Code).
 
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Project root received via MCP roots/list — set by setProjectRoot() after startMcpServer()
@@ -20,7 +20,8 @@ export function getProjectRoot(): string {
 }
 
 export function getRelayDir(): string {
-  return process.env.RELAY_DIR ?? join(getProjectRoot(), ".relay");
+  if (process.env.RELAY_DIR) return resolve(process.env.RELAY_DIR);
+  return join(getProjectRoot(), ".relay");
 }
 
 /**
@@ -39,7 +40,7 @@ export function getInstanceId(): string | undefined {
  * 3. .relay/relay.db (default)
  */
 export function getDbPath(): string {
-  if (process.env.RELAY_DB_PATH) return process.env.RELAY_DB_PATH;
+  if (process.env.RELAY_DB_PATH) return resolve(process.env.RELAY_DB_PATH);
   const instance = getInstanceId();
   if (instance) return join(getRelayDir(), `relay-${instance}.db`);
   return join(getRelayDir(), "relay.db");
@@ -117,4 +118,13 @@ export function setSessionId(id: string): void {
  */
 export function _resetSessionId(): void {
   _sessionId = null;
+}
+
+/**
+ * Reset the project root singleton back to null so getProjectRoot() will
+ * fall back to env vars / cwd on next call.
+ * @internal Test-only — do not call from production code.
+ */
+export function _resetProjectRoot(): void {
+  _projectRoot = null;
 }

@@ -1,7 +1,7 @@
 // packages/server/src/tools/memory.ts
 // Tool for reading and writing agent memory as Markdown files
 import { existsSync, mkdirSync } from "node:fs";
-import { appendFile, readFile, rename, writeFile } from "node:fs/promises";
+import { appendFile, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Validate agent_id to prevent path traversal attacks
@@ -9,9 +9,9 @@ function isValidId(id: string): boolean {
   return /^[a-zA-Z0-9_-]+$/.test(id);
 }
 
-// Validate memory section key — newlines would corrupt section headers
+// Validate memory section key — newlines would corrupt section headers; 256-char max
 function isValidMemoryKey(key: string): boolean {
-  return key.length > 0 && !key.includes("\n") && !key.includes("\r");
+  return key.length > 0 && key.length <= 256 && !key.includes("\n") && !key.includes("\r");
 }
 
 // Path to an agent's personal memory file
@@ -115,7 +115,17 @@ export async function handleWriteMemory(
     // Write atomically: write to a temp file then rename to avoid partial-write corruption
     const tmpPath = `${path}.tmp`;
     await writeFile(tmpPath, newContent);
-    await rename(tmpPath, path);
+    try {
+      await rename(tmpPath, path);
+    } catch (err) {
+      // Clean up the temp file if rename fails to avoid leaving orphaned .tmp files
+      try {
+        await unlink(tmpPath);
+      } catch {
+        // Ignore cleanup failure — best-effort only
+      }
+      throw err;
+    }
 
     return { success: true };
   } catch (err) {

@@ -171,10 +171,14 @@ app.post("/api/hook/tool-use", async (c) => {
   } catch {
     return c.json({ error: "invalid JSON payload" }, 400);
   }
-  const agent: string = body.tool_input?.agent_id ?? "unknown";
+  const rawAgentId = body?.tool_input?.agent_id;
+  const agentId =
+    typeof rawAgentId === "string" && /^[a-zA-Z0-9_-]+$/.test(rawAgentId) && rawAgentId.length <= 64
+      ? rawAgentId
+      : "unknown";
   broadcast({
     type: "agent:status",
-    agentId: markAsAgentId(agent),
+    agentId: markAsAgentId(agentId),
     status: "working",
     timestamp: Date.now(),
   });

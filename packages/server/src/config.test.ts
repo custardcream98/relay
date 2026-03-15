@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
+  _resetProjectRoot,
   _resetSessionId,
   getDbPath,
   getInstanceId,
@@ -50,6 +51,7 @@ describe("getRelayDir", () => {
   afterEach(() => {
     delete process.env.RELAY_DIR;
     delete process.env.RELAY_PROJECT_ROOT;
+    _resetProjectRoot();
   });
 
   test("returns RELAY_DIR when set", () => {

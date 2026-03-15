@@ -206,6 +206,70 @@ describe("POST /api/hook/tool-use", () => {
     const body = (await res.json()) as { error: string };
     expect(body.error).toContain("invalid JSON");
   });
+
+  test("returns 403 when Origin header is a non-localhost domain", async () => {
+    const res = await app.request("/api/hook/tool-use", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://evil.example.com",
+      },
+      body: JSON.stringify({ tool_name: "mcp__relay__send_message" }),
+    });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("forbidden");
+  });
+
+  test("returns 403 when Origin header is malformed", async () => {
+    const res = await app.request("/api/hook/tool-use", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "not-a-valid-origin",
+      },
+      body: JSON.stringify({ tool_name: "mcp__relay__send_message" }),
+    });
+    expect(res.status).toBe(403);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("forbidden");
+  });
+});
+
+describe("GET /api/sessions/:id", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("summary-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns 400 for session ID with encoded path traversal", async () => {
+    const res = await app.request("/api/sessions/..%2Fetc%2Fpasswd");
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Invalid");
+  });
+
+  test("returns 400 for session ID with spaces (encoded)", async () => {
+    const res = await app.request("/api/sessions/bad%20session%20id");
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Invalid");
+  });
+
+  test("returns 404 for valid but unknown session ID", async () => {
+    const res = await app.request("/api/sessions/nonexistent-session-xyz");
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBeDefined();
+  });
 });
 
 describe("GET /api/agents", () => {

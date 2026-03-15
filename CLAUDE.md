@@ -141,7 +141,7 @@ agents.pool.example.yml   # Example pool with 12+ personas (web-dev, research, m
 
 - Tool names: `snake_case`
 - Always include `agent_id` in parameters (to track who called)
-- All tools respond with `{ success: boolean, data?, error? }`
+- All tools respond with a flat JSON object where `success: boolean` is always present, followed by tool-specific fields (e.g. `{ success, tasks: [...] }`, `{ success, message: {...} }`, `{ success, artifact_id }`) — there is no nested `data` field. On failure: `{ success: false, error: string }`
 - Memory tools use the `RELAY_DIR` env var path (default: `cwd()/.relay`)
 - `broadcast_thinking(agent_id, content)` — fire-and-forget; emits `agent:thinking` WebSocket event
   to the dashboard. No DB write. Agents call this before significant operations for visibility.

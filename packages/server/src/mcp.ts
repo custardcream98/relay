@@ -55,7 +55,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_server_info",
     {
-      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (for tracking)"),
     },
     async () => {
       const port = getPort();
@@ -86,10 +90,15 @@ export function createMcpServer(): McpServer {
   server.tool(
     "start_session",
     {
-      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (for tracking)"),
       session_id: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(128)
         .describe("Session ID to activate (e.g. 2026-03-14-007)"),
     },
     async (input) => {
@@ -112,10 +121,20 @@ export function createMcpServer(): McpServer {
   server.tool(
     "send_message",
     {
-      agent_id: z.string().describe("ID of the sending agent (e.g. pm, fe, be, qa)"),
-      to: z.string().nullable().describe("ID of the recipient agent. null for broadcast"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the sending agent (e.g. pm, fe, be, qa)"),
+      to: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .nullable()
+        .optional()
+        .describe("ID of the recipient agent. null for broadcast"),
       content: z.string().max(65536).describe("Message content"),
-      thread_id: z.string().optional().describe("Thread ID (optional)"),
+      thread_id: z.string().max(256).optional().describe("Thread ID (optional)"),
     },
     async (input) => {
       const result = await handleSendMessage(getDb(), getSessionId(), input);
@@ -134,7 +153,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_messages",
     {
-      agent_id: z.string().describe("ID of the agent whose messages to fetch"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent whose messages to fetch"),
     },
     async (input) => {
       const result = await handleGetMessages(getDb(), getSessionId(), input);
@@ -148,10 +171,19 @@ export function createMcpServer(): McpServer {
   server.tool(
     "create_task",
     {
-      agent_id: z.string().describe("ID of the agent creating the task"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent creating the task"),
       title: z.string().describe("Task title"),
       description: z.string().optional().describe("Detailed description and acceptance criteria"),
-      assignee: z.string().optional().describe("ID of the agent assigned to the task"),
+      assignee: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe("ID of the agent assigned to the task"),
       priority: z.enum(["critical", "high", "medium", "low"]).describe("Task priority"),
     },
     async (input) => {
@@ -178,13 +210,22 @@ export function createMcpServer(): McpServer {
   server.tool(
     "update_task",
     {
-      agent_id: z.string().describe("ID of the agent performing the update"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent performing the update"),
       task_id: z.string().describe("ID of the task to update"),
       status: z
         .enum(["todo", "in_progress", "in_review", "done"])
         .optional()
         .describe("New status"),
-      assignee: z.string().optional().describe("New assignee"),
+      assignee: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe("New assignee"),
     },
     async (input) => {
       const result = await handleUpdateTask(getDb(), getSessionId(), input);
@@ -213,7 +254,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_my_tasks",
     {
-      agent_id: z.string().describe("ID of the agent whose tasks to fetch"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent whose tasks to fetch"),
     },
     async (input) => {
       const result = await handleGetMyTasks(getDb(), getSessionId(), input);
@@ -225,7 +270,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "claim_task",
     {
-      agent_id: z.string().describe("ID of the agent claiming the task"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent claiming the task"),
       task_id: z.string().describe("ID of the task to claim"),
     },
     async (input) => {
@@ -255,7 +304,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_team_status",
     {
-      agent_id: z.string().describe("ID of the calling agent"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent"),
     },
     async (input) => {
       const result = await handleGetTeamStatus(getDb(), getSessionId(), input);
@@ -267,7 +320,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_all_tasks",
     {
-      agent_id: z.string().describe("ID of the calling agent"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent"),
     },
     async (input) => {
       const result = await handleGetAllTasks(getDb(), getSessionId(), input);
@@ -281,7 +338,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "post_artifact",
     {
-      agent_id: z.string().describe("ID of the agent posting the artifact"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent posting the artifact"),
       name: z.string().describe("Artifact name (e.g. login-design, cart-fe-pr)"),
       type: z
         .enum(["figma_spec", "pr", "report", "analytics_plan", "design", "document"])
@@ -311,7 +372,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_artifact",
     {
-      agent_id: z.string().describe("ID of the agent fetching the artifact"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent fetching the artifact"),
       name: z.string().describe("Name of the artifact to retrieve"),
     },
     async (input) => {
@@ -326,9 +391,17 @@ export function createMcpServer(): McpServer {
   server.tool(
     "request_review",
     {
-      agent_id: z.string().describe("ID of the agent requesting the review"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent requesting the review"),
       artifact_id: z.string().describe("ID of the artifact to be reviewed"),
-      reviewer: z.string().describe("ID of the reviewer agent (e.g. fe2, be2)"),
+      reviewer: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the reviewer agent (e.g. fe2, be2)"),
     },
     async (input) => {
       const result = await handleRequestReview(getDb(), getSessionId(), input);
@@ -352,7 +425,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "submit_review",
     {
-      agent_id: z.string().describe("ID of the agent submitting the review"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent submitting the review"),
       review_id: z.string().describe("Review ID"),
       status: z.enum(["approved", "changes_requested"]).describe("Review outcome"),
       comments: z.string().optional().describe("Review comments"),
@@ -376,7 +453,12 @@ export function createMcpServer(): McpServer {
   server.tool(
     "read_memory",
     {
-      agent_id: z.string().optional().describe("Agent ID. Omit to return project.md + lessons.md"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe("Agent ID. Omit to return project.md + lessons.md"),
     },
     async (input) => {
       const result = await handleReadMemory(getRelayDir(), input);
@@ -388,7 +470,12 @@ export function createMcpServer(): McpServer {
   server.tool(
     "write_memory",
     {
-      agent_id: z.string().optional().describe("Agent ID. Omit to write to project.md"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe("Agent ID. Omit to write to project.md"),
       key: z.string().describe("Memory section key (e.g. conventions, api-patterns)"),
       content: z.string().max(131072).describe("Content to store"),
     },
@@ -409,7 +496,12 @@ export function createMcpServer(): McpServer {
   server.tool(
     "append_memory",
     {
-      agent_id: z.string().optional().describe("Agent ID. Omit to append to lessons.md"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe("Agent ID. Omit to append to lessons.md"),
       content: z.string().max(131072).describe("Content to append"),
     },
     async (input) => {
@@ -431,8 +523,16 @@ export function createMcpServer(): McpServer {
   server.tool(
     "save_session_summary",
     {
-      agent_id: z.string().describe("ID of the calling agent (typically the orchestrator)"),
-      session_id: z.string().describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (typically the orchestrator)"),
+      session_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(128)
+        .describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
       summary: z.string().describe("Session summary text"),
     },
     async (input) => {
@@ -445,7 +545,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "list_sessions",
     {
-      agent_id: z.string().describe("ID of the calling agent"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent"),
     },
     async (_input) => {
       const result = await handleListSessions(getRelayDir());
@@ -457,8 +561,16 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_session_summary",
     {
-      agent_id: z.string().describe("ID of the calling agent"),
-      session_id: z.string().describe("ID of the session to retrieve"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent"),
+      session_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(128)
+        .describe("ID of the session to retrieve"),
     },
     async (input) => {
       const result = await handleGetSessionSummary(getRelayDir(), { session_id: input.session_id });
@@ -470,7 +582,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "broadcast_thinking",
     {
-      agent_id: z.string().describe("ID of the agent sharing their thinking"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the agent sharing their thinking"),
       content: z.string().describe("What the agent is about to do or thinking about"),
     },
     async (input) => {
@@ -581,7 +697,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "list_agents",
     {
-      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (for tracking)"),
       session_id: z
         .string()
         .optional()
@@ -634,7 +754,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "list_pool_agents",
     {
-      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (for tracking)"),
     },
     async () => {
       return {
@@ -663,7 +787,11 @@ export function createMcpServer(): McpServer {
   server.tool(
     "get_workflow",
     {
-      agent_id: z.string().describe("ID of the calling agent (for tracking)"),
+      agent_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .describe("ID of the calling agent (for tracking)"),
     },
     async () => {
       let poolFile: AgentsFile | null = null;

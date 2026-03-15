@@ -73,6 +73,12 @@ export function loadAgents(
     if (config.disabled) continue;
     if (config.extends) continue; // handled in pass 2
 
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+      throw new Error(
+        `agent id "${id}" contains invalid characters; use alphanumeric, hyphen, underscore only`
+      );
+    }
+
     const language = config.language ?? globalLanguage;
 
     // Agent without extends must have all required fields.
@@ -103,6 +109,12 @@ export function loadAgents(
   for (const [id, config] of entries) {
     if (config.disabled) continue;
     if (!config.extends) continue; // already handled in pass 1
+
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+      throw new Error(
+        `agent id "${id}" contains invalid characters; use alphanumeric, hyphen, underscore only`
+      );
+    }
 
     const language = config.language ?? globalLanguage;
 

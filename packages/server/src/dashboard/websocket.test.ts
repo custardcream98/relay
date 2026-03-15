@@ -3,6 +3,7 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { markAsAgentId } from "@custardcream/relay-shared";
+import { _resetSessionId } from "../config.ts";
 import { _setDb, closeDb } from "../db/client.ts";
 import { getEventsBySession } from "../db/queries/events.ts";
 import { runMigrations } from "../db/schema.ts";
@@ -32,6 +33,7 @@ describe("websocket broadcast", () => {
 
   afterEach(() => {
     delete process.env.RELAY_SESSION_ID;
+    _resetSessionId();
     closeDb();
   });
 

@@ -22,6 +22,8 @@ export function getDb(): SqliteDatabase {
     betterDb.pragma("journal_mode = WAL");
     _db = betterDb as unknown as SqliteDatabase;
     runMigrations(_db);
+    // Enforce FK constraints at runtime (SQLite disables them by default)
+    _db.exec("PRAGMA foreign_keys = ON");
   }
   return _db;
 }

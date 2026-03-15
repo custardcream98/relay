@@ -12,7 +12,6 @@ my-project/
 └── .relay/
     ├── memory/                  # 세션을 넘어 지속되는 메모리 (git 커밋 권장)
     │   ├── project.md           # 아키텍처, 도메인, 기술 스택 요약
-    │   ├── lessons.md           # 반복되는 실수, 중요한 의사결정 히스토리
     │   └── agents/
     │       ├── pm.md            # PM 개인 메모리
     │       ├── fe.md            # FE: 컴포넌트 구조, 컨벤션
@@ -49,13 +48,6 @@ my-project/
 - 아키텍처 개요
 - 팀 컨벤션
 
-### lessons.md
-
-공유 팀 회고 및 의사결정 히스토리:
-- 반복되는 실수 패턴
-- 중요한 기술적 결정사항
-- 특별히 주의가 필요한 영역
-
 ### agents/&#123;agentId&#125;.md
 
 각 에이전트의 개인 메모리:
@@ -74,7 +66,7 @@ read_memory({ agent_id: "fe" })
 
 // 프로젝트 메모리 읽기 (agent_id 생략)
 read_memory({})
-// → project.md + lessons.md를 합쳐서 반환
+// → project.md 반환
 ```
 
 ### 쓰기 (섹션 덮어쓰기)
@@ -91,15 +83,10 @@ write_memory({
 ### 추가 (누적)
 
 ```typescript
-// 에이전트 개인 메모리에 추가
+// 에이전트 개인 메모리에 추가 (agent_id 필수)
 append_memory({
   agent_id: "qa",
   content: "2026-03-13: found missing empty-email case in login flow"
-})
-
-// 팀 메모리에 추가 (lessons.md) — agent_id 생략
-append_memory({
-  content: "Always confirm BE auth header spec before FE implementation starts"
 })
 ```
 
@@ -108,14 +95,13 @@ append_memory({
 ### 세션 시작 시
 
 각 에이전트의 시스템 프롬프트에 자동으로 주입됩니다:
-1. `project.md` + `lessons.md` (프로젝트 메모리)
+1. `project.md` (프로젝트 메모리)
 2. `agents/{agentId}.md` (개인 메모리)
 
 ### 세션 종료 시
 
 1. 각 에이전트가 `write_memory` 또는 `append_memory`로 새로 발견한 내용을 저장
-2. 팀 회고를 `lessons.md`에 추가
-3. `save_session_summary`로 세션을 아카이브
+2. `save_session_summary`로 세션을 아카이브
 
 ## 팀 공유
 

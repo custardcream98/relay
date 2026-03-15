@@ -31,13 +31,13 @@ description: 특정 에이전트 하나를 독립적으로 호출하기
 2. `get_server_info`로 대시보드 URL 조회 (자동 선택 포트, 기본값 3456)
 3. 지정된 에이전트의 페르소나와 메모리 로드
 4. `tools` 배열로 MCP 도구 접근을 제한해 에이전트를 독립적으로 실행
-5. 완료 후 `append_memory`로 학습 내용 저장
+5. 완료 후 `save_session_summary`로 세션 아카이브; 재사용 가능한 발견은 `write_memory`로 저장
 
 ## 메모리 로드
 
 단일 에이전트도 전체 프로젝트 컨텍스트를 활용합니다:
 1. `read_memory(agent_id: "{agentId}")` — 에이전트 개인 메모리
-2. `read_memory()` — 프로젝트 메모리 (`project.md` + `lessons.md`)
+2. `read_memory()` — 프로젝트 메모리 (`project.md`)
 
 두 결과를 합쳐 시스템 프롬프트 앞에 주입합니다.
 

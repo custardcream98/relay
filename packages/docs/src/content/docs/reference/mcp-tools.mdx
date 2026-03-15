@@ -3,7 +3,7 @@ title: MCP tools reference
 description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 18 tools: messaging, tasks, artifacts, reviews, memory, sessions, and visibility."
 ---
 
-All tools respond in the form `{ success: boolean, data?, error? }`.
+All tools respond with a flat object: `{ success: boolean, ...fields }` on success, or `{ success: false, error: string }` on failure — there is no nested `data` field.
 `agent_id` is always included in parameters to track who called.
 `session_id` is injected automatically by the server from the `RELAY_SESSION_ID` environment variable — clients do not need to pass it.
 
@@ -304,7 +304,7 @@ Read an agent's memory (or project memory).
 **Parameters:**
 ```typescript
 {
-  agent_id?: string; // if omitted, returns combined project.md + lessons.md
+  agent_id?: string; // if omitted, returns project.md only
 }
 ```
 
@@ -336,14 +336,14 @@ Writes to `project.md` when `agent_id` is omitted.
 
 ### append_memory
 
-Append content with a datestamp to an agent's memory.
-Appends to the shared `lessons.md` when `agent_id` is omitted.
+Append content with a datestamp to an agent's personal memory file.
+`agent_id` is required — use `save_session_summary` for session-level retrospectives.
 
 **Parameters:**
 ```typescript
 {
-  agent_id?: string; // agent ID. appends to lessons.md if omitted
-  content: string;   // content to append
+  agent_id: string; // agent ID (required)
+  content: string;  // content to append
 }
 ```
 

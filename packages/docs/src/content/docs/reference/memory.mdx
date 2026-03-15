@@ -1,6 +1,6 @@
 ---
 title: Memory structure
-description: "relay uses two memory layers: ephemeral session memory in SQLite and persistent project memory in .relay/memory/ Markdown files — shared across all agents and sessions."
+description: "relay uses two memory layers: ephemeral session summaries in .relay/sessions/ and persistent project memory in .relay/memory/ Markdown files — shared across all agents and sessions."
 ---
 
 Agent memory in relay is split into two layers: **session memory** and **project memory**.
@@ -12,7 +12,6 @@ my-project/
 └── .relay/
     ├── memory/                  # persistent memory across sessions (recommended to git-commit)
     │   ├── project.md           # architecture, domain, and tech stack summary
-    │   ├── lessons.md           # repeated mistakes, important decision history
     │   └── agents/
     │       ├── pm.md            # PM personal memory
     │       ├── fe.md            # FE: component structure, conventions
@@ -49,13 +48,6 @@ The project-wide summary written by the coordinator during `/relay:init`:
 - Architecture overview
 - Team conventions
 
-### lessons.md
-
-Shared team retrospective and decision history:
-- Recurring mistake patterns
-- Important technical decisions
-- Areas that need extra care
-
 ### agents/&#123;agentId&#125;.md
 
 Each agent's personal memory:
@@ -74,7 +66,7 @@ read_memory({ agent_id: "fe" })
 
 // Read project memory (omit agent_id)
 read_memory({})
-// → returns combined project.md + lessons.md
+// → returns project.md
 ```
 
 ### Writing (section overwrite)
@@ -91,15 +83,10 @@ write_memory({
 ### Appending (cumulative)
 
 ```typescript
-// Append to an agent's personal memory
+// Append to an agent's personal memory (agent_id is required)
 append_memory({
   agent_id: "qa",
   content: "2026-03-13: found missing empty-email case in login flow"
-})
-
-// Append to team memory (lessons.md) — omit agent_id
-append_memory({
-  content: "Always confirm BE auth header spec before FE implementation starts"
 })
 ```
 
@@ -108,14 +95,13 @@ append_memory({
 ### On session start
 
 Automatically injected into each agent's system prompt:
-1. `project.md` + `lessons.md` (project memory)
+1. `project.md` (project memory)
 2. `agents/{agentId}.md` (personal memory)
 
 ### On session end
 
 1. Each agent saves new discoveries via `write_memory` or `append_memory`
-2. Team retrospective is appended to `lessons.md`
-3. `save_session_summary` archives the session
+2. `save_session_summary` archives the session
 
 ## Team sharing
 

@@ -1,46 +1,48 @@
 ---
 title: Installation
-description: relay installation guide — register the MCP server with Claude Code
+description: Install relay as a Claude Code plugin — one command registers the MCP server and auto-installs all skills and hooks.
 ---
 
 import { Tabs, TabItem } from "@astrojs/starlight/components";
 
-relay is distributed as an npm package. Register the MCP server with Claude Code using the command below.
+relay is a **Claude Code plugin**. One command installs everything: the MCP server (message bus, task board, memory layer), the `/relay:relay`, `/relay:init`, and `/relay:agent` skills, and the PostToolUse hook that feeds the real-time dashboard.
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org) v18 or later (or any Node-compatible runtime)
-- [Claude Code](https://claude.ai/download) installed and signed in
+- [Node.js](https://nodejs.org) v18 or later
+- [Claude Code](https://claude.ai/download) installed and authenticated
 
-## Installation
+## Install
 
 <Tabs>
   <TabItem label="Global (recommended)">
-    Register the relay MCP server globally so it is available in all projects:
+    Available in all your projects:
 
     ```bash
     claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
     ```
 
-    Skills and hooks are installed automatically when the plugin is loaded.
+    Skills are installed to `~/.claude/skills/` automatically on first load.
   </TabItem>
   <TabItem label="Local (current project only)">
-    To scope relay to a single project, use `--scope local` instead:
+    Scoped to the current project only:
 
     ```bash
     claude mcp add --scope local relay -- npx -y --package @custardcream/relay relay
     ```
 
-    Local installation overrides global when both are present.
+    Skills are installed to `.claude/skills/` inside the project. Local overrides global when both are present.
   </TabItem>
 </Tabs>
 
-## Verify installation
+The `--` separates `claude mcp add` flags from the relay server command. Everything after `--` is the command Claude Code runs to start the MCP server.
 
-After restarting Claude Code, confirm the installation with:
+## Verify
+
+Restart Claude Code, then run:
 
 ```
 /relay:init
 ```
 
-If the relay MCP server connects successfully, the installation is complete.
+If the skills load and the MCP server connects, installation is complete.

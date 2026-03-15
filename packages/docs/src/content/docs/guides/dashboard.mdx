@@ -23,26 +23,27 @@ get_server_info({ agent_id: "orchestrator" })
 http://localhost:3456   # default — may differ if auto-selected
 ```
 
-## Three panels
+## Layout
 
 ![relay dashboard — live session in progress](/relay/screenshots/dashboard-en.png)
 
-### Task Board (Kanban)
+### Agent Arena (left sidebar)
 
-- Displays the full issue status as a Kanban board
-- Updates instantly when task state changes: `todo` → `in_progress` → `in_review` → `done`
+- Lists all agents in the session with their current status: `idle` (grey), `working` (green), `waiting` (yellow)
+- Shows the active task count and a live snippet of what each agent is currently thinking
+- Click an agent to focus the Activity feed on that agent's events
+
+### Activity Feed (main area)
+
+- Combined real-time timeline of all session events: messages, agent thinking streams, task updates, artifacts, and reviews
+- Filter by event type or agent
+- Thinking stream entries show live reasoning text as the agent works
+
+### Task Board (bottom, collapsible)
+
+- Kanban view of every task: `todo` → `in_progress` → `in_review` → `done`
+- Updates instantly when task state changes
 - Click a task to view details (assignee, priority, description)
-
-### Message Feed
-
-- Displays inter-agent conversations as Slack-style threads
-- Distinguishes `to: null` broadcast messages from direct messages
-- New messages appear in real time
-
-### Agent Thoughts
-
-- Streams the selected agent's reasoning (text before tool calls) in real time
-- Agent status indicator: `idle` (grey), `working` (green), `waiting` (yellow)
 
 ## WebSocket events
 
@@ -62,25 +63,13 @@ All events follow the `{ type, timestamp, ...payload }` structure — there is n
 | `session:started` | New session activated (resets dashboard view) |
 | `session:snapshot` | Full session state sent on WebSocket connect (for initial hydration) |
 
-## History replay
-
-All events are stored in SQLite with timestamps.
-
-Even after a session ends, you can select a session from the dashboard and replay the entire process:
-- The order in which agents worked
-- What messages were exchanged
-- Where blockers occurred
-
 ## REST API
 
 The dashboard also exposes a Hono-based REST API:
 
 ```
-GET  /api/session                  # current session snapshot (tasks, messages, artifacts)
-GET  /api/sessions                 # list all sessions
-GET  /api/sessions/:id             # specific session summary (summary.md)
-GET  /api/sessions/:id/events      # session event list (for history replay)
-GET  /api/sessions/:id/snapshot    # full snapshot for a past session (tasks, messages, artifacts)
-GET  /api/agents                   # agent list
-POST /api/hook/tool-use            # PostToolUse hook receiver (internal)
+GET  /api/session              # current session snapshot (tasks, messages, artifacts)
+GET  /api/sessions/:id         # session summary (summary.md written by save_session_summary)
+GET  /api/agents               # agent list (from the pool file)
+POST /api/hook/tool-use        # PostToolUse hook receiver (internal)
 ```

@@ -28,11 +28,11 @@ No phases. No turn-taking. Just a team working in parallel.
 
 The real-time dashboard at `http://localhost:3456` updates over WebSocket as agents work:
 
-- **Task Board** — Kanban view of every task: `todo` → `in_progress` → `in_review` → `done`
-- **Messages** — Slack-style feed of all inter-agent communication
-- **Agent Thoughts** — Live stream of the selected agent's reasoning before each tool call
+- **Agent Arena** — All agents side by side, each showing live status, active task count, and current thinking
+- **Activity Feed** — Combined timeline of messages, thinking streams, task updates, and artifacts in one view
+- **Task Board** — Collapsible Kanban at the bottom: `todo` → `in_progress` → `in_review` → `done`
 
-Every session is stored in SQLite for full replay after the fact.
+Every session event is stored for full replay after the fact.
 
 ## Define any team, for any domain
 
@@ -84,6 +84,6 @@ relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, n
 - **Atomic task claiming** — agents race to claim tasks; `claim_task` is race-condition safe
 - **Persistent memory** — agents write findings to `.relay/memory/` after each session; the next session picks up where the last left off
 - **Real-time dashboard** — watch tasks, messages, and agent reasoning update live at `http://localhost:3456`
-- **Full session replay** — every event is stored in SQLite; review the entire collaboration after the fact
+- **Session summaries** — each session is archived to `.relay/sessions/`; agents can read past context with `get_session_summary`
 
 Ready to try it? [Install relay →](/relay/getting-started/installation)

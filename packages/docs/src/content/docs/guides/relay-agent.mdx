@@ -31,13 +31,13 @@ Check the IDs from the `list_agents` result.
 2. Call `get_server_info` to get the dashboard URL (auto-selected port, default 3456)
 3. Load the specified agent's persona and memory
 4. Spawn the agent in isolation with its `tools` array restricting MCP tool access
-5. On completion, save learnings via `append_memory`
+5. On completion, archive the session via `save_session_summary`; save reusable discoveries via `write_memory`
 
 ## Memory loading
 
 Single agents work with the full project context:
 1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
-2. `read_memory()` — project memory (`project.md` + `lessons.md`)
+2. `read_memory()` — project memory (`project.md`)
 
 Both results are merged and prepended to the system prompt.
 

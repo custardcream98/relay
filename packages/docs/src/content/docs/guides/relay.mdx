@@ -33,7 +33,7 @@ Loads the full team via `list_agents` and **spawns all agents simultaneously**.
 
 For each agent spawn:
 1. Load persona from `list_agents`
-2. Load memory via `read_memory(agent_id)` + `read_memory()` (project.md + lessons.md)
+2. Load memory via `read_memory(agent_id)` (personal) + `read_memory()` (project.md)
 3. Restrict MCP tool access to the agent's `tools` array
 
 The user's request is added to the coordinator agent's system prompt.
@@ -69,6 +69,5 @@ the orchestrator immediately spawns that reviewer:
 ## Session end
 
 When all agents have declared `end:_done`:
-1. `append_memory(content: ...)` — save team retrospective to `lessons.md`
-2. `save_session_summary(session_id, summary)` — archive the session
-3. Report the results summary to the user
+1. `save_session_summary(session_id, summary)` — archive the session
+2. Report the results summary to the user

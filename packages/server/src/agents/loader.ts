@@ -135,6 +135,7 @@ export function loadAgents(
       ...config,
       id: markAsAgentId(id),
       extends: undefined,
+      basePersonaId: config.extends, // preserve the base persona ID before clearing extends
       ...(language ? { language } : {}),
     } as AgentPersona;
   }

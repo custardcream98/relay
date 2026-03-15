@@ -38,4 +38,5 @@ export interface AgentsFile {
 export interface AgentPersona extends AgentConfig {
   id: AgentId;
   tags?: string[]; // Optional taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
+  basePersonaId?: string; // Set when this agent was created via `extends` — holds the base persona ID
 }

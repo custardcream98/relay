@@ -11,9 +11,7 @@ import { loadPool } from "../agents/loader";
 import { getRelayDir, getSessionId } from "../config";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
-import { getEventsBySession } from "../db/queries/events";
 import { getAllMessages } from "../db/queries/messages";
-import { getAllSessions } from "../db/queries/sessions";
 import { getAllTasks } from "../db/queries/tasks";
 import { handleGetSessionSummary } from "../tools/sessions";
 import { broadcast } from "./websocket";
@@ -90,50 +88,6 @@ app.get("/api/session", (c) => {
     const db = getDb();
     const sessionId = getSessionId();
     return c.json({
-      tasks: getAllTasks(db, sessionId),
-      messages: getAllMessages(db, sessionId),
-      artifacts: getAllArtifacts(db, sessionId),
-    });
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
-  }
-});
-
-// API: list all sessions — used by FE session replay UI
-app.get("/api/sessions", (c) => {
-  try {
-    return c.json(getAllSessions());
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
-  }
-});
-
-// API: session events (for history replay)
-app.get("/api/sessions/:id/events", (c) => {
-  const sessionId = c.req.param("id");
-  // Validate session_id to prevent path traversal (consistent with /snapshot)
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-    return c.json({ error: "Invalid session_id format" }, 400);
-  }
-  try {
-    const events = getEventsBySession(sessionId);
-    return c.json({ success: true, events });
-  } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
-  }
-});
-
-// API: session snapshot — returns all tasks, messages, artifacts for a given session
-app.get("/api/sessions/:id/snapshot", (c) => {
-  const sessionId = c.req.param("id");
-  // Validate session_id to prevent path traversal
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-    return c.json({ error: "Invalid session_id format" }, 400);
-  }
-  try {
-    const db = getDb();
-    return c.json({
-      session_id: sessionId,
       tasks: getAllTasks(db, sessionId),
       messages: getAllMessages(db, sessionId),
       artifacts: getAllArtifacts(db, sessionId),

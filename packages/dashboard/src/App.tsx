@@ -13,14 +13,6 @@ import { useRelaySocket } from "./hooks/useRelaySocket";
 import { useTheme } from "./hooks/useTheme";
 import type { AgentMeta, DashboardEvent, Message, ServerEntry, Task, TimelineEntry } from "./types";
 
-// Snapshot response from GET /api/sessions/:id/snapshot
-interface SessionSnapshotData {
-  session_id: string;
-  tasks: Task[];
-  messages: Message[];
-  artifacts: unknown[];
-}
-
 // Global dashboard state
 interface DashboardState {
   tasks: Task[];
@@ -36,18 +28,12 @@ interface DashboardState {
   sessionTeam: AgentMeta[];
   // The session ID of the live session currently shown (from session:snapshot or session:started)
   liveSessionId: string | null;
-  // Session switcher — null = live current session, string = viewing historical session
-  viewingSessionId: string | null;
-  // Live state backup — saved when switching to historical session, restored on Back to Live
-  _liveSnapshot: { tasks: Task[]; messages: Message[]; timeline: TimelineEntry[] } | null;
   _seq: number; // sequence counter for pure reducer
 }
 
 type Action =
   | { type: "EVENT"; event: DashboardEvent }
   | { type: "SELECT_AGENT"; agentId: AgentId | null }
-  | { type: "SET_SESSION_SNAPSHOT"; snapshot: SessionSnapshotData }
-  | { type: "CLEAR_SESSION_SNAPSHOT" }
   | { type: "SWITCH_SERVER" };
 
 const initialState: DashboardState = {
@@ -61,8 +47,6 @@ const initialState: DashboardState = {
   instancePort: undefined,
   sessionTeam: [],
   liveSessionId: null,
-  viewingSessionId: null,
-  _liveSnapshot: null,
   _seq: 0,
 };
 
@@ -144,16 +128,6 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
-      // Skip live WebSocket events when viewing a historical session
-      // (tasks and messages are frozen to the snapshot; only let session:snapshot and session:started through)
-      if (
-        state.viewingSessionId !== null &&
-        action.event.type !== "session:snapshot" &&
-        action.event.type !== "session:started"
-      ) {
-        return state;
-      }
-
       const event = action.event;
 
       // Build timeline entry — agent:thinking replaces previous entry from the same agent
@@ -297,8 +271,6 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             timeline: [],
             sessionTeam: [],
             liveSessionId: event.sessionId,
-            viewingSessionId: null,
-            _liveSnapshot: null,
           };
         default:
           return { ...state, ...baseUpdates };
@@ -306,57 +278,6 @@ function reducer(state: DashboardState, action: Action): DashboardState {
     }
     case "SELECT_AGENT":
       return { ...state, selectedAgent: action.agentId };
-
-    case "SET_SESSION_SNAPSHOT": {
-      const { snapshot } = action;
-      // Build timeline from snapshot tasks + messages
-      const snapEntries: TimelineEntry[] = [
-        ...snapshot.messages.map((m) => ({
-          id: `hsnap-msg-${m.id}`,
-          type: "message:new" as const,
-          agentId: m.from_agent,
-          description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
-          detail: m.content,
-          timestamp: m.created_at * 1000,
-        })),
-        ...snapshot.tasks.map((t) => ({
-          id: `hsnap-task-${t.id}`,
-          type: "task:updated" as const,
-          agentId: t.assignee,
-          description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
-          // Use task's actual timestamp for correct chronological ordering in history replay
-          timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
-        })),
-      ].sort((a, b) => a.timestamp - b.timestamp);
-
-      return {
-        ...state,
-        viewingSessionId: snapshot.session_id,
-        // Save current live state so we can restore it on CLEAR_SESSION_SNAPSHOT
-        _liveSnapshot:
-          state.viewingSessionId === null
-            ? { tasks: state.tasks, messages: state.messages, timeline: state.timeline }
-            : state._liveSnapshot,
-        tasks: snapshot.tasks,
-        messages: snapshot.messages,
-        timeline: snapEntries,
-      };
-    }
-
-    case "CLEAR_SESSION_SNAPSHOT": {
-      // Restore live state saved before switching to historical session
-      if (state._liveSnapshot) {
-        return {
-          ...state,
-          viewingSessionId: null,
-          _liveSnapshot: null,
-          tasks: state._liveSnapshot.tasks,
-          messages: state._liveSnapshot.messages,
-          timeline: state._liveSnapshot.timeline,
-        };
-      }
-      return { ...state, viewingSessionId: null, _liveSnapshot: null };
-    }
 
     case "SWITCH_SERVER":
       // Clear all session-specific state when switching to a different relay server.
@@ -467,33 +388,7 @@ export default function App() {
     instanceId,
     instancePort,
     sessionTeam,
-    viewingSessionId,
   } = state;
-
-  // Session switcher — load a historical session snapshot
-  // Uses activeServer as base URL so switching servers works correctly
-  const handleSelectSession = useCallback(
-    (sessionId: string) => {
-      const base = activeServer.replace(/\/$/, "");
-      fetch(`${base}/api/sessions/${encodeURIComponent(sessionId)}/snapshot`)
-        .then((r) => {
-          if (!r.ok) throw new Error(`HTTP ${r.status}`);
-          return r.json() as Promise<SessionSnapshotData>;
-        })
-        .then((snapshot) => {
-          dispatch({ type: "SET_SESSION_SNAPSHOT", snapshot });
-        })
-        .catch(() => {
-          // Silently ignore fetch errors
-        });
-    },
-    [activeServer]
-  );
-
-  // Back to Live — restore live state and resume WebSocket updates
-  const handleBackToLive = useCallback(() => {
-    dispatch({ type: "CLEAR_SESSION_SNAPSHOT" });
-  }, []);
 
   const isFocusMode = selectedAgent !== null;
 
@@ -594,9 +489,6 @@ export default function App() {
         activeServer={activeServer}
         onSwitchServer={handleSwitchServer}
         onAddServer={handleAddServer}
-        viewingSessionId={viewingSessionId}
-        onSelectSession={handleSelectSession}
-        onBackToLive={handleBackToLive}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

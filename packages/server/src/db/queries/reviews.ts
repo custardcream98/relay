@@ -1,66 +1,47 @@
+import type { ReviewRow } from "../../store";
+import {
+  getReviewById as storeGetReviewById,
+  getReviewsByReviewer as storeGetReviewsByReviewer,
+  insertReview as storeInsertReview,
+  updateReviewStatus as storeUpdateReviewStatus,
+} from "../../store";
 import type { SqliteDatabase } from "../types";
 
-export interface ReviewRow {
-  id: string;
-  session_id: string;
-  artifact_id: string;
-  reviewer: string;
-  requester: string;
-  status: string;
-  comments: string | null;
-  created_at: number;
-  updated_at: number;
-}
+export type { ReviewRow } from "../../store";
 
-// Insert a review into the DB
+// Insert a review into the in-memory store
 export function insertReview(
-  db: SqliteDatabase,
+  _db: SqliteDatabase,
   review: Omit<ReviewRow, "created_at" | "updated_at">
 ): void {
-  db.prepare(`
-    INSERT INTO reviews (id, session_id, artifact_id, reviewer, requester, status, comments)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    review.id,
-    review.session_id,
-    review.artifact_id,
-    review.reviewer,
-    review.requester,
-    review.status,
-    review.comments
-  );
+  storeInsertReview(review);
 }
 
 // Update a review's status and comments, scoped to session to prevent cross-session writes
 export function updateReviewStatus(
-  db: SqliteDatabase,
+  _db: SqliteDatabase,
   id: string,
   sessionId: string,
   status: string,
   comments: string | null
 ): void {
-  db.prepare(`
-    UPDATE reviews SET status = ?, comments = ?, updated_at = unixepoch()
-    WHERE id = ? AND session_id = ?
-  `).run(status, comments, id, sessionId);
+  storeUpdateReviewStatus(id, sessionId, status, comments);
 }
 
 // Look up a review by ID (used for ownership validation)
-export function getReviewById(db: SqliteDatabase, id: string, sessionId: string): ReviewRow | null {
-  return (
-    (db.prepare("SELECT * FROM reviews WHERE id = ? AND session_id = ?").get(id, sessionId) as
-      | ReviewRow
-      | undefined) ?? null
-  );
+export function getReviewById(
+  _db: SqliteDatabase,
+  id: string,
+  sessionId: string
+): ReviewRow | null {
+  return storeGetReviewById(id, sessionId);
 }
 
 // Fetch all reviews assigned to a specific reviewer
 export function getReviewsByReviewer(
-  db: SqliteDatabase,
+  _db: SqliteDatabase,
   sessionId: string,
   reviewer: string
 ): ReviewRow[] {
-  return db
-    .prepare("SELECT * FROM reviews WHERE session_id = ? AND reviewer = ? ORDER BY created_at ASC")
-    .all(sessionId, reviewer) as ReviewRow[];
+  return storeGetReviewsByReviewer(sessionId, reviewer);
 }

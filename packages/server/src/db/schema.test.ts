@@ -1,77 +1,36 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore, getAllTasks, insertTask } from "../store";
 import { runMigrations } from "./schema";
+import type { SqliteDatabase } from "./types";
+
+// Dummy db — runMigrations no longer touches SQLite; it just resets the in-memory store
+const dummyDb = {} as unknown as SqliteDatabase;
 
 describe("DB schema migrations", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
 
-  afterEach(() => db.close());
+  test("runMigrations resets the in-memory store", () => {
+    insertTask({
+      id: "t1",
+      session_id: "sess-1",
+      title: "Test",
+      description: null,
+      assignee: null,
+      status: "todo",
+      priority: "medium",
+      created_by: "agent",
+    });
+    expect(getAllTasks("sess-1")).toHaveLength(1);
 
-  test("creates messages table", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='messages'")
-      .get();
-    expect(row).toBeTruthy();
-  });
+    runMigrations(dummyDb);
 
-  test("creates tasks table", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='tasks'")
-      .get();
-    expect(row).toBeTruthy();
-  });
-
-  test("creates artifacts table", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='artifacts'")
-      .get();
-    expect(row).toBeTruthy();
-  });
-
-  test("creates reviews table", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='reviews'")
-      .get();
-    expect(row).toBeTruthy();
-  });
-
-  test("creates events table", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='events'")
-      .get();
-    expect(row).toBeTruthy();
+    expect(getAllTasks("sess-1")).toHaveLength(0);
   });
 
   test("runMigrations is idempotent (calling twice does not throw)", () => {
-    // CREATE TABLE IF NOT EXISTS and CREATE INDEX IF NOT EXISTS must be safe to call repeatedly
-    expect(() => runMigrations(db)).not.toThrow();
-  });
-
-  test("creates index on messages(session_id, to_agent)", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_messages_session'")
-      .get();
-    expect(row).toBeTruthy();
-  });
-
-  test("creates index on tasks(session_id, assignee)", () => {
-    const row = db
-      .prepare(
-        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_tasks_session_assignee'"
-      )
-      .get();
-    expect(row).toBeTruthy();
-  });
-
-  test("creates index on events(session_id, created_at)", () => {
-    const row = db
-      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_events_session'")
-      .get();
-    expect(row).toBeTruthy();
+    expect(() => runMigrations(dummyDb)).not.toThrow();
+    expect(() => runMigrations(dummyDb)).not.toThrow();
   });
 });

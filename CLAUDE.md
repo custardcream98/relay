@@ -10,14 +10,14 @@ The MCP server handles all inter-agent communication infrastructure.
 
 ## Tech Stack & Conventions
 
-- **Runtime**: Bun (both production and dev — `bun run`, `bun test`; requires Bun installed on end-user machines)
+- **Runtime**: Node.js (production); Bun (dev tooling — `bun run`, `bun test`)
 - **Language**: TypeScript (strict mode)
 - **MCP server**: `@modelcontextprotocol/sdk` + `@hono/node-server`
 - **API server**: Hono (runs in the same process as the MCP server)
 - **Realtime**: `ws` WebSocket
 - **Frontend**: React + Vite (`packages/dashboard/`)
 - **Styling**: Tailwind CSS
-- **DB**: `better-sqlite3` (production); `bun:sqlite` (tests only — injected via `_setDb()`)
+- **DB**: In-memory store (`store.ts`) — ephemeral, no native bindings required. `bun:sqlite` is used only in tests via `_setDb()` for isolation.
 - **Memory**: Markdown files (`.relay/memory/`)
 - **Persona config**: YAML (`.relay/agents.pool.yml` / `agents.pool.yml`)
 - **Package manager**: bun (do not use npm/yarn/pnpm)
@@ -224,7 +224,8 @@ bun run version-packages
 ## Notes
 
 - Never add code that calls the Claude API directly (incurs extra billing)
-- Bun APIs (`bun:sqlite`, `Bun.*`) are available in production code — the server runs on Bun
+- Use `node:` built-ins for production code; Bun APIs are only for dev tooling (test runner, build)
+  - `tsconfig.json` includes `"bun"` in `types` to support `bun:test` / `bun:sqlite` in test files — do NOT use Bun APIs in `src/` production code
   - `tsconfig.json` includes `"bun"` in `types` for `bun:test` / `bun:sqlite` support in both src/ and test files
   - Use `node:` built-ins where they provide cleaner APIs (fs, path, etc.) — Bun implements them
 - All code comments must be in English

@@ -5,6 +5,24 @@
 import type { AgentId } from "@custardcream/relay-shared";
 export type { AgentId };
 
+/**
+ * Git-hook style task lifecycle hooks. Shell commands are run by the MCP server
+ * in the project root directory. Non-zero exit blocks the operation.
+ * Accepts a single command string or an array of commands (run sequentially).
+ */
+export interface AgentHooks {
+  /** Shell command(s) run BEFORE claim_task. Non-zero exit blocks claiming. */
+  before_task?: string | string[];
+  /** Shell command(s) run AFTER update_task(status: "done"). Non-zero exit reverts status. */
+  after_task?: string | string[];
+}
+
+/** Resolved hooks after loader normalization — all commands are arrays. */
+export interface ResolvedAgentHooks {
+  before_task: string[];
+  after_task: string[];
+}
+
 export interface AgentConfig {
   name: string;
   emoji: string;
@@ -15,6 +33,7 @@ export interface AgentConfig {
   disabled?: boolean; // when true, this agent is excluded from the registry
   extends?: string; // inherit another agent's config and override
   tags?: string[]; // taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
+  hooks?: AgentHooks | false; // false = explicit opt-out of inherited hooks
 }
 
 export interface WorkflowJob {
@@ -35,8 +54,10 @@ export interface AgentsFile {
 }
 
 // Fully resolved persona returned by loader after merging defaults and custom overrides
-export interface AgentPersona extends AgentConfig {
+export interface AgentPersona extends Omit<AgentConfig, "hooks"> {
   id: AgentId;
   tags?: string[]; // Optional taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
   basePersonaId?: string; // Set when this agent was created via `extends` — holds the base persona ID
+  /** Resolved hooks: string | string[] normalized to string[], false normalized to undefined. */
+  hooks?: ResolvedAgentHooks;
 }

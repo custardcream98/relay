@@ -146,6 +146,25 @@ agents.pool.example.yml   # Example pool with 12+ personas (web-dev, research, m
 - `broadcast_thinking(agent_id, content)` — fire-and-forget; emits `agent:thinking` WebSocket event
   to the dashboard. No DB write. Agents call this before significant operations for visibility.
 
+## Agent Task Hooks
+
+Git-hook style shell commands declared per-agent in the pool YAML. The MCP server executes them in the project root (`getProjectRoot()`). Non-zero exit blocks the operation.
+
+```yaml
+hooks:
+  before_task: "echo before"          # string or list of strings
+  after_task:
+    - bunx biome check --write
+    - bun tsc --noEmit
+```
+
+- **`before_task`**: runs BEFORE `claim_task` atomically claims the task. Non-zero exit returns `claimed: false` (no phantom `in_progress` state).
+- **`after_task`**: runs AFTER the store write when `update_task(status: "done")` is called. Non-zero exit reverts status to `in_review` and returns `success: false`.
+- Timeouts: 30 s for `before_task`, 120 s for `after_task`.
+- Env vars injected into hooks: `RELAY_AGENT_ID`, `RELAY_TASK_ID`, `RELAY_SESSION_ID`.
+- `hooks: false` in an `extends`-based agent explicitly opts out of inherited hooks.
+- Implementation: `tools/hook-runner.ts` (runHook / runHooks), wired in `tools/tasks.ts` wrapper functions, called from `mcp.ts` claim_task / update_task handlers.
+
 ## Workflow
 
 1. `/relay:init` — run once; all configured agents scan in parallel and initialize `.relay/memory/`

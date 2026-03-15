@@ -263,7 +263,14 @@ export function createMcpServer(): McpServer {
         .describe("New assignee agent ID. Use to reassign a task to another agent."),
     },
     async (input) => {
-      const result = await handleUpdateTask(getDb(), getSessionId(), input);
+      const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
+      const result = await handleUpdateTask(
+        getDb(),
+        getSessionId(),
+        input,
+        agentHooks,
+        getProjectRoot()
+      );
       if (result.success) {
         const task = getTaskById(getDb(), input.task_id, getSessionId());
         if (task) {
@@ -321,7 +328,14 @@ export function createMcpServer(): McpServer {
         ),
     },
     async (input) => {
-      const result = await handleClaimTask(getDb(), getSessionId(), input);
+      const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
+      const result = await handleClaimTask(
+        getDb(),
+        getSessionId(),
+        input,
+        agentHooks,
+        getProjectRoot()
+      );
       if (result.claimed) {
         const task = getTaskById(getDb(), input.task_id, getSessionId());
         if (task) {

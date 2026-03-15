@@ -192,6 +192,44 @@ describe("tasks tool", () => {
       expect(result.reason).toContain(depId as string);
     });
 
+    test("before_task hook failure blocks claiming (task stays todo)", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "hook-guarded task",
+        assignee: "fe",
+        priority: "high",
+      });
+      const result = await handleClaimTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string },
+        { before_task: ["exit 1"], after_task: [] }
+      );
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(false);
+      expect(result.reason).toContain("before_task hook failed");
+      // Task must remain todo — no phantom in_progress
+      const { tasks } = await handleGetAllTasks(db, "sess-1", { agent_id: "fe" });
+      expect(tasks[0].status).toBe("todo");
+    });
+
+    test("before_task hook success allows claiming", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "hook-guarded task",
+        assignee: "fe",
+        priority: "high",
+      });
+      const result = await handleClaimTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string },
+        { before_task: ["echo ok"], after_task: [] }
+      );
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(true);
+    });
+
     test("cannot claim task when a depends_on is still 'in_progress'", async () => {
       const { task_id: depId } = await handleCreateTask(db, "sess-1", {
         agent_id: "pm",
@@ -218,6 +256,67 @@ describe("tasks tool", () => {
       expect(result.success).toBe(true);
       expect(result.claimed).toBe(false);
       expect(result.reason).toContain(depId as string);
+    });
+  });
+
+  describe("update_task hooks", () => {
+    test("after_task hook failure reverts status to in_review", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "task with after hook",
+        assignee: "fe",
+        priority: "high",
+      });
+      // Move to in_progress first
+      await handleClaimTask(db, "sess-1", { agent_id: "fe", task_id: task_id as string });
+      // Attempt to mark done — hook fails
+      const result = await handleUpdateTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string, status: "done" },
+        { before_task: [], after_task: ["exit 1"] }
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("after_task hook failed");
+      // Status must be reverted to in_review
+      const { tasks } = await handleGetAllTasks(db, "sess-1", { agent_id: "fe" });
+      expect(tasks[0].status).toBe("in_review");
+    });
+
+    test("after_task hook success keeps status as done", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "task with passing after hook",
+        assignee: "fe",
+        priority: "high",
+      });
+      await handleClaimTask(db, "sess-1", { agent_id: "fe", task_id: task_id as string });
+      const result = await handleUpdateTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string, status: "done" },
+        { before_task: [], after_task: ["echo ok"] }
+      );
+      expect(result.success).toBe(true);
+      const { tasks } = await handleGetAllTasks(db, "sess-1", { agent_id: "fe" });
+      expect(tasks[0].status).toBe("done");
+    });
+
+    test("after_task hook is NOT triggered for non-done status updates", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "task",
+        assignee: "fe",
+        priority: "low",
+      });
+      // This would fail if the hook ran, but status is not "done"
+      const result = await handleUpdateTask(
+        db,
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string, status: "in_progress" },
+        { before_task: [], after_task: ["exit 1"] }
+      );
+      expect(result.success).toBe(true);
     });
   });
 

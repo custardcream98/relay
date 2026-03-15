@@ -1,3 +1,4 @@
+import type { ResolvedAgentHooks } from "../agents/types";
 import type { TaskRow } from "../db/queries/tasks";
 import {
   claimTask,
@@ -9,6 +10,7 @@ import {
   updateTask,
 } from "../db/queries/tasks";
 import type { SqliteDatabase } from "../db/types";
+import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner";
 
 // Create a task and return its generated ID
 export function handleCreateTask(
@@ -44,10 +46,14 @@ export function handleCreateTask(
 
 // Update a task's status or assignee.
 // Returns success: false if the task does not exist or belongs to a different session.
-export function handleUpdateTask(
+// If hooks.after_task is set and status is being set to "done", the hook runs after the store write.
+// Non-zero exit reverts the status back to "in_review".
+export async function handleUpdateTask(
   db: SqliteDatabase,
   sessionId: string,
-  input: { agent_id: string; task_id: string; status?: string; assignee?: string }
+  input: { agent_id: string; task_id: string; status?: string; assignee?: string },
+  hooks?: ResolvedAgentHooks,
+  projectRoot?: string
 ) {
   try {
     const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};
@@ -59,6 +65,32 @@ export function handleUpdateTask(
     }
     const updated = updateTask(db, input.task_id, sessionId, updates);
     if (!updated) return { success: false, error: "task not found" };
+
+    // Run after_task hook when status transitions to "done".
+    // Runs AFTER the store write (store is in-memory and cannot fail, so no need for pre-write guard).
+    // Non-zero exit reverts the task status back to "in_review".
+    if (input.status === "done" && hooks?.after_task?.length) {
+      const hookEnv = {
+        RELAY_AGENT_ID: input.agent_id,
+        RELAY_TASK_ID: input.task_id,
+        RELAY_SESSION_ID: sessionId,
+      };
+      const hookResult = await runHooks(
+        hooks.after_task,
+        hookEnv,
+        projectRoot ?? process.cwd(),
+        DEFAULT_AFTER_TIMEOUT_MS
+      );
+      if (!hookResult.success) {
+        // Revert status to in_review so the agent knows to fix the issue
+        updateTask(db, input.task_id, sessionId, { status: "in_review" });
+        return {
+          success: false,
+          error: `after_task hook failed (exit ${hookResult.exitCode ?? "timeout"}): ${hookResult.output}`,
+        };
+      }
+    }
+
     return { success: true };
   } catch (err) {
     return { success: false, error: String(err) };
@@ -82,10 +114,13 @@ export function handleGetMyTasks(
 // Atomically claim a task. Returns claimed: true only if the task is 'todo' and assigned to (or unassigned from) the agent.
 // session_id is passed to prevent cross-session claims.
 // If the task has depends_on entries, all referenced tasks must be in 'done' state first.
-export function handleClaimTask(
+// If hooks.before_task is set, the shell command runs BEFORE claiming. Non-zero exit blocks claiming.
+export async function handleClaimTask(
   db: SqliteDatabase,
   sessionId: string,
-  input: { agent_id: string; task_id: string }
+  input: { agent_id: string; task_id: string },
+  hooks?: ResolvedAgentHooks,
+  projectRoot?: string
 ) {
   try {
     // Check depends_on before attempting the atomic claim
@@ -103,6 +138,28 @@ export function handleClaimTask(
           success: true,
           claimed: false,
           reason: `Unmet dependencies: ${unmetIds.join(", ")}`,
+        };
+      }
+    }
+
+    // Run before_task hook BEFORE claiming so a hook failure never creates a phantom in_progress task
+    if (hooks?.before_task?.length) {
+      const hookEnv = {
+        RELAY_AGENT_ID: input.agent_id,
+        RELAY_TASK_ID: input.task_id,
+        RELAY_SESSION_ID: sessionId,
+      };
+      const hookResult = await runHooks(
+        hooks.before_task,
+        hookEnv,
+        projectRoot ?? process.cwd(),
+        DEFAULT_BEFORE_TIMEOUT_MS
+      );
+      if (!hookResult.success) {
+        return {
+          success: true,
+          claimed: false,
+          reason: `before_task hook failed (exit ${hookResult.exitCode ?? "timeout"}): ${hookResult.output}`,
         };
       }
     }

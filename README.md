@@ -8,7 +8,7 @@
 <p align="center">
   <strong>Stop prompting one agent. Ship with a whole team.</strong>
   <br />
-  <span>relay turns Claude Code into a real engineering org — 12+ specialist agents running in parallel, communicating in real time, zero extra API cost.</span>
+  <span>Define any team in YAML. relay spawns them all at once, handles all communication, tracks every task, and persists memory across sessions — you just describe the goal.</span>
 </p>
 
 <p align="center">
@@ -30,74 +30,23 @@
 <br />
 <br />
 
-## The problem with one agent
+## Why relay?
 
-A single AI agent serializes everything. It context-switches constantly, loses track of decisions it made ten steps ago, and turns every task into a single-threaded bottleneck.
+Most AI tooling runs one agent at a time. That agent context-switches constantly, loses track of earlier decisions, and turns every task into a serial bottleneck.
 
-You wouldn't build a product with one engineer. Don't ship AI work that way either.
+relay works differently:
 
-<br />
+- **Parallel by default** — all agents are alive from session start, working simultaneously
+- **Peer-to-peer** — agents communicate directly through MCP tools; no central orchestrator serializing every decision
+- **Atomic task claiming** — `claim_task` is race-condition safe; two agents can never pick up the same work
+- **Persistent memory** — agents remember what they learned last session; `.relay/memory/` is plain Markdown, git-trackable and editable by the whole team
+- **Zero extra API cost** — relay uses Claude Code's built-in Agent tool exclusively; no direct Claude API calls
 
-## What relay does
-
-You describe a goal. relay spins up a full team — each agent with a focused role — and they work in parallel, communicate through a message bus, claim tasks atomically, and hand off to the next agent when their part is done.
-
-```
-/relay:relay "add a shopping cart"
-
-[PM]       breaks down requirements → creates tasks for the team
-[Designer] writes UX flow + component spec
-[DA]       defines event schema, success metrics     ← all running simultaneously
-[FE]       claims FE tasks, builds the UI
-[BE]       shares API contract early, builds backend
-[FE][BE]   request peer reviews via broadcast
-[QA]       watches for completed work, writes test scenarios
-[Deployer] waits for QA sign-off → ships
-```
-
-No phases. No turn-taking. All agents are alive from session start and react to each other organically.
-
-**Not just web dev.** Define any team for any domain — research, marketing, legal, education. You write the personas; relay handles the rest.
-
-**Zero extra API cost.** relay uses Claude Code's Agent tool exclusively. No direct Claude API calls.
-
-<br />
-
-## 30-second install
-
-### Prerequisites
-
-- [Claude Code](https://claude.ai/download) v1.0.33+ installed and authenticated
-- [Node.js](https://nodejs.org) v18+
-
-### Install the plugin
-
-```
-/plugin marketplace add custardcream98/relay
-/plugin install relay@relay
-```
-
-Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
-
-> Install for a single project only: add `--scope project` to the install command.
-
-### Run it
-
-```
-# First time on a new project — agents scan your codebase in parallel
-/relay:init
-
-# Then just describe what you want
-/relay:relay "add a shopping cart"
-```
-
-That's it. The team takes it from there.
+Any domain. Define a web-dev team, a research team, a marketing team — whatever fits your work.
 
 <br />
 
 ## How it works
-
-relay is a Claude Code plugin with three layers:
 
 ```
 relay (plugin)
@@ -106,11 +55,67 @@ relay (plugin)
 └── Hooks         PostToolUse → real-time dashboard push
 ```
 
-**MCP Server** — stores and routes data only. No AI, no decisions. Agents read and write to it exclusively through MCP tools.
+The **MCP server** stores and routes data only — no AI, no decisions. Agents read from and write to it exclusively through MCP tools.
 
-**Skills** — `.md` files that tell the orchestrating Claude Code session how to spawn agents, which tools to use, and how to interpret results. Change orchestration behavior by editing a file, no restart required.
+**Skills** are `.md` files that tell the orchestrating Claude Code session how to spawn agents, which tools to use, and how to interpret results. Change orchestration behavior by editing a file — no restart needed.
 
-**Hooks** — `hooks/hooks.json` registers a `PostToolUse` hook that fires on every MCP tool call and pushes live status updates to the dashboard.
+**Hooks** fire on every MCP tool call and push live updates to the dashboard.
+
+<br />
+
+## 30-second install
+
+**Prerequisites:** [Claude Code](https://claude.ai/download) v1.0.33+ · [Node.js](https://nodejs.org) v18+
+
+```
+/plugin marketplace add custardcream98/relay
+/plugin install relay@relay
+```
+
+Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
+
+> Install for a single project only: add `--scope project`.
+
+<br />
+
+## Quick start
+
+```bash
+# First time on a new project — all agents scan your codebase in parallel
+/relay:init
+
+# Describe what you want
+/relay:relay "add a shopping cart"
+```
+
+```
+[PM]       breaks down requirements → creates tasks for the team
+[Designer] writes UX flow + component spec
+[DA]       defines event schema, success metrics     ← all at once
+[FE]       claims FE tasks, builds the UI
+[BE]       shares API contract early, builds backend
+[FE][BE]   request peer reviews via broadcast
+[QA]       watches for completed work, writes test scenarios
+[Deployer] waits for QA sign-off → ships
+```
+
+No phases. No turn-taking.
+
+<br />
+
+## Dashboard
+
+The MCP server starts a live dashboard at session start (default `http://localhost:3456`).
+
+![relay dashboard](./packages/docs/public/screenshots/dashboard-en.png)
+
+**Agent Arena** (left) — all session agents with live status (`idle` / `working` / `waiting`) and a snippet of their current thinking. Click any agent to focus the Activity Feed on them.
+
+**Activity Feed** (top right) — real-time timeline of every event: messages, task updates, artifact posts, review requests, and agent thinking streams. Filter by event type or agent. Switch to the **Messages** tab for a Slack-style thread view of all inter-agent conversations.
+
+**Task Board** (bottom, collapsible) — Kanban across `todo → in_progress → in_review → done`. Click any task for the detail modal.
+
+Session data lives in-memory for the duration of the server process. The session switcher in the header lets you navigate between sessions from the current run.
 
 <br />
 
@@ -138,143 +143,71 @@ agents:
       You are a researcher. Investigate topics and post findings as artifacts...
 
   researcher2:
-    extends: researcher   # inherit full persona, just change the ID
+    extends: researcher   # inherit full persona, different agent ID
     name: Senior Researcher
     emoji: "🔭"
 ```
 
 Copy `agents.pool.example.yml` — 12 pre-built personas spanning web-dev, research, and marketing — to `.relay/agents.pool.yml` to get started immediately.
 
-Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`.
+`/relay:relay` reads the pool each time and assembles a task-optimized team from it. Set a top-level `language: "Korean"` to default all agents to a specific language.
 
-<br />
+Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`.
 
-## Real-time dashboard
-
-The MCP server serves a live dashboard. The URL is printed at session start (default `http://localhost:3456`, auto-selects `3457–3465` if already in use). Watch your team work.
-
-![relay dashboard](./packages/docs/public/screenshots/dashboard-en.png)
-
-Three panels update in real time:
-
-**Task Board** — full Kanban. Watch tasks move from todo → in_progress → done as agents claim and complete them.
-
-**Message Feed** — every inter-agent conversation in a Slack-style thread view. See who said what, when, and why.
-
-**Agent Thoughts** — live stream of whichever agent's reasoning you want to follow. Know what the agent is about to do before it does it.
-
-All events are persisted to SQLite — replay any session in full after the fact. Use the session switcher in the dashboard to browse and replay past sessions.
-
-<br />
-
-## Persistent memory
-
-Agents remember what they learn. Memory is split across two layers:
-
-```
-your-project/
-└── .relay/
-    ├── memory/                    persists across sessions (commit to git)
-    │   ├── project.md             architecture, domain, tech stack
-    │   └── agents/
-    │       ├── pm.md
-    │       ├── fe.md
-    │       └── ...
-    └── sessions/                  per-session audit log
-        └── 2026-03-14-001/
-            └── summary.md
-```
-
-At session start, `project.md` and each agent's personal memory file are injected into their system prompt. At session end, agents write what they learned back. Memory is plain Markdown — edit it directly, commit it, share it with your team.
+**`hooks`** — git-hook style shell commands run by the MCP server before/after task lifecycle events:
+- `before_task`: runs before `claim_task`; non-zero exit blocks claiming (no phantom `in_progress`)
+- `after_task`: runs after `update_task(status: "done")`; non-zero exit reverts to `in_review`
+- Accepts a single string or array of strings (run sequentially). `hooks: false` opts out of inherited hooks.
 
 <br />
 
 ## Agent tools
 
-Every agent communicates exclusively through MCP tools:
+Every agent communicates exclusively through MCP tools. Each tool returns `{ success: boolean, ...fields }`.
 
-| Category   | Tool                   | What it does                         |
-| ---------- | ---------------------- | ------------------------------------ |
-| Messaging  | `send_message`         | Send a message to another agent      |
-| Messaging  | `get_messages`         | Read incoming messages               |
-| Tasks      | `create_task`          | Open a new task                      |
-| Tasks      | `update_task`          | Update status or add a comment       |
-| Tasks      | `get_my_tasks`         | List tasks assigned to this agent    |
-| Tasks      | `get_all_tasks`        | List all tasks in the session        |
-| Tasks      | `claim_task`           | Atomically claim a task (race-safe)  |
-| Tasks      | `get_team_status`      | Aggregate task counts by status      |
-| Artifacts  | `post_artifact`        | Share output — spec, PR, report, ... |
-| Artifacts  | `get_artifact`         | Retrieve an artifact                 |
-| Review     | `request_review`       | Request a code or design review      |
-| Review     | `submit_review`        | Submit review feedback               |
-| Memory     | `read_memory`          | Read cross-session memory            |
-| Memory     | `write_memory`         | Overwrite a memory file              |
-| Memory     | `append_memory`        | Append to a memory file              |
-| Sessions   | `save_session_summary` | Save a session summary               |
-| Sessions   | `list_sessions`        | List past sessions                   |
-| Sessions   | `get_session_summary`  | Retrieve a session summary           |
-| Visibility | `broadcast_thinking`   | Push agent intent to the dashboard   |
-| Session    | `get_server_info`      | Get dashboard URL and session ID     |
-| Session    | `start_session`        | Initialize a new session             |
-| Session    | `list_agents`          | List agents in the active session    |
-| Session    | `list_pool_agents`     | List pool agents (for team selection)|
-| Session    | `get_workflow`         | Read workflow config from pool file  |
-
-<br />
-
-## Multi-instance support
-
-Run multiple relay instances simultaneously — separate ports, separate databases, no conflicts.
-
-```json
-{
-  "mcpServers": {
-    "relay": {
-      "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
-      "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
-    },
-    "relay-b": {
-      "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
-      "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
-    }
-  }
-}
+```
+Messaging    send_message · get_messages  (supports optional metadata)
+Tasks        create_task · update_task · claim_task · get_my_tasks · get_all_tasks · get_team_status
+             └── Tasks support depends_on — claim_task blocks until all dependencies are done
+Artifacts    post_artifact · get_artifact
+Reviews      request_review · submit_review
+Memory       read_memory · write_memory · append_memory
+Sessions     save_session_summary · list_sessions · get_session_summary
+Agents       list_agents · list_pool_agents · get_workflow
+Visibility   broadcast_thinking  (fire-and-forget; pushes agent intent to the dashboard)
+Server       get_server_info · start_session
 ```
 
+Full tool reference: [custardcream98.github.io/relay](https://custardcream98.github.io/relay)
+
 <br />
 
-## Call a single agent directly
+## Memory
 
-No need to spin up the full team for focused work:
+Agents remember across sessions. At session start, each agent receives its personal memory file plus the shared `project.md` injected into its system prompt. At session end, agents write back what they learned.
+
+```
+.relay/memory/
+├── project.md          architecture, domain, tech stack
+└── agents/
+    ├── pm.md
+    ├── fe.md
+    └── ...
+```
+
+Plain Markdown. Edit directly, commit to git, share with the whole team.
+
+<br />
+
+## More
+
+**Single agent** — no need to spin up the full team for focused work:
 
 ```bash
 /relay:agent fe "Refactor the CartItem component"
 ```
 
-<br />
-
-## Project structure
-
-```
-relay/
-├── .claude-plugin/
-│   └── plugin.json              plugin manifest
-├── packages/
-│   ├── server/                  MCP server + Hono REST + WebSocket
-│   ├── shared/                  shared types (AgentId, RelayEvent)
-│   ├── dashboard/               React + Vite real-time UI
-│   └── docs/                    Astro + Starlight documentation site
-├── skills/
-│   ├── relay/SKILL.md           /relay:relay — full workflow orchestration
-│   ├── init/SKILL.md            /relay:init — parallel project scan
-│   └── agent/SKILL.md           /relay:agent — invoke a single agent directly
-├── hooks/
-│   └── hooks.json               PostToolUse hook → dashboard status push
-├── .mcp.json                    MCP server config
-└── agents.pool.example.yml      starter pool: 12 personas (copy to .relay/agents.pool.yml)
-```
+**Multiple instances** — run several relay instances simultaneously on separate ports with isolated databases. See the [docs](https://custardcream98.github.io/relay) for environment variables and `.mcp.json` config.
 
 <br />
 

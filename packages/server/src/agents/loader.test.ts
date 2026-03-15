@@ -43,6 +43,86 @@ describe("loadAgents", () => {
     expect(result.peer_reviewer.name).toBe("Peer Reviewer"); // overridden
   });
 
+  test("hooks string is normalized to string[]", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "Frontend",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "You are a frontend engineer.",
+          hooks: { before_task: "echo before", after_task: "echo after" },
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.hooks?.before_task).toEqual(["echo before"]);
+    expect(result.fe.hooks?.after_task).toEqual(["echo after"]);
+  });
+
+  test("hooks array stays as string[]", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "Frontend",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "You are a frontend engineer.",
+          hooks: { before_task: ["cmd1", "cmd2"], after_task: [] },
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.hooks?.before_task).toEqual(["cmd1", "cmd2"]);
+    expect(result.fe.hooks?.after_task).toEqual([]);
+  });
+
+  test("hooks are inherited via extends", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "Frontend",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "You are a frontend engineer.",
+          hooks: { before_task: "echo before", after_task: "echo after" },
+        },
+        fe2: {
+          extends: "fe",
+          name: "Frontend 2",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    // fe2 inherits hooks from fe
+    expect(result.fe2.hooks?.before_task).toEqual(["echo before"]);
+    expect(result.fe2.hooks?.after_task).toEqual(["echo after"]);
+  });
+
+  test("hooks: false opts out of inherited hooks", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "Frontend",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "You are a frontend engineer.",
+          hooks: { before_task: "echo before" },
+        },
+        fe2: {
+          extends: "fe",
+          name: "Frontend 2",
+          hooks: false,
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    // fe2 explicitly opts out of inherited hooks
+    expect(result.fe2.hooks).toBeUndefined();
+    // fe still has its hooks
+    expect(result.fe.hooks?.before_task).toEqual(["echo before"]);
+  });
+
   test("disabled agents are excluded from results", () => {
     const custom: AgentsFile = {
       agents: {

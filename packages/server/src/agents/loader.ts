@@ -5,7 +5,13 @@ import { join } from "node:path";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import yaml from "js-yaml";
 import { getProjectRoot, getRelayDir } from "../config";
-import type { AgentPersona, AgentsFile, WorkflowConfig } from "./types";
+import type {
+  AgentHooks,
+  AgentPersona,
+  AgentsFile,
+  ResolvedAgentHooks,
+  WorkflowConfig,
+} from "./types";
 
 // Complete list of MCP tool names registered by createMcpServer() in mcp.ts.
 // Validated against agent config tools[] to catch typos before runtime.
@@ -35,6 +41,25 @@ export const REGISTERED_MCP_TOOLS = new Set([
   "list_pool_agents",
   "get_workflow",
 ]);
+
+/**
+ * Normalize AgentHooks from YAML (string | string[]) to ResolvedAgentHooks (string[]).
+ * Validates that hook values are strings or arrays of strings.
+ */
+function resolveHooks(hooks: AgentHooks): ResolvedAgentHooks {
+  const normalize = (val: string | string[] | undefined, field: string): string[] => {
+    if (val === undefined) return [];
+    if (typeof val === "string") return [val];
+    if (Array.isArray(val) && val.every((v) => typeof v === "string")) return val;
+    throw new Error(
+      `hooks.${field} must be a string or array of strings, got: ${JSON.stringify(val)}`
+    );
+  };
+  return {
+    before_task: normalize(hooks.before_task, "before_task"),
+    after_task: normalize(hooks.after_task, "after_task"),
+  };
+}
 
 /**
  * Read a YAML file and parse it as AgentsFile.
@@ -99,13 +124,22 @@ export function loadAgents(
           `Valid tools: ${[...REGISTERED_MCP_TOOLS].sort().join(", ")}`
       );
     }
-    merged[id] = {
+    const persona: AgentPersona = {
       id: markAsAgentId(id),
       ...config,
       // Use the resolved systemPrompt (may come from pool fallback when config omits it)
       systemPrompt,
       ...(language ? { language } : {}),
     } as AgentPersona;
+
+    // Normalize hooks: false → undefined; string | string[] → string[]
+    if (config.hooks === false || config.hooks == null) {
+      persona.hooks = undefined;
+    } else if (config.hooks) {
+      persona.hooks = resolveHooks(config.hooks);
+    }
+
+    merged[id] = persona;
   }
 
   // Pass 2: resolve agents that use extends (base agents are all resolved now)
@@ -130,14 +164,31 @@ export function loadAgents(
           (poolAgents ? " (searched current file and pool)" : "")
       );
     }
-    merged[id] = {
+
+    // Only spread config keys that are explicitly set (not undefined) so that
+    // omitted fields don't overwrite inherited values from base.
+    // hooks: false is an explicit opt-out of inherited hooks.
+    const configOverrides = Object.fromEntries(
+      Object.entries(config).filter(([, v]) => v !== undefined)
+    );
+
+    const merged_persona = {
       ...base,
-      ...config,
+      ...configOverrides,
       id: markAsAgentId(id),
       extends: undefined,
       basePersonaId: config.extends, // preserve the base persona ID before clearing extends
       ...(language ? { language } : {}),
     } as AgentPersona;
+
+    // Normalize hooks: false → undefined (opt-out clears inherited hooks)
+    if ((configOverrides as { hooks?: unknown }).hooks === false) {
+      merged_persona.hooks = undefined;
+    } else if (merged_persona.hooks) {
+      merged_persona.hooks = resolveHooks(merged_persona.hooks as unknown as AgentHooks);
+    }
+
+    merged[id] = merged_persona;
   }
 
   return merged;

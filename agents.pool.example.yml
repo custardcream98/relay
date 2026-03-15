@@ -19,11 +19,16 @@
 # AGENT ENTRY FORMAT
 # ─────────────────────────────────────────────────────────────────────────────
 #  Required: name, emoji, tools, systemPrompt
-#  Optional: description, tags, extends, language
+#  Optional: description, tags, extends, language, hooks
 #  tags     — descriptive array used by /relay:relay for team selection suggestions
 #  extends  — inherit all fields from another pool agent; override only what differs
 #  language — force agent responses to a specific language, e.g. language: "Korean"
 #             (overrides the top-level language default for this agent only)
+#  hooks    — git-hook style shell commands run by the MCP server in the project root
+#             before_task: run BEFORE claim_task; non-zero exit blocks claiming
+#             after_task:  run AFTER update_task(done); non-zero exit reverts to in_review
+#             Accepts a single string or a list of strings (run sequentially).
+#             Set hooks: false in an extends-based agent to opt out of inherited hooks.
 #
 # TOP-LEVEL language FIELD (optional)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -167,6 +172,11 @@ agents:
     emoji: "💻"
     description: "UI implementation, React/Vue components, PR creation"
     tags: [web, frontend, react, ui, javascript, typescript]
+    # Example: enforce lint + type-check before marking any task done.
+    # hooks:
+    #   after_task:
+    #     - bunx biome check --write
+    #     - bun tsc --noEmit
     tools:
       - get_messages
       - get_my_tasks
@@ -219,6 +229,9 @@ agents:
     emoji: "⚙️"
     description: "API design and implementation, database schema, PR creation"
     tags: [web, backend, api, database, nodejs, typescript]
+    # Example: run tests before marking a backend task done.
+    # hooks:
+    #   after_task: bun test
     tools:
       - get_messages
       - get_my_tasks

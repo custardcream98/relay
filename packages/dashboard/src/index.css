@@ -10,15 +10,15 @@
   --color-surface-inset: #0a0806;
 
   /* Borders — warm tone for sufficient contrast */
-  --color-border-subtle: #2e2620;
-  --color-border-default: #3d3428;
-  --color-border-strong: #544838;
+  --color-border-subtle: #38302a;
+  --color-border-default: #4a3e32;
+  --color-border-strong: #625040;
 
   /* Text — high contrast */
   --color-text-primary: #f8f2e8;
-  --color-text-secondary: #d0bea4;
-  --color-text-tertiary: #9a8a74;
-  --color-text-disabled: #6e5e4e;
+  --color-text-secondary: #e2d2bc;
+  --color-text-tertiary: #c4b098;
+  --color-text-disabled: #9a8a76;
 
   /* Accent — amber/gold matching docs */
   --color-accent: #e8a83a;

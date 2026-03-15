@@ -399,10 +399,10 @@ export default function App() {
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState(false);
 
-  // Re-fetch agent list when the active server changes
+  // Re-fetch agent list when the active server changes.
+  // Initial state already has agentsLoading=true, so no synchronous setState needed here.
+  // On server switch the previous agent list stays visible until the new fetch resolves.
   useEffect(() => {
-    setAgentsLoading(true);
-    setAgentsError(false);
     const base = activeServer.replace(/\/$/, "");
     fetch(`${base}/api/agents`)
       .then((r) => {
@@ -412,6 +412,7 @@ export default function App() {
       .then((data) => {
         setAgents(data);
         setAgentsLoading(false);
+        setAgentsError(false);
       })
       .catch(() => {
         setAgentsError(true);

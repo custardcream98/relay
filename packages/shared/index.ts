@@ -29,6 +29,8 @@ export type RelayEvent =
         to_agent: string | null;
         content: string;
         thread_id: string | null;
+        /** Arbitrary key-value metadata attached via send_message */
+        metadata: Record<string, string> | null;
         created_at: number;
       };
       timestamp: number;
@@ -42,6 +44,8 @@ export type RelayEvent =
         status: string;
         priority: string;
         description: string | null;
+        /** IDs of tasks that must be done before this task can start */
+        depends_on?: string[];
         // Unix seconds — present in DB snapshot responses
         created_at?: number;
         updated_at?: number;
@@ -94,6 +98,7 @@ export type RelayEvent =
         to_agent: string | null;
         content: string;
         thread_id: string | null;
+        metadata: Record<string, string> | null;
         created_at: number;
       }>;
       artifacts: Array<{
@@ -113,6 +118,14 @@ export type RelayEvent =
   | { type: "memory:updated"; agentId: AgentId; timestamp: number }
   | {
       type: "session:started";
+      sessionId: string;
+      timestamp: number;
+    }
+  | {
+      // Emitted the first time an agent_id is seen in a session (via hook or tool call).
+      // Lets the dashboard show a "joined" notification and hydrate agent cards reactively.
+      type: "agent:joined";
+      agentId: AgentId;
       sessionId: string;
       timestamp: number;
     };

@@ -2,6 +2,7 @@ import type { TaskRow } from "../db/queries/tasks";
 import {
   claimTask,
   getAllTasks,
+  getTaskById,
   getTasksByAssignee,
   getTeamStatus,
   insertTask,
@@ -19,6 +20,7 @@ export function handleCreateTask(
     description?: string;
     assignee?: string;
     priority: string;
+    depends_on?: string[];
   }
 ) {
   try {
@@ -32,6 +34,7 @@ export function handleCreateTask(
       status: "todo",
       priority: input.priority,
       created_by: input.agent_id,
+      depends_on: input.depends_on ?? [],
     });
     return { success: true, task_id: id };
   } catch (err) {
@@ -78,12 +81,32 @@ export function handleGetMyTasks(
 
 // Atomically claim a task. Returns claimed: true only if the task is 'todo' and assigned to (or unassigned from) the agent.
 // session_id is passed to prevent cross-session claims.
+// If the task has depends_on entries, all referenced tasks must be in 'done' state first.
 export function handleClaimTask(
   db: SqliteDatabase,
   sessionId: string,
   input: { agent_id: string; task_id: string }
 ) {
   try {
+    // Check depends_on before attempting the atomic claim
+    const task = getTaskById(db, input.task_id, sessionId);
+    if (task && (task.depends_on ?? []).length > 0) {
+      const unmetIds: string[] = [];
+      for (const depId of task.depends_on ?? []) {
+        const dep = getTaskById(db, depId, sessionId);
+        if (!dep || dep.status !== "done") {
+          unmetIds.push(depId);
+        }
+      }
+      if (unmetIds.length > 0) {
+        return {
+          success: true,
+          claimed: false,
+          reason: `Unmet dependencies: ${unmetIds.join(", ")}`,
+        };
+      }
+    }
+
     const claimed = claimTask(db, input.task_id, input.agent_id, sessionId);
     if (!claimed) {
       return {
@@ -116,13 +139,14 @@ export function handleGetTeamStatus(
 
 // Returns all tasks in the session regardless of assignee.
 // Used by agents to get an overview of the entire team's work status.
+// Optional status filter avoids client-side filtering for common queries.
 export function handleGetAllTasks(
   db: SqliteDatabase,
   sessionId: string,
-  _input: { agent_id: string }
+  input: { agent_id: string; status?: string }
 ) {
   try {
-    const tasks = getAllTasks(db, sessionId);
+    const tasks = getAllTasks(db, sessionId, input.status);
     return { success: true, tasks };
   } catch (err) {
     return { success: false, tasks: [], error: String(err) };

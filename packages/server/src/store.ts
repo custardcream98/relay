@@ -11,6 +11,8 @@ export interface MessageRow {
   to_agent: string | null;
   content: string;
   thread_id: string | null;
+  /** Arbitrary key-value metadata (e.g. task_id refs, structured context) */
+  metadata?: Record<string, string> | null;
   created_at: number;
 }
 
@@ -23,6 +25,8 @@ export interface TaskRow {
   status: string;
   priority: string;
   created_by: string;
+  /** IDs of tasks that must be completed before this task can start */
+  depends_on?: string[];
   created_at: number;
   updated_at: number;
 }
@@ -88,7 +92,7 @@ function now(): number {
 // --- Messages ---
 
 export function insertMessage(msg: Omit<MessageRow, "created_at">): void {
-  messages.push({ ...msg, created_at: now() });
+  messages.push({ ...msg, metadata: msg.metadata ?? null, created_at: now() });
 }
 
 export function getMessagesForAgent(sessionId: string, agentId: string): MessageRow[] {
@@ -107,7 +111,7 @@ const ALLOWED_UPDATE_KEYS = new Set<string>(["status", "assignee", "description"
 
 export function insertTask(task: Omit<TaskRow, "created_at" | "updated_at">): void {
   const ts = now();
-  tasks.push({ ...task, created_at: ts, updated_at: ts });
+  tasks.push({ ...task, depends_on: task.depends_on ?? [], created_at: ts, updated_at: ts });
 }
 
 export function updateTask(
@@ -135,8 +139,10 @@ export function getTasksByAssignee(sessionId: string, assignee: string): TaskRow
   return tasks.filter((t) => t.session_id === sessionId && t.assignee === assignee);
 }
 
-export function getAllTasks(sessionId: string): TaskRow[] {
-  return tasks.filter((t) => t.session_id === sessionId);
+export function getAllTasks(sessionId: string, status?: string): TaskRow[] {
+  return tasks.filter(
+    (t) => t.session_id === sessionId && (status === undefined || t.status === status)
+  );
 }
 
 export function claimTask(taskId: string, agentId: string, sessionId: string): boolean {

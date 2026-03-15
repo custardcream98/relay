@@ -191,3 +191,141 @@ describe("GET /api/agents", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 });
+
+describe("GET /api/health", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("health-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns ok:true with session info", async () => {
+    const res = await app.request("/api/health");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean; sessionId: string; uptime: number };
+    expect(body.ok).toBe(true);
+    expect(body.sessionId).toBe("health-session");
+    expect(typeof body.uptime).toBe("number");
+  });
+});
+
+describe("GET /api/sessions/live", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("live-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns sessions array", async () => {
+    const res = await app.request("/api/sessions/live");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { success: boolean; sessions: unknown[] };
+    expect(body.success).toBe(true);
+    expect(Array.isArray(body.sessions)).toBe(true);
+  });
+});
+
+describe("GET /api/sessions/:id/replay", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("replay-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns events array for valid session", async () => {
+    const res = await app.request("/api/sessions/replay-session/replay");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { success: boolean; sessionId: string; events: unknown[] };
+    expect(body.success).toBe(true);
+    expect(body.sessionId).toBe("replay-session");
+    expect(Array.isArray(body.events)).toBe(true);
+  });
+
+  test("returns 400 for invalid session ID (path traversal attempt)", async () => {
+    const res = await app.request("/api/sessions/..%2Fetc/replay");
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Invalid");
+  });
+});
+
+describe("GET /api/session with pagination", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("paginated-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns total counts alongside paginated data", async () => {
+    const res = await app.request("/api/session?limit=10&offset=0");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      tasks: unknown[];
+      messages: unknown[];
+      artifacts: unknown[];
+      total: { tasks: number; messages: number; artifacts: number };
+    };
+    expect(Array.isArray(body.tasks)).toBe(true);
+    expect(body.total).toBeDefined();
+    expect(typeof body.total.tasks).toBe("number");
+    expect(typeof body.total.messages).toBe("number");
+    expect(typeof body.total.artifacts).toBe("number");
+  });
+});
+
+describe("POST /api/hook/tool-use agent:joined emission", () => {
+  let db: Database;
+
+  beforeEach(() => {
+    db = makeDb();
+    _setDb(db as unknown as SqliteDatabase);
+    setSessionId("joined-session");
+  });
+
+  afterEach(() => {
+    closeDb();
+    _resetSessionId();
+  });
+
+  test("returns ok:true for a known agent_id", async () => {
+    const res = await app.request("/api/hook/tool-use", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tool_name: "mcp__relay__send_message",
+        tool_input: { agent_id: "be" },
+      }),
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { ok: boolean };
+    expect(body.ok).toBe(true);
+  });
+});

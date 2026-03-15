@@ -117,7 +117,7 @@ export function createMcpServer(): McpServer {
 
   // --- messaging tools ---
 
-  // Send a message from one agent to another (or broadcast)
+  // Send a message from one agent to another (or broadcast to all agents)
   server.tool(
     "send_message",
     {
@@ -125,21 +125,31 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the sending agent (e.g. pm, fe, be, qa)"),
+        .describe(
+          "ID of the sending agent (e.g. pm, fe, be, qa). Must be alphanumeric, hyphen, or underscore."
+        ),
       to: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .nullable()
         .optional()
-        .describe("ID of the recipient agent. null for broadcast"),
-      content: z.string().max(65536).describe("Message content"),
+        .describe(
+          "ID of the recipient agent. Set to null or omit to broadcast to all agents in the session."
+        ),
+      content: z.string().max(65536).describe("Message content (plain text or Markdown)."),
       thread_id: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(256)
         .optional()
-        .describe("Thread ID (optional)"),
+        .describe("Thread ID to group related messages (e.g. a task ID or review ID). Optional."),
+      metadata: z
+        .record(z.string(), z.string())
+        .optional()
+        .describe(
+          "Optional key-value pairs for structured context (e.g. { task_id: 'abc', severity: 'high' }). Values must be strings."
+        ),
     },
     async (input) => {
       const result = await handleSendMessage(getDb(), getSessionId(), input);
@@ -154,7 +164,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Retrieve messages received by an agent
+  // Retrieve messages received by an agent — includes direct messages and broadcasts, excluding own broadcasts.
   server.tool(
     "get_messages",
     {
@@ -162,7 +172,9 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent whose messages to fetch"),
+        .describe(
+          "ID of the agent fetching messages. Returns messages addressed to this agent plus all broadcasts (excluding own)."
+        ),
     },
     async (input) => {
       const result = await handleGetMessages(getDb(), getSessionId(), input);
@@ -172,7 +184,7 @@ export function createMcpServer(): McpServer {
 
   // --- tasks tools ---
 
-  // Create a new task
+  // Create a new task on the session task board
   server.tool(
     "create_task",
     {
@@ -180,20 +192,32 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent creating the task"),
-      title: z.string().max(256).describe("Task title"),
+        .describe("ID of the agent creating the task."),
+      title: z.string().max(256).describe("Short task title shown in the Kanban column header."),
       description: z
         .string()
         .max(8192)
         .optional()
-        .describe("Detailed description and acceptance criteria"),
+        .describe(
+          "Detailed task description including acceptance criteria and implementation notes. Supports Markdown."
+        ),
       assignee: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .optional()
-        .describe("ID of the agent assigned to the task"),
-      priority: z.enum(["critical", "high", "medium", "low"]).describe("Task priority"),
+        .describe(
+          "ID of the agent to assign. If omitted, the task is unassigned and any agent can claim it."
+        ),
+      priority: z
+        .enum(["critical", "high", "medium", "low"])
+        .describe("Task priority. critical=blocking, high=this sprint, medium=next, low=backlog."),
+      depends_on: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Optional list of task IDs that must reach 'done' before this task can be started. Enables dependency chains."
+        ),
     },
     async (input) => {
       const result = await handleCreateTask(getDb(), getSessionId(), input);
@@ -215,7 +239,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Update a task's status or assignee
+  // Update a task's status or assignee. At least one of status or assignee must be provided.
   server.tool(
     "update_task",
     {
@@ -223,18 +247,20 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent performing the update"),
-      task_id: z.string().describe("ID of the task to update"),
+        .describe("ID of the agent performing the update."),
+      task_id: z.string().describe("ID of the task to update. Must belong to the current session."),
       status: z
         .enum(["todo", "in_progress", "in_review", "done"])
         .optional()
-        .describe("New status"),
+        .describe(
+          "New task status. Use 'in_review' before requesting a review, 'done' after work is accepted."
+        ),
       assignee: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .optional()
-        .describe("New assignee"),
+        .describe("New assignee agent ID. Use to reassign a task to another agent."),
     },
     async (input) => {
       const result = await handleUpdateTask(getDb(), getSessionId(), input);
@@ -259,7 +285,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Fetch tasks assigned to an agent
+  // Fetch tasks assigned to the calling agent. Use get_all_tasks for the full board view.
   server.tool(
     "get_my_tasks",
     {
@@ -267,7 +293,7 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent whose tasks to fetch"),
+        .describe("ID of the agent whose assigned tasks to fetch."),
     },
     async (input) => {
       const result = await handleGetMyTasks(getDb(), getSessionId(), input);
@@ -275,7 +301,9 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Atomically claim a task so two agents cannot pick up the same task concurrently
+  // Atomically claim a task — transitions it to 'in_progress' only if it is currently 'todo'.
+  // Safe to call concurrently; at most one agent will receive claimed: true for the same task.
+  // Returns { success: true, claimed: true } on success or { success: true, claimed: false, reason } if already taken.
   server.tool(
     "claim_task",
     {
@@ -283,8 +311,14 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent claiming the task"),
-      task_id: z.string().describe("ID of the task to claim"),
+        .describe(
+          "ID of the agent claiming the task. The task must be assigned to this agent or unassigned."
+        ),
+      task_id: z
+        .string()
+        .describe(
+          "ID of the task to claim. The task must be in 'todo' status. Obtain IDs from get_all_tasks."
+        ),
     },
     async (input) => {
       const result = await handleClaimTask(getDb(), getSessionId(), input);
@@ -309,7 +343,8 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Returns aggregated task counts — agents use has_pending_work to decide end:waiting vs end:done
+  // Returns aggregated task counts (todo/in_progress/in_review/done) for the session.
+  // Also returns has_pending_work: boolean — agents use this to decide between end:waiting and end:_done.
   server.tool(
     "get_team_status",
     {
@@ -317,7 +352,7 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the calling agent"),
+        .describe("ID of the calling agent."),
     },
     async (input) => {
       const result = await handleGetTeamStatus(getDb(), getSessionId(), input);
@@ -325,7 +360,8 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Returns all tasks in the session regardless of assignee
+  // Returns all tasks in the session regardless of assignee.
+  // Use the optional status filter to narrow results without client-side filtering.
   server.tool(
     "get_all_tasks",
     {
@@ -333,7 +369,13 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the calling agent"),
+        .describe("ID of the calling agent."),
+      status: z
+        .enum(["todo", "in_progress", "in_review", "done"])
+        .optional()
+        .describe(
+          "Optional status filter. When provided, only tasks with this status are returned. Omit to return all tasks."
+        ),
     },
     async (input) => {
       const result = await handleGetAllTasks(getDb(), getSessionId(), input);
@@ -343,7 +385,8 @@ export function createMcpServer(): McpServer {
 
   // --- artifacts tools ---
 
-  // Store an artifact
+  // Store a deliverable artifact (design, PR, report, document, etc.) for the session.
+  // After posting, use request_review to route it to a reviewer agent.
   server.tool(
     "post_artifact",
     {
@@ -351,13 +394,24 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent posting the artifact"),
-      name: z.string().max(256).describe("Artifact name (e.g. login-design, cart-fe-pr)"),
+        .describe("ID of the agent posting the artifact."),
+      name: z
+        .string()
+        .max(256)
+        .describe(
+          "Unique artifact name within the session (e.g. login-design, cart-fe-pr). Used by get_artifact to retrieve it."
+        ),
       type: z
         .enum(["figma_spec", "pr", "report", "analytics_plan", "design", "document"])
-        .describe("Artifact type"),
-      content: z.string().max(524288).describe("Artifact content (JSON or Markdown)"),
-      task_id: z.string().optional().describe("Associated task ID"),
+        .describe("Artifact type. Choose the closest match to the content being stored."),
+      content: z
+        .string()
+        .max(524288)
+        .describe("Artifact content (JSON, Markdown, or plain text). Max 512 KB."),
+      task_id: z
+        .string()
+        .optional()
+        .describe("ID of the task this artifact fulfills. Links the artifact to a task card."),
     },
     async (input) => {
       const result = await handlePostArtifact(getDb(), getSessionId(), input);
@@ -377,7 +431,7 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Retrieve an artifact by name
+  // Retrieve an artifact by name. Returns the latest artifact with the given name if multiple exist.
   server.tool(
     "get_artifact",
     {
@@ -385,8 +439,11 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent fetching the artifact"),
-      name: z.string().max(256).describe("Name of the artifact to retrieve"),
+        .describe("ID of the agent fetching the artifact."),
+      name: z
+        .string()
+        .max(256)
+        .describe("Name of the artifact to retrieve. Must match the name used in post_artifact."),
     },
     async (input) => {
       const result = await handleGetArtifact(getDb(), getSessionId(), input);
@@ -396,7 +453,8 @@ export function createMcpServer(): McpServer {
 
   // --- review tools ---
 
-  // Request a review for an artifact
+  // Request a peer review for a posted artifact. The reviewer agent receives a review:requested event.
+  // After calling this, update the task to 'in_review' status and send the reviewer a message with the review_id.
   server.tool(
     "request_review",
     {
@@ -404,13 +462,19 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent requesting the review"),
-      artifact_id: z.string().describe("ID of the artifact to be reviewed"),
+        .describe("ID of the agent requesting the review (the author)."),
+      artifact_id: z
+        .string()
+        .describe(
+          "ID of the artifact to be reviewed. Obtain from post_artifact response (artifact_id field)."
+        ),
       reviewer: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the reviewer agent (e.g. fe2, be2)"),
+        .describe(
+          "ID of the agent who should perform the review (e.g. qa, be2). They will call submit_review with the returned review_id."
+        ),
     },
     async (input) => {
       const result = await handleRequestReview(getDb(), getSessionId(), input);
@@ -430,7 +494,8 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Submit a review decision
+  // Submit a review decision. Only the assigned reviewer may call this.
+  // On 'approved', the author can update the task to 'done'. On 'changes_requested', author must revise.
   server.tool(
     "submit_review",
     {
@@ -438,10 +503,20 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent submitting the review"),
-      review_id: z.string().describe("Review ID"),
-      status: z.enum(["approved", "changes_requested"]).describe("Review outcome"),
-      comments: z.string().max(16384).optional().describe("Review comments"),
+        .describe(
+          "ID of the reviewing agent. Must match the reviewer field set in request_review, otherwise returns permission denied."
+        ),
+      review_id: z.string().describe("Review ID returned by request_review."),
+      status: z
+        .enum(["approved", "changes_requested"])
+        .describe(
+          "Review outcome. 'approved' signals the work is accepted. 'changes_requested' means the author must revise."
+        ),
+      comments: z
+        .string()
+        .max(16384)
+        .optional()
+        .describe("Detailed review feedback. Required when status is 'changes_requested'."),
     },
     async (input) => {
       const result = await handleSubmitReview(getDb(), getSessionId(), input);
@@ -586,7 +661,9 @@ export function createMcpServer(): McpServer {
     }
   );
 
-  // Broadcast an agent's current thinking to the dashboard (agent:thinking WebSocket event)
+  // Broadcast an agent's current thinking to the dashboard.
+  // Emits two WebSocket events: agent:thinking (streaming text) and agent:status=working.
+  // Call this before significant operations so the dashboard shows the agent as active.
   server.tool(
     "broadcast_thinking",
     {
@@ -594,16 +671,22 @@ export function createMcpServer(): McpServer {
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
-        .describe("ID of the agent sharing their thinking"),
-      content: z.string().max(65536).describe("What the agent is about to do or thinking about"),
+        .describe(
+          "ID of the agent sharing their thinking. Sets the agent's status to 'working' in the dashboard."
+        ),
+      content: z
+        .string()
+        .max(65536)
+        .describe(
+          "What the agent is currently thinking or about to do. Streamed to the Agent Thoughts panel in the dashboard."
+        ),
     },
     async (input) => {
-      broadcast({
-        type: "agent:thinking",
-        agentId: markAsAgentId(input.agent_id),
-        chunk: input.content,
-        timestamp: Date.now(),
-      });
+      const agentId = markAsAgentId(input.agent_id);
+      const timestamp = Date.now();
+      // Emit agent:status=working so the dashboard marks the agent as active immediately
+      broadcast({ type: "agent:status", agentId, status: "working", timestamp });
+      broadcast({ type: "agent:thinking", agentId, chunk: input.content, timestamp });
       return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
     }
   );
@@ -747,6 +830,7 @@ export function createMcpServer(): McpServer {
                 // Language directive is already injected by buildSystemPromptWithMemory() in loader.ts.
                 // Return the raw systemPrompt here to avoid duplicating the directive.
                 systemPrompt: a.systemPrompt,
+                basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
               })),
             }),
           },

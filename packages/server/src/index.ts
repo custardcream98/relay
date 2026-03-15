@@ -7,7 +7,7 @@ import { WebSocketServer } from "ws";
 import { loadPool } from "./agents/loader";
 import { getSessionId, setPort } from "./config";
 import { app } from "./dashboard/hono";
-import { addClient, removeClient } from "./dashboard/websocket";
+import { addClient, markClientAlive, removeClient, startHeartbeat } from "./dashboard/websocket";
 import { getDb } from "./db/client";
 import { getAllArtifacts } from "./db/queries/artifacts";
 import { getAllMessages } from "./db/queries/messages";
@@ -160,6 +160,9 @@ dashboardServer.on("upgrade", (request, socket, head) => {
   if (url.pathname === "/ws") {
     wss.handleUpgrade(request, socket, head, (ws) => {
       addClient(ws);
+      markClientAlive(ws);
+      // Mark client as alive when it responds to a ping
+      ws.on("pong", () => markClientAlive(ws));
       ws.on("close", () => removeClient(ws));
       // Send current session snapshot on new connection — for dashboard initial hydration
       try {
@@ -195,6 +198,9 @@ dashboardServer.on("upgrade", (request, socket, head) => {
     });
   }
 });
+
+// Start WebSocket ping/pong heartbeat so the dashboard can detect stale connections
+startHeartbeat();
 
 // MCP server (stdio)
 const server = createMcpServer();

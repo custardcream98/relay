@@ -72,6 +72,7 @@ describe("websocket broadcast", () => {
         to_agent: null,
         content: "hello",
         thread_id: null,
+        metadata: null,
         created_at: 1000,
       },
       timestamp: Date.now(),

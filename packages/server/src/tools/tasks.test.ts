@@ -126,6 +126,99 @@ describe("tasks tool", () => {
       expect(result.success).toBe(true);
       expect(result.claimed).toBe(true);
     });
+
+    test("can claim task with no depends_on (regression)", async () => {
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "independent task",
+        assignee: "fe",
+        priority: "high",
+      });
+      const result = await handleClaimTask(db, "sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+      });
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(true);
+    });
+
+    test("can claim task when all depends_on are done", async () => {
+      const { task_id: depId } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "prerequisite task",
+        assignee: "be",
+        priority: "high",
+      });
+      await handleUpdateTask(db, "sess-1", {
+        agent_id: "be",
+        task_id: depId as string,
+        status: "done",
+      });
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "dependent task",
+        assignee: "fe",
+        priority: "medium",
+        depends_on: [depId as string],
+      });
+      const result = await handleClaimTask(db, "sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+      });
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(true);
+    });
+
+    test("cannot claim task when a depends_on is still 'todo'", async () => {
+      const { task_id: depId } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "unfinished prerequisite",
+        assignee: "be",
+        priority: "high",
+      });
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "blocked task",
+        assignee: "fe",
+        priority: "medium",
+        depends_on: [depId as string],
+      });
+      const result = await handleClaimTask(db, "sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+      });
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(false);
+      expect(result.reason).toContain(depId as string);
+    });
+
+    test("cannot claim task when a depends_on is still 'in_progress'", async () => {
+      const { task_id: depId } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "in-progress prerequisite",
+        assignee: "be",
+        priority: "high",
+      });
+      await handleUpdateTask(db, "sess-1", {
+        agent_id: "be",
+        task_id: depId as string,
+        status: "in_progress",
+      });
+      const { task_id } = await handleCreateTask(db, "sess-1", {
+        agent_id: "pm",
+        title: "blocked task",
+        assignee: "fe",
+        priority: "medium",
+        depends_on: [depId as string],
+      });
+      const result = await handleClaimTask(db, "sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+      });
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(false);
+      expect(result.reason).toContain(depId as string);
+    });
   });
 
   describe("get_team_status", () => {

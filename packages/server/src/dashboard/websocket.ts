@@ -36,3 +36,37 @@ export function broadcast(event: RelayEvent): void {
     }
   }
 }
+
+// Heartbeat ping every 30 seconds — lets the dashboard detect stale connections.
+// Clients that fail to respond (pong) within one interval are terminated and removed.
+// Using a WeakSet to track liveness avoids a separate per-client interval.
+const PING_INTERVAL_MS = 30_000;
+
+// Track which clients are still alive (responded to last ping).
+// Clients start as alive; set to false on ping, back to true on pong.
+const alive = new WeakMap<WebSocket, boolean>();
+
+export function markClientAlive(ws: WebSocket): void {
+  alive.set(ws, true);
+}
+
+// Run the heartbeat loop.
+// Call once after the WebSocket server is ready (from index.ts).
+export function startHeartbeat(): NodeJS.Timeout {
+  return setInterval(() => {
+    for (const ws of clients) {
+      if (alive.get(ws) === false) {
+        // No pong received since last ping — terminate and clean up
+        ws.terminate();
+        clients.delete(ws);
+        continue;
+      }
+      alive.set(ws, false);
+      try {
+        ws.ping();
+      } catch {
+        clients.delete(ws);
+      }
+    }
+  }, PING_INTERVAL_MS);
+}

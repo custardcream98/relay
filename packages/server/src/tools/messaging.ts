@@ -6,6 +6,8 @@ interface SendMessageInput {
   to?: string | null;
   content: string;
   thread_id?: string;
+  /** Arbitrary key-value pairs for structured context (e.g. { task_id: "abc", severity: "high" }) */
+  metadata?: Record<string, string>;
 }
 
 interface GetMessagesInput {
@@ -23,6 +25,7 @@ export function handleSendMessage(db: SqliteDatabase, sessionId: string, input: 
       to_agent: input.to ?? null,
       content: input.content,
       thread_id: input.thread_id ?? null,
+      metadata: input.metadata ?? null,
     };
     insertMessage(db, msg);
     // DB uses unixepoch() (seconds) — align broadcast created_at to seconds as well

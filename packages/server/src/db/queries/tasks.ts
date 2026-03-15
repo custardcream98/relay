@@ -45,9 +45,9 @@ export function getTasksByAssignee(
   return storeGetTasksByAssignee(sessionId, assignee);
 }
 
-// Fetch all tasks in a session
-export function getAllTasks(_db: SqliteDatabase, sessionId: string): TaskRow[] {
-  return storeGetAllTasks(sessionId);
+// Fetch all tasks in a session, optionally filtered by status
+export function getAllTasks(_db: SqliteDatabase, sessionId: string, status?: string): TaskRow[] {
+  return storeGetAllTasks(sessionId, status);
 }
 
 // Atomically claim a task — transitions to 'in_progress' only if currently 'todo'

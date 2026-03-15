@@ -24,6 +24,7 @@ describe("events queries", () => {
         to_agent: "fe",
         content: "hello",
         thread_id: null,
+        metadata: null,
         created_at: 1000,
       },
       timestamp: Date.now(),

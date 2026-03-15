@@ -8,12 +8,14 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { loadPool } from "../agents/loader";
-import { getRelayDir, getSessionId } from "../config";
+import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
 import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
+import { getEventsBySession } from "../db/queries/events";
 import { getAllMessages } from "../db/queries/messages";
+import { getAllSessions } from "../db/queries/sessions";
 import { getAllTasks } from "../db/queries/tasks";
-import { handleGetSessionSummary } from "../tools/sessions";
+import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
 import { broadcast } from "./websocket";
 
 // Bundled: resolve dashboard/ relative to this file's location
@@ -75,6 +77,7 @@ app.get("/api/agents", (c) => {
         name: a.name,
         emoji: a.emoji,
         description: a.description,
+        basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
       }))
     );
   } catch (err) {
@@ -82,16 +85,76 @@ app.get("/api/agents", (c) => {
   }
 });
 
+// API: health check — uptime, session info, instance metadata
+// Used by the dashboard connection status indicator
+app.get("/api/health", (c) => {
+  return c.json({
+    ok: true,
+    sessionId: getSessionId(),
+    instanceId: getInstanceId() ?? null,
+    port: getPort(),
+    uptime: Math.floor(process.uptime()),
+  });
+});
+
 // API: session snapshot (used for initial dashboard load)
+// Supports optional pagination via ?offset=N&limit=N on tasks and messages.
 app.get("/api/session", (c) => {
   try {
     const db = getDb();
     const sessionId = getSessionId();
+    const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0);
+    const limit = Math.min(500, Math.max(1, Number(c.req.query("limit") ?? 500) || 500));
+
+    const allTasks = getAllTasks(db, sessionId);
+    const allMessages = getAllMessages(db, sessionId);
+    const allArtifacts = getAllArtifacts(db, sessionId);
+
     return c.json({
-      tasks: getAllTasks(db, sessionId),
-      messages: getAllMessages(db, sessionId),
-      artifacts: getAllArtifacts(db, sessionId),
+      tasks: allTasks.slice(offset, offset + limit),
+      messages: allMessages.slice(offset, offset + limit),
+      artifacts: allArtifacts,
+      // Pagination metadata — lets the dashboard detect truncation
+      total: {
+        tasks: allTasks.length,
+        messages: allMessages.length,
+        artifacts: allArtifacts.length,
+      },
     });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+// API: in-memory session list derived from stored events (most-recent first)
+// Separate from the file-based /api/sessions — covers the current live session
+// even before a summary is saved to disk.
+app.get("/api/sessions/live", (c) => {
+  try {
+    const sessions = getAllSessions(50);
+    return c.json({ success: true, sessions });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
+});
+
+// API: list saved sessions (sorted most-recent first)
+app.get("/api/sessions", async (c) => {
+  const result = await handleListSessions(getRelayDir());
+  return c.json(result);
+});
+
+// API: replay all persisted events for a session in chronological order.
+// Registered before /api/sessions/:id so Hono matches the literal "replay" segment first.
+app.get("/api/sessions/:id/replay", (c) => {
+  const sessionId = c.req.param("id");
+  // Validate session_id to prevent path traversal
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return c.json({ error: "Invalid session ID" }, 400);
+  }
+  try {
+    const events = getEventsBySession(sessionId);
+    return c.json({ success: true, sessionId, events });
   } catch (err) {
     return c.json({ error: (err as Error).message }, 500);
   }
@@ -108,6 +171,10 @@ app.get("/api/sessions/:id", async (c) => {
   if (!result.success) return c.json({ error: result.error }, 404);
   return c.json(result);
 });
+
+// Tracks agent IDs seen within the current session to emit agent:joined once per agent.
+// Reset is not needed — server process lifetime == session lifetime for typical usage.
+const seenAgentIds = new Set<string>();
 
 // Called by the PostToolUse hook — broadcasts agent:status events to the dashboard
 app.post("/api/hook/tool-use", async (c) => {
@@ -138,11 +205,25 @@ app.post("/api/hook/tool-use", async (c) => {
     typeof rawAgentId === "string" && /^[a-zA-Z0-9_-]+$/.test(rawAgentId) && rawAgentId.length <= 64
       ? rawAgentId
       : "unknown";
+
+  const now = Date.now();
+
+  // Emit agent:joined the first time this agent ID appears in the session
+  if (agentId !== "unknown" && !seenAgentIds.has(agentId)) {
+    seenAgentIds.add(agentId);
+    broadcast({
+      type: "agent:joined",
+      agentId: markAsAgentId(agentId),
+      sessionId: getSessionId(),
+      timestamp: now,
+    });
+  }
+
   broadcast({
     type: "agent:status",
     agentId: markAsAgentId(agentId),
     status: "working",
-    timestamp: Date.now(),
+    timestamp: now,
   });
   return c.json({ ok: true });
 });

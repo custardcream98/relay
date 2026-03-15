@@ -3,7 +3,9 @@
 import type { RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const DEFAULT_WS_URL = `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${window.location.host}/ws`;
+const DEFAULT_WS_URL = `${
+  window.location.protocol === "https:" ? "wss:" : "ws:"
+}//${window.location.host}/ws`;
 const RECONNECT_DELAY_MS = [1000, 2000, 4000, 8000, 16000]; // exponential back-off
 
 // Convert an HTTP(S) server URL to the corresponding WebSocket URL
@@ -172,7 +174,6 @@ export function useRelaySocket({
       }
     };
     // Re-run when the target WebSocket URL changes (server switch)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clearCountdown, wsUrl]);
 
   // Immediately trigger a reconnect attempt, cancelling any pending timer

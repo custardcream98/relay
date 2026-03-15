@@ -8,11 +8,13 @@ import { useServer } from "../context/ServerContext";
 import { useSession } from "../context/SessionContext";
 import { useTheme } from "../hooks/useTheme";
 import { ServerSwitcher } from "./ServerSwitcher";
+import { SessionSelector } from "./SessionSelector";
 import { SessionTeamBadge } from "./SessionTeamBadge";
 
 export function AppHeader() {
   const { connected, reconnecting } = useConnection();
-  const { selectedAgent, instanceId, instancePort, sessionTeam, onSelectAgent } = useSession();
+  const { selectedAgent, instanceId, instancePort, sessionTeam, liveSessionId, onSelectAgent } =
+    useSession();
   const { servers, activeServer, onSwitchServer, onAddServer } = useServer();
   const { agents } = useAgents();
   const { theme, toggleTheme } = useTheme();
@@ -158,8 +160,9 @@ export function AppHeader() {
         </div>
       )}
 
-      {/* Right: session team badge + agent count + theme toggle + connection status */}
+      {/* Right: session selector + session team badge + agent count + theme toggle + connection status */}
       <div className="flex items-center gap-4">
+        <SessionSelector sessionId={liveSessionId} serverUrl={activeServer} />
         <SessionTeamBadge agents={sessionTeam} />
 
         {agents.length > 0 && (

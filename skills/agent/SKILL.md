@@ -32,7 +32,8 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
      - When finished, call send_message(to: null, content: "end:_done | {summary}").
        This is mandatory — do not skip it.
      ```
-5. After completion, call `append_memory` to persist learnings.
+5. After completion, call `save_session_summary(agent_id: "{agentId}", session_id: "{session_id}", summary: "{summary}")` to persist session learnings.
+   Call `write_memory(agent_id: "{agentId}", key: "...", content: "...")` for personal knowledge worth keeping across sessions.
 
 ## Unknown agent handling
 
@@ -44,6 +45,9 @@ If the specified agent ID is not found in `list_pool_agents` results:
 
 In step 3, load memory in two passes:
 1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
-2. `read_memory()` (omit agent_id) — project.md + lessons.md shared project memory
+2. `read_memory()` (omit agent_id) — project.md (shared project state)
 
 Combine both results and prepend them to the agent's system prompt.
+
+For recent session history, call `list_sessions` then `get_session_summary` on the last 1–2 sessions
+only when the task explicitly requires historical context.

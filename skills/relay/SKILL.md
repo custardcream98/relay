@@ -372,7 +372,7 @@ When running multiple relay servers simultaneously (e.g. two projects in separat
 
 - Each server instance should have a unique `DASHBOARD_PORT` (e.g. 3456 and 3457).
 - Use `RELAY_INSTANCE` to give each instance a name (e.g. `project-a`, `project-b`).
-  Session IDs will be automatically prefixed: `project-a-2026-03-14-001`.
+  Session IDs will be automatically prefixed: `project-a-2026-03-14-007-a3f7`.
 - Each instance uses a separate SQLite DB when `RELAY_INSTANCE` is set:
   `.relay/relay-{instance}.db` (e.g. `.relay/relay-project-a.db`).
 - The skill always operates on the MCP server it was invoked from. When Claude Code has

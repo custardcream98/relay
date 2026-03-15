@@ -108,6 +108,74 @@ describe("loadAgents", () => {
     expect(result.quiet_agent).toBeDefined();
     expect(result.quiet_agent.tools).toEqual([]);
   });
+
+  // --- Agent ID validation (YAML key with invalid characters) ---
+  // TypeScript types enforce string keys at compile time, but the YAML parser produces
+  // raw string keys that bypass type checking. loadAgents() must reject them at runtime.
+
+  test("throws when agent id contains a space", () => {
+    const custom = {
+      agents: {
+        "bad agent": {
+          name: "Bad Agent",
+          emoji: "🚫",
+          tools: [],
+          systemPrompt: "Invalid ID.",
+        },
+      },
+    } as unknown as AgentsFile;
+    expect(() => loadAgents(custom)).toThrow(/invalid characters/);
+  });
+
+  test("throws when agent id contains a slash (path traversal attempt)", () => {
+    const custom = {
+      agents: {
+        "fe/hack": {
+          name: "Hack Agent",
+          emoji: "💀",
+          tools: [],
+          systemPrompt: "Path traversal.",
+        },
+      },
+    } as unknown as AgentsFile;
+    expect(() => loadAgents(custom)).toThrow(/invalid characters/);
+  });
+
+  test("throws when agent id contains dots (e.g. '../evil')", () => {
+    const custom = {
+      agents: {
+        "../evil": {
+          name: "Evil Agent",
+          emoji: "💀",
+          tools: [],
+          systemPrompt: "Path traversal.",
+        },
+      },
+    } as unknown as AgentsFile;
+    expect(() => loadAgents(custom)).toThrow(/invalid characters/);
+  });
+
+  test("throws when extends agent id contains invalid characters", () => {
+    const poolAgents = loadAgents({
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "Base agent.",
+        },
+      },
+    });
+    const custom = {
+      agents: {
+        "bad id": {
+          extends: "base",
+          name: "Bad ID Agent",
+        },
+      },
+    } as unknown as AgentsFile;
+    expect(() => loadAgents(custom, poolAgents)).toThrow(/invalid characters/);
+  });
 });
 
 describe("language setting", () => {

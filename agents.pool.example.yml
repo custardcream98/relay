@@ -7,7 +7,7 @@
 # ─────────────────────────────────────────────────────────────────────────────
 #  1. The /relay:relay skill reads this pool before starting a session.
 #  2. It presents matching agents to the user (filtered by tags or domain).
-#  3. The user confirms the team composition; relay writes .relay/session-agents.yml.
+#  3. The user confirms the team composition; relay writes .relay/session-agents-{session_id}.yml.
 #  4. Only selected agents are spawned for that session — no unused overhead.
 #
 # HOW TO USE
@@ -68,6 +68,7 @@ agents:
       - get_team_status
       - send_message
       - get_messages
+      - broadcast_thinking
     systemPrompt: |
       You are the Product Manager of a startup team.
 
@@ -120,6 +121,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are the UX Designer of a startup team.
 
@@ -170,6 +172,7 @@ agents:
       - send_message
       - request_review
       - submit_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Frontend Engineer at a startup.
 
@@ -221,6 +224,7 @@ agents:
       - send_message
       - request_review
       - submit_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Backend Engineer at a startup.
 
@@ -268,6 +272,7 @@ agents:
       - post_artifact
       - send_message
       - create_task
+      - broadcast_thinking
     systemPrompt: |
       You are the QA Engineer of a startup team.
 
@@ -313,6 +318,7 @@ agents:
       - send_message
       - read_memory
       - append_memory
+      - broadcast_thinking
     systemPrompt: |
       You are the deployment engineer.
 
@@ -359,6 +365,7 @@ agents:
       - send_message
       - read_memory
       - append_memory
+      - broadcast_thinking
     systemPrompt: |
       You are a Researcher on an analytical team.
 
@@ -408,6 +415,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are a Data Scientist on an analytical team.
 
@@ -455,6 +463,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are a Technical Writer on an analytical team.
 
@@ -511,6 +520,7 @@ agents:
       - send_message
       - create_task
       - read_memory
+      - broadcast_thinking
     systemPrompt: |
       You are a Marketing Strategist on a marketing team.
 
@@ -565,6 +575,7 @@ agents:
       - post_artifact
       - get_artifact
       - send_message
+      - broadcast_thinking
     systemPrompt: |
       You are a Copywriter on a marketing team.
 
@@ -620,6 +631,7 @@ agents:
       - send_message
       - create_task
       - append_memory
+      - broadcast_thinking
     systemPrompt: |
       You are a Growth Analyst on a marketing team.
 

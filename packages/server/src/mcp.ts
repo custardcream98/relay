@@ -134,7 +134,12 @@ export function createMcpServer(): McpServer {
         .optional()
         .describe("ID of the recipient agent. null for broadcast"),
       content: z.string().max(65536).describe("Message content"),
-      thread_id: z.string().max(256).optional().describe("Thread ID (optional)"),
+      thread_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(256)
+        .optional()
+        .describe("Thread ID (optional)"),
     },
     async (input) => {
       const result = await handleSendMessage(getDb(), getSessionId(), input);
@@ -176,8 +181,12 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .describe("ID of the agent creating the task"),
-      title: z.string().describe("Task title"),
-      description: z.string().optional().describe("Detailed description and acceptance criteria"),
+      title: z.string().max(256).describe("Task title"),
+      description: z
+        .string()
+        .max(8192)
+        .optional()
+        .describe("Detailed description and acceptance criteria"),
       assignee: z
         .string()
         .regex(/^[a-zA-Z0-9_-]+$/)
@@ -343,7 +352,7 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .describe("ID of the agent posting the artifact"),
-      name: z.string().describe("Artifact name (e.g. login-design, cart-fe-pr)"),
+      name: z.string().max(256).describe("Artifact name (e.g. login-design, cart-fe-pr)"),
       type: z
         .enum(["figma_spec", "pr", "report", "analytics_plan", "design", "document"])
         .describe("Artifact type"),
@@ -377,7 +386,7 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .describe("ID of the agent fetching the artifact"),
-      name: z.string().describe("Name of the artifact to retrieve"),
+      name: z.string().max(256).describe("Name of the artifact to retrieve"),
     },
     async (input) => {
       const result = await handleGetArtifact(getDb(), getSessionId(), input);
@@ -432,7 +441,7 @@ export function createMcpServer(): McpServer {
         .describe("ID of the agent submitting the review"),
       review_id: z.string().describe("Review ID"),
       status: z.enum(["approved", "changes_requested"]).describe("Review outcome"),
-      comments: z.string().optional().describe("Review comments"),
+      comments: z.string().max(16384).optional().describe("Review comments"),
     },
     async (input) => {
       const result = await handleSubmitReview(getDb(), getSessionId(), input);
@@ -533,7 +542,7 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(128)
         .describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
-      summary: z.string().describe("Session summary text"),
+      summary: z.string().max(131072).describe("Session summary text"),
     },
     async (input) => {
       const result = await handleSaveSessionSummary(getRelayDir(), input);
@@ -587,7 +596,7 @@ export function createMcpServer(): McpServer {
         .regex(/^[a-zA-Z0-9_-]+$/)
         .max(64)
         .describe("ID of the agent sharing their thinking"),
-      content: z.string().describe("What the agent is about to do or thinking about"),
+      content: z.string().max(65536).describe("What the agent is about to do or thinking about"),
     },
     async (input) => {
       broadcast({
@@ -663,13 +672,13 @@ export function createMcpServer(): McpServer {
         result = {};
       }
     } catch (err) {
-      // Load failed — do NOT cache the empty result so callers can retry
-      // after fixing the underlying issue (e.g. malformed YAML, missing file).
+      // Load failed (e.g. malformed YAML) — return null so list_agents surfaces a clear error
+      // rather than silently returning an empty team. Do NOT cache null so callers can retry.
       console.error(
         `[relay] failed to load agents for session "${sessionId ?? "__default__"}":`,
         (err as Error).message
       );
-      return {};
+      return null;
     }
 
     agentsCache.set(cacheKey, result);
@@ -704,6 +713,8 @@ export function createMcpServer(): McpServer {
         .describe("ID of the calling agent (for tracking)"),
       session_id: z
         .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(128)
         .optional()
         .describe(
           "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml (written by /relay:relay Team Composition)."

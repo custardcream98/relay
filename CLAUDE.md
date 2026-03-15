@@ -62,9 +62,9 @@ Run multiple relay instances simultaneously without port or session data conflic
 
 Environment variables:
 - `DASHBOARD_PORT`: HTTP/WebSocket port (default: auto-selected from 3456–3465)
-- `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the session ID is prefixed (`project-a-2026-03-14-001`) and the DB file becomes `.relay/relay-{instance}.db`.
+- `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the session ID is prefixed (`project-a-2026-03-14-007-a3f7`) and the DB file becomes `.relay/relay-{instance}.db`.
 - `RELAY_DB_PATH`: explicit DB file path override (overrides RELAY_INSTANCE default).
-- `RELAY_SESSION_ID`: session identifier (default: `"default"`).
+- `RELAY_SESSION_ID`: session identifier (default: auto-generated `YYYY-MM-DD-HHmmss` in UTC on first call).
 
 CLI args (alternative to env vars):
 - `relay --port 3457` — set dashboard port
@@ -100,7 +100,7 @@ packages/
 │       ├── mcp.ts        # MCP server instance and tool registration
 │       ├── tools/        # MCP tool implementations
 │       │   ├── messaging.ts   # send_message, get_messages
-│       │   ├── tasks.ts       # create_task, update_task, get_my_tasks
+│       │   ├── tasks.ts       # create_task, update_task, get_my_tasks, claim_task, get_all_tasks, get_team_status
 │       │   ├── artifacts.ts   # post_artifact, get_artifact
 │       │   ├── review.ts      # request_review, submit_review
 │       │   ├── memory.ts      # read_memory, write_memory, append_memory
@@ -189,7 +189,8 @@ type RelayEvent =
 
 ```bash
 bun run dev              # dev server (hot reload)
-bun run build            # build
+bun run build:server     # build server package
+bun run build:release    # build dashboard + server (pre-publish)
 bun test                 # run tests
 bun run dashboard:dev    # frontend dev server
 bun run dashboard:build  # frontend build

@@ -1,5 +1,5 @@
 // packages/server/src/db/queries/sessions.ts
-import { getDb } from "../client.ts";
+import { getDb } from "../client";
 
 export interface SessionRow {
   id: string;

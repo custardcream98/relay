@@ -115,8 +115,12 @@ app.get("/api/sessions/:id/events", (c) => {
   if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
     return c.json({ error: "Invalid session_id format" }, 400);
   }
-  const events = getEventsBySession(sessionId);
-  return c.json({ success: true, events });
+  try {
+    const events = getEventsBySession(sessionId);
+    return c.json({ success: true, events });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
 });
 
 // API: session snapshot — returns all tasks, messages, artifacts for a given session
@@ -126,13 +130,17 @@ app.get("/api/sessions/:id/snapshot", (c) => {
   if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
     return c.json({ error: "Invalid session_id format" }, 400);
   }
-  const db = getDb();
-  return c.json({
-    session_id: sessionId,
-    tasks: getAllTasks(db, sessionId),
-    messages: getAllMessages(db, sessionId),
-    artifacts: getAllArtifacts(db, sessionId),
-  });
+  try {
+    const db = getDb();
+    return c.json({
+      session_id: sessionId,
+      tasks: getAllTasks(db, sessionId),
+      messages: getAllMessages(db, sessionId),
+      artifacts: getAllArtifacts(db, sessionId),
+    });
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500);
+  }
 });
 
 // API: session summary

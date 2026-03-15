@@ -469,3 +469,43 @@ _2026-03-15_
 - `--session` → `RELAY_INSTANCE` naming is a trap for new users; rename the CLI flag or add an alias.
 - agent_id input validation gap: messaging/tasks/artifacts tools accept any string; security-sensitive tools (memory, sessions) validate. Make validation uniform.
 
+
+---
+_2026-03-15_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-006-c3a1: Security Hardening + Test Isolation + Correctness
+
+**Team**: be, qa, security-reviewer
+
+**Accomplishments:**
+
+**BE (6 tasks):**
+- agent_id `.regex(/^[a-zA-Z0-9_-]+$/).max(64)` added to all 20 agent_id fields in mcp.ts
+- handleWriteMemory: unlink .tmp file on rename() failure
+- config.ts: path.resolve() applied to RELAY_DIR and RELAY_DB_PATH env vars
+- db/client.ts: PRAGMA foreign_keys = ON after migrations
+- index.ts: WebSocketServer maxPayload: 1MB
+- CLAUDE.md: fixed MCP tool response envelope docs (flat responses, not nested data)
+
+**Security-reviewer (4 additional findings → 4 more BE tasks):**
+- to/reviewer/assignee/thread_id fields in mcp.ts Zod schemas: regex+maxLength added
+- session_id .max(128) added to start_session, save_session_summary, get_session_summary
+- /api/hook/tool-use: agent_id validated before broadcasting (fallback to "unknown")
+- loadAgents(): YAML agent id keys validated against /^[a-zA-Z0-9_-]+$/ before use
+- isValidMemoryKey(): maxLength 256 added
+
+**QA (2 tasks):**
+- Test isolation: _resetSessionId() in websocket.test.ts afterEach; _resetProjectRoot() added to config.ts + used in config.test.ts; UUID-based temp paths in loader.test.ts
+- New test coverage: GET /api/sessions/:id (400 for invalid id, 404 for unknown); POST /api/hook/tool-use (403 for non-localhost origin, 403 for malformed origin)
+
+**Final: 136/136 tests pass**
+
+**Lessons:**
+- Security-reviewer finding secondary validation gaps (to, reviewer, assignee fields) after BE fixed agent_id is a recurring pattern — consider adding a "validate all agent-routing fields" checklist to the agent pool systemPrompt
+- extends pattern in session-agents YAML (extends: be) is the right approach — avoids duplicating systemPrompt and always stays in sync with pool; never write systemPrompt directly in session files
+- Parallel agent execution means each agent's test count reflects their own view — always run bun test after all agents finish to get the authoritative count
+- Biome import ordering: bun:test imports must come before node:* imports (third-party before built-in) — check import order whenever adding new node:* imports to test files
+

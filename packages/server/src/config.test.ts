@@ -45,6 +45,14 @@ describe("getDbPath", () => {
     expect(path).toMatch(/relay\.db$/);
     expect(path).not.toMatch(/relay-\w+\.db$/);
   });
+
+  test("resolves relative RELAY_DB_PATH to an absolute path", () => {
+    process.env.RELAY_DB_PATH = "data/relay.db";
+    const path = getDbPath();
+    // resolve() must produce an absolute path
+    expect(path.startsWith("/")).toBe(true);
+    expect(path.endsWith("relay.db")).toBe(true);
+  });
 });
 
 describe("getRelayDir", () => {
@@ -64,6 +72,14 @@ describe("getRelayDir", () => {
     process.env.RELAY_PROJECT_ROOT = "/some/project";
     const dir = getRelayDir();
     expect(dir).toBe("/some/project/.relay");
+  });
+
+  test("resolves relative RELAY_DIR to an absolute path", () => {
+    process.env.RELAY_DIR = ".relay";
+    const dir = getRelayDir();
+    // resolve() must produce an absolute path, not the raw relative string
+    expect(dir.startsWith("/")).toBe(true);
+    expect(dir.endsWith("/.relay") || dir.endsWith("\\.relay")).toBe(true);
   });
 });
 
@@ -116,7 +132,7 @@ describe("setSessionId", () => {
     setSessionId("override");
     _resetSessionId();
     const id = getSessionId();
-    // Auto-generated format: YYYY-MM-DD-HHmmss
-    expect(id).toMatch(/^\d{4}-\d{2}-\d{2}-\d{6}$/);
+    // Auto-generated format: YYYY-MM-DD-HHmmss-XXXX (4-char hex suffix for collision avoidance)
+    expect(id).toMatch(/^\d{4}-\d{2}-\d{2}-\d{6}-[0-9a-f]{4}$/);
   });
 });

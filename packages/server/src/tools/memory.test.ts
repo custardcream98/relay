@@ -94,4 +94,117 @@ describe("memory tool", () => {
     expect(result.content).toContain("Convention content");
     expect(result.content).toContain("Pattern content");
   });
+
+  // --- agent_id path-traversal rejection ---
+
+  test("write_memory: rejects agent_id with path traversal characters", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "../evil",
+      key: "conventions",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid ID format");
+  });
+
+  test("write_memory: rejects agent_id containing a slash", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe/hack",
+      key: "conventions",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid ID format");
+  });
+
+  test("read_memory: rejects agent_id with invalid characters", async () => {
+    const result = await handleReadMemory(TEST_DIR, { agent_id: "../etc/passwd" });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid ID format");
+  });
+
+  test("append_memory: rejects agent_id with path traversal characters", async () => {
+    const result = await handleAppendMemory(TEST_DIR, {
+      agent_id: "../../root",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid ID format");
+  });
+
+  // --- isValidMemoryKey edge cases ---
+
+  test("write_memory: rejects empty key", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: "",
+      content: "some content",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid key format");
+  });
+
+  test("write_memory: rejects key longer than 256 characters", async () => {
+    const longKey = "a".repeat(257);
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: longKey,
+      content: "some content",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid key format");
+  });
+
+  test("write_memory: accepts key of exactly 256 characters", async () => {
+    const maxKey = "a".repeat(256);
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: maxKey,
+      content: "boundary content",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("write_memory: rejects key containing a newline", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: "valid-prefix\ninjected-header",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid key format");
+  });
+
+  test("write_memory: rejects key containing a carriage return", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: "valid-prefix\rinjected",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid key format");
+  });
+
+  // --- write_memory without agent_id writes to project.md ---
+
+  test("write_memory: writes to project.md when agent_id is omitted", async () => {
+    const result = await handleWriteMemory(TEST_DIR, {
+      key: "overview",
+      content: "Project overview content",
+    });
+    expect(result.success).toBe(true);
+    const { join: pathJoin } = await import("node:path");
+    const { existsSync: fileExists } = await import("node:fs");
+    expect(fileExists(pathJoin(TEST_DIR, "memory/project.md"))).toBe(true);
+  });
+
+  test("write_memory: project.md content is returned by read_memory without agent_id", async () => {
+    await handleWriteMemory(TEST_DIR, {
+      key: "overview",
+      content: "Shared project notes",
+    });
+    const result = await handleReadMemory(TEST_DIR, {});
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("Shared project notes");
+  });
 });

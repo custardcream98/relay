@@ -51,16 +51,18 @@ export function handleSubmitReview(
       };
     updateReviewStatus(db, input.review_id, sessionId, input.status, input.comments ?? null);
     const updated = getReviewById(db, input.review_id, sessionId);
+    // Re-fetch should always succeed — if it fails, surface an error rather than returning success:true with null review
+    if (!updated) {
+      return { success: false, error: "Review updated but could not be re-fetched" };
+    }
     return {
       success: true,
-      review: updated
-        ? {
-            id: updated.id,
-            status: updated.status as "approved" | "changes_requested",
-            reviewer: updated.reviewer,
-            comments: updated.comments,
-          }
-        : null,
+      review: {
+        id: updated.id,
+        status: updated.status as "approved" | "changes_requested",
+        reviewer: updated.reviewer,
+        comments: updated.comments,
+      },
     };
   } catch (err) {
     return { success: false, error: String(err) };

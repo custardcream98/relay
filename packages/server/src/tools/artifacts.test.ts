@@ -37,4 +37,41 @@ describe("artifacts tool", () => {
     expect(result.success).toBe(true);
     expect(result.artifact?.type).toBe("figma_spec");
   });
+
+  test("get_artifact: returns null artifact when name does not exist", async () => {
+    const result = await handleGetArtifact(db, "sess-1", {
+      agent_id: "fe",
+      name: "nonexistent-artifact",
+    });
+    // handleGetArtifact returns success:false + artifact:null when not found
+    expect(result.artifact).toBeNull();
+    expect((result as { success: boolean; error?: string }).error).toContain("artifact not found");
+  });
+
+  test("post_artifact: works without optional task_id", async () => {
+    const result = await handlePostArtifact(db, "sess-1", {
+      agent_id: "be",
+      name: "api-spec",
+      type: "document",
+      content: "# API Spec",
+      // task_id intentionally omitted
+    });
+    expect(result.success).toBe(true);
+    expect(result.artifact_id).toBeDefined();
+  });
+
+  test("get_artifact: returns artifact content verbatim", async () => {
+    const content = JSON.stringify({ key: "value", nested: { arr: [1, 2, 3] } });
+    await handlePostArtifact(db, "sess-1", {
+      agent_id: "be",
+      name: "data-spec",
+      type: "report",
+      content,
+    });
+    const result = await handleGetArtifact(db, "sess-1", {
+      agent_id: "fe",
+      name: "data-spec",
+    });
+    expect(result.artifact?.content).toBe(content);
+  });
 });

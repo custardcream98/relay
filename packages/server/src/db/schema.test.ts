@@ -46,4 +46,32 @@ describe("DB schema migrations", () => {
       .get();
     expect(row).toBeTruthy();
   });
+
+  test("runMigrations is idempotent (calling twice does not throw)", () => {
+    // CREATE TABLE IF NOT EXISTS and CREATE INDEX IF NOT EXISTS must be safe to call repeatedly
+    expect(() => runMigrations(db)).not.toThrow();
+  });
+
+  test("creates index on messages(session_id, to_agent)", () => {
+    const row = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_messages_session'")
+      .get();
+    expect(row).toBeTruthy();
+  });
+
+  test("creates index on tasks(session_id, assignee)", () => {
+    const row = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type='index' AND name='idx_tasks_session_assignee'"
+      )
+      .get();
+    expect(row).toBeTruthy();
+  });
+
+  test("creates index on events(session_id, created_at)", () => {
+    const row = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_events_session'")
+      .get();
+    expect(row).toBeTruthy();
+  });
 });

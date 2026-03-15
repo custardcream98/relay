@@ -92,7 +92,7 @@ async function resolvePort(): Promise<number> {
   // Explicit env var — validate and use it (caller owns the choice)
   if (process.env.DASHBOARD_PORT) {
     const p = Number(process.env.DASHBOARD_PORT);
-    if (!Number.isNaN(p) && p > 0) return p;
+    if (!Number.isNaN(p) && p > 0 && p <= 65535) return p;
     console.error(
       `[relay] invalid DASHBOARD_PORT "${process.env.DASHBOARD_PORT}" — falling back to auto-select`
     );

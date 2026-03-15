@@ -8,7 +8,7 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 
 ## Execution
 
-1. Call `list_agents` to see the available agents.
+1. Call `list_pool_agents` to see the available agents from the pool.
 2. In parallel, call `get_server_info` and `list_sessions` to get the dashboard URL and compute a new session ID.
    - **Compute session ID** (same pattern as `/relay:relay`):
      - Today's date prefix: `YYYY-MM-DD`.
@@ -20,8 +20,9 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
      This clears the live dashboard and scopes all subsequent MCP tool calls to the new session.
    - Tell the user: "Session: {session_id} | Dashboard: {dashboardUrl}"
 3. Load the specified agent's persona + memory.
+   - Use the persona returned by `list_pool_agents` for the matching agent ID.
 4. Spawn that agent alone.
-   - Restrict tools to those listed in the agent's `tools` array from `list_agents`.
+   - Restrict tools to those listed in the agent's `tools` array from `list_pool_agents`.
    - Exclude all other tools to avoid granting unnecessary permissions.
    - Append the following communication reminder to the agent's system prompt:
      ```
@@ -35,7 +36,7 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 
 ## Unknown agent handling
 
-If the specified agent ID is not found in `list_agents` results:
+If the specified agent ID is not found in `list_pool_agents` results:
 - Show the user the list of available agents.
 - Ask the user to select an agent again.
 

@@ -90,14 +90,19 @@ export function getSessionId(): string {
     _sessionId = process.env.RELAY_SESSION_ID;
     return _sessionId;
   }
-  // Auto-generate in YYYY-MM-DD-HHmmss format using UTC consistently
+  // Auto-generate in YYYY-MM-DD-HHmmss-XXXX format using UTC consistently.
   // (toISOString() returns UTC — use getUTC* for H/M/S to match the UTC date)
+  // A 4-char random hex suffix prevents collisions when two server processes start
+  // within the same UTC second (e.g. rapid restarts or parallel CI jobs).
   const now = new Date();
   const date = now.toISOString().slice(0, 10);
   const hh = String(now.getUTCHours()).padStart(2, "0");
   const mm = String(now.getUTCMinutes()).padStart(2, "0");
   const ss = String(now.getUTCSeconds()).padStart(2, "0");
-  _sessionId = `${date}-${hh}${mm}${ss}`;
+  const rand = Math.floor(Math.random() * 0x10000)
+    .toString(16)
+    .padStart(4, "0");
+  _sessionId = `${date}-${hh}${mm}${ss}-${rand}`;
   return _sessionId;
 }
 

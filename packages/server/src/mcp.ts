@@ -690,16 +690,11 @@ export function createMcpServer(): McpServer {
     if (pool !== null && now - poolCachedAt < POOL_CACHE_TTL_MS) {
       return pool;
     }
-    try {
-      pool = loadPool();
-      poolCachedAt = now;
-    } catch (err) {
-      // Pool not configured or failed to load — fall back to empty for graceful degradation
-      console.error("[relay] pool load failed:", (err as Error).message);
-      // Update poolCachedAt to prevent retry spam on every call — TTL still applies
-      poolCachedAt = now;
-      if (pool === null) pool = {};
-    }
+    // Re-load (cache miss or expired). Do NOT update poolCachedAt on error — this allows
+    // the caller to retry immediately after creating the pool file. Updating the timestamp
+    // on failure would trap the caller in a 5-minute TTL even after the file is ready.
+    pool = loadPool(); // throws if no pool file found or YAML is malformed
+    poolCachedAt = now;
     return pool;
   }
 
@@ -772,13 +767,29 @@ export function createMcpServer(): McpServer {
         .describe("ID of the calling agent (for tracking)"),
     },
     async () => {
+      let agents: ReturnType<typeof getPool>;
+      try {
+        agents = getPool();
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: false,
+                error: (err as Error).message,
+              }),
+            },
+          ],
+        };
+      }
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify({
               success: true,
-              agents: Object.values(getPool()).map((a) => ({
+              agents: Object.values(agents).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,

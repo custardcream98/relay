@@ -42,5 +42,8 @@
     "url": "https://github.com/custardcream98/relay.git",
     "directory": "packages/server"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "license": "MIT"
 }

@@ -3,7 +3,7 @@
 // Renders all relay events in chronological order (latest at bottom),
 // with event-type-specific visual treatment per designer spec.
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAgentAccent } from "../constants/agents";
 import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
@@ -699,7 +699,18 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   }, [allOn]);
 
   const isFiltered = activeFilters.size < FILTER_DEFS.length;
+  // True empty = no entries at all (not just filtered); used to show "Waiting for agents" vs "No events match filter"
+  const hasNoEntries = entries.length === 0 && thinkingAgents.length === 0;
   const isEmpty = filtered.length === 0 && thinkingAgents.length === 0;
+
+  // Per-type event counts for filter badge labels
+  const countByType = useMemo(() => {
+    const counts: Partial<Record<FilterableType, number>> = {};
+    for (const e of entries) {
+      counts[e.type] = (counts[e.type] ?? 0) + 1;
+    }
+    return counts;
+  }, [entries]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -779,12 +790,13 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
 
             {FILTER_DEFS.map((def) => {
               const isActive = activeFilters.has(def.type);
+              const count = countByType[def.type] ?? 0;
               return (
                 <button
                   key={def.type}
                   type="button"
                   onClick={() => toggleFilter(def.type)}
-                  title={def.label}
+                  title={`${def.label}${count > 0 ? ` (${count})` : ""}`}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -804,6 +816,22 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
                 >
                   <span style={{ fontSize: 11 }}>{def.icon}</span>
                   {def.label}
+                  {count > 0 && (
+                    <span
+                      className="font-mono"
+                      style={{
+                        fontSize: 9,
+                        background: isActive ? "var(--color-surface-raised)" : "transparent",
+                        color: isActive
+                          ? "var(--color-text-tertiary)"
+                          : "var(--color-text-disabled)",
+                        padding: "0 3px",
+                        borderRadius: 3,
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -818,16 +846,16 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
             {focusAgent
               ? `No activity for ${focusAgent}`
-              : isFiltered
-                ? "No events match filter"
-                : "Waiting for agents to start…"}
+              : hasNoEntries
+                ? "Waiting for agents to start…"
+                : "No events match filter"}
           </span>
           <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
-            {isFiltered
-              ? "Adjust filters above to see more events"
-              : focusAgent
-                ? "Events will appear when this agent is active"
-                : "Start a relay session to see live activity"}
+            {focusAgent
+              ? "Events will appear when this agent is active"
+              : hasNoEntries
+                ? "Start a relay session to see live activity"
+                : "Adjust filters above to see more events"}
           </span>
         </div>
       ) : (

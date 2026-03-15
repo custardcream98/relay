@@ -81,7 +81,7 @@ export function AgentArenaPanel() {
             style={{
               transition: "transform 200ms ease",
               // Points left ← (collapse) when expanded; rotates to → (expand) when collapsed
-              transform: arenaCollapsed ? "rotate(0deg)" : "rotate(180deg)",
+              transform: arenaCollapsed ? "rotate(180deg)" : "rotate(0deg)",
             }}
           >
             <path

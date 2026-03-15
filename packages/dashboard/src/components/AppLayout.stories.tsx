@@ -235,6 +235,7 @@ function MockProviders({
         instanceId,
         instancePort,
         sessionTeam,
+        liveSessionId: null,
         onSelectAgent: () => {},
       }}
     >

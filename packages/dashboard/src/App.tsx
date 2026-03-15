@@ -319,6 +319,7 @@ export default function App() {
     instanceId,
     instancePort,
     sessionTeam,
+    liveSessionId,
   } = state;
 
   // Fetch agent list — passed to AgentArena via AgentsContext
@@ -336,8 +337,15 @@ export default function App() {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
       })
-      .then((data) => {
-        setAgents(data);
+      .then((data: Array<{ id: AgentId; name: string; emoji: string; basePersonaId?: string }>) => {
+        setAgents(
+          data.map((item) => ({
+            id: item.id,
+            name: item.name,
+            emoji: item.emoji,
+            basePersonaId: item.basePersonaId,
+          }))
+        );
         setAgentsLoading(false);
         setAgentsError(false);
       })
@@ -399,6 +407,7 @@ export default function App() {
         instanceId,
         instancePort,
         sessionTeam,
+        liveSessionId,
         onSelectAgent: handleSelectAgent,
       }}
     >

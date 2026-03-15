@@ -60,13 +60,15 @@ export function AgentArena({
       if (m.to_agent) updateActivity(m.to_agent, m.content, msgTs);
     }
 
-    // Flatten to label-only map consumed by AgentCard
+    // Flatten to label + timestamp maps consumed by AgentCard
     const lastActivityByAgent: Record<string, string> = {};
-    for (const [agentId, { label }] of Object.entries(lastActivityRaw)) {
+    const lastActivityTsByAgent: Record<string, number> = {};
+    for (const [agentId, { label, ts }] of Object.entries(lastActivityRaw)) {
       lastActivityByAgent[agentId] = label;
+      lastActivityTsByAgent[agentId] = ts;
     }
 
-    return { inProgressByAgent, lastActivityByAgent };
+    return { inProgressByAgent, lastActivityByAgent, lastActivityTsByAgent };
   }, [tasks, messages]);
 
   return (
@@ -143,18 +145,28 @@ export function AgentArena({
 
         {/* No agents (after load completes) */}
         {!agentsError && !agentsLoading && agents.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full" style={{ gap: 8 }}>
-            <span style={{ fontSize: 24, opacity: 0.3 }}>👥</span>
-            <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>No agents</span>
+          <div className="flex flex-col items-center justify-center h-full" style={{ gap: 10 }}>
+            <span style={{ fontSize: 28, opacity: 0.2 }}>👥</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-secondary)" }}>
+              No agents yet
+            </span>
             <span
               style={{
                 fontSize: 11,
                 color: "var(--color-text-disabled)",
                 textAlign: "center",
-                maxWidth: 180,
+                maxWidth: 190,
+                lineHeight: 1.5,
               }}
             >
-              Define agents in agents.pool.yml
+              Start a{" "}
+              <span
+                className="font-mono"
+                style={{ color: "var(--color-text-tertiary)", fontSize: 10 }}
+              >
+                /relay
+              </span>{" "}
+              session — agents will appear here
             </span>
           </div>
         )}
@@ -165,9 +177,11 @@ export function AgentArena({
             id={agent.id}
             name={agent.name}
             emoji={agent.emoji}
+            basePersonaId={agent.basePersonaId}
             status={statuses[agent.id] ?? "idle"}
             thinkingChunk={thinkingChunks[agent.id] ?? ""}
             lastMessage={agentData.lastActivityByAgent[agent.id] ?? null}
+            lastActivityTs={agentData.lastActivityTsByAgent[agent.id] ?? null}
             inProgressCount={agentData.inProgressByAgent[agent.id] ?? 0}
             isSelected={selectedAgent === agent.id}
             onClick={() => onSelectAgent(selectedAgent === agent.id ? null : agent.id)}

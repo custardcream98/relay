@@ -24,6 +24,7 @@ export interface Message {
   from_agent: string;
   to_agent: string | null;
   content: string;
+  thread_id?: string | null;
   created_at: number;
 }
 
@@ -31,6 +32,7 @@ export interface AgentMeta {
   id: AgentId;
   name: string;
   emoji: string;
+  basePersonaId?: string; // set when agent was created via `extends`
 }
 
 // Timeline entry for the EventTimeline display component

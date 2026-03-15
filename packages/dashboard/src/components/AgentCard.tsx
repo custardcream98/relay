@@ -4,14 +4,19 @@
 import { memo } from "react";
 import { getAgentAccent } from "../constants/agents";
 import type { AgentId } from "../types";
+import { relativeTime } from "../utils/time";
 
 interface Props {
   id: AgentId;
   name: string;
   emoji: string;
+  // Set when this agent was created via `extends` in the pool YAML
+  basePersonaId?: string;
   status: "idle" | "working" | "waiting" | "done";
   thinkingChunk: string;
   lastMessage: string | null;
+  // Unix ms timestamp of most recent task/message activity — null if no activity yet
+  lastActivityTs: number | null;
   inProgressCount: number;
   isSelected: boolean;
   onClick: () => void;
@@ -29,9 +34,11 @@ export const AgentCard = memo(function AgentCard({
   id,
   name,
   emoji,
+  basePersonaId,
   status,
   thinkingChunk,
   lastMessage,
+  lastActivityTs,
   inProgressCount,
   isSelected,
   onClick,
@@ -153,6 +160,21 @@ export const AgentCard = memo(function AgentCard({
             {name}
           </span>
 
+          {/* Agent ID badge — always visible for disambiguation */}
+          <span
+            className="font-mono"
+            style={{
+              fontSize: 10,
+              color: "var(--color-text-disabled)",
+              background: "var(--color-surface-overlay)",
+              padding: "1px 5px",
+              borderRadius: 9999,
+              flexShrink: 0,
+            }}
+          >
+            {id}
+          </span>
+
           {/* Status badge */}
           <span
             className="font-mono"
@@ -171,7 +193,22 @@ export const AgentCard = memo(function AgentCard({
             {status}
           </span>
 
-          {/* In-progress task count — right end */}
+          {/* Last active timestamp — shown when idle/done/waiting and activity exists */}
+          {!isWorking && lastActivityTs && (
+            <span
+              className="font-mono"
+              style={{
+                fontSize: 9,
+                color: "var(--color-text-disabled)",
+                marginLeft: "auto",
+                flexShrink: 0,
+              }}
+            >
+              {relativeTime(lastActivityTs)}
+            </span>
+          )}
+
+          {/* In-progress task count — right end, only when working */}
           {inProgressCount > 0 && (
             <span
               className="font-mono"
@@ -181,7 +218,7 @@ export const AgentCard = memo(function AgentCard({
                 background: `${accentColor}18`,
                 padding: "1px 6px",
                 borderRadius: 9999,
-                marginLeft: "auto",
+                marginLeft: isWorking ? "auto" : 0,
                 flexShrink: 0,
               }}
             >
@@ -189,6 +226,20 @@ export const AgentCard = memo(function AgentCard({
             </span>
           )}
         </div>
+
+        {/* Base persona subtitle — only for extends agents */}
+        {basePersonaId && (
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--color-text-disabled)",
+              fontStyle: "italic",
+              marginBottom: 2,
+            }}
+          >
+            ↳ {basePersonaId}
+          </div>
+        )}
 
         {/* Activity preview */}
         {isWorking && thinkingChunk ? (

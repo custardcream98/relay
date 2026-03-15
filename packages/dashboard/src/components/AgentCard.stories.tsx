@@ -20,6 +20,7 @@ const meta = {
     status: "idle",
     thinkingChunk: "",
     lastMessage: null,
+    lastActivityTs: null,
     inProgressCount: 0,
     isSelected: false,
     onClick: () => {},
@@ -67,6 +68,31 @@ export const WithLastMessage: Story = {
   args: {
     status: "idle",
     lastMessage: "Handoff: login form complete, please review and connect to auth API",
+    lastActivityTs: Date.now() - 5 * 60 * 1000, // 5m ago
+  },
+};
+
+export const WithLastActivity: Story = {
+  name: "With Last Activity Timestamp",
+  args: {
+    status: "waiting",
+    lastMessage: "end:waiting | waiting for BE to finish auth API",
+    lastActivityTs: Date.now() - 2 * 60 * 1000, // 2m ago
+    inProgressCount: 0,
+  },
+};
+
+// Extends agent — shows ID badge + base persona subtitle
+export const ExtendsAgent: Story = {
+  name: "Extends Agent (fe2 extends fe)",
+  args: {
+    id: "fe2" as AgentId,
+    name: "Frontend Engineer",
+    emoji: "🎨",
+    basePersonaId: "fe",
+    status: "working",
+    thinkingChunk: "Implementing the login form...",
+    inProgressCount: 1,
   },
 };
 
@@ -91,6 +117,7 @@ export const AllAgents: Story = {
           status={agent.status}
           thinkingChunk=""
           lastMessage={null}
+          lastActivityTs={null}
           inProgressCount={0}
           isSelected={false}
           onClick={() => {}}

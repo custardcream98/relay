@@ -427,3 +427,45 @@ _2026-03-15_
 - Message delivery was a prompt/protocol problem, not an infrastructure problem — `messaging.ts` implementation was correct; the fix was in SKILL.md discipline rules
 - `post_artifact` type enum was missing `"document"` — agents using it got Zod validation failures silently; always verify enum completeness against agent usage patterns
 
+
+---
+_2026-03-15_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-005-b2c9: Relay Codebase Audit
+
+**Team**: be, mcp-architect, security-reviewer, qa, dx-engineer
+
+**Confirmed Bugs & Issues (prioritized):**
+
+**HIGH — Functional Breakage:**
+1. `list_pool_agents` omits `systemPrompt` intentionally, but `skills/relay/SKILL.md` Team Composition step 5 instructs to use it for building session-agents YAML → agents spawned with no system prompts. Fix: instruct skill to use `list_agents(session_id)` after writing session file, OR read pool YAML directly.
+2. `hooks/hooks.json` hardcodes port 3456 — auto-selected port instances lose ALL `agent:status` dashboard events silently.
+3. `list_agents` returns `{ success: true, agents: [] }` when session file not found — orchestrator cannot distinguish "empty team" from "file not written yet."
+4. `--session` CLI arg maps to `RELAY_INSTANCE` (DB prefix/instance name), NOT `RELAY_SESSION_ID` — confusing naming, contradicts user expectation.
+
+**MEDIUM — Logic Bugs:**
+5. `get_messages` returns self-sent broadcasts back to sender — potential infinite loop if agent reacts to all received messages.
+6. `handleWriteMemory`: read-then-write is non-atomic (race condition). `handleAppendMemory` uses atomic `appendFile` correctly.
+7. `submit_review` allows double-submit — no pending-only guard.
+8. `RELAY_SESSION_ID` env var not validated against `/^[a-zA-Z0-9_-]+$/` (inconsistent with `RELAY_INSTANCE` validation).
+9. Double language directive injection: `list_agents` in `mcp.ts` appends language directive AND `buildSystemPromptWithMemory()` does it again — duplicated instruction in agent prompts.
+
+**LOW — Minor Issues:**
+10. `updateTask` with no valid fields returns "task not found" instead of "no fields to update".
+11. Event replay ordering non-deterministic: `getEventsBySession` sorts by `created_at` (seconds resolution) with no tiebreaker.
+12. `GET /api/sessions/:id` (summary route) missing input validation guard — sibling routes `/snapshot` and `/events` both validate.
+13. MCP server version hardcoded as `"0.1.0"` in `mcp.ts` — not synced with `package.json`.
+14. `db/queries/events.ts` uses `.ts` extension in import — inconsistent with all other files.
+15. `save_session_summary` Zod description says `YYYY-MM-DD-NNN` format — stale, actual is `YYYY-MM-DD-NNN-XXXX`.
+16. `team:composed` RelayEvent type defined in shared/index.ts but never emitted.
+17. `handlePostArtifact` and `handleGetArtifact` declared `async` with no actual async ops.
+
+**Lessons:**
+- The SKILL.md `list_pool_agents` bug is a systemic DX issue — every session team composition step is broken unless the orchestrator reads the pool YAML file directly (which the current skill does via Write tool).
+- hooks.json hardcoded port is a silent multi-instance failure — should use `${DASHBOARD_PORT:-3456}` or be templated.
+- `--session` → `RELAY_INSTANCE` naming is a trap for new users; rename the CLI flag or add an alias.
+- agent_id input validation gap: messaging/tasks/artifacts tools accept any string; security-sensitive tools (memory, sessions) validate. Make validation uniform.
+

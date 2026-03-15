@@ -61,6 +61,5 @@ export interface ServerEntry {
   isActive: boolean;
 }
 
-// team:composed is now part of RelayEvent in @custardcream/relay-shared
 // DashboardEvent is an alias kept for clarity
 export type DashboardEvent = RelayEvent;

@@ -1,6 +1,7 @@
 // packages/server/src/mcp.ts
 
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -40,10 +41,13 @@ import {
   handleUpdateTask,
 } from "./tools/tasks";
 
+const _require = createRequire(import.meta.url);
+const { version: SERVER_VERSION } = _require("../package.json") as { version: string };
+
 export function createMcpServer(): McpServer {
   const server = new McpServer({
     name: "relay",
-    version: "0.1.0",
+    version: SERVER_VERSION,
   });
 
   // Returns the actual dashboard URL and server metadata.
@@ -428,7 +432,7 @@ export function createMcpServer(): McpServer {
     "save_session_summary",
     {
       agent_id: z.string().describe("ID of the calling agent (typically the orchestrator)"),
-      session_id: z.string().describe("Session ID (YYYY-MM-DD-NNN format)"),
+      session_id: z.string().describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
       summary: z.string().describe("Session summary text"),
     },
     async (input) => {
@@ -494,10 +498,16 @@ export function createMcpServer(): McpServer {
   let pool: Record<string, AgentPersona> | null = null;
   let poolCachedAt = 0;
 
-  function getAgents(sessionId?: string): Record<string, AgentPersona> {
-    // Validate sessionId to prevent path traversal and cache key poisoning
+  /**
+   * Load agents for a given session ID.
+   * Returns null when the session file does not exist (caller must surface an error).
+   * Returns the cached result on subsequent calls for the same session.
+   */
+  function getAgents(sessionId?: string): Record<string, AgentPersona> | null {
+    // Validate sessionId to prevent path traversal and cache key poisoning.
+    // Return null so list_agents surfaces an error rather than silently returning an empty team.
     if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-      return {};
+      return null;
     }
 
     const cacheKey = sessionId ?? "__default__";
@@ -527,10 +537,10 @@ export function createMcpServer(): McpServer {
           }
           result = loadAgents(parsed ?? { agents: {} }, poolAgents);
         } else {
-          // Session file not yet written — return WITHOUT caching so callers can retry
-          // after the file is written (e.g. orchestrator writes it then immediately calls list_agents).
+          // Session file not found — return null so the caller can return a distinct error.
+          // Do NOT cache null: callers should be able to retry after the file is written.
           console.error(`[relay] session file not found: ${sessionFile}`);
-          return {};
+          return null;
         }
       } else {
         // No session_id — pre-flight uses list_pool_agents, not list_agents.
@@ -580,22 +590,38 @@ export function createMcpServer(): McpServer {
         ),
     },
     async (input) => {
+      const agents = getAgents(input.session_id);
+      // Return an explicit error when a session_id was given but the file is missing.
+      // This lets the orchestrator distinguish "0 agents" from "file not yet written".
+      if (agents === null) {
+        const relayDir = getRelayDir();
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                success: false,
+                error: `Session agents file not found: ${relayDir}/session-agents-${input.session_id}.yml — run team composition first`,
+              }),
+            },
+          ],
+        };
+      }
       return {
         content: [
           {
             type: "text",
             text: JSON.stringify({
               success: true,
-              agents: Object.values(getAgents(input.session_id)).map((a) => ({
+              agents: Object.values(agents).map((a) => ({
                 id: a.id,
                 name: a.name,
                 emoji: a.emoji,
                 description: a.description,
                 tools: a.tools,
-                // Include language instruction so the orchestrating skill applies it when spawning
-                systemPrompt: a.language
-                  ? `${a.systemPrompt}\n\n## Language\n\nYou MUST respond in ${a.language} at all times.`
-                  : a.systemPrompt,
+                // Language directive is already injected by buildSystemPromptWithMemory() in loader.ts.
+                // Return the raw systemPrompt here to avoid duplicating the directive.
+                systemPrompt: a.systemPrompt,
               })),
             }),
           },

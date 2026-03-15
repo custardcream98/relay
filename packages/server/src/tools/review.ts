@@ -43,6 +43,12 @@ export function handleSubmitReview(
     if (!review) return { success: false, error: "review not found" };
     if (review.reviewer !== input.agent_id)
       return { success: false, error: "permission denied: not the assigned reviewer" };
+    // Prevent double-submit — only allow submitting when the review is still pending
+    if (review.status !== "pending")
+      return {
+        success: false,
+        error: `Review already submitted — status is ${review.status}`,
+      };
     updateReviewStatus(db, input.review_id, sessionId, input.status, input.comments ?? null);
     const updated = getReviewById(db, input.review_id, sessionId);
     return {

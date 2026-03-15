@@ -36,11 +36,15 @@ export function handleSendMessage(db: SqliteDatabase, sessionId: string, input: 
   }
 }
 
-// Fetch messages received by an agent (direct + broadcast)
+// Fetch messages received by an agent (direct + broadcast, excluding own broadcasts)
 export function handleGetMessages(db: SqliteDatabase, sessionId: string, input: GetMessagesInput) {
   try {
     const messages = getMessagesForAgent(db, sessionId, input.agent_id);
-    return { success: true, messages };
+    // Exclude broadcasts sent by the requesting agent to prevent self-feedback loops
+    const filtered = messages.filter(
+      (m) => !(m.to_agent === null && m.from_agent === input.agent_id)
+    );
+    return { success: true, messages: filtered };
   } catch (err) {
     return { success: false, messages: [], error: String(err) };
   }

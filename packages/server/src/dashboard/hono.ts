@@ -137,7 +137,12 @@ app.get("/api/sessions/:id/snapshot", (c) => {
 
 // API: session summary
 app.get("/api/sessions/:id", async (c) => {
-  const result = await handleGetSessionSummary(getRelayDir(), { session_id: c.req.param("id") });
+  const sessionId = c.req.param("id");
+  // Validate session_id to prevent path traversal (consistent with /events and /snapshot)
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return c.json({ error: "Invalid session ID" }, 400);
+  }
+  const result = await handleGetSessionSummary(getRelayDir(), { session_id: sessionId });
   if (!result.success) return c.json({ error: result.error }, 404);
   return c.json(result);
 });

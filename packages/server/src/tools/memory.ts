@@ -1,7 +1,7 @@
 // packages/server/src/tools/memory.ts
 // Tool for reading and writing agent memory as Markdown files
 import { existsSync, mkdirSync } from "node:fs";
-import { appendFile, readFile, writeFile } from "node:fs/promises";
+import { appendFile, readFile, rename, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 // Validate agent_id to prevent path traversal attacks
@@ -96,10 +96,11 @@ export async function handleWriteMemory(
     const headerLine = `## ${input.key}`;
     const startIdx = lines.indexOf(headerLine);
 
+    let newContent: string;
     if (startIdx === -1) {
       // Section absent — append at end
       const suffix = `${existing.length > 0 ? "\n" : ""}## ${input.key}\n\n${input.content}`;
-      await writeFile(path, `${(existing.trimEnd() + suffix).trimEnd()}\n`);
+      newContent = `${(existing.trimEnd() + suffix).trimEnd()}\n`;
     } else {
       // Replace up to the next ## header or end of file
       let endIdx = lines.findIndex((l, i) => i > startIdx && l.startsWith("## "));
@@ -108,8 +109,13 @@ export async function handleWriteMemory(
       const after = lines.slice(endIdx);
       const newSection = [`## ${input.key}`, "", input.content];
       const merged = [...before, ...newSection, ...after].join("\n");
-      await writeFile(path, `${merged.trimEnd()}\n`);
+      newContent = `${merged.trimEnd()}\n`;
     }
+
+    // Write atomically: write to a temp file then rename to avoid partial-write corruption
+    const tmpPath = `${path}.tmp`;
+    await writeFile(tmpPath, newContent);
+    await rename(tmpPath, path);
 
     return { success: true };
   } catch (err) {

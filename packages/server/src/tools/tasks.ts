@@ -50,6 +50,10 @@ export function handleUpdateTask(
     const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};
     if (input.status !== undefined) updates.status = input.status;
     if (input.assignee !== undefined) updates.assignee = input.assignee;
+    // Guard against empty updates before hitting the DB
+    if (Object.keys(updates).length === 0) {
+      return { success: false, error: "No valid fields to update" };
+    }
     const updated = updateTask(db, input.task_id, sessionId, updates);
     if (!updated) return { success: false, error: "task not found" };
     return { success: true };

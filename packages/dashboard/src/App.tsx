@@ -32,7 +32,7 @@ interface DashboardState {
   // Instance info — from session:snapshot (once BE ships instanceId/port)
   instanceId: string | undefined;
   instancePort: number | undefined;
-  // Session team — from team:composed or session:snapshot
+  // Session team — from session:snapshot
   sessionTeam: AgentMeta[];
   // The session ID of the live session currently shown (from session:snapshot or session:started)
   liveSessionId: string | null;
@@ -136,14 +136,6 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
         description: "Memory updated",
         timestamp: event.timestamp,
       };
-    case "team:composed":
-      return {
-        id,
-        type: "team:composed" as const,
-        agentId: null,
-        description: `Team composed: ${event.agents.map((a) => a.name).join(", ")}`,
-        timestamp: event.timestamp,
-      };
     default:
       return null;
   }
@@ -190,16 +182,6 @@ function reducer(state: DashboardState, action: Action): DashboardState {
       }
 
       switch (event.type) {
-        case "team:composed":
-          return {
-            ...state,
-            ...baseUpdates,
-            sessionTeam: event.agents.map((a) => ({
-              id: a.id as AgentId,
-              name: a.name,
-              emoji: a.emoji,
-            })),
-          };
         case "session:snapshot": {
           // Snapshot payload is now fully typed — no casting needed
           const snapshotMessages: Message[] = event.messages;
@@ -748,14 +730,19 @@ export default function App() {
             </div>
           </div>
 
-          {/* Row resize divider */}
-          <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
+          {/* Row resize divider — hidden when task board is collapsed (nothing to resize) */}
+          {!taskBoardCollapsed && (
+            <Divider orientation="vertical" onMouseDown={onVDividerMouseDown} />
+          )}
 
           {/* Bottom: TaskBoard/MessageFeed tabs, or AgentDetailPanel in focus mode */}
           <div
             style={{
-              // When task board is collapsed (and not in focus mode), shrink to fit the rail
-              flex: !isFocusMode && taskBoardCollapsed ? "0 0 auto" : "1 1 0",
+              // When task board is collapsed (and not in focus mode), lock to the 28px rail height.
+              // Use an explicit flex-basis instead of "auto" to prevent some browsers from
+              // collapsing the container to 0 when overflow: hidden is set.
+              flex: !isFocusMode && taskBoardCollapsed ? "0 0 28px" : "1 1 0",
+              minHeight: !isFocusMode && taskBoardCollapsed ? 28 : undefined,
               display: "flex",
               flexDirection: "column",
               overflow: "hidden",

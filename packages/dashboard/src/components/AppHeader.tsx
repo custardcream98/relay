@@ -21,7 +21,7 @@ interface Props {
   // Instance info — populated from session:snapshot once BE ships; defaults to current port
   instanceId?: string;
   instancePort?: number;
-  // Current session team — populated from team:composed event or session:snapshot
+  // Current session team — populated from session:snapshot
   sessionTeam: AgentMeta[];
   // Multi-server support — populated from GET /api/servers; empty until BE ships
   servers: ServerEntry[];

@@ -25,7 +25,7 @@ export function getRelayDir(): string {
 
 /**
  * Returns the relay instance ID, or undefined for the default (single) instance.
- * Set via RELAY_INSTANCE env var or --session CLI arg.
+ * Set via RELAY_INSTANCE env var or --instance CLI arg (--session is a deprecated alias).
  */
 export function getInstanceId(): string | undefined {
   return process.env.RELAY_INSTANCE ?? undefined;
@@ -80,6 +80,12 @@ let _sessionId: string | null = null;
 export function getSessionId(): string {
   if (_sessionId) return _sessionId;
   if (process.env.RELAY_SESSION_ID) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_SESSION_ID)) {
+      console.error(
+        "[relay] invalid RELAY_SESSION_ID value; use alphanumeric, hyphen, underscore only"
+      );
+      process.exit(1);
+    }
     _sessionId = process.env.RELAY_SESSION_ID;
     return _sessionId;
   }

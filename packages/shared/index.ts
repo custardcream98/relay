@@ -115,9 +115,4 @@ export type RelayEvent =
       type: "session:started";
       sessionId: string;
       timestamp: number;
-    }
-  | {
-      type: "team:composed";
-      agents: Array<{ id: string; name: string; emoji: string }>;
-      timestamp: number;
     };

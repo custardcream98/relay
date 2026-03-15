@@ -75,8 +75,10 @@ export function loadAgents(
 
     const language = config.language ?? globalLanguage;
 
-    // Agent without extends must have all required fields
-    const { name, emoji, tools, systemPrompt } = config;
+    // Agent without extends must have all required fields.
+    // systemPrompt may be omitted in session-agents files — fall back to the pool agent's prompt.
+    const { name, emoji, tools } = config;
+    const systemPrompt = config.systemPrompt ?? poolAgents?.[id]?.systemPrompt;
     if (!name || !emoji || !tools || !systemPrompt) {
       throw new Error(`agent "${id}" is missing required fields: name, emoji, tools, systemPrompt`);
     }
@@ -91,6 +93,8 @@ export function loadAgents(
     merged[id] = {
       id: markAsAgentId(id),
       ...config,
+      // Use the resolved systemPrompt (may come from pool fallback when config omits it)
+      systemPrompt,
       ...(language ? { language } : {}),
     } as AgentPersona;
   }

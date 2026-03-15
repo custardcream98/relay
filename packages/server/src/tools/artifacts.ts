@@ -1,7 +1,7 @@
 import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
 import type { SqliteDatabase } from "../db/types";
 
-export async function handlePostArtifact(
+export function handlePostArtifact(
   db: SqliteDatabase,
   sessionId: string,
   input: {
@@ -29,7 +29,7 @@ export async function handlePostArtifact(
   }
 }
 
-export async function handleGetArtifact(
+export function handleGetArtifact(
   db: SqliteDatabase,
   sessionId: string,
   input: { agent_id: string; name: string }

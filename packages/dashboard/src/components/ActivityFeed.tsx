@@ -580,33 +580,6 @@ function SystemEntry({ entry }: { entry: TimelineEntry }) {
   );
 }
 
-// Team composed — session start banner
-function TeamComposedEntry({ entry }: { entry: TimelineEntry }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "8px 20px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
-      <span
-        style={{
-          fontSize: 11,
-          color: "var(--color-accent)",
-          fontFamily: "var(--font-mono)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        ◆ {entry.description}
-      </span>
-    </div>
-  );
-}
-
 // Route an entry to the correct renderer
 function EntryRenderer({ entry }: { entry: TimelineEntry }) {
   switch (entry.type) {
@@ -626,8 +599,6 @@ function EntryRenderer({ entry }: { entry: TimelineEntry }) {
       return <ReviewEntry entry={entry} />;
     case "review:updated":
       return <ReviewUpdatedEntry entry={entry} />;
-    case "team:composed":
-      return <TeamComposedEntry entry={entry} />;
     case "agent:status":
     case "memory:updated":
       return <SystemEntry entry={entry} />;
@@ -669,7 +640,6 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   // Filter entries — focusAgent AND type filters combined
   const filtered = entries.filter((e) => {
     if (focusAgent && e.agentId !== focusAgent) return false;
-    if (e.type === "team:composed") return true;
     if (e.type === "agent:thinking") return false; // shown via thinkingChunks instead
     return activeFilters.has(e.type);
   });

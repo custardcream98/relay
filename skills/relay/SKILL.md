@@ -74,15 +74,16 @@ Go directly to pool selection below.
      distinct name (e.g. "Frontend Engineer 1", "Frontend Engineer 2", "Frontend Engineer 3").
 
 5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
-   - To build the file, call `list_pool_agents` — it returns full personas including `systemPrompt`.
-     Map each selected agent ID to its full persona config.
+   - Use the fields returned by `list_pool_agents`: `name`, `emoji`, `description`, `tools`.
+   - Do NOT include `systemPrompt` — `list_pool_agents` intentionally omits it. The server
+     resolves `systemPrompt` directly from the pool file at load time when `list_agents` is called.
    - For **single instances**, write the agent entry directly:
      ```yaml
      agents:
        fe:
          name: Frontend Engineer
          emoji: "🎨"
-         systemPrompt: "..."
+         description: "Builds UI components"
          tools: [...]
      ```
    - For **multiple instances of the same pool agent**, use the `extends` pattern so the

@@ -1,7 +1,7 @@
 // packages/server/src/db/queries/events.ts
 
 import type { RelayEvent } from "@custardcream/relay-shared";
-import { getDb } from "../client.ts";
+import { getDb } from "../client";
 
 // Persist an event to the DB for history replay.
 // created_at uses unixepoch() (seconds) — convert event.timestamp (ms) accordingly.
@@ -23,7 +23,10 @@ export function insertEvent(sessionId: string, event: RelayEvent): void {
 export function getEventsBySession(sessionId: string): RelayEvent[] {
   const db = getDb();
   const rows = db
-    .prepare(`SELECT payload FROM events WHERE session_id = ? ORDER BY created_at ASC`)
+    // Secondary sort by rowid breaks ties when multiple events share the same created_at second.
+    // id is a random UUID so it is not a reliable tiebreaker by value; rowid (implicit SQLite
+    // integer primary key) reflects true insertion order and is always unique.
+    .prepare(`SELECT payload FROM events WHERE session_id = ? ORDER BY created_at ASC, rowid ASC`)
     .all(sessionId) as { payload: string }[];
   return rows.map((r) => JSON.parse(r.payload) as RelayEvent);
 }

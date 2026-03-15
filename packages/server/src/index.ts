@@ -25,16 +25,16 @@ if (process.stdin.isTTY) {
 }
 
 // --- CLI arg parsing (minimal, no deps) ---
-// Supports: --port <number>  --session <id>
-function parseArgs(argv: string[]): { port?: number; session?: string } {
-  const result: { port?: number; session?: string } = {};
+// Supports: --port <number>  --instance <id>
+function parseArgs(argv: string[]): { port?: number; instance?: string } {
+  const result: { port?: number; instance?: string } = {};
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--port" && argv[i + 1]) {
       const p = Number(argv[i + 1]);
       if (!Number.isNaN(p)) result.port = p;
       i++;
-    } else if (argv[i] === "--session" && argv[i + 1]) {
-      result.session = argv[i + 1];
+    } else if (argv[i] === "--instance" && argv[i + 1]) {
+      result.instance = argv[i + 1];
       i++;
     }
   }
@@ -43,16 +43,16 @@ function parseArgs(argv: string[]): { port?: number; session?: string } {
 
 const cliArgs = parseArgs(process.argv.slice(2));
 
-// Validate --session value: only alphanumeric, hyphen, underscore allowed
+// Validate --instance value: only alphanumeric, hyphen, underscore allowed
 // Prevents DB path traversal via RELAY_INSTANCE (e.g. "../../tmp/malicious")
-if (cliArgs.session && !/^[a-zA-Z0-9_-]+$/.test(cliArgs.session)) {
-  console.error("[relay] invalid --session value; use alphanumeric, hyphen, underscore only");
+if (cliArgs.instance && !/^[a-zA-Z0-9_-]+$/.test(cliArgs.instance)) {
+  console.error("[relay] invalid --instance value; use alphanumeric, hyphen, underscore only");
   process.exit(1);
 }
 
-// Apply --session CLI arg to env before any module reads RELAY_INSTANCE
-if (cliArgs.session) {
-  process.env.RELAY_INSTANCE = cliArgs.session;
+// Apply --instance CLI arg to env before any module reads RELAY_INSTANCE
+if (cliArgs.instance) {
+  process.env.RELAY_INSTANCE = cliArgs.instance;
 }
 
 // Validate RELAY_INSTANCE env var as well (set directly without --session flag)

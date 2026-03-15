@@ -25,10 +25,7 @@ export async function handleSaveSessionSummary(
     const dir = join(relayDir, "sessions", input.session_id);
     mkdirSync(dir, { recursive: true });
 
-    await writeFile(
-      join(dir, "summary.md"),
-      `# Session Summary: ${input.session_id}\n\n${input.summary}\n`
-    );
+    await writeFile(join(dir, "summary.md"), `${input.summary}\n`);
 
     return { success: true };
   } catch (err) {

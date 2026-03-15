@@ -10,12 +10,12 @@ function isValidId(id: string): boolean {
 }
 
 /**
- * Save a session summary, tasks, and messages to disk.
- * Files are written to .relay/sessions/{session_id}/
+ * Save a session summary to disk.
+ * File is written to .relay/sessions/{session_id}/summary.md
  */
 export async function handleSaveSessionSummary(
   relayDir: string,
-  input: { session_id: string; summary: string; tasks: unknown[]; messages: unknown[] }
+  input: { session_id: string; summary: string }
 ) {
   // Validate session_id to prevent path traversal
   if (!isValidId(input.session_id)) {
@@ -29,8 +29,6 @@ export async function handleSaveSessionSummary(
       join(dir, "summary.md"),
       `# Session Summary: ${input.session_id}\n\n${input.summary}\n`
     );
-    await writeFile(join(dir, "tasks.json"), JSON.stringify(input.tasks, null, 2));
-    await writeFile(join(dir, "messages.json"), JSON.stringify(input.messages, null, 2));
 
     return { success: true };
   } catch (err) {

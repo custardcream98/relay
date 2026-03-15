@@ -16,6 +16,9 @@ packages/docs/.astro/
 # Ephemeral per-session team files — written by /relay:relay during Team Composition
 .relay/session-agents*.yml
 
+# Session data — ephemeral, stored in SQLite; not committed to git
+.relay/sessions/
+
 # Git worktrees
 .worktrees/
 

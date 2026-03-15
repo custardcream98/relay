@@ -430,8 +430,6 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the calling agent (typically the orchestrator)"),
       session_id: z.string().describe("Session ID (YYYY-MM-DD-NNN format)"),
       summary: z.string().describe("Session summary text"),
-      tasks: z.array(z.record(z.string(), z.unknown())).describe("All tasks in the session"),
-      messages: z.array(z.record(z.string(), z.unknown())).describe("All messages in the session"),
     },
     async (input) => {
       const result = await handleSaveSessionSummary(getRelayDir(), input);

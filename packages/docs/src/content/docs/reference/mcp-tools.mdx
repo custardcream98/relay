@@ -438,7 +438,7 @@ Append content with a datestamp to an agent's personal memory file.
 ### save_session_summary
 
 At session end, saves the session summary to `.relay/sessions/{session_id}/summary.md`.
-Session tasks and messages are already persisted in SQLite and do not need to be passed.
+Session tasks and messages are stored in-memory and are not persisted to disk — pass a meaningful summary string as this is the durable record of what happened.
 
 **Parameters:**
 ```typescript

@@ -1,6 +1,6 @@
 ---
 title: Dashboard
-description: The relay real-time dashboard shows a live Kanban board, agent message feed, and thought stream — with full session replay.
+description: The relay real-time dashboard shows a live Kanban board, agent activity feed, and agent thinking stream in real time.
 ---
 
 The relay MCP server serves a live web dashboard at session start. Watch your agents think, communicate, and move tasks in real time.
@@ -35,6 +35,6 @@ http://localhost:3456
 - Updates instantly as agents claim and complete work
 - Click a task to see details — assignee, priority, description
 
-## Session replay
+## Session switcher
 
-All events are persisted to SQLite. Use the session switcher in the dashboard to browse past sessions and replay the full sequence of events.
+Session data lives in-memory for the duration of the server process. The session switcher in the header lets you navigate between sessions from the current run.

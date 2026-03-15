@@ -26,16 +26,18 @@ my-project/
         └── ...
 ```
 
-## 세션 메모리 (SQLite)
+## 세션 메모리 (in-memory)
 
-세션 내 데이터는 SQLite에 저장됩니다:
-- 메시지 (`messages` 테이블)
-- 태스크 (`tasks` 테이블)
-- 아티팩트 (`artifacts` 테이블)
-- 리뷰 (`reviews` 테이블)
-- WebSocket 이벤트 (`events` 테이블)
+세션 내 데이터는 MCP 서버 프로세스 메모리에 저장됩니다:
+- 메시지
+- 태스크
+- 아티팩트
+- 리뷰
+- WebSocket 이벤트
 
-세션이 종료되면 `save_session_summary`가 사람이 읽을 수 있는 요약을 `.relay/sessions/{session_id}/summary.md`에 저장합니다. 태스크와 메시지의 전체 기록은 이미 SQLite에 보존됩니다. sessions 디렉토리는 gitignore되어 있으며 로컬 전용 임시 데이터입니다.
+이 데이터는 일시적(ephemeral)입니다 — 서버 프로세스가 살아있는 동안만 존재하며 디스크에 기록되지 않습니다.
+
+세션이 종료되면 `save_session_summary`가 사람이 읽을 수 있는 요약을 `.relay/sessions/{session_id}/summary.md`에 저장합니다. sessions 디렉토리는 gitignore되어 있으며 로컬 전용입니다.
 
 ## 프로젝트 메모리 (마크다운 파일)
 

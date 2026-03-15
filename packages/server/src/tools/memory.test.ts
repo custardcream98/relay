@@ -49,9 +49,10 @@ describe("memory tool", () => {
   });
 
   test("append_memory: returns error when agent_id is omitted", async () => {
+    // Cast to bypass the required agent_id type — exercises the runtime guard for direct callers
     const result = await handleAppendMemory(TEST_DIR, {
       content: "Team retro: watch out for auth headers",
-    });
+    } as { agent_id: string; content: string });
     expect(result.success).toBe(false);
     expect((result as { success: false; error: string }).error).toContain("save_session_summary");
     // lessons.md must not be created

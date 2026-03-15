@@ -111,7 +111,6 @@ your-project/
 └── .relay/
     ├── memory/                  세션 간 영속 기억 (git 커밋 권장)
     │   ├── project.md           아키텍처, 도메인, 기술 스택 요약
-    │   ├── lessons.md           반복 실수, 중요 의사결정 히스토리
     │   └── agents/
     │       ├── pm.md
     │       ├── fe.md

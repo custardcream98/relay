@@ -66,8 +66,8 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 
 ### Memory (파일 기반, .relay/memory/)
 - `project.md` — 공유 프로젝트 메모리 (write_memory로 섹션 단위 upsert)
-- `lessons.md` — 공유 회고/교훈 (append_memory로 날짜 스탬프 추가)
 - `agents/{id}.md` — 에이전트 개인 메모리 (## key 헤더 섹션 구조)
+- 세션 회고는 save_session_summary로 저장 (lessons.md 폐지됨)
 
 ### Sessions (파일 기반, .relay/sessions/)
 - `{session_id}/summary.md`

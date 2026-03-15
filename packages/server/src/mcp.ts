@@ -517,7 +517,7 @@ export function createMcpServer(): McpServer {
       if (result.success) {
         broadcast({
           type: "memory:updated",
-          agentId: markAsAgentId(input.agent_id ?? "unknown"),
+          agentId: markAsAgentId(input.agent_id),
           timestamp: Date.now(),
         });
       }

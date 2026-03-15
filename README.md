@@ -177,7 +177,6 @@ your-project/
 └── .relay/
     ├── memory/                    persists across sessions (commit to git)
     │   ├── project.md             architecture, domain, tech stack
-    │   ├── lessons.md             repeated mistakes, key decisions
     │   └── agents/
     │       ├── pm.md
     │       ├── fe.md

@@ -588,3 +588,30 @@ _2026-03-15_
 - /api/agents returns pool agents (not session-specific team) → extends instances (fe2, fe3) missing from dashboard
 - pre-flight list_agents always empty — can't confirm server connectivity this way
 
+
+---
+_2026-03-15_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-009-a2b4: Context Split + Component Decomposition
+
+**Team**: fe (architect/coordinator), fe2 (panel extraction), fe3 (BottomPanel + verification)
+
+**Accomplishments:**
+- Monolithic DashboardContext (30+ fields) split into 4 focused contexts: SessionContext, ConnectionContext, ServerContext, AgentsContext
+- App.tsx: provides all 4 contexts as nested providers; renders &lt;AppLayout /&gt; with zero props
+- panels/BottomPanel.tsx: bottom panel reads from useSession(); only resize props passed from AppLayout
+- panels/AgentArenaPanel.tsx: arena panel reads from useAgents() + useSession(); resize props from AppLayout
+- panels/ActivityPanel.tsx: activity feed panel reads from useSession(); sizing props from AppLayout
+- AppLayout.tsx: pure layout skeleton with zero data props — only orchestrates Dividers and panel components
+- AppLayout.stories.tsx: MockProviders wrapper with 4 context providers; story-level decorators for variants
+- Build: 0 errors, 38 modules
+
+**Lessons:**
+- fe2 waited for fe to complete before starting — fe should send_message(to: "fe2") with explicit "task ready" signal, not just broadcast
+- Parallel panel extraction (fe2 + fe3 working simultaneously) is safe when panels are orthogonal — no shared file conflicts
+- Context barrel re-export (DashboardContext.tsx → re-exports all 4) is good migration pattern — consumers don't break
+- Panel components accept only layout/resize props from AppLayout; data comes from context — clean separation of concerns
+

@@ -569,8 +569,10 @@ export default function App() {
           <div
             style={{
               // When TaskBoard is collapsed, fill all remaining space; otherwise use the drag-set percentage
+              // minHeight: 0 overrides flex item's min-height:auto so the activity area can shrink
+              // below its content height, preventing the 28px collapse rail from being clipped.
               ...(taskBoardCollapsed
-                ? { flex: "1 1 0" }
+                ? { flex: "1 1 0", minHeight: 0, overflow: "hidden" }
                 : { height: `${timelinePct}%`, flexShrink: 0 }),
               display: "flex",
               flexDirection: "column",

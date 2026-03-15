@@ -129,11 +129,15 @@ describe("session isolation — cross-session data leakage", () => {
 
       // session-B should see zero tasks
       const statusB = await handleGetTeamStatus(db, "session-B", { agent_id: "pm" });
+      expect(statusB.success).toBe(true);
+      if (!statusB.success) return;
       expect(statusB.total).toBe(0);
       expect(statusB.has_pending_work).toBe(false);
 
       // session-A should see its own tasks
       const statusA = await handleGetTeamStatus(db, "session-A", { agent_id: "pm" });
+      expect(statusA.success).toBe(true);
+      if (!statusA.success) return;
       expect(statusA.total).toBe(2);
       expect(statusA.has_pending_work).toBe(true);
     });
@@ -149,7 +153,7 @@ describe("session isolation — cross-session data leakage", () => {
       // Attempt to update task from session-B — should not affect the task
       const result = await handleUpdateTask(db, "session-B", {
         agent_id: "fe",
-        task_id,
+        task_id: task_id as string,
         status: "done",
       });
       expect(result.success).toBe(false);

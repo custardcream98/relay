@@ -132,6 +132,7 @@ describe("tasks tool", () => {
     test("empty session → all zeros, has_pending_work false", async () => {
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "pm" });
       expect(result.success).toBe(true);
+      if (!result.success) return;
       expect(result.todo).toBe(0);
       expect(result.in_progress).toBe(0);
       expect(result.in_review).toBe(0);
@@ -159,6 +160,8 @@ describe("tasks tool", () => {
         status: "done",
       });
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "qa" });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
       expect(result.todo).toBe(1);
       expect(result.done).toBe(1);
       expect(result.total).toBe(2);
@@ -178,6 +181,8 @@ describe("tasks tool", () => {
         status: "done",
       });
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "deployer" });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
       expect(result.todo).toBe(0);
       expect(result.has_pending_work).toBe(false);
     });
@@ -189,6 +194,8 @@ describe("tasks tool", () => {
         priority: "high",
       });
       const result = await handleGetTeamStatus(db, "sess-1", { agent_id: "pm" });
+      expect(result.success).toBe(true);
+      if (!result.success) return;
       expect(result.total).toBe(0);
     });
   });

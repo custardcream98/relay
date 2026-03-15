@@ -160,7 +160,7 @@ describe("submit_review — review:updated broadcast", () => {
 
     // Assert the review payload contains the required fields
     if (event.type === "review:updated") {
-      expect(event.review.id).toBe(review_id);
+      expect(event.review.id).toBe(review_id as string);
       expect(event.review.status).toBe("approved");
       expect(event.review.reviewer).toBe("qa");
       expect(event.review.comments).toBe("All checks pass.");

@@ -27,12 +27,12 @@ export function handleSendMessage(db: SqliteDatabase, sessionId: string, input: 
     insertMessage(db, msg);
     // DB uses unixepoch() (seconds) — align broadcast created_at to seconds as well
     return {
-      success: true,
+      success: true as const,
       message_id: id,
       message: { ...msg, created_at: Math.floor(Date.now() / 1000) },
     };
   } catch (err) {
-    return { success: false, error: String(err) };
+    return { success: false as const, error: String(err) };
   }
 }
 

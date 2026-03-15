@@ -104,9 +104,9 @@ export function handleGetTeamStatus(
   try {
     const status = getTeamStatus(db, sessionId);
     const has_pending_work = status.todo + status.in_progress + status.in_review > 0;
-    return { success: true, ...status, has_pending_work };
+    return { success: true as const, ...status, has_pending_work };
   } catch (err) {
-    return { success: false, error: String(err) };
+    return { success: false as const, error: String(err) };
   }
 }
 

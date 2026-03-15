@@ -22,6 +22,7 @@ describe("messaging tool", () => {
     expect(result.success).toBe(true);
     expect(result.message_id).toBeDefined();
     expect(result.message).toBeDefined();
+    if (!result.success) return;
     expect(result.message.from_agent).toBe("pm");
     expect(result.message.to_agent).toBe("fe");
     expect(typeof result.message.created_at).toBe("number");

@@ -182,8 +182,6 @@ your-project/
     │       └── ...
     └── sessions/                  per-session audit log
         └── 2026-03-14-001/
-            ├── messages.json
-            ├── tasks.json
             └── summary.md
 ```
 

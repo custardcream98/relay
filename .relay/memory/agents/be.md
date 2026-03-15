@@ -71,8 +71,6 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 
 ### Sessions (파일 기반, .relay/sessions/)
 - `{session_id}/summary.md`
-- `{session_id}/tasks.json`
-- `{session_id}/messages.json`
 
 ## external-deps
 

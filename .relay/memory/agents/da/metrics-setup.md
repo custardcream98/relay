@@ -25,7 +25,7 @@
 - Every broadcast event is persisted here
 
 ## Session Summary (file-based)
-- Saved to `.relay/sessions/{session_id}/summary.md`, `tasks.json`, `messages.json`
+- Saved to `.relay/sessions/{session_id}/summary.md`
 - Listed via `GET /api/sessions` → `handleListSessions`
 
 ## Gaps in Measurement

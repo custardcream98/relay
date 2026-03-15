@@ -21,10 +21,8 @@ my-project/
     │       ├── designer.md      # Designer: UI 패턴, 디자인 시스템
     │       ├── qa.md            # QA: 반복되는 버그 패턴, 취약한 영역
     │       └── deployer.md      # Deployer: 배포 히스토리, 주의사항
-    └── sessions/                # 세션별 감사 로그 (자동 생성)
+    └── sessions/                # 세션별 요약 (gitignore됨; 자동 생성)
         ├── 2026-03-13-001/
-        │   ├── messages.json
-        │   ├── tasks.json
         │   └── summary.md
         └── ...
 ```
@@ -38,7 +36,7 @@ my-project/
 - 리뷰 (`reviews` 테이블)
 - WebSocket 이벤트 (`events` 테이블)
 
-세션이 종료되면 `save_session_summary`가 모든 내용을 `.relay/sessions/`에 아카이브합니다.
+세션이 종료되면 `save_session_summary`가 사람이 읽을 수 있는 요약을 `.relay/sessions/{session_id}/summary.md`에 저장합니다. 태스크와 메시지의 전체 기록은 이미 SQLite에 보존됩니다. sessions 디렉토리는 gitignore되어 있으며 로컬 전용 임시 데이터입니다.
 
 ## 프로젝트 메모리 (마크다운 파일)
 

@@ -119,8 +119,6 @@ your-project/
     │       └── ...
     └── sessions/                세션별 감사 로그
         └── 2026-03-13-001/
-            ├── messages.json
-            ├── tasks.json
             └── summary.md
 ```
 

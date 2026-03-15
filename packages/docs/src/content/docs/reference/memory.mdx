@@ -21,10 +21,8 @@ my-project/
     │       ├── designer.md      # Designer: UI patterns, design system
     │       ├── qa.md            # QA: recurring bug patterns, fragile areas
     │       └── deployer.md      # Deployer: deployment history, cautions
-    └── sessions/                # per-session audit log (auto-generated)
+    └── sessions/                # per-session summaries (gitignored; auto-generated)
         ├── 2026-03-13-001/
-        │   ├── messages.json
-        │   ├── tasks.json
         │   └── summary.md
         └── ...
 ```
@@ -38,7 +36,7 @@ Within-session data is stored in SQLite:
 - Reviews (`reviews` table)
 - WebSocket events (`events` table)
 
-When a session ends, `save_session_summary` archives everything to `.relay/sessions/`.
+When a session ends, `save_session_summary` writes a human-readable summary to `.relay/sessions/{session_id}/summary.md`. Full task and message history is already persisted in SQLite. The sessions directory is gitignored — it is ephemeral and local-only.
 
 ## Project memory (Markdown files)
 

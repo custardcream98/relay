@@ -290,7 +290,7 @@ Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
 1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
-2. Archive: `save_session_summary(session_id, summary, tasks, messages)`.
+2. Archive: `save_session_summary(session_id, summary)`.
 3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
 4. Report results to the user.
 

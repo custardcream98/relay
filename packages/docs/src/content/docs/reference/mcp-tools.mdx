@@ -215,7 +215,7 @@ Share a deliverable (design spec, PR, report, etc.).
 {
   agent_id: string;  // sharing agent ID
   name: string;      // artifact name (e.g. "login-fe-pr")
-  type: "figma_spec" | "pr" | "report" | "analytics_plan" | "design";
+  type: "figma_spec" | "pr" | "report" | "analytics_plan" | "design" | "document";
   content: string;   // artifact content (text or JSON string)
   task_id?: string;  // associated task ID (optional)
 }
@@ -353,7 +353,8 @@ Appends to the shared `lessons.md` when `agent_id` is omitted.
 
 ### save_session_summary
 
-At session end, saves the summary, tasks, and messages to `.relay/sessions/{session_id}/`.
+At session end, saves the session summary to `.relay/sessions/{session_id}/summary.md`.
+Session tasks and messages are already persisted in SQLite and do not need to be passed.
 
 **Parameters:**
 ```typescript
@@ -361,8 +362,6 @@ At session end, saves the summary, tasks, and messages to `.relay/sessions/{sess
   agent_id: string;         // calling agent ID (usually the coordinator)
   session_id: string;       // session ID (YYYY-MM-DD-NNN format recommended)
   summary: string;          // session summary text
-  tasks: object[];          // all tasks in the session
-  messages: object[];       // all messages in the session
 }
 ```
 

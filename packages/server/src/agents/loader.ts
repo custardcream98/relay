@@ -49,8 +49,15 @@ function readYml(path: string): AgentsFile | null {
  * Load agent personas from an explicit AgentsFile.
  * Disabled agents are excluded from the result.
  * When using extends, the specified agent's config is inherited and then overridden.
+ *
+ * @param override - The agents file to load (session file or pool file)
+ * @param poolAgents - Optional pool agents to use as fallback for extends resolution.
+ *   Allows session-file agents to extend pool agents by ID.
  */
-export function loadAgents(override: AgentsFile): Record<string, AgentPersona> {
+export function loadAgents(
+  override: AgentsFile,
+  poolAgents?: Record<string, AgentPersona>
+): Record<string, AgentPersona> {
   const agents = override.agents;
   const merged: Record<string, AgentPersona> = {};
 
@@ -95,9 +102,15 @@ export function loadAgents(override: AgentsFile): Record<string, AgentPersona> {
 
     const language = config.language ?? globalLanguage;
 
-    // Extending a disabled or nonexistent agent is an error
-    const base = merged[config.extends];
-    if (!base) throw new Error(`extends target "${config.extends}" not found or is disabled`);
+    // Look up the base agent: first within the same file, then fall back to pool agents.
+    // This allows session-file agents to extend pool agents by ID (e.g. fe2: { extends: fe }).
+    const base = merged[config.extends] ?? poolAgents?.[config.extends];
+    if (!base) {
+      throw new Error(
+        `extends target "${config.extends}" not found or is disabled` +
+          (poolAgents ? " (searched current file and pool)" : "")
+      );
+    }
     merged[id] = {
       ...base,
       ...config,

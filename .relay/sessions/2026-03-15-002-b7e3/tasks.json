@@ -1,0 +1,47 @@
+[
+  {
+    "id": "74942524",
+    "title": "BE server review",
+    "status": "done"
+  },
+  {
+    "id": "70dd559a",
+    "title": "FE dashboard review",
+    "status": "done"
+  },
+  {
+    "id": "118fd401",
+    "title": "Security audit",
+    "status": "done"
+  },
+  {
+    "id": "510ea747",
+    "title": "MCP protocol review",
+    "status": "done"
+  },
+  {
+    "id": "9e1c7be0",
+    "title": "Test gap analysis",
+    "status": "done"
+  },
+  {
+    "id": "9922a214",
+    "title": "H1 CORS",
+    "status": "done"
+  },
+  {
+    "id": "2bb1702a",
+    "title": "H2 WS origin",
+    "status": "done"
+  },
+  {
+    "id": "1a7f4854",
+    "title": "H3 SSRF",
+    "status": "done"
+  },
+  {
+    "id": "6db2c42a",
+    "title": "M1 content limits",
+    "status": "done"
+  }
+]

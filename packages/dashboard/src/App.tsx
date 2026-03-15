@@ -681,11 +681,13 @@ export default function App() {
 
         {/* Right: activity area */}
         <div ref={activityRef} className="flex flex-col flex-1 overflow-hidden">
-          {/* Top: ActivityFeed — drag-resizable height */}
+          {/* Top: ActivityFeed — drag-resizable height; expands to fill when TaskBoard is collapsed */}
           <div
             style={{
-              height: `${timelinePct}%`,
-              flexShrink: 0,
+              // When TaskBoard is collapsed, fill all remaining space; otherwise use the drag-set percentage
+              ...(taskBoardCollapsed
+                ? { flex: "1 1 0" }
+                : { height: `${timelinePct}%`, flexShrink: 0 }),
               display: "flex",
               flexDirection: "column",
             }}
@@ -792,11 +794,19 @@ export default function App() {
                     border: "none",
                     cursor: "pointer",
                     color: "var(--color-text-disabled)",
-                    fontSize: 12,
                     flexShrink: 0,
                   }}
                 >
-                  ^
+                  {/* Chevron up — click to expand task board */}
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                    <path
+                      d="M2 8.5L6 4.5L10 8.5"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </button>
                 <span
                   style={{
@@ -876,11 +886,19 @@ export default function App() {
                       border: "none",
                       cursor: "pointer",
                       color: "var(--color-text-disabled)",
-                      fontSize: 12,
                       flexShrink: 0,
                     }}
                   >
-                    v
+                    {/* Chevron down — click to collapse task board */}
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path
+                        d="M2 4.5L6 8.5L10 4.5"
+                        stroke="currentColor"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </button>
                 </div>
                 <div className="flex-1 overflow-hidden">

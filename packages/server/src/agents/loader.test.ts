@@ -287,6 +287,96 @@ describe("loadPool", () => {
     expect(pool.inactive).toBeUndefined();
   });
 
+  test("session agents can extend pool agents when poolAgents is provided", () => {
+    // Simulates the pool defining a base persona and the session file extending it
+    const poolFile: AgentsFile = {
+      agents: {
+        fe: {
+          name: "Frontend Engineer",
+          emoji: "🎨",
+          tools: ["send_message", "get_messages"],
+          systemPrompt: "You are a frontend engineer.",
+          tags: ["frontend"],
+        },
+      },
+    };
+    const poolAgents = loadAgents(poolFile);
+
+    const sessionFile: AgentsFile = {
+      agents: {
+        fe2: {
+          extends: "fe",
+          name: "Frontend Engineer 2",
+        },
+      },
+    };
+
+    const result = loadAgents(sessionFile, poolAgents);
+    expect(result.fe2).toBeDefined();
+    expect(result.fe2.emoji).toBe("🎨"); // inherited from pool
+    expect(result.fe2.name).toBe("Frontend Engineer 2"); // overridden
+    expect(result.fe2.systemPrompt).toBe("You are a frontend engineer."); // inherited from pool
+  });
+
+  test("extends still works within session file when poolAgents is provided", () => {
+    const poolAgents = loadAgents({
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "Base agent.",
+        },
+      },
+    });
+
+    const sessionFile: AgentsFile = {
+      agents: {
+        infile_base: {
+          name: "In-file Base",
+          emoji: "🟢",
+          tools: ["send_message"],
+          systemPrompt: "In-file base agent.",
+        },
+        derived: {
+          extends: "infile_base",
+          name: "Derived",
+        },
+      },
+    };
+
+    const result = loadAgents(sessionFile, poolAgents);
+    expect(result.derived).toBeDefined();
+    expect(result.derived.emoji).toBe("🟢"); // from same file, not pool
+    expect(result.derived.name).toBe("Derived");
+  });
+
+  test("throws a useful error message when extends target is not found in file or pool", () => {
+    const poolAgents = loadAgents({
+      agents: {
+        fe: {
+          name: "Frontend Engineer",
+          emoji: "🎨",
+          tools: ["send_message"],
+          systemPrompt: "You are a frontend engineer.",
+        },
+      },
+    });
+
+    const sessionFile: AgentsFile = {
+      agents: {
+        ghost: {
+          extends: "nonexistent_agent",
+          name: "Ghost",
+        },
+      },
+    };
+
+    expect(() => loadAgents(sessionFile, poolAgents)).toThrow(
+      /extends target "nonexistent_agent" not found.*pool/
+    );
+  });
+
   test("pool agents can use extends", () => {
     const poolFile: AgentsFile = {
       agents: {

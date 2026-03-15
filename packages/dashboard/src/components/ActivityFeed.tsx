@@ -867,7 +867,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           onScroll={handleScroll}
           style={{ paddingTop: 4, paddingBottom: 4, position: "relative" }}
         >
-          {entries.length >= 200 && (
+          {filtered.length >= 200 && (
             <div
               style={{
                 textAlign: "center",

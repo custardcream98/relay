@@ -386,3 +386,44 @@ _2026-03-15_
 - FE initial hydration relies 100% on WebSocket session:snapshot — if WS connection fails or delays, screen stays blank; this is by design but worth noting
 - session:snapshot missing sessionId field is a known gap for multi-server scenarios
 
+
+---
+_2026-03-15_
+
+---
+_2026-03-15_
+
+## Session 2026-03-15-004-d3e4: Dashboard Bug Fixes + Message Delivery Improvement
+
+**Team**: pm, be, fe, mcp-architect, qa
+
+**Accomplishments:**
+
+**[FIXED by orchestrator directly]**
+- App.tsx: TaskBoard collapse layout bug — ActivityFeed was stuck at `timelinePct%` height when collapsed, leaving black space below. Fixed: when `taskBoardCollapsed`, ActivityFeed uses `flex: "1 1 0"` to fill remaining space.
+- App.tsx: Collapse/expand icons were ASCII text `v`/`^` — replaced with proper SVG chevrons.
+
+**BE (2 bugs fixed):**
+- mcp.ts: `agentsCache` was caching empty `{}` on load failure (catch block) — now skips caching on error, allowing retry without server restart.
+- loader.ts: `loadAgents(override, poolAgents?)` — added optional pool fallback parameter so session file `extends` can reference pool agents. `getAgents()` now calls `loadAgents(parsed, getPool())`. +3 new tests (132 total).
+
+**FE (2 bugs fixed):**
+- AgentDetailPanel.tsx: `STATUS_COLOR` fallback was a CSS var (`var(--color-text-disabled)`), producing invalid CSS like `var(--color-text-disabled)18` when used as hex alpha suffix → replaced with `STATUS_COLOR_FALLBACK = "#6b7280"` hex.
+- ActivityFeed.tsx: "Showing last 200 events" banner checked `entries.length >= 200` (unfiltered) instead of `filtered.length >= 200` — misleading when filters active.
+
+**MCP Architect (message delivery improvement):**
+- Root cause: SKILL.md discipline note had no mandatory `send_message` rules; agents could exit without declaring `end:`.
+- skills/relay/SKILL.md: Added `## Mandatory Communication Protocol` section injected into all agent system prompts.
+- skills/relay/SKILL.md: Strengthened "no declaration" respawn message.
+- skills/agent/SKILL.md: Added Communication Protocol injection for single-agent spawns.
+- mcp.ts: Added `"document"` to artifact type enum (Zod validation was failing silently).
+
+**Final: 132/132 tests pass, dashboard build 0 errors**
+
+**Lessons:**
+- agentsCache silent-failure caching: never cache error/empty results — callers should be able to retry
+- `extends` in session files now supports pool agent references — CLAUDE.md was ahead of implementation; be fixed the implementation to match docs
+- CSS var + hex alpha suffix (`${cssVar}18`) produces invalid CSS — always use hex literals for alpha variants (same lesson as session 003)
+- Message delivery was a prompt/protocol problem, not an infrastructure problem — `messaging.ts` implementation was correct; the fix was in SKILL.md discipline rules
+- `post_artifact` type enum was missing `"document"` — agents using it got Zod validation failures silently; always verify enum completeness against agent usage patterns
+

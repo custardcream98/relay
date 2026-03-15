@@ -7,7 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import yaml from "js-yaml";
 import { z } from "zod";
-import { getWorkflow, loadPool } from "./agents/loader";
+import { getWorkflow, loadAgents, loadPool } from "./agents/loader";
 import type { AgentPersona, AgentsFile } from "./agents/types";
 import {
   getInstanceId,
@@ -280,7 +280,7 @@ export function createMcpServer(): McpServer {
       agent_id: z.string().describe("ID of the agent posting the artifact"),
       name: z.string().describe("Artifact name (e.g. login-design, cart-fe-pr)"),
       type: z
-        .enum(["figma_spec", "pr", "report", "analytics_plan", "design"])
+        .enum(["figma_spec", "pr", "report", "analytics_plan", "design", "document"])
         .describe("Artifact type"),
       content: z.string().max(524288).describe("Artifact content (JSON or Markdown)"),
       task_id: z.string().optional().describe("Associated task ID"),
@@ -518,7 +518,16 @@ export function createMcpServer(): McpServer {
           if (!parsed) {
             console.error(`[relay] session file is empty or malformed: ${sessionFile}`);
           }
-          result = loadPool(parsed ?? { agents: {} });
+          // Load pool agents as fallback for extends resolution.
+          // This allows session-file agents to extend pool agents by ID (e.g. fe2: { extends: fe }).
+          // Pool load failure is non-fatal — extends will still work within the session file.
+          let poolAgents: Record<string, AgentPersona> | undefined;
+          try {
+            poolAgents = getPool();
+          } catch {
+            poolAgents = undefined;
+          }
+          result = loadAgents(parsed ?? { agents: {} }, poolAgents);
         } else {
           // No session-specific file — return empty. Pool-only architecture:
           // teams are always composed via /relay:relay before list_agents is called with a sessionId.
@@ -529,8 +538,9 @@ export function createMcpServer(): McpServer {
         result = {};
       }
     } catch {
-      // Pool load failed — return empty
-      result = {};
+      // Load failed — do NOT cache the empty result so callers can retry
+      // after fixing the underlying issue (e.g. malformed YAML, missing file).
+      return {};
     }
 
     agentsCache.set(cacheKey, result);

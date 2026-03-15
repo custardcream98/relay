@@ -1,0 +1,27 @@
+[
+  {
+    "id": "7c024d6a",
+    "from_agent": "pm",
+    "content": "Session started: follow-up review pass"
+  },
+  {
+    "id": "97099279",
+    "from_agent": "pm",
+    "content": "Tasks created: 4 tasks for be/fe/qa"
+  },
+  {
+    "id": "411ba3dc",
+    "from_agent": "fe",
+    "content": "end:waiting | FE review complete, 3 bugs fixed"
+  },
+  {
+    "id": "d6563eec",
+    "from_agent": "qa",
+    "content": "QA sign-off: 127 tests pass, 16 new tests added"
+  },
+  {
+    "id": "d321db94",
+    "from_agent": "be",
+    "content": "end:_done | BE complete, 129 tests, all 4 findings addressed"
+  }
+]

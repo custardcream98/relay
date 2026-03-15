@@ -23,6 +23,14 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 4. Spawn that agent alone.
    - Restrict tools to those listed in the agent's `tools` array from `list_agents`.
    - Exclude all other tools to avoid granting unnecessary permissions.
+   - Append the following communication reminder to the agent's system prompt:
+     ```
+     ## Communication Protocol
+     - After completing significant work, call send_message(to: null, content: "Completed: {summary}")
+       so any observers or orchestrators can see what was done.
+     - When finished, call send_message(to: null, content: "end:_done | {summary}").
+       This is mandatory — do not skip it.
+     ```
 5. After completion, call `append_memory` to persist learnings.
 
 ## Unknown agent handling

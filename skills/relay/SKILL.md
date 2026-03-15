@@ -154,6 +154,25 @@ If no clear coordinator exists, prepend the task to the first agent alphabetical
 ## Visibility
 - Before each significant operation, call broadcast_thinking(content: "what you're about to do").
   This streams your intent to the dashboard so the team can see what you're working on.
+
+## Mandatory Communication Protocol
+You MUST call send_message at key moments — this is not optional. Without these messages,
+the orchestrator cannot detect your completion and the team loses visibility into your work.
+
+**After completing significant work** (before declaring end:):
+  send_message(to: null, content: "Completed: {summary of what you did}")
+
+**When blocked or waiting on another agent:**
+  send_message(to: null, content: "Blocked: waiting for {agent} to complete {task}")
+
+**When handing off work to a specific agent:**
+  send_message(to: "{agentId}", content: "Handoff: {what was done}, {what you need from them}")
+
+**End declarations are send_message calls — always send them:**
+  send_message(to: null, content: "end:waiting | {reason}")   ← when you have more work to do later
+  send_message(to: null, content: "end:_done | {summary}")    ← when all your tasks are complete
+  NEVER skip these. The orchestrator detects your state ONLY through these messages.
+  Skipping them causes the session to stall or your work to be silently lost.
 ```
 
 ### Step 3: Collect first-round declarations
@@ -209,12 +228,19 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
       remove dormant_agent from dormant_agents
       continue
 
-    # 1c. Agent declared no end: at all (implicit waiting) — re-spawn with a nudge
+    # 1c. Agent declared no end: at all (implicit waiting) — re-spawn with a communication reminder
     if reason == "no declaration":
       re-spawn dormant_agent with context:
-        "Your previous run ended without an end: declaration.
-         Check get_messages() and get_my_tasks() for context.
-         Complete any remaining work, then declare end:waiting or end:_done."
+        "Your previous run ended without sending any end: declaration via send_message.
+         This means the team has no visibility into what you did or whether you finished.
+         REQUIRED steps upon re-spawn:
+         1. Call get_messages() and get_my_tasks() to review full context.
+         2. Call send_message(to: null, content: 'Summary: {what you completed in your previous run}')
+            so the team knows what was done.
+         3. Complete any remaining work.
+         4. Call send_message(to: null, content: 'end:_done | {summary}') or
+            send_message(to: null, content: 'end:waiting | {reason}').
+         Do NOT skip send_message — these calls are mandatory."
       remove dormant_agent from dormant_agents
       continue
 

@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ae2386bc-da2f-471f-8aa8-168ea4cd5c47",
+    "title": "BE: Implement 4 deferred mcp-architect findings",
+    "status": "done",
+    "assignee": "be",
+    "priority": "high"
+  },
+  {
+    "id": "5b745ea3-972e-4491-9ebf-a8e2d883f72a",
+    "title": "BE: Additional server code quality review",
+    "status": "done",
+    "assignee": "be",
+    "priority": "medium"
+  },
+  {
+    "id": "1c6e7703-e40e-49cb-9559-d47b16c798a3",
+    "title": "FE: Dashboard code quality review",
+    "status": "done",
+    "assignee": "fe",
+    "priority": "medium"
+  },
+  {
+    "id": "6651695d-3c43-4004-907d-db86fa3942a8",
+    "title": "QA: Update test baseline and expand coverage",
+    "status": "done",
+    "assignee": "qa",
+    "priority": "high"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "from": "pm",
+    "content": "Sprint A is live. All tasks on the board."
+  },
+  {
+    "from": "fe",
+    "content": "end:waiting — Sprint A FE tasks complete. Waiting for QA sign-off."
+  },
+  {
+    "from": "qa",
+    "content": "end:waiting — QA verification 2/3 complete. Blocked on fe2 TDZ bug."
+  },
+  {
+    "from": "fe2",
+    "content": "end:waiting — ServerSwitcher WS reconnect implemented and build passes."
+  }
+]

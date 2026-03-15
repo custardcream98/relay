@@ -1,49 +1,22 @@
 // packages/dashboard/src/components/AppHeader.tsx
-// App top header — shows instance info, session team badge, and optional server switcher
+// App top header — shows instance info, session team badge, server switcher, and theme toggle.
+// Reads all data from context hooks directly; no props.
 
-import { memo } from "react";
-import type { AgentId, AgentMeta, ServerEntry } from "../types";
+import { useAgents } from "../context/AgentsContext";
+import { useConnection } from "../context/ConnectionContext";
+import { useServer } from "../context/ServerContext";
+import { useSession } from "../context/SessionContext";
+import { useTheme } from "../hooks/useTheme";
 import { ServerSwitcher } from "./ServerSwitcher";
 import { SessionTeamBadge } from "./SessionTeamBadge";
 
-interface Props {
-  connected: boolean;
-  reconnecting?: boolean; // waiting to reconnect
-  agentCount: number;
-  selectedAgent: AgentId | null;
-  onClearFocus: () => void;
-  // Instance info — populated from session:snapshot once BE ships; defaults to current port
-  instanceId?: string;
-  instancePort?: number;
-  // Current session team — populated from session:snapshot
-  sessionTeam: AgentMeta[];
-  // Multi-server support — populated from GET /api/servers; empty until BE ships
-  servers: ServerEntry[];
-  activeServer: string;
-  onSwitchServer: (url: string) => void;
-  onAddServer: (url: string) => void;
-  // Theme toggle
-  theme: "dark" | "light";
-  onToggleTheme: () => void;
-}
+export function AppHeader() {
+  const { connected, reconnecting } = useConnection();
+  const { selectedAgent, instanceId, instancePort, sessionTeam, onSelectAgent } = useSession();
+  const { servers, activeServer, onSwitchServer, onAddServer } = useServer();
+  const { agents } = useAgents();
+  const { theme, toggleTheme } = useTheme();
 
-export const AppHeader = memo(function AppHeader({
-  connected,
-  reconnecting = false,
-  agentCount,
-  selectedAgent,
-  onClearFocus,
-  instanceId,
-  instancePort,
-  sessionTeam,
-  servers,
-  activeServer,
-  onSwitchServer,
-  onAddServer,
-  theme,
-  onToggleTheme,
-}: Props) {
-  // Instance label: "relay (project-a) @ :3457" or "relay @ :3456"
   const portLabel = instancePort ?? window.location.port ?? "3456";
   const instanceLabel = instanceId
     ? `relay (${instanceId}) @ :${portLabel}`
@@ -66,7 +39,6 @@ export const AppHeader = memo(function AppHeader({
       {/* Left: relay_ wordmark + optional server switcher */}
       <div className="flex items-center gap-3">
         <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          {/* relay_ wordmark */}
           <span
             style={{
               fontSize: 15,
@@ -90,7 +62,6 @@ export const AppHeader = memo(function AppHeader({
             </span>
           </span>
 
-          {/* Separator + server switcher (multi-server) or instance label (single) */}
           {servers.length > 1 ? (
             <>
               <span
@@ -170,7 +141,7 @@ export const AppHeader = memo(function AppHeader({
           </span>
           <button
             type="button"
-            onClick={onClearFocus}
+            onClick={() => onSelectAgent(null)}
             style={{
               fontSize: 14,
               color: "var(--color-text-tertiary)",
@@ -189,10 +160,9 @@ export const AppHeader = memo(function AppHeader({
 
       {/* Right: session team badge + agent count + theme toggle + connection status */}
       <div className="flex items-center gap-4">
-        {/* Session team badge — shows when session has a composed team */}
         <SessionTeamBadge agents={sessionTeam} />
 
-        {agentCount > 0 && (
+        {agents.length > 0 && (
           <span
             style={{
               fontSize: 11,
@@ -201,14 +171,13 @@ export const AppHeader = memo(function AppHeader({
               letterSpacing: "0.04em",
             }}
           >
-            {agentCount} agents
+            {agents.length} agents
           </span>
         )}
 
-        {/* Theme toggle button */}
         <button
           type="button"
-          onClick={onToggleTheme}
+          onClick={toggleTheme}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           style={{
@@ -264,7 +233,6 @@ export const AppHeader = memo(function AppHeader({
               color: "var(--color-text-disabled)",
               fontFamily: "var(--font-mono)",
               letterSpacing: "0.04em",
-              // blink animation while reconnecting
               animation: reconnecting && !connected ? "blink 1.2s step-end infinite" : "none",
             }}
           >
@@ -274,4 +242,4 @@ export const AppHeader = memo(function AppHeader({
       </div>
     </div>
   );
-});
+}

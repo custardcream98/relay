@@ -21,6 +21,7 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
    - Tell the user: "Session: {session_id} | Dashboard: {dashboardUrl}"
 3. Load the specified agent's persona + memory.
    - Use the persona returned by `list_pool_agents` for the matching agent ID.
+   - Load memory using the Memory load pattern described at the bottom of this skill.
 4. Spawn that agent alone.
    - Restrict tools to those listed in the agent's `tools` array from `list_pool_agents`.
    - Exclude all other tools to avoid granting unnecessary permissions.
@@ -34,7 +35,7 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
      ```
 5. After completion:
    - Always call `save_session_summary(agent_id: "{agentId}", session_id: "{session_id}", summary: "{what you did and key decisions}")` to archive this session.
-   - If you discovered reusable patterns or conventions (e.g. API shape, test setup, component structure), persist them with `write_memory(agent_id: "{agentId}", key: "conventions", content: "...")`. Use descriptive keys (e.g. `api-patterns`, `test-setup`, `component-structure`). Skip if nothing new was learned.
+   - If you discovered reusable patterns or conventions (e.g. API shape, test setup, component structure), persist them with `write_memory(agent_id: "{agentId}", key: "{descriptive-key}", content: "...")`. Use descriptive keys (e.g. `api-patterns`, `test-setup`, `component-structure`). Skip if nothing new was learned.
 
 ## Unknown agent handling
 

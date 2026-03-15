@@ -29,6 +29,7 @@
       "**",
       "!!**/node_modules",
       "!!**/dist",
+      "!!**/storybook-static",
       "!!packages/docs/.astro",
       "!!**/*.db",
       "!!.relay"
@@ -46,7 +47,10 @@
       }
     },
     {
-      "includes": ["packages/dashboard/src/components/MarkdownContent.tsx"],
+      "includes": [
+        "packages/dashboard/src/components/AppLayout.tsx",
+        "packages/dashboard/src/components/MarkdownContent.tsx"
+      ],
       "linter": {
         "rules": {
           "suspicious": {
@@ -56,7 +60,10 @@
       }
     },
     {
-      "includes": ["packages/dashboard/src/App.tsx"],
+      "includes": [
+        "packages/dashboard/src/App.tsx",
+        "packages/dashboard/src/components/AppLayout.tsx"
+      ],
       "linter": {
         "rules": {
           "a11y": {

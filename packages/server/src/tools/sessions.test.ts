@@ -26,6 +26,8 @@ describe("session tool", () => {
     expect(result.success).toBe(true);
     if (!result.success) throw new Error("unreachable");
     expect(result.summary).toContain("test summary");
+    // Verify no heading prefix is injected — summary is stored verbatim
+    expect(result.summary).not.toMatch(/^#/);
   });
 
   test("list sessions", async () => {

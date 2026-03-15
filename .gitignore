@@ -30,3 +30,4 @@ packages/docs/.astro/
 .DS_Store
 /docs/
 packages/docs/node_modules/
+storybook-static/

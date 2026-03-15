@@ -497,7 +497,7 @@ function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
   );
 }
 
-// [G] End declaration — inline pill (waiting / done / failed)
+// [G] End declaration — compact card with avatar for clear agent attribution
 function EndDeclarationEntry({
   agentId,
   endType,
@@ -514,24 +514,24 @@ function EndDeclarationEntry({
   };
   const iconMap = { done: "✓", waiting: "⏸", failed: "✗" };
   const color = colorMap[endType];
+  const agentColor = getAgentAccent(agentId);
 
   return (
     <div
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 6,
-        padding: "5px 20px",
+        gap: 8,
+        padding: "6px 16px",
+        borderBottom: "1px solid var(--color-border-subtle)",
+        borderLeft: `2px solid ${agentColor}50`,
+        background: `${agentColor}08`,
         animation: "slide-in-bottom 180ms ease-out both",
       }}
     >
-      <span style={{ fontSize: 11, color }}>{iconMap[endType]}</span>
-      <span
-        className="font-mono"
-        style={{ fontSize: 10, fontWeight: 600, color: getAgentAccent(agentId) }}
-      >
-        {agentId}
-      </span>
+      <AgentAvatar agentId={agentId} size={22} />
+      <AgentChip agentId={agentId} />
+      <span style={{ fontSize: 11, color, fontWeight: 600 }}>{iconMap[endType]}</span>
       <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>
         {endType === "waiting"
           ? "waiting for team"

@@ -227,6 +227,8 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
                         OR (len(reason) < 20 AND "review" not in reason.lower()
                                              AND "team" not in reason.lower()))
     if is_question_wait:
+      # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+      # then replace the Re-spawn Context block with this inline context:
       re-spawn dormant_agent with context:
         "Your previous run ended with: '{reason}'.
          Yes — proceed with the implementation. Do not ask for further confirmation.
@@ -236,6 +238,8 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
     # 1c. Agent declared no end: at all (implicit waiting) — re-spawn with a communication reminder
     if reason == "no declaration":
+      # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+      # then replace the Re-spawn Context block with this inline context:
       re-spawn dormant_agent with context:
         "Your previous run ended without sending any end: declaration via send_message.
          This means the team has no visibility into what you did or whether you finished.
@@ -267,7 +271,9 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
       my_open_tasks = [t for t in all_tasks
                        if t.assignee == msg.from_agent AND t.status in ("todo", "in_progress")]
       if my_open_tasks:
-        # Agent has unfinished tasks — re-spawn to close them out
+        # Agent has unfinished tasks — re-spawn to close them out.
+        # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+        # then replace the Re-spawn Context block with this inline context:
         re-spawn msg.from_agent with context:
           "You declared end:_done but still have open tasks: {my_open_tasks}.
            Call update_task(status: 'done') for each completed task, then re-declare end:_done."
@@ -317,11 +323,14 @@ When re-spawning a dormant agent:
      blocks from Session Startup step 2.
    - (project.md is intentionally skipped — it was already injected at initial spawn.
      Mid-session project.md updates are communicated via messages to reduce re-spawn context load.)
-2. Fetch all messages: `get_messages(agent_id: "{agentId}")`.
+2. Fetch all messages: `all_msgs = get_messages(agent_id: "{agentId}")`.
 3. Compute new messages since last spawn:
    - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
    - Update: `agent_last_seen[agentId] = max(m.id for m in all_msgs)`
-4. Inject re-spawn context into their system prompt:
+4. Fetch current task state for the Re-spawn Context block:
+   - `my_tasks = get_my_tasks(agent_id: "{agentId}")`
+   - `team_status = get_team_status(agent_id: "{agentId}")`
+5. Inject re-spawn context into their system prompt:
 ```
 ## Re-spawn Context
 You were waiting. Here is what has happened since your last run:
@@ -330,15 +339,15 @@ New events:
 {list of new_msgs}
 
 Your current tasks:
-{get_my_tasks result — fetched by orchestrator before spawning}
+{my_tasks}
 
 Team status:
-{get_team_status result — fetched by orchestrator before spawning}
+{team_status}
 
 Resume your work. Call get_messages() first to read the full history.
 ```
-5. Spawn with their allowed tools.
-6. Collect their new `end:` declaration.
+6. Spawn with their allowed tools.
+7. Collect their new `end:` declaration.
 
 ## Reviewer Spawn Pattern
 

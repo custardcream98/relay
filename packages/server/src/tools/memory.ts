@@ -133,7 +133,8 @@ export async function handleAppendMemory(
 ) {
   // Runtime guard for direct callers: Zod enforces agent_id at the MCP layer,
   // but defensive check here prevents writing to agents/undefined.md if called directly.
-  if ((input.agent_id as string | undefined) === undefined) {
+  const agentId = input.agent_id as string | undefined;
+  if (agentId === undefined) {
     return {
       success: false,
       error:

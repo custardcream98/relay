@@ -624,6 +624,8 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
     expect(prompt).not.toContain("Team Retrospectives");
     expect(prompt).not.toContain("Lessons learned here.");
     expect(prompt).toContain("My Memory");
+    // Project memory must precede agent-specific memory
+    expect(prompt.indexOf("Project Memory")).toBeLessThan(prompt.indexOf("My Memory"));
 
     rmSync(tmpDir, { recursive: true, force: true });
   });

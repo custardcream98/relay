@@ -15,8 +15,6 @@ interface Props {
   messages: Message[];
   selectedAgent: AgentId | null;
   onSelectAgent: (id: AgentId | null) => void;
-  collapsed: boolean;
-  onToggleCollapse: () => void;
 }
 
 export function AgentArena({
@@ -29,8 +27,6 @@ export function AgentArena({
   messages,
   selectedAgent,
   onSelectAgent,
-  collapsed,
-  onToggleCollapse,
 }: Props) {
   // Pre-compute per-agent task counts and last activity — avoids repeated iteration on each render
   const agentData = useMemo(() => {
@@ -73,43 +69,6 @@ export function AgentArena({
     return { inProgressByAgent, lastActivityByAgent };
   }, [tasks, messages]);
 
-  // Collapsed: render only a thin rail
-  if (collapsed) {
-    return (
-      <div
-        className="flex flex-col h-full items-center"
-        style={{
-          width: 32,
-          borderRight: "1px solid var(--color-border-subtle)",
-          background: "var(--color-surface-base)",
-          flexShrink: 0,
-        }}
-      >
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          title="Expand panel"
-          style={{
-            marginTop: 8,
-            width: 24,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-text-disabled)",
-            fontSize: 12,
-          }}
-        >
-          ›
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div
       className="flex flex-col h-full overflow-hidden"
@@ -137,45 +96,20 @@ export function AgentArena({
         >
           Agent Arena
         </span>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {/* Agent count badge */}
-          {agents.length > 0 && (
-            <span
-              className="font-mono"
-              style={{
-                fontSize: 10,
-                background: "var(--color-surface-overlay)",
-                color: "var(--color-text-tertiary)",
-                padding: "1px 6px",
-                borderRadius: 9999,
-              }}
-            >
-              {agents.length}
-            </span>
-          )}
-          {/* Collapse button */}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            title="Collapse panel"
+        {agents.length > 0 && (
+          <span
+            className="font-mono"
             style={{
-              width: 20,
-              height: 20,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              borderRadius: 4,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--color-text-disabled)",
-              fontSize: 12,
-              flexShrink: 0,
+              fontSize: 10,
+              background: "var(--color-surface-overlay)",
+              color: "var(--color-text-tertiary)",
+              padding: "1px 6px",
+              borderRadius: 9999,
             }}
           >
-            ‹
-          </button>
-        </div>
+            {agents.length}
+          </span>
+        )}
       </div>
 
       {/* Agent card list */}

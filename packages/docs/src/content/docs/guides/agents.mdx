@@ -21,7 +21,7 @@ Copy `agents.pool.example.yml` (shipped with relay) to `.relay/agents.pool.yml` 
 agents:
   fe:
     name: "Frontend Engineer"
-    emoji: "🎨"
+    emoji: "💻"
     description: "React, TypeScript, and UI implementation"
     tags: [frontend, react, typescript]
     tools:
@@ -32,9 +32,43 @@ agents:
       - post_artifact
       - send_message
       - request_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Frontend Engineer specialising in React and TypeScript.
       ...
+```
+
+## Supported fields
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | Yes | Display name of the agent |
+| `emoji` | Yes | Emoji shown in the dashboard and messages |
+| `tools` | Yes | List of MCP tools the agent is allowed to call |
+| `systemPrompt` | Yes | The agent's base system prompt |
+| `description` | No | Short summary used for team selection suggestions |
+| `tags` | No | Taxonomy tags for smart team matching in `/relay:relay` |
+| `language` | No | Force response language (e.g. `"Korean"`, `"English"`) |
+| `disabled` | No | When `true`, excludes this agent from the registry |
+| `extends` | No | Inherit all fields from another pool agent; override only what differs |
+
+Agent IDs must use only alphanumeric characters, hyphens, and underscores (`[a-zA-Z0-9_-]`).
+
+## Top-level language field
+
+Set a default response language for all agents in the pool:
+
+```yaml
+language: "Korean"   # all agents respond in Korean unless overridden per-agent
+
+agents:
+  fe:
+    name: "Frontend Engineer"
+    # ... inherits language: "Korean"
+  pm:
+    name: "Product Manager"
+    language: "English"   # overrides the top-level default for this agent only
+    # ...
 ```
 
 ## extends
@@ -45,7 +79,7 @@ Inherit and extend another agent's configuration. This is useful for running mul
 agents:
   fe:
     name: "Frontend Engineer"
-    emoji: "🎨"
+    emoji: "💻"
     tags: [frontend]
     tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
     systemPrompt: |
@@ -57,6 +91,8 @@ agents:
     name: "Frontend Engineer (Reviewer)"
     emoji: "🔍"
 ```
+
+`extends` is resolved in a second pass, so declaration order in the YAML file does not matter. Session-file agents can also `extends` a pool agent by ID.
 
 ## tags field
 
@@ -84,22 +120,32 @@ agents:
 
 ## tools field
 
-Specifies the list of MCP tools the agent is allowed to call:
+Specifies the list of MCP tools the agent is allowed to call. Common tools to assign:
 
 ```yaml
 tools:
+  # Messaging
   - send_message
   - get_messages
+  # Tasks
   - create_task
   - update_task
   - get_my_tasks
+  - claim_task
+  - get_all_tasks
+  - get_team_status
+  # Artifacts
   - post_artifact
   - get_artifact
+  # Reviews
   - request_review
   - submit_review
+  # Memory
   - read_memory
   - write_memory
   - append_memory
+  # Visibility
+  - broadcast_thinking
 ```
 
 An agent cannot call any MCP tool not listed in its `tools` array.

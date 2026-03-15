@@ -1,48 +1,96 @@
 ---
 title: Installation
-description: Install relay as a Claude Code plugin — one command registers the MCP server and auto-installs all skills and hooks.
+description: Install relay as a Claude Code plugin — add the marketplace, install the plugin, configure your agent pool, then verify.
 ---
 
-import { Tabs, TabItem } from "@astrojs/starlight/components";
+import { Aside } from "@astrojs/starlight/components";
 
-relay is a **Claude Code plugin**. One command installs everything: the MCP server (message bus, task board, memory layer), the `/relay:relay`, `/relay:init`, and `/relay:agent` skills, and the PostToolUse hook that feeds the real-time dashboard.
+relay is a **Claude Code plugin**. When you install it, Claude Code automatically sets up:
+
+- Three slash commands: `/relay:relay`, `/relay:init`, `/relay:agent`
+- A `PostToolUse` hook that streams agent activity to the real-time dashboard
+- An MCP server that handles all inter-agent communication
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org) v18 or later
-- [Claude Code](https://claude.ai/download) installed and authenticated
+- [Claude Code](https://claude.ai/download) v1.0.33 or later (`claude --version` to check)
 
-## Install
+## Step 1 — Add the relay marketplace
 
-<Tabs>
-  <TabItem label="Global (recommended)">
-    Available in all your projects:
+Claude Code installs plugins through marketplaces. Add the relay marketplace from its GitHub repository:
 
-    ```bash
-    claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
-    ```
+```
+/plugin marketplace add custardcream98/relay
+```
 
-    Skills are installed to `~/.claude/skills/` automatically on first load.
-  </TabItem>
-  <TabItem label="Local (current project only)">
-    Scoped to the current project only:
+This registers the catalog. No plugins are installed yet.
 
-    ```bash
-    claude mcp add --scope local relay -- npx -y --package @custardcream/relay relay
-    ```
+## Step 2 — Install the plugin
 
-    Skills are installed to `.claude/skills/` inside the project. Local overrides global when both are present.
-  </TabItem>
-</Tabs>
+Install the relay plugin to your user scope (available across all projects):
 
-The `--` separates `claude mcp add` flags from the relay server command. Everything after `--` is the command Claude Code runs to start the MCP server.
+```
+/plugin install relay@relay
+```
 
-## Verify
+To install for the current project only (shared with teammates who trust the repo):
 
-Restart Claude Code, then run:
+```
+/plugin install relay@relay --scope project
+```
+
+After installing, run `/reload-plugins` or restart Claude Code. You should see `/relay:relay`, `/relay:init`, and `/relay:agent` in the slash command list.
+
+<Aside type="note">
+Skills are namespaced by the plugin name — `/relay:init`, not `/init`. This prevents conflicts with other plugins.
+</Aside>
+
+## Step 3 — Configure your agent pool
+
+relay ships with no built-in agents. You define your team in `.relay/agents.pool.yml` at the project root.
+
+Copy the example pool to get started:
+
+```bash
+curl -O https://raw.githubusercontent.com/custardcream98/relay/main/agents.pool.example.yml
+mv agents.pool.example.yml .relay/agents.pool.yml
+```
+
+Or write `.relay/agents.pool.yml` from scratch. A minimal two-agent example:
+
+```yaml
+agents:
+  pm:
+    name: Project Manager
+    emoji: "📋"
+    tags: [planning, coordination]
+    tools: [create_task, get_all_tasks, send_message, get_messages, broadcast_thinking]
+    systemPrompt: |
+      You are the project manager. Break down the user's request into
+      concrete tasks and assign them to the team via create_task.
+
+  fe:
+    name: Frontend Engineer
+    emoji: "🎨"
+    tags: [frontend, react, css]
+    tools: [claim_task, update_task, get_my_tasks, post_artifact, send_message, broadcast_thinking]
+    systemPrompt: |
+      You are a frontend engineer. Claim frontend tasks and implement them.
+```
+
+See [Customising agents](/relay/guides/agents) for the full schema, multi-instance agents (`extends`), and a 12-agent example pool.
+
+<Aside type="tip">
+Commit `.relay/agents.pool.yml` to git. Everyone on your team shares the same agent configuration.
+</Aside>
+
+## Step 4 — Verify
+
+Run the project scan to confirm everything is wired up:
 
 ```
 /relay:init
 ```
 
-If the skills load and the MCP server connects, installation is complete.
+All configured agents spawn in parallel, scan the codebase, and write what they learned to `.relay/memory/`. If agents start and the dashboard URL appears in the output, installation is complete.

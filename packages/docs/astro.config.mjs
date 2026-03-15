@@ -15,6 +15,9 @@ export default defineConfig({
   integrations: [
     sitemap(),
     starlight({
+      expressiveCode: {
+        defaultProps: { frame: "none" },
+      },
       title: "relay",
       description:
         "relay is a multi-agent collaboration framework for Claude Code. Assemble any team from your agent pool — web dev, research, marketing — and agents collaborate peer-to-peer via MCP. No extra API costs.",
@@ -61,7 +64,7 @@ export default defineConfig({
       defaultLocale: "root",
       locales: {
         root: { label: "English", lang: "en" },
-        "ko-KR": { label: "한국어", lang: "ko-KR" },
+        "ko-kr": { label: "한국어", lang: "ko-KR" },
       },
       sidebar: [
         {

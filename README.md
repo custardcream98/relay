@@ -67,24 +67,23 @@ No phases. No turn-taking. All agents are alive from session start and react to 
 
 ### Prerequisites
 
-- [Claude Code](https://claude.ai/download) installed and authenticated
+- [Claude Code](https://claude.ai/download) v1.0.33+ installed and authenticated
 - [Node.js](https://nodejs.org) v18+
 
-### Register the plugin
+### Install the plugin
 
-```bash
-claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
+```
+/plugin marketplace add custardcream98/relay
+/plugin install relay@relay
 ```
 
-The `--` separates `claude mcp add` flags from the relay server command and its arguments.
+Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
 
-Restart Claude Code (or run `/reload-plugins` inside Claude Code). Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
-
-> Scope to a single project instead: use `--scope local`.
+> Install for a single project only: add `--scope project` to the install command.
 
 ### Run it
 
-```bash
+```
 # First time on a new project — agents scan your codebase in parallel
 /relay:init
 
@@ -111,7 +110,7 @@ relay (plugin)
 
 **Skills** — `.md` files that tell the orchestrating Claude Code session how to spawn agents, which tools to use, and how to interpret results. Change orchestration behavior by editing a file, no restart required.
 
-**Hooks** — `post-tool-use.sh` fires on every MCP tool call and pushes live status updates to the dashboard.
+**Hooks** — `hooks/hooks.json` registers a `PostToolUse` hook that fires on every MCP tool call and pushes live status updates to the dashboard.
 
 <br />
 
@@ -215,8 +214,11 @@ Every agent communicates exclusively through MCP tools:
 | Sessions   | `list_sessions`        | List past sessions                   |
 | Sessions   | `get_session_summary`  | Retrieve a session summary           |
 | Visibility | `broadcast_thinking`   | Push agent intent to the dashboard   |
-
-The orchestrator also has access to `list_agents` for reading the active persona configuration at runtime.
+| Session    | `get_server_info`      | Get dashboard URL and session ID     |
+| Session    | `start_session`        | Initialize a new session             |
+| Session    | `list_agents`          | List agents in the active session    |
+| Session    | `list_pool_agents`     | List pool agents (for team selection)|
+| Session    | `get_workflow`         | Read workflow config from pool file  |
 
 <br />
 

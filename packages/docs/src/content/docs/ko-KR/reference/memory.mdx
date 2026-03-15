@@ -72,12 +72,20 @@ read_memory({})
 ### 쓰기 (섹션 덮어쓰기)
 
 ```typescript
+// 에이전트 개인 메모리에 쓰기
 write_memory({
   agent_id: "fe",
   key: "component-patterns",
   content: "Button components always use shadcn/ui as the base..."
 })
 // .relay/memory/agents/fe.md의 ## component-patterns 섹션을 교체
+
+// 프로젝트 메모리에 쓰기 (agent_id 생략)
+write_memory({
+  key: "architecture",
+  content: "Monorepo with packages/server, packages/dashboard, packages/shared"
+})
+// .relay/memory/project.md의 ## architecture 섹션을 교체
 ```
 
 ### 추가 (누적)

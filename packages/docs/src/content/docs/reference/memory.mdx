@@ -72,12 +72,20 @@ read_memory({})
 ### Writing (section overwrite)
 
 ```typescript
+// Write to an agent's personal memory
 write_memory({
   agent_id: "fe",
   key: "component-patterns",
   content: "Button components always use shadcn/ui as the base..."
 })
 // replaces the ## component-patterns section in .relay/memory/agents/fe.md
+
+// Write to project memory (omit agent_id)
+write_memory({
+  key: "architecture",
+  content: "Monorepo with packages/server, packages/dashboard, packages/shared"
+})
+// replaces the ## architecture section in .relay/memory/project.md
 ```
 
 ### Appending (cumulative)

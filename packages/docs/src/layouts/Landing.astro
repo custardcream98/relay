@@ -86,8 +86,13 @@ const jsonLd = {
     <!-- Distinctive font pairing: Berkeley Mono style + editorial serif -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
       rel="stylesheet"
     />
     <style>
@@ -120,8 +125,8 @@ const jsonLd = {
         --agent-qa:       #8B4513;
         --agent-deployer: #708090;
 
-        --font-display: "DM Serif Display", "Noto Serif KR", Georgia, serif;
-        --font-sans:    "DM Sans", "Noto Sans KR", system-ui, sans-serif;
+        --font-display: "DM Serif Display", Georgia, serif;
+        --font-sans:    "Pretendard", "DM Sans", system-ui, sans-serif;
         --font-mono:    "DM Mono", "JetBrains Mono", "Fira Code", monospace;
 
         /* For noise texture overlay layer */

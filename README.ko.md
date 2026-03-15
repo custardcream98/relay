@@ -97,8 +97,11 @@ relay (plugin)
 | 세션     | `list_sessions`        | 과거 세션 목록                           |
 | 세션     | `get_session_summary`  | 특정 세션 요약 조회                      |
 | 가시성   | `broadcast_thinking`   | 에이전트 의도를 대시보드에 실시간 전송   |
-
-오케스트레이터는 추가로 `list_agents`를 사용해 런타임에 페르소나 설정을 읽어요.
+| 세션     | `get_server_info`      | 대시보드 URL 및 세션 ID 조회            |
+| 세션     | `start_session`        | 새 세션 초기화                          |
+| 세션     | `list_agents`          | 활성 세션의 에이전트 목록 조회          |
+| 세션     | `list_pool_agents`     | 풀 에이전트 목록 조회 (팀 구성용)       |
+| 세션     | `get_workflow`         | 풀 파일의 워크플로 설정 조회            |
 
 <br />
 
@@ -152,15 +155,16 @@ MCP 서버는 `http://localhost:3456`에서 실시간 웹 대시보드도 함께
 - [Claude Code](https://claude.ai/download) — CLI가 설치 및 인증된 상태여야 해요
 - [Node.js](https://nodejs.org) v18 이상
 
-### 1. MCP 서버 등록
+### 1. 플러그인 설치
 
-```bash
-claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
+```
+/plugin marketplace add custardcream98/relay
+/plugin install relay@relay
 ```
 
-relay를 전역으로 등록해요. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)와 훅이 플러그인 로드 시 자동으로 설치돼요. 실행 후 Claude Code를 재시작하세요.
+Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)와 훅이 자동으로 설치돼요. `/reload-plugins`를 실행하거나 Claude Code를 재시작하세요.
 
-> 특정 프로젝트에만 적용하려면 `--scope local`을 사용하세요.
+> 특정 프로젝트에만 적용하려면 `--scope project`를 추가하세요.
 
 ### 2. 프로젝트에서 사용하기
 
@@ -249,3 +253,11 @@ your-project/
 ```
 
 <br />
+
+---
+
+<p align="center">
+  <strong>명령어 두 줄. 팀 전체. 다음 기능을 더 빠르게.</strong>
+  <br /><br />
+  <a href="https://custardcream98.github.io/relay/ko-KR"><strong>문서 보기 →</strong></a>
+</p>

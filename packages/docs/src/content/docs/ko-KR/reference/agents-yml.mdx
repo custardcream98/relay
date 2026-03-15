@@ -14,6 +14,11 @@ agents:
   {agentId}:
     # 에이전트 설정
     ...
+workflow:          # 선택 사항 — 커스텀 워크플로우 설정
+  jobs:
+    {jobId}:
+      # job 설정
+      ...
 ```
 
 ## 에이전트 스키마
@@ -36,6 +41,8 @@ agents:
 ## 사용 가능한 툴
 
 ```
+get_server_info
+start_session
 send_message
 get_messages
 create_task
@@ -55,6 +62,8 @@ list_sessions
 get_session_summary
 save_session_summary
 list_agents
+list_pool_agents
+get_workflow
 broadcast_thinking
 ```
 
@@ -149,5 +158,5 @@ agents:
 
 파일이 없으면 relay가 다음 오류를 반환합니다:
 ```
-No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml).
+No agent pool configured. Run `/relay:init` to set up your team, or create .relay/agents.pool.yml manually (see agents.pool.example.yml).
 ```

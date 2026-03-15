@@ -1,11 +1,60 @@
 ---
 title: MCP tools reference
-description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 18 tools: messaging, tasks, artifacts, reviews, memory, sessions, and visibility."
+description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 24 tools: messaging, tasks, artifacts, reviews, memory, sessions, agents, and visibility."
 ---
 
 All tools respond with a flat object: `{ success: boolean, ...fields }` on success, or `{ success: false, error: string }` on failure — there is no nested `data` field.
 `agent_id` is always included in parameters to track who called.
-`session_id` is injected automatically by the server from the `RELAY_SESSION_ID` environment variable — clients do not need to pass it.
+`session_id` is injected automatically by the server from the `RELAY_SESSION_ID` environment variable — clients do not need to pass it (except where explicitly listed as a parameter below).
+
+## Server
+
+### get_server_info
+
+Returns the active dashboard URL and server metadata. Call this during pre-flight to discover the auto-selected port.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string; // calling agent ID
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+  dashboardUrl: string | null; // null if dashboard failed to bind
+  dashboardAvailable: boolean;
+  port: number | null;
+  sessionId: string;
+  instanceId: string | null;
+}
+```
+
+---
+
+### start_session
+
+Declares the active session ID for this relay run. Call once at the start of each `/relay:relay` invocation — before any other tools. Also broadcasts a `session:started` event to reset the live dashboard view.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string;   // calling agent ID
+  session_id: string; // session ID to activate (e.g. 2026-03-14-007)
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+  session_id: string;
+}
+```
+
+---
 
 ## Messaging
 
@@ -16,10 +65,10 @@ Send a message between agents.
 **Parameters:**
 ```typescript
 {
-  agent_id: string;    // sending agent ID
-  to: string | null;   // receiving agent ID. null = broadcast
-  content: string;     // message content
-  thread_id?: string;  // thread ID (optional)
+  agent_id: string;         // sending agent ID
+  to?: string | null;       // receiving agent ID. null or omitted = broadcast
+  content: string;          // message content
+  thread_id?: string;       // thread ID (optional)
 }
 ```
 
@@ -99,6 +148,13 @@ Change a task's status or assignee.
   task_id: string;     // task ID
   status?: "todo" | "in_progress" | "in_review" | "done";
   assignee?: string;   // new assignee (optional)
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
 }
 ```
 
@@ -282,6 +338,7 @@ Request a review for an artifact.
 ### submit_review
 
 Submit a review result. Returns permission denied if the calling agent is not the designated reviewer.
+Also returns an error if the review is no longer in `pending` state (prevents double-submit).
 
 **Parameters:**
 ```typescript
@@ -290,6 +347,19 @@ Submit a review result. Returns permission denied if the calling agent is not th
   review_id: string;           // review ID
   status: "approved" | "changes_requested";
   comments?: string;           // review comments
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+  review: {
+    id: string;
+    status: "approved" | "changes_requested";
+    reviewer: string;
+    comments: string | null;
+  };
 }
 ```
 
@@ -332,6 +402,13 @@ Writes to `project.md` when `agent_id` is omitted.
 }
 ```
 
+**Returns:**
+```typescript
+{
+  success: true;
+}
+```
+
 ---
 
 ### append_memory
@@ -344,6 +421,13 @@ Append content with a datestamp to an agent's personal memory file.
 {
   agent_id: string; // agent ID (required)
   content: string;  // content to append
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
 }
 ```
 
@@ -362,6 +446,13 @@ Session tasks and messages are already persisted in SQLite and do not need to be
   agent_id: string;         // calling agent ID (usually the coordinator)
   session_id: string;       // session ID (YYYY-MM-DD-NNN-XXXX format)
   summary: string;          // session summary text
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
 }
 ```
 
@@ -414,7 +505,8 @@ Retrieve the summary for a specific session.
 
 ### list_agents
 
-Retrieve the list of agents for the given session (loaded from `.relay/session-agents-{session_id}.yml` if present, otherwise from the pool file).
+Retrieve the list of agents for the given session (loaded from `.relay/session-agents-{session_id}.yml`).
+Returns `{ success: false, error: "..." }` when a `session_id` is provided but the corresponding file does not exist.
 
 **Parameters:**
 ```typescript
@@ -442,9 +534,9 @@ Retrieve the list of agents for the given session (loaded from `.relay/session-a
 
 ---
 
-### get_workflow
+### list_pool_agents
 
-Retrieve the `workflow` configuration from the loaded session config.
+Retrieve all available pool agents for team selection. Returns metadata only — `systemPrompt` is intentionally omitted. Used during pre-flight before a session is started.
 
 **Parameters:**
 ```typescript
@@ -456,12 +548,43 @@ Retrieve the `workflow` configuration from the loaded session config.
 **Returns:**
 ```typescript
 {
-  jobs: Record<string, {
-    agents: string[];
+  success: true;
+  agents: Array<{
+    id: string;
+    name: string;
+    emoji: string;
     description: string;
-    reviewers?: Record<string, string[]>;
-    end: Record<string, string>;
+    tags: string[] | undefined;
+    tools: string[];
   }>;
+}
+```
+
+---
+
+### get_workflow
+
+Retrieve the `workflow` configuration from the active pool file.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string; // calling agent ID
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+  workflow: {
+    jobs: Record<string, {
+      agents?: string[];         // agents to run in this job (executed in parallel)
+      description: string;
+      reviewers?: Record<string, string[]>;
+      end?: Record<string, string>; // { nextJobId: condition } — _done means session end
+    }>;
+  };
 }
 ```
 

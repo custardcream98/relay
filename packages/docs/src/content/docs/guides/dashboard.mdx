@@ -1,26 +1,16 @@
 ---
 title: Dashboard
-description: The relay dashboard at localhost:3456 shows a live Kanban board, agent message feed, and thought stream — with full session replay so you can review every decision.
+description: The relay real-time dashboard shows a live Kanban board, agent message feed, and thought stream — with full session replay.
 ---
 
-The relay MCP server also serves a web dashboard.
-You can watch agents think and communicate with each other in real time.
+The relay MCP server serves a live web dashboard at session start. Watch your agents think, communicate, and move tasks in real time.
 
 ## Accessing
 
-The dashboard starts automatically when the MCP server starts.
-The default port is `3456`, but if that port is already in use the server auto-selects
-the next available port in the range `3456–3465`.
-
-Call `get_server_info` to get the actual dashboard URL for the running instance:
-
-```typescript
-get_server_info({ agent_id: "orchestrator" })
-// → { dashboardUrl: "http://localhost:3456", port: 3456, ... }
-```
+The dashboard URL is printed when a session starts. Default port is `3456`; if that's taken, the server auto-selects from `3457–3465`.
 
 ```
-http://localhost:3456   # default — may differ if auto-selected
+http://localhost:3456
 ```
 
 ## Layout
@@ -29,47 +19,22 @@ http://localhost:3456   # default — may differ if auto-selected
 
 ### Agent Arena (left sidebar)
 
-- Lists all agents in the session with their current status: `idle` (grey), `working` (green), `waiting` (yellow)
-- Shows the active task count and a live snippet of what each agent is currently thinking
-- Click an agent to focus the Activity feed on that agent's events
+- All agents in the session with their current status: `idle` (grey), `working` (green), `waiting` (yellow)
+- Live snippet of what each agent is currently thinking
+- Click an agent to focus the Activity feed on that agent
 
 ### Activity Feed (main area)
 
-- Combined real-time timeline of all session events: messages, agent thinking streams, task updates, artifacts, and reviews
-- Filter by event type or agent
+- Real-time timeline of everything happening: messages, agent thinking streams, task updates, artifacts, and reviews
+- Filter by event type or by agent
 - Thinking stream entries show live reasoning text as the agent works
 
 ### Task Board (bottom, collapsible)
 
-- Kanban view of every task: `todo` → `in_progress` → `in_review` → `done`
-- Updates instantly when task state changes
-- Click a task to view details (assignee, priority, description)
+- Kanban of every task: `todo` → `in_progress` → `in_review` → `done`
+- Updates instantly as agents claim and complete work
+- Click a task to see details — assignee, priority, description
 
-## WebSocket events
+## Session replay
 
-The dashboard receives real-time updates over WebSocket.
-All events follow the `{ type, timestamp, ...payload }` structure — there is no separate `payload` wrapper field.
-
-| Event type | Description |
-|---|---|
-| `agent:thinking` | Agent reasoning text stream |
-| `agent:status` | Agent status change (idle/working/waiting) |
-| `message:new` | New message received |
-| `task:updated` | Task state change |
-| `artifact:posted` | New artifact shared |
-| `review:requested` | Review request raised |
-| `review:updated` | Review decision submitted (approved/changes_requested) |
-| `memory:updated` | Agent memory updated |
-| `session:started` | New session activated (resets dashboard view) |
-| `session:snapshot` | Full session state sent on WebSocket connect (for initial hydration) |
-
-## REST API
-
-The dashboard also exposes a Hono-based REST API:
-
-```
-GET  /api/session              # current session snapshot (tasks, messages, artifacts)
-GET  /api/sessions/:id         # session summary (summary.md written by save_session_summary)
-GET  /api/agents               # agent list (from the pool file)
-POST /api/hook/tool-use        # PostToolUse hook receiver (internal)
-```
+All events are persisted to SQLite. Use the session switcher in the dashboard to browse past sessions and replay the full sequence of events.

@@ -1,10 +1,9 @@
 ---
 title: /relay:agent — single agent
-description: /relay:agent lets you invoke one agent from your team in isolation — useful for focused tasks, debugging, or calling a specialist without running the full workflow.
+description: Invoke one agent from your pool in isolation — for focused tasks, code review, or specialist advice without running the full team.
 ---
 
-`/relay:agent` invokes one specific agent in isolation.
-Use it when you need a single agent's expertise rather than the full team workflow.
+Use `/relay:agent` when you need one specific agent's expertise — no team assembly, no coordination overhead.
 
 ## Usage
 
@@ -16,41 +15,21 @@ Examples:
 ```
 /relay:agent fe "Refactor the CartItem component"
 /relay:agent be "Security review the user auth API"
-/relay:agent qa "Write edge case test scenarios for the login feature"
-/relay:agent designer "Write UX improvement proposals for the checkout flow"
+/relay:agent qa "Write edge case tests for the login feature"
+/relay:agent designer "UX improvement proposals for the checkout flow"
 ```
 
-## Available agent IDs
+## When to use this instead of /relay:relay
 
-The available agents come from the configured pool (`.relay/agents.pool.yml`).
-Check the IDs from the `list_agents` result.
+- You need a quick code review or second opinion on a specific file
+- You want architecture analysis or technical advice
+- You only need one deliverable (tests, docs, a spec) without the full workflow
+- The task is focused enough that spinning up the whole team isn't worth it
 
-## Execution steps
+## Available agents
 
-1. Check available agents via `list_agents`
-2. Call `get_server_info` to get the dashboard URL (auto-selected port, default 3456)
-3. Load the specified agent's persona and memory
-4. Spawn the agent in isolation with its `tools` array restricting MCP tool access
-5. On completion, archive the session via `save_session_summary`; save reusable discoveries via `write_memory`
+Agents come from your configured pool (`.relay/agents.pool.yml`). If you specify an agent ID that doesn't exist, relay will show you the available options.
 
-## Memory loading
+## What the agent gets
 
-Single agents work with the full project context:
-1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
-2. `read_memory()` — project memory (`project.md`)
-
-Both results are merged and prepended to the system prompt.
-
-## Unknown agent handling
-
-If the specified agent ID is not found in `list_agents`:
-- Display the list of available agents to the user
-- Ask the user to choose a different agent
-
-## When to use
-
-**Single agent invocation is appropriate when:**
-- You need a code review of a specific file
-- You need architecture analysis or technical advice
-- You only need a specific deliverable (tests, docs) without the full workflow
-- The task is quick and doesn't justify spinning up the whole team
+The agent works with full project context — its personal memory from previous sessions and the shared `project.md` summary are both injected into the system prompt automatically.

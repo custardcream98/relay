@@ -21,7 +21,7 @@ your-project/
 agents:
   fe:
     name: "Frontend Engineer"
-    emoji: "🎨"
+    emoji: "💻"
     description: "React, TypeScript, UI 구현"
     tags: [frontend, react, typescript]
     tools:
@@ -32,9 +32,43 @@ agents:
       - post_artifact
       - send_message
       - request_review
+      - broadcast_thinking
     systemPrompt: |
       You are a Frontend Engineer specialising in React and TypeScript.
       ...
+```
+
+## 지원 필드
+
+| 필드 | 필수 | 설명 |
+|---|---|---|
+| `name` | 예 | 에이전트 표시 이름 |
+| `emoji` | 예 | 대시보드와 메시지에 표시되는 이모지 |
+| `tools` | 예 | 에이전트가 호출할 수 있는 MCP 도구 목록 |
+| `systemPrompt` | 예 | 에이전트의 기본 시스템 프롬프트 |
+| `description` | 아니오 | 팀 구성 제안에 사용되는 짧은 설명 |
+| `tags` | 아니오 | `/relay:relay`의 스마트 팀 매칭에 사용되는 분류 태그 |
+| `language` | 아니오 | 응답 언어 강제 설정 (예: `"Korean"`, `"English"`) |
+| `disabled` | 아니오 | `true`이면 이 에이전트를 레지스트리에서 제외 |
+| `extends` | 아니오 | 다른 풀 에이전트의 모든 필드를 상속; 다른 점만 오버라이드 |
+
+에이전트 ID는 영문자, 숫자, 하이픈, 언더스코어(`[a-zA-Z0-9_-]`)만 사용할 수 있습니다.
+
+## 최상위 language 필드
+
+풀 전체 에이전트의 기본 응답 언어를 설정합니다:
+
+```yaml
+language: "Korean"   # 에이전트별로 오버라이드하지 않으면 모두 한국어로 응답
+
+agents:
+  fe:
+    name: "Frontend Engineer"
+    # ... language: "Korean" 상속
+  pm:
+    name: "Product Manager"
+    language: "English"   # 이 에이전트만 영어로 오버라이드
+    # ...
 ```
 
 ## extends
@@ -45,7 +79,7 @@ agents:
 agents:
   fe:
     name: "Frontend Engineer"
-    emoji: "🎨"
+    emoji: "💻"
     tags: [frontend]
     tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
     systemPrompt: |
@@ -57,6 +91,8 @@ agents:
     name: "Frontend Engineer (Reviewer)"
     emoji: "🔍"
 ```
+
+`extends`는 두 번째 패스에서 처리되므로 YAML 파일의 선언 순서가 중요하지 않습니다. 세션 파일의 에이전트도 풀 에이전트 ID를 `extends`로 지정할 수 있습니다.
 
 ## tags 필드
 
@@ -84,22 +120,32 @@ agents:
 
 ## tools 필드
 
-에이전트가 호출할 수 있는 MCP 도구 목록을 지정합니다:
+에이전트가 호출할 수 있는 MCP 도구 목록을 지정합니다. 주로 사용하는 도구:
 
 ```yaml
 tools:
+  # 메시지
   - send_message
   - get_messages
+  # 태스크
   - create_task
   - update_task
   - get_my_tasks
+  - claim_task
+  - get_all_tasks
+  - get_team_status
+  # 아티팩트
   - post_artifact
   - get_artifact
+  # 리뷰
   - request_review
   - submit_review
+  # 메모리
   - read_memory
   - write_memory
   - append_memory
+  # 가시성
+  - broadcast_thinking
 ```
 
 `tools` 배열에 없는 MCP 도구는 에이전트가 호출할 수 없습니다.

@@ -1,15 +1,16 @@
 ---
 title: /relay:relay — full workflow
-description: /relay:relay runs your full agent team simultaneously — all agents spawn at once, claim tasks via MCP, and collaborate peer-to-peer until the feature is done.
+description: Assembles a purpose-built team from your pool each session, spawns all agents simultaneously, and drives peer-to-peer collaboration until the task is done.
 ---
 
-`/relay:relay` takes a user task and has the agents selected from the pool for this session collaborate to handle it.
-All agents spawn simultaneously at session start and work event-driven.
+import { Aside } from "@astrojs/starlight/components";
+
+The main command. Describe a goal — relay assembles a team, and they work in parallel until it's done.
 
 ## Usage
 
 ```
-/relay:relay "description of what to implement"
+/relay:relay "description of what to build or fix"
 ```
 
 Examples:
@@ -19,55 +20,53 @@ Examples:
 /relay:relay "Harden the payment API security"
 ```
 
-## Pre-flight checks
+## What happens when you run it
 
-Before running, the skill verifies:
-- relay MCP server connection (via `list_agents`)
-  - If no agents are found, guides the user to create `agents.pool.yml` first
-- Whether `.relay/memory/project.md` exists (suggests `/relay:init` if not)
-- Calls `get_server_info` to get the actual dashboard URL (auto-selected port, default 3456)
+### 1. Team composition
 
-## Session start
+Before any agents spawn, relay asks what kind of task this is and suggests a team of 3–6 agents from your pool matched to the work. You can refine the team — add specialists, remove roles that don't apply, or add multiple instances of the same role (e.g. two frontend engineers reviewing each other's work).
 
-Loads the full team via `list_agents` and **spawns all agents simultaneously**.
+Once confirmed, the session starts.
 
-For each agent spawn:
-1. Load persona from `list_agents`
-2. Load memory via `read_memory(agent_id)` (personal) + `read_memory()` (project.md)
-3. Restrict MCP tool access to the agent's `tools` array
+### 2. All agents spawn simultaneously
 
-The user's request is added to the coordinator agent's system prompt.
-Other agents wait for the coordinator to assign tasks.
+Every agent on the team starts at the same time. The coordinator receives your original request and begins breaking it down. All other agents check for messages and tasks immediately — no waiting in line.
 
-## Event-driven collaboration model
+Each agent works with:
+- Its role persona from `agents.pool.yml`
+- Personal memory from previous sessions (`read_memory`)
+- Shared project context (`project.md`)
 
-Agents do not communicate directly with each other. All collaboration goes through MCP tools:
+### 3. Event-driven collaboration
 
-- `send_message` / `get_messages` — inter-agent messaging
-- `create_task` / `claim_task` — task creation and atomic claiming
+Agents communicate exclusively through MCP tools — there are no direct agent-to-agent calls:
+
+- `send_message` / `get_messages` — messaging
+- `create_task` / `claim_task` — atomic task claiming (no two agents grab the same task)
 - `post_artifact` / `get_artifact` — sharing deliverables
-- `request_review` / `submit_review` — code review
+- `request_review` / `submit_review` — peer review
 
-When an agent has no more work or has finished, it broadcasts an end declaration:
+When an agent needs a review, it signals the reviewer by name. The reviewer spawns, does the review, and the original agent resumes. No orchestrator involvement needed — it's peer-to-peer.
 
+### 4. Session end
+
+When all agents finish their work, the session is archived and results are reported to you.
+
+<Aside type="tip">
+Watch it happen in real time at the dashboard URL printed at session start. See [Dashboard](/relay/guides/dashboard) for details.
+</Aside>
+
+## Running multiple instances
+
+You can run several relay instances in parallel without conflicts — useful for working on multiple projects at once:
+
+```json
+{
+  "mcpServers": {
+    "relay":   { "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" } },
+    "relay-b": { "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" } }
+  }
+}
 ```
-"end:waiting | {reason}"   # no current work (session continues)
-"end:_done | {summary}"    # fully complete
-"end:failed | {reason}"    # unrecoverable error
-```
 
-The orchestrator re-spawns a `end:waiting` agent when new tasks are assigned to it.
-
-## Reviewer spawn
-
-When an agent broadcasts `"Review requested: {reviewerId}"`,
-the orchestrator immediately spawns that reviewer:
-
-- If `reviewerId` exists in `list_agents`, uses that persona
-- Otherwise, inherits the requester's persona
-
-## Session end
-
-When all agents have declared `end:_done`:
-1. `save_session_summary(session_id, summary)` — archive the session
-2. Report the results summary to the user
+Each instance gets its own port, dashboard, and SQLite database.

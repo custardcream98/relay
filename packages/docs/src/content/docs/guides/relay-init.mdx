@@ -1,56 +1,60 @@
 ---
 title: /relay:init — project scan
-description: /relay:init spawns all agents in parallel to scan your codebase and write role-specific notes to .relay/memory/ — run once per project for a shared context baseline.
+description: Spawns all pool agents in parallel to scan your codebase and write role-specific notes to .relay/memory/. Run once per project for a shared context baseline.
 ---
 
-Run `/relay:init` the first time you use relay in a project, or when the team needs to re-learn the project context.
+import { Aside } from "@astrojs/starlight/components";
 
-If `.relay/memory/` does not exist, running `/relay:relay` will automatically suggest running this skill first.
+Run this when you first bring relay into a project. Every agent in your pool scans the codebase simultaneously, each from their own perspective, and writes what they learned to `.relay/memory/`. Every session that follows starts with that shared context.
 
 ## When to run
 
-- relay MCP server must be connected
-- Required once per project; re-run is recommended when the project structure changes significantly
+- **Once per project** — the first time you use relay
+- **Re-run** — when the codebase structure changes significantly
 
-## Phase 0: team suggestion (when no pool is configured)
+If `.relay/memory/` doesn't exist and you run `/relay:relay`, relay will prompt you to run this first.
 
-If `list_agents` returns an empty array, no agent pool has been configured yet.
-relay analyses the project, proposes a suitable team for the domain, and guides the user to create `.relay/agents.pool.yml`.
+## What happens
 
-After the file is created, restart the MCP server and then run `/relay:init` again.
+### If no agent pool is configured
 
-## Phase 1: parallel project scan
+If `.relay/agents.pool.yml` doesn't exist yet, relay analyzes the project and suggests a team for your domain:
 
-**All agents returned by `list_agents` spawn simultaneously** and explore the codebase from their own perspective.
+```
+[1] Create .relay/agents.pool.yml with this pool (recommended)
+[2] Use the example pool (agents.pool.example.yml)
+[3] I'll create agents.pool.yml myself
+```
 
-Each agent scans from the role defined in its `systemPrompt`,
-then saves its memory with `write_memory` and broadcasts `"init-done"`.
+Once the pool file is created, the scan proceeds automatically.
 
-## Phase 2: cross-review
+### Parallel scan
 
-Once all agents' `"init-done"` broadcasts are collected, or after a maximum of 5 minutes, the process moves to the next phase.
+**All agents in the pool spawn at the same time** and explore the codebase from their role's perspective — the FE agent looks at component structure, the BE agent at API patterns, the PM at overall architecture.
 
-The coordinator agent (one whose description or name contains "manager", "coordinator", or "pm")
-reads each agent's memory and saves a consolidated summary to `project.md` via `write_memory(key: "summary", ...)`.
-
-## Phase 3: completion report
-
-Reports the init results to the user:
-- List of loaded agents
-- List of saved memory keys
-- Ready to start with `/relay:relay "task"` immediately
+When each agent finishes, it writes key findings to its own memory file. One agent then synthesizes everything into a unified `project.md` summary.
 
 ## Output
-
-After init completes, the `.relay/memory/` directory is created:
 
 ```
 .relay/
 └── memory/
-    ├── project.md               # consolidated summary written by the coordinator
+    ├── project.md        ← consolidated summary (injected into every session)
     └── agents/
-        ├── {agentId}.md         # each agent's personal memory (one per agent in the pool)
-        └── ...
+        ├── pm.md
+        ├── fe.md
+        ├── be.md
+        └── ...           ← per-agent personal memory
 ```
 
-It is recommended to commit these files to git so the team shares them.
+<Aside type="tip">
+Commit `.relay/memory/` to git. Everyone on your team shares the same agent context.
+</Aside>
+
+## Next step
+
+Once init completes, start working immediately:
+
+```
+/relay:relay "add a shopping cart"
+```

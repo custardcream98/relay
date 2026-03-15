@@ -11,7 +11,7 @@
       "name": "relay",
       "source": "./",
       "description": "Multi-agent collaboration framework for Claude Code",
-      "version": "0.10.1",
+      "version": "0.11.0",
       "license": "MIT"
     }
   ]

@@ -1,14 +1,14 @@
 // packages/server/src/index.ts
 
 import { createServer } from "node:net";
-import type { AgentId } from "@custardcream/relay-shared";
+import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 import { serve } from "@hono/node-server";
 import { WebSocketServer } from "ws";
 import { loadPool } from "./agents/loader";
 import { getSessionId, setPort } from "./config";
 import { app } from "./dashboard/hono";
+import { isLocalhostOrigin } from "./dashboard/utils";
 import { addClient, markClientAlive, removeClient, startHeartbeat } from "./dashboard/websocket";
-import { getDb } from "./db/client";
 import { getAllArtifacts } from "./db/queries/artifacts";
 import { getAllMessages } from "./db/queries/messages";
 import { getAllTasks } from "./db/queries/tasks";
@@ -111,6 +111,42 @@ async function resolvePort(): Promise<number> {
 const DASHBOARD_PORT = await resolvePort();
 setPort(DASHBOARD_PORT);
 
+/**
+ * Build a session:snapshot event payload serialized to JSON.
+ * Used to hydrate the dashboard on initial WebSocket connection.
+ * Typed as Extract<RelayEvent, { type: "session:snapshot" }> to catch payload shape drift at compile time.
+ */
+function buildSessionSnapshot(port: number): string {
+  const sessionId = getSessionId();
+
+  // Load agent metadata for SessionTeamBadge hydration
+  let agentMeta: Array<{ id: AgentId; name: string; emoji: string }> = [];
+  try {
+    const agents = loadPool();
+    agentMeta = Object.values(agents).map((a) => ({
+      id: a.id,
+      name: a.name,
+      emoji: a.emoji,
+    }));
+  } catch {
+    // Agent loading failure should not block snapshot delivery
+  }
+
+  const snapshot: Extract<RelayEvent, { type: "session:snapshot" }> = {
+    type: "session:snapshot",
+    sessionId,
+    tasks: getAllTasks(sessionId),
+    messages: getAllMessages(sessionId).map((m) => ({ ...m, metadata: m.metadata ?? null })),
+    artifacts: getAllArtifacts(sessionId),
+    instanceId: process.env.RELAY_INSTANCE,
+    port,
+    agents: agentMeta,
+    timestamp: Date.now(),
+  };
+
+  return JSON.stringify(snapshot);
+}
+
 // Dashboard HTTP + WebSocket server.
 // EADDRINUSE is emitted asynchronously on the server's "error" event — not catchable via try/catch.
 // If the port is already in use, skip the dashboard but keep the MCP stdio server running (graceful degradation)
@@ -142,61 +178,34 @@ dashboardServer.on("upgrade", (request, socket, head) => {
   // Reject WebSocket upgrades from non-localhost origins.
   // This prevents arbitrary web pages from subscribing to all real-time events.
   const origin = request.headers.origin;
-  if (origin) {
-    try {
-      const parsedOrigin = new URL(origin);
-      if (parsedOrigin.hostname !== "localhost" && parsedOrigin.hostname !== "127.0.0.1") {
-        socket.destroy();
-        return;
-      }
-    } catch {
-      // Malformed origin header — reject
-      socket.destroy();
-      return;
-    }
+  // Reject WebSocket upgrades from non-localhost origins.
+  // isLocalhostOrigin() returns false for malformed origins, so one check covers both cases.
+  if (origin && !isLocalhostOrigin(origin)) {
+    socket.destroy();
+    return;
   }
 
   const url = new URL(request.url ?? "/", `http://localhost:${DASHBOARD_PORT}`);
-  if (url.pathname === "/ws") {
-    wss.handleUpgrade(request, socket, head, (ws) => {
-      addClient(ws);
-      markClientAlive(ws);
-      // Mark client as alive when it responds to a ping
-      ws.on("pong", () => markClientAlive(ws));
-      ws.on("close", () => removeClient(ws));
-      // Send current session snapshot on new connection — for dashboard initial hydration
-      try {
-        const db = getDb();
-        const sessionId = getSessionId();
-        // Load agent metadata for SessionTeamBadge hydration
-        let agentMeta: Array<{ id: AgentId; name: string; emoji: string }> = [];
-        try {
-          const agents = loadPool();
-          agentMeta = Object.values(agents).map((a) => ({
-            id: a.id,
-            name: a.name,
-            emoji: a.emoji,
-          }));
-        } catch {
-          // Agent loading failure should not block snapshot delivery
-        }
-        const snapshot = JSON.stringify({
-          type: "session:snapshot",
-          sessionId,
-          tasks: getAllTasks(db, sessionId),
-          messages: getAllMessages(db, sessionId),
-          artifacts: getAllArtifacts(db, sessionId),
-          instanceId: process.env.RELAY_INSTANCE,
-          port: DASHBOARD_PORT,
-          agents: agentMeta,
-          timestamp: Date.now(),
-        });
-        ws.send(snapshot);
-      } catch (err) {
-        console.error("[relay] failed to send session snapshot:", err);
-      }
-    });
+  if (url.pathname !== "/ws") {
+    // Reject WebSocket upgrade requests targeting any path other than /ws.
+    // Leaving the socket open without handling it would leak a half-open TCP connection.
+    socket.destroy();
+    return;
   }
+  // pathname === "/ws" is guaranteed here by the early-return above
+  wss.handleUpgrade(request, socket, head, (ws) => {
+    addClient(ws);
+    markClientAlive(ws);
+    // Mark client as alive when it responds to a ping
+    ws.on("pong", () => markClientAlive(ws));
+    ws.on("close", () => removeClient(ws));
+    // Send current session snapshot on new connection — for dashboard initial hydration
+    try {
+      ws.send(buildSessionSnapshot(DASHBOARD_PORT));
+    } catch (err) {
+      console.error("[relay] failed to send session snapshot:", err);
+    }
+  });
 });
 
 // Start WebSocket ping/pong heartbeat so the dashboard can detect stale connections

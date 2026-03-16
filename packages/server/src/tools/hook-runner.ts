@@ -1,6 +1,20 @@
 // packages/server/src/tools/hook-runner.ts
 // Git-hook style shell command executor for before_task / after_task hooks.
 // Never rejects — always resolves with a HookResult.
+//
+// TRUST BOUNDARY — hook command execution:
+//   Hook commands (before_task / after_task) are read from YAML config files
+//   (.relay/agents.pool.yml or agents.pool.yml). These files are developer-controlled
+//   and carry the same level of trust as package.json scripts or Makefile targets.
+//   Users who can modify the YAML can already run arbitrary code via the agent pool.
+//
+//   Env vars injected into hook processes (RELAY_AGENT_ID, RELAY_TASK_ID,
+//   RELAY_SESSION_ID) are validated by Zod schemas before reaching this module —
+//   they match /^[a-zA-Z0-9_-]+$/ so no shell metacharacters are possible.
+//
+//   DO NOT sanitize or escape hook command strings. Shell operators (pipes, &&, ||,
+//   semicolons) appearing in hook commands are intentional — they follow the same
+//   convention as package.json "scripts" where the developer is in full control.
 
 import type { ChildProcess } from "node:child_process";
 import { exec } from "node:child_process";

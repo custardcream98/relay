@@ -7,15 +7,15 @@ import { markAsAgentId } from "@custardcream/relay-shared";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { loadPool } from "../agents/loader";
+import { getPool } from "../agents/cache";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
-import { getDb } from "../db/client";
 import { getAllArtifacts } from "../db/queries/artifacts";
 import { getEventsBySession } from "../db/queries/events";
 import { getAllMessages } from "../db/queries/messages";
 import { getAllSessions } from "../db/queries/sessions";
 import { getAllTasks } from "../db/queries/tasks";
 import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
+import { isLocalhostOrigin } from "./utils";
 import { broadcast } from "./websocket";
 
 // Bundled: resolve dashboard/ relative to this file's location
@@ -32,18 +32,10 @@ app.use(
   "/api/*",
   cors({
     origin: (origin) => {
-      // Allow requests from localhost (any port) and 127.0.0.1 (any port).
-      // Also allow requests with no Origin header (e.g. same-origin requests, curl).
+      // Allow requests with no Origin header (e.g. same-origin requests, curl).
+      // Return the origin string (not just true) so the CORS header echoes the exact value.
       if (!origin) return origin;
-      try {
-        const url = new URL(origin);
-        if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
-          return origin;
-        }
-      } catch {
-        // Malformed origin — deny
-      }
-      return null;
+      return isLocalhostOrigin(origin) ? origin : null;
     },
     allowMethods: ["GET", "POST", "OPTIONS"],
     allowHeaders: ["Content-Type"],
@@ -53,26 +45,18 @@ app.use(
 // Serve static files from the built React app
 app.use("/assets/*", serveStatic({ root: DASHBOARD_DIST }));
 
-// Pool cache for /api/agents — matches MCP server TTL so pool changes reflect within 5 minutes.
-const AGENTS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-let cachedAgents: ReturnType<typeof loadPool> | null = null;
-let cachedAgentsAt = 0;
-
-// API: agent list
+// API: agent list — delegates to shared cache (same TTL as MCP server pool cache)
 app.get("/api/agents", (c) => {
   try {
-    const now = Date.now();
-    if (cachedAgents === null || now - cachedAgentsAt >= AGENTS_CACHE_TTL_MS) {
-      try {
-        cachedAgents = loadPool();
-        cachedAgentsAt = now;
-      } catch {
-        // Pool not configured or failed — keep stale cache if available, otherwise empty
-        if (cachedAgents === null) cachedAgents = {};
-      }
+    let agents: ReturnType<typeof getPool>;
+    try {
+      agents = getPool();
+    } catch {
+      // Pool not configured or failed — return empty list
+      agents = {};
     }
     return c.json(
-      Object.values(cachedAgents).map((a) => ({
+      Object.values(agents).map((a) => ({
         id: a.id,
         name: a.name,
         emoji: a.emoji,
@@ -81,7 +65,8 @@ app.get("/api/agents", (c) => {
       }))
     );
   } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
+    console.error("[relay] internal error:", err);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -101,14 +86,13 @@ app.get("/api/health", (c) => {
 // Supports optional pagination via ?offset=N&limit=N on tasks and messages.
 app.get("/api/session", (c) => {
   try {
-    const db = getDb();
     const sessionId = getSessionId();
     const offset = Math.max(0, Number(c.req.query("offset") ?? 0) || 0);
     const limit = Math.min(500, Math.max(1, Number(c.req.query("limit") ?? 500) || 500));
 
-    const allTasks = getAllTasks(db, sessionId);
-    const allMessages = getAllMessages(db, sessionId);
-    const allArtifacts = getAllArtifacts(db, sessionId);
+    const allTasks = getAllTasks(sessionId);
+    const allMessages = getAllMessages(sessionId);
+    const allArtifacts = getAllArtifacts(sessionId);
 
     return c.json({
       tasks: allTasks.slice(offset, offset + limit),
@@ -122,7 +106,8 @@ app.get("/api/session", (c) => {
       },
     });
   } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
+    console.error("[relay] internal error:", err);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -134,7 +119,8 @@ app.get("/api/sessions/live", (c) => {
     const sessions = getAllSessions(50);
     return c.json({ success: true, sessions });
   } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
+    console.error("[relay] internal error:", err);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -156,7 +142,8 @@ app.get("/api/sessions/:id/replay", (c) => {
     const events = getEventsBySession(sessionId);
     return c.json({ success: true, sessionId, events });
   } catch (err) {
-    return c.json({ error: (err as Error).message }, 500);
+    console.error("[relay] internal error:", err);
+    return c.json({ success: false, error: "Internal server error" }, 500);
   }
 });
 
@@ -181,15 +168,10 @@ app.post("/api/hook/tool-use", async (c) => {
   // Only accept requests from localhost origins (or same-origin with no Origin header).
   // This prevents cross-origin POST abuse since the hook endpoint is unauthenticated.
   const origin = c.req.header("origin");
-  if (origin) {
-    try {
-      const url = new URL(origin);
-      if (url.hostname !== "localhost" && url.hostname !== "127.0.0.1") {
-        return c.json({ error: "forbidden" }, 403);
-      }
-    } catch {
-      return c.json({ error: "forbidden" }, 403);
-    }
+  // Reject cross-origin POST requests. isLocalhostOrigin() returns false for malformed
+  // or non-localhost origins, so a single check covers all rejection cases.
+  if (origin && !isLocalhostOrigin(origin)) {
+    return c.json({ error: "forbidden" }, 403);
   }
 
   // Claude Code delivers a payload via stdin with the structure:

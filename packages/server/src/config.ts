@@ -1,7 +1,7 @@
 // packages/server/src/config.ts
 // Shared config module that resolves the project root from the MCP client (Claude Code).
 
-import { join, resolve } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // Project root received via MCP roots/list — set by setProjectRoot() after startMcpServer()
@@ -20,7 +20,13 @@ export function getProjectRoot(): string {
 }
 
 export function getRelayDir(): string {
-  if (process.env.RELAY_DIR) return resolve(process.env.RELAY_DIR);
+  if (process.env.RELAY_DIR) {
+    const dir = resolve(process.env.RELAY_DIR);
+    // OPERATOR TRUST: RELAY_DIR is set by the process owner, same trust level as working directory.
+    // Still sanity-check that resolve() produced an absolute path — guards against exotic environments.
+    if (!isAbsolute(dir)) throw new Error(`RELAY_DIR resolved to non-absolute path: ${dir}`);
+    return dir;
+  }
   return join(getProjectRoot(), ".relay");
 }
 
@@ -29,7 +35,7 @@ export function getRelayDir(): string {
  * Set via RELAY_INSTANCE env var or --instance CLI arg.
  */
 export function getInstanceId(): string | undefined {
-  return process.env.RELAY_INSTANCE ?? undefined;
+  return process.env.RELAY_INSTANCE;
 }
 
 /**
@@ -79,7 +85,7 @@ let _sessionId: string | null = null;
  * preventing stale data from bleeding into the live dashboard view.
  */
 export function getSessionId(): string {
-  if (_sessionId) return _sessionId;
+  if (_sessionId !== null) return _sessionId;
   if (process.env.RELAY_SESSION_ID) {
     if (!/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_SESSION_ID)) {
       console.error(

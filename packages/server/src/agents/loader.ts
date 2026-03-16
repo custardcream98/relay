@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import yaml from "js-yaml";
 import { getProjectRoot, getRelayDir } from "../config";
+import { isValidId } from "../utils/validate";
 import type {
   AgentHooks,
   AgentPersona,
@@ -43,6 +44,18 @@ export const REGISTERED_MCP_TOOLS = new Set([
 ]);
 
 /**
+ * Validate an agent ID and throw a clear error if it contains invalid characters.
+ * Delegates to isValidId() which uses anchored regex /^[a-zA-Z0-9_-]+$/.
+ */
+function validateAgentId(id: string): void {
+  if (!isValidId(id)) {
+    throw new Error(
+      `agent id "${id}" contains invalid characters; use alphanumeric, hyphen, underscore only`
+    );
+  }
+}
+
+/**
  * Normalize AgentHooks from YAML (string | string[]) to ResolvedAgentHooks (string[]).
  * Validates that hook values are strings or arrays of strings.
  */
@@ -71,38 +84,21 @@ function readYml(path: string): AgentsFile | null {
 }
 
 /**
- * Load agent personas from an explicit AgentsFile.
- * Disabled agents are excluded from the result.
- * When using extends, the specified agent's config is inherited and then overridden.
- *
- * @param override - The agents file to load (session file or pool file)
- * @param poolAgents - Optional pool agents to use as fallback for extends resolution.
- *   Allows session-file agents to extend pool agents by ID.
+ * Pass 1: Resolve base agents (those without extends).
+ * Returns a merged record of resolved personas.
  */
-export function loadAgents(
-  override: AgentsFile,
-  poolAgents?: Record<string, AgentPersona>
+function resolveBaseAgents(
+  entries: [string, AgentsFile["agents"][string]][],
+  globalLanguage: string | undefined,
+  poolAgents: Record<string, AgentPersona> | undefined
 ): Record<string, AgentPersona> {
-  const agents = override.agents;
   const merged: Record<string, AgentPersona> = {};
 
-  // Global language setting (fallback when per-agent language is absent)
-  const globalLanguage = override.language;
-
-  // Two-pass resolution: first resolve base agents, then extends agents.
-  // This makes YAML declaration order irrelevant for extends chains.
-  const entries = Object.entries(agents);
-
-  // Pass 1: resolve agents without extends
   for (const [id, config] of entries) {
     if (config.disabled) continue;
     if (config.extends) continue; // handled in pass 2
 
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-      throw new Error(
-        `agent id "${id}" contains invalid characters; use alphanumeric, hyphen, underscore only`
-      );
-    }
+    validateAgentId(id);
 
     const language = config.language ?? globalLanguage;
 
@@ -142,16 +138,24 @@ export function loadAgents(
     merged[id] = persona;
   }
 
-  // Pass 2: resolve agents that use extends (base agents are all resolved now)
+  return merged;
+}
+
+/**
+ * Pass 2: Resolve extends agents (those that inherit from a base agent).
+ * Mutates the merged record in-place.
+ */
+function resolveExtendsAgents(
+  entries: [string, AgentsFile["agents"][string]][],
+  merged: Record<string, AgentPersona>,
+  globalLanguage: string | undefined,
+  poolAgents: Record<string, AgentPersona> | undefined
+): void {
   for (const [id, config] of entries) {
     if (config.disabled) continue;
     if (!config.extends) continue; // already handled in pass 1
 
-    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-      throw new Error(
-        `agent id "${id}" contains invalid characters; use alphanumeric, hyphen, underscore only`
-      );
-    }
+    validateAgentId(id);
 
     const language = config.language ?? globalLanguage;
 
@@ -196,6 +200,28 @@ export function loadAgents(
 
     merged[id] = merged_persona;
   }
+}
+
+/**
+ * Load agent personas from an explicit AgentsFile.
+ * Disabled agents are excluded from the result.
+ * When using extends, the specified agent's config is inherited and then overridden.
+ *
+ * @param override - The agents file to load (session file or pool file)
+ * @param poolAgents - Optional pool agents to use as fallback for extends resolution.
+ *   Allows session-file agents to extend pool agents by ID.
+ */
+export function loadAgents(
+  override: AgentsFile,
+  poolAgents?: Record<string, AgentPersona>
+): Record<string, AgentPersona> {
+  const entries = Object.entries(override.agents);
+  const globalLanguage = override.language;
+
+  // Two-pass resolution: first resolve base agents, then extends agents.
+  // This makes YAML declaration order irrelevant for extends chains.
+  const merged = resolveBaseAgents(entries, globalLanguage, poolAgents);
+  resolveExtendsAgents(entries, merged, globalLanguage, poolAgents);
 
   return merged;
 }

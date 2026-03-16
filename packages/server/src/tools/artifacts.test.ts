@@ -12,7 +12,7 @@ describe("artifacts tool", () => {
   afterEach(() => db.close());
 
   test("post_artifact: saves artifact", async () => {
-    const result = await handlePostArtifact(db, "sess-1", {
+    const result = await handlePostArtifact("sess-1", {
       agent_id: "designer",
       name: "login-design",
       type: "figma_spec",
@@ -24,13 +24,13 @@ describe("artifacts tool", () => {
   });
 
   test("get_artifact: retrieves by name", async () => {
-    await handlePostArtifact(db, "sess-1", {
+    await handlePostArtifact("sess-1", {
       agent_id: "designer",
       name: "login-design",
       type: "figma_spec",
       content: "{}",
     });
-    const result = await handleGetArtifact(db, "sess-1", {
+    const result = await handleGetArtifact("sess-1", {
       agent_id: "fe",
       name: "login-design",
     });
@@ -39,7 +39,7 @@ describe("artifacts tool", () => {
   });
 
   test("get_artifact: returns null artifact when name does not exist", async () => {
-    const result = await handleGetArtifact(db, "sess-1", {
+    const result = await handleGetArtifact("sess-1", {
       agent_id: "fe",
       name: "nonexistent-artifact",
     });
@@ -49,7 +49,7 @@ describe("artifacts tool", () => {
   });
 
   test("post_artifact: works without optional task_id", async () => {
-    const result = await handlePostArtifact(db, "sess-1", {
+    const result = await handlePostArtifact("sess-1", {
       agent_id: "be",
       name: "api-spec",
       type: "document",
@@ -62,13 +62,13 @@ describe("artifacts tool", () => {
 
   test("get_artifact: returns artifact content verbatim", async () => {
     const content = JSON.stringify({ key: "value", nested: { arr: [1, 2, 3] } });
-    await handlePostArtifact(db, "sess-1", {
+    await handlePostArtifact("sess-1", {
       agent_id: "be",
       name: "data-spec",
       type: "report",
       content,
     });
-    const result = await handleGetArtifact(db, "sess-1", {
+    const result = await handleGetArtifact("sess-1", {
       agent_id: "fe",
       name: "data-spec",
     });

@@ -14,7 +14,7 @@ describe("task queries", () => {
   afterEach(() => db.close());
 
   test("create task and retrieve by ID", () => {
-    insertTask(db, {
+    insertTask({
       id: "task-1",
       session_id: "sess-1",
       title: "Implement login UI",
@@ -25,13 +25,13 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    const task = getTaskById(db, "task-1", "sess-1");
+    const task = getTaskById("task-1", "sess-1");
     expect(task?.title).toBe("Implement login UI");
     expect(task?.status).toBe("todo");
   });
 
   test("update task status", () => {
-    insertTask(db, {
+    insertTask({
       id: "task-2",
       session_id: "sess-1",
       title: "API design",
@@ -42,13 +42,13 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    updateTask(db, "task-2", "sess-1", { status: "in_progress" });
-    const task = getTaskById(db, "task-2", "sess-1");
+    updateTask("task-2", "sess-1", { status: "in_progress" });
+    const task = getTaskById("task-2", "sess-1");
     expect(task?.status).toBe("in_progress");
   });
 
   test("fetch tasks by assignee", () => {
-    insertTask(db, {
+    insertTask({
       id: "t1",
       session_id: "s1",
       title: "FE task",
@@ -58,7 +58,7 @@ describe("task queries", () => {
       priority: "medium",
       created_by: "pm",
     });
-    insertTask(db, {
+    insertTask({
       id: "t2",
       session_id: "s1",
       title: "BE task",
@@ -69,13 +69,13 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    const feTasks = getTasksByAssignee(db, "s1", "fe");
+    const feTasks = getTasksByAssignee("s1", "fe");
     expect(feTasks).toHaveLength(1);
     expect(feTasks[0].title).toBe("FE task");
   });
 
   test("updateTask: empty updates should not throw (prevents SQL error)", () => {
-    insertTask(db, {
+    insertTask({
       id: "task-3",
       session_id: "sess-1",
       title: "empty update test",
@@ -85,6 +85,6 @@ describe("task queries", () => {
       priority: "medium",
       created_by: "pm",
     });
-    expect(() => updateTask(db, "task-3", "sess-1", {})).not.toThrow();
+    expect(() => updateTask("task-3", "sess-1", {})).not.toThrow();
   });
 });

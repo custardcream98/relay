@@ -14,7 +14,7 @@ describe("message queries", () => {
   afterEach(() => db.close());
 
   test("insert and fetch messages", () => {
-    insertMessage(db, {
+    insertMessage({
       id: "msg-1",
       session_id: "sess-1",
       from_agent: "pm",
@@ -23,13 +23,13 @@ describe("message queries", () => {
       thread_id: null,
     });
 
-    const msgs = getMessagesForAgent(db, "sess-1", "fe");
+    const msgs = getMessagesForAgent("sess-1", "fe");
     expect(msgs).toHaveLength(1);
     expect(msgs[0].content).toBe("Please review the PR");
   });
 
   test("fetch broadcast messages (to_agent=null)", () => {
-    insertMessage(db, {
+    insertMessage({
       id: "msg-2",
       session_id: "sess-1",
       from_agent: "pm",
@@ -38,7 +38,7 @@ describe("message queries", () => {
       thread_id: null,
     });
 
-    const msgs = getMessagesForAgent(db, "sess-1", "fe");
+    const msgs = getMessagesForAgent("sess-1", "fe");
     expect(msgs.some((m) => m.id === "msg-2")).toBe(true);
   });
 });

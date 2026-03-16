@@ -17,7 +17,7 @@ describe("review tool", () => {
   afterEach(() => db.close());
 
   test("request_review: creates review request", async () => {
-    const result = await handleRequestReview(db, "sess-1", {
+    const result = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-1",
       reviewer: "fe2",
@@ -27,12 +27,12 @@ describe("review tool", () => {
   });
 
   test("submit_review: submits review result and returns review data", async () => {
-    const { review_id } = await handleRequestReview(db, "sess-1", {
+    const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-1",
       reviewer: "fe2",
     });
-    const result = await handleSubmitReview(db, "sess-1", {
+    const result = await handleSubmitReview("sess-1", {
       agent_id: "fe2",
       review_id: review_id as string,
       status: "approved",
@@ -46,12 +46,12 @@ describe("review tool", () => {
   });
 
   test("submit_review: returns review with changes_requested status", async () => {
-    const { review_id } = await handleRequestReview(db, "sess-1", {
+    const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-2",
       reviewer: "qa",
     });
-    const result = await handleSubmitReview(db, "sess-1", {
+    const result = await handleSubmitReview("sess-1", {
       agent_id: "qa",
       review_id: review_id as string,
       status: "changes_requested",
@@ -63,7 +63,7 @@ describe("review tool", () => {
   });
 
   test("submit_review: returns error when review does not exist", async () => {
-    const result = await handleSubmitReview(db, "sess-1", {
+    const result = await handleSubmitReview("sess-1", {
       agent_id: "qa",
       review_id: "nonexistent-review-id",
       status: "approved",
@@ -73,13 +73,13 @@ describe("review tool", () => {
   });
 
   test("submit_review: returns permission denied when wrong agent submits review", async () => {
-    const { review_id } = await handleRequestReview(db, "sess-1", {
+    const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-3",
       reviewer: "qa",
     });
     // "be" is not the assigned reviewer (only "qa" can submit this review)
-    const result = await handleSubmitReview(db, "sess-1", {
+    const result = await handleSubmitReview("sess-1", {
       agent_id: "be",
       review_id: review_id as string,
       status: "approved",
@@ -89,12 +89,12 @@ describe("review tool", () => {
   });
 
   test("submit_review: works with no comments (optional field)", async () => {
-    const { review_id } = await handleRequestReview(db, "sess-1", {
+    const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-4",
       reviewer: "pm",
     });
-    const result = await handleSubmitReview(db, "sess-1", {
+    const result = await handleSubmitReview("sess-1", {
       agent_id: "pm",
       review_id: review_id as string,
       status: "approved",
@@ -124,14 +124,14 @@ describe("submit_review — review:updated broadcast", () => {
 
   test("broadcasts review:updated with correct review shape after successful submit_review", async () => {
     // Create a review request first so submit_review has a valid review to update
-    const { review_id } = await handleRequestReview(inMemDb, "broadcast-test-session", {
+    const { review_id } = await handleRequestReview("broadcast-test-session", {
       agent_id: "be",
       artifact_id: "art-broadcast-1",
       reviewer: "qa",
     });
 
     // Submit the review (same logic as mcp.ts submit_review tool handler)
-    const result = await handleSubmitReview(inMemDb, "broadcast-test-session", {
+    const result = await handleSubmitReview("broadcast-test-session", {
       agent_id: "qa",
       review_id: review_id as string,
       status: "approved",

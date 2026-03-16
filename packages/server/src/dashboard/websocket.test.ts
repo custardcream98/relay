@@ -23,7 +23,12 @@ function makeWsStub(broken = false): { send: (d: string) => void; sent: string[]
 }
 
 describe("websocket broadcast", () => {
+  // Save the original value so we always restore it even if a test throws before afterEach
+  let savedSessionId: string | undefined;
+
   beforeEach(() => {
+    savedSessionId = process.env.RELAY_SESSION_ID;
+
     const db = new Database(":memory:");
     runMigrations(db as unknown as SqliteDatabase);
     _setDb(db as unknown as SqliteDatabase);
@@ -32,7 +37,11 @@ describe("websocket broadcast", () => {
   });
 
   afterEach(() => {
-    delete process.env.RELAY_SESSION_ID;
+    if (savedSessionId === undefined) {
+      delete process.env.RELAY_SESSION_ID;
+    } else {
+      process.env.RELAY_SESSION_ID = savedSessionId;
+    }
     _resetSessionId();
     closeDb();
   });

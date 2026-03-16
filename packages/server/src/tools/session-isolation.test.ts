@@ -30,44 +30,44 @@ describe("session isolation — cross-session data leakage", () => {
 
   describe("messaging", () => {
     test("messages from session-A are not visible in session-B", async () => {
-      await handleSendMessage(db, "session-A", {
+      await handleSendMessage("session-A", {
         agent_id: "pm",
         to: "fe",
         content: "Session A only message",
       });
 
-      const result = await handleGetMessages(db, "session-B", { agent_id: "fe" });
+      const result = await handleGetMessages("session-B", { agent_id: "fe" });
       expect(result.success).toBe(true);
       expect(result.messages).toHaveLength(0);
     });
 
     test("broadcast messages are session-scoped", async () => {
-      await handleSendMessage(db, "session-A", {
+      await handleSendMessage("session-A", {
         agent_id: "pm",
         to: null,
         content: "Session A broadcast",
       });
 
-      const resultA = await handleGetMessages(db, "session-A", { agent_id: "fe" });
-      const resultB = await handleGetMessages(db, "session-B", { agent_id: "fe" });
+      const resultA = await handleGetMessages("session-A", { agent_id: "fe" });
+      const resultB = await handleGetMessages("session-B", { agent_id: "fe" });
       expect(resultA.messages).toHaveLength(1);
       expect(resultB.messages).toHaveLength(0);
     });
 
     test("concurrent sessions can have same agent names without cross-contamination", async () => {
-      await handleSendMessage(db, "session-A", {
+      await handleSendMessage("session-A", {
         agent_id: "fe",
         to: "be",
         content: "From session A",
       });
-      await handleSendMessage(db, "session-B", {
+      await handleSendMessage("session-B", {
         agent_id: "fe",
         to: "be",
         content: "From session B",
       });
 
-      const resultA = await handleGetMessages(db, "session-A", { agent_id: "be" });
-      const resultB = await handleGetMessages(db, "session-B", { agent_id: "be" });
+      const resultA = await handleGetMessages("session-A", { agent_id: "be" });
+      const resultB = await handleGetMessages("session-B", { agent_id: "be" });
       expect(resultA.messages).toHaveLength(1);
       expect(resultA.messages[0].content).toBe("From session A");
       expect(resultB.messages).toHaveLength(1);
@@ -79,33 +79,33 @@ describe("session isolation — cross-session data leakage", () => {
 
   describe("tasks", () => {
     test("get_my_tasks does not return tasks from other sessions", async () => {
-      await handleCreateTask(db, "session-A", {
+      await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Session A task",
         assignee: "fe",
         priority: "high",
       });
 
-      const result = await handleGetMyTasks(db, "session-B", { agent_id: "fe" });
+      const result = await handleGetMyTasks("session-B", { agent_id: "fe" });
       expect(result.tasks).toHaveLength(0);
     });
 
     test("get_all_tasks does not include tasks from other sessions", async () => {
-      await handleCreateTask(db, "session-A", {
+      await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Task in A",
         assignee: "fe",
         priority: "medium",
       });
-      await handleCreateTask(db, "session-B", {
+      await handleCreateTask("session-B", {
         agent_id: "pm",
         title: "Task in B",
         assignee: "be",
         priority: "medium",
       });
 
-      const resultA = await handleGetAllTasks(db, "session-A", { agent_id: "qa" });
-      const resultB = await handleGetAllTasks(db, "session-B", { agent_id: "qa" });
+      const resultA = await handleGetAllTasks("session-A", { agent_id: "qa" });
+      const resultB = await handleGetAllTasks("session-B", { agent_id: "qa" });
       expect(resultA.tasks).toHaveLength(1);
       expect(resultA.tasks[0].title).toBe("Task in A");
       expect(resultB.tasks).toHaveLength(1);
@@ -114,13 +114,13 @@ describe("session isolation — cross-session data leakage", () => {
 
     test("team status counts only tasks from the queried session", async () => {
       // Add tasks to session-A only
-      await handleCreateTask(db, "session-A", {
+      await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "A task 1",
         assignee: "fe",
         priority: "high",
       });
-      await handleCreateTask(db, "session-A", {
+      await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "A task 2",
         assignee: "be",
@@ -128,14 +128,14 @@ describe("session isolation — cross-session data leakage", () => {
       });
 
       // session-B should see zero tasks
-      const statusB = await handleGetTeamStatus(db, "session-B", { agent_id: "pm" });
+      const statusB = await handleGetTeamStatus("session-B", { agent_id: "pm" });
       expect(statusB.success).toBe(true);
       if (!statusB.success) return;
       expect(statusB.total).toBe(0);
       expect(statusB.has_pending_work).toBe(false);
 
       // session-A should see its own tasks
-      const statusA = await handleGetTeamStatus(db, "session-A", { agent_id: "pm" });
+      const statusA = await handleGetTeamStatus("session-A", { agent_id: "pm" });
       expect(statusA.success).toBe(true);
       if (!statusA.success) return;
       expect(statusA.total).toBe(2);
@@ -143,7 +143,7 @@ describe("session isolation — cross-session data leakage", () => {
     });
 
     test("update_task cannot modify a task that belongs to a different session", async () => {
-      const { task_id } = await handleCreateTask(db, "session-A", {
+      const { task_id } = await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Session A task",
         assignee: "fe",
@@ -151,7 +151,7 @@ describe("session isolation — cross-session data leakage", () => {
       });
 
       // Attempt to update task from session-B — should not affect the task
-      const result = await handleUpdateTask(db, "session-B", {
+      const result = await handleUpdateTask("session-B", {
         agent_id: "fe",
         task_id: task_id as string,
         status: "done",
@@ -159,7 +159,7 @@ describe("session isolation — cross-session data leakage", () => {
       expect(result.success).toBe(false);
 
       // Verify the task is unchanged in session-A
-      const tasks = await handleGetAllTasks(db, "session-A", { agent_id: "pm" });
+      const tasks = await handleGetAllTasks("session-A", { agent_id: "pm" });
       expect(tasks.tasks[0].status).toBe("todo");
     });
   });
@@ -168,14 +168,14 @@ describe("session isolation — cross-session data leakage", () => {
 
   describe("artifacts", () => {
     test("artifact posted in session-A is not retrievable from session-B", async () => {
-      await handlePostArtifact(db, "session-A", {
+      await handlePostArtifact("session-A", {
         agent_id: "designer",
         name: "shared-name",
         type: "spec",
         content: "Session A content",
       });
 
-      const result = await handleGetArtifact(db, "session-B", {
+      const result = await handleGetArtifact("session-B", {
         agent_id: "fe",
         name: "shared-name",
       });
@@ -184,24 +184,24 @@ describe("session isolation — cross-session data leakage", () => {
     });
 
     test("two sessions can store artifacts with the same name independently", async () => {
-      await handlePostArtifact(db, "session-A", {
+      await handlePostArtifact("session-A", {
         agent_id: "be",
         name: "api-spec",
         type: "openapi",
         content: "Session A spec",
       });
-      await handlePostArtifact(db, "session-B", {
+      await handlePostArtifact("session-B", {
         agent_id: "be",
         name: "api-spec",
         type: "openapi",
         content: "Session B spec",
       });
 
-      const artA = await handleGetArtifact(db, "session-A", {
+      const artA = await handleGetArtifact("session-A", {
         agent_id: "fe",
         name: "api-spec",
       });
-      const artB = await handleGetArtifact(db, "session-B", {
+      const artB = await handleGetArtifact("session-B", {
         agent_id: "fe",
         name: "api-spec",
       });
@@ -214,12 +214,12 @@ describe("session isolation — cross-session data leakage", () => {
 
   describe("reviews", () => {
     test("review submitted in session-A cannot be fetched from session-B", async () => {
-      const { review_id } = await handleRequestReview(db, "session-A", {
+      const { review_id } = await handleRequestReview("session-A", {
         agent_id: "fe",
         artifact_id: "art-1",
         reviewer: "qa",
       });
-      await handleSubmitReview(db, "session-A", {
+      await handleSubmitReview("session-A", {
         agent_id: "qa",
         review_id: review_id as string,
         status: "approved",
@@ -227,7 +227,7 @@ describe("session isolation — cross-session data leakage", () => {
       });
 
       // Submitting the same review_id from session-B should fail (not found)
-      const result = await handleSubmitReview(db, "session-B", {
+      const result = await handleSubmitReview("session-B", {
         agent_id: "qa",
         review_id: review_id as string,
         status: "approved",
@@ -242,7 +242,7 @@ describe("session isolation — cross-session data leakage", () => {
 
   describe("claim_task race condition", () => {
     test("only one agent succeeds when two agents claim the same task simultaneously", async () => {
-      const { task_id } = await handleCreateTask(db, "session-A", {
+      const { task_id } = await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Race condition task",
         priority: "high",
@@ -251,8 +251,8 @@ describe("session isolation — cross-session data leakage", () => {
 
       // Simulate two agents racing to claim the same task
       const [claimFe, claimBe] = await Promise.all([
-        handleClaimTask(db, "session-A", { agent_id: "fe", task_id: task_id as string }),
-        handleClaimTask(db, "session-A", { agent_id: "be", task_id: task_id as string }),
+        handleClaimTask("session-A", { agent_id: "fe", task_id: task_id as string }),
+        handleClaimTask("session-A", { agent_id: "be", task_id: task_id as string }),
       ]);
 
       const successCount = [claimFe.claimed, claimBe.claimed].filter(Boolean).length;
@@ -261,30 +261,30 @@ describe("session isolation — cross-session data leakage", () => {
 
     test("claiming a task in session-A does not affect the same-named task in session-B", async () => {
       // Create tasks with same assignee in two sessions
-      const { task_id: taskIdA } = await handleCreateTask(db, "session-A", {
+      const { task_id: taskIdA } = await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Parallel task",
         assignee: "fe",
         priority: "high",
       });
-      const { task_id: taskIdB } = await handleCreateTask(db, "session-B", {
+      const { task_id: taskIdB } = await handleCreateTask("session-B", {
         agent_id: "pm",
         title: "Parallel task",
         assignee: "fe",
         priority: "high",
       });
 
-      await handleClaimTask(db, "session-A", { agent_id: "fe", task_id: taskIdA as string });
+      await handleClaimTask("session-A", { agent_id: "fe", task_id: taskIdA as string });
 
       // session-B task should still be claimable
-      const claimB = await handleClaimTask(db, "session-B", {
+      const claimB = await handleClaimTask("session-B", {
         agent_id: "fe",
         task_id: taskIdB as string,
       });
       expect(claimB.claimed).toBe(true);
 
       // session-A task should no longer be claimable (already in_progress)
-      const reclaimA = await handleClaimTask(db, "session-A", {
+      const reclaimA = await handleClaimTask("session-A", {
         agent_id: "fe",
         task_id: taskIdA as string,
       });

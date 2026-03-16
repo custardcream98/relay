@@ -12,7 +12,7 @@ describe("artifact queries", () => {
   afterEach(() => db.close());
 
   test("store artifact and retrieve by name", () => {
-    insertArtifact(db, {
+    insertArtifact({
       id: "art-1",
       session_id: "sess-1",
       name: "login-design",
@@ -21,7 +21,7 @@ describe("artifact queries", () => {
       created_by: "designer",
       task_id: "task-1",
     });
-    const art = getArtifactByName(db, "sess-1", "login-design");
+    const art = getArtifactByName("sess-1", "login-design");
     expect(art?.type).toBe("figma_spec");
   });
 });

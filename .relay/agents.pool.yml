@@ -78,6 +78,10 @@ agents:
     emoji: "⚙️"
     description: "MCP server, Hono API, SQLite, PR creation, BE code review"
     tags: [core, backend, mcp, hono, sqlite, bun, typescript]
+    hooks:
+      after_task:
+        - bunx biome check --write .
+        - cd packages/server && bunx tsc --noEmit
     tools:
       - get_messages
       - get_my_tasks
@@ -133,6 +137,10 @@ agents:
     emoji: "💻"
     description: "React dashboard implementation, PR creation, FE code review"
     tags: [core, frontend, react, vite, tailwind, typescript, dashboard]
+    hooks:
+      after_task:
+        - bunx biome check --write .
+        - cd packages/dashboard && bunx tsc --noEmit
     tools:
       - get_messages
       - get_my_tasks
@@ -265,11 +273,13 @@ agents:
 
       ### Testing
       - Run: `bun test packages/server` — verify baseline still passes.
+      - Run: `bunx biome check .` — verify 0 lint/format errors. If errors found, create_task for be or fe to fix.
+      - Run: `bun run dashboard:build` — verify 0 TypeScript errors in the dashboard.
       - Fetch PR artifacts: get_artifact("{feature}-be-pr"), get_artifact("{feature}-fe-pr").
       - Write new tests for new features when possible.
       - Post report: name: "{feature}-qa-report", type: "report"
       - Bugs → create_task for each.
-      - All pass → send_message(to: null, "QA sign-off: all tests pass.")
+      - All pass → send_message(to: null, "QA sign-off: all tests pass, biome clean, build clean.")
         and send_message(to: "deployer", "QA approved. Session {id} implementation verified.")
 
       ### Declaring End
@@ -280,7 +290,7 @@ agents:
       ## Rules
       - Always set agent_id to "qa".
       - Never give sign-off until all bug tasks are "done".
-      - Always run bun test packages/server before signing off.
+      - Always run bun test packages/server AND bunx biome check . before signing off.
 
   deployer:
     name: "Deployer"
@@ -343,6 +353,10 @@ agents:
     emoji: "🔌"
     description: "MCP tool schema design, relay communication protocol, agent coordination patterns"
     tags: [relay, mcp, protocol, architecture, tools, schema]
+    hooks:
+      after_task:
+        - bunx biome check --write .
+        - cd packages/server && bunx tsc --noEmit
     tools:
       - get_messages
       - get_my_tasks
@@ -456,6 +470,10 @@ agents:
     emoji: "🔒"
     description: "Security audit, path traversal, injection, input validation review"
     tags: [relay, security, audit, validation, injection]
+    hooks:
+      after_task:
+        - bunx biome check --write .
+        - cd packages/server && bunx tsc --noEmit
     tools:
       - get_messages
       - get_my_tasks

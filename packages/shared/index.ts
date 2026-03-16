@@ -1,6 +1,9 @@
 // packages/shared/index.ts
 type Brand<T, B> = T & { __brand: B };
 
+export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
+export type TaskPriority = "critical" | "high" | "medium" | "low";
+
 // AgentId is a branded string — cast from raw YAML keys at the loader boundary
 export type AgentId = Brand<string, "AgentId">;
 export const markAsAgentId = (id: string): AgentId => id as AgentId;
@@ -41,8 +44,8 @@ export type RelayEvent =
         id: string;
         title: string;
         assignee: string | null;
-        status: string;
-        priority: string;
+        status: TaskStatus;
+        priority: TaskPriority;
         description: string | null;
         /** IDs of tasks that must be done before this task can start */
         depends_on?: string[];
@@ -85,8 +88,8 @@ export type RelayEvent =
         id: string;
         title: string;
         assignee: string | null;
-        status: string;
-        priority: string;
+        status: TaskStatus;
+        priority: TaskPriority;
         description: string | null;
         // Unix seconds — present in DB snapshot responses
         created_at?: number;

@@ -85,15 +85,34 @@ export interface SessionRow {
 // These caps bound memory growth for long-running or adversarial sessions.
 export const MAX_MESSAGES_PER_SESSION = 10_000;
 export const MAX_TASKS_PER_SESSION = 1_000;
+export const MAX_ARTIFACTS_PER_SESSION = 500;
+export const MAX_REVIEWS_PER_SESSION = 500;
+// Events are written on every MCP tool call — allow a higher cap than other collections.
+export const MAX_EVENTS_PER_SESSION = 100_000;
 
 // --- Collections ---
 
 let messages: MessageRow[] = [];
 let messageSeq = 0; // Monotonically increasing sequence number for reliable since-cursor pagination
+// Per-session message count cache — avoids O(n) full-scan on every insertMessage call.
+// Kept in sync with the messages array: incremented on insert, reset entirely by _resetStore().
+const messageCountBySession = new Map<string, number>();
+
 let tasks: TaskRow[] = [];
+// Per-session task count cache — avoids O(n) full-scan on every insertTask call.
+const taskCountBySession = new Map<string, number>();
+
 let artifacts: ArtifactRow[] = [];
+// Per-session artifact count cache — avoids O(n) full-scan on every insertArtifact call.
+const artifactCountBySession = new Map<string, number>();
+
 let reviews: ReviewRow[] = [];
+// Per-session review count cache — avoids O(n) full-scan on every insertReview call.
+const reviewCountBySession = new Map<string, number>();
+
 let events: EventRow[] = [];
+// Per-session event count cache — avoids O(n) full-scan on every insertEvent call.
+const eventCountBySession = new Map<string, number>();
 
 function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
@@ -106,13 +125,15 @@ export function insertMessage(msg: Omit<MessageRow, "created_at" | "seq">): {
   seq: number;
   created_at: number;
 } {
-  const sessionCount = messages.filter((m) => m.session_id === msg.session_id).length;
+  // Use the cached counter to avoid an O(n) full-scan on every insert.
+  const sessionCount = messageCountBySession.get(msg.session_id) ?? 0;
   if (sessionCount >= MAX_MESSAGES_PER_SESSION) {
     throw new Error(`session message limit reached (max ${MAX_MESSAGES_PER_SESSION} per session)`);
   }
   const seq = ++messageSeq;
   const created_at = nowSeconds();
   messages.push({ ...msg, metadata: msg.metadata ?? null, created_at, seq });
+  messageCountBySession.set(msg.session_id, sessionCount + 1);
   return { seq, created_at };
 }
 
@@ -136,12 +157,14 @@ export function getAllMessages(sessionId: string): MessageRow[] {
 // --- Tasks ---
 
 export function insertTask(task: Omit<TaskRow, "created_at" | "updated_at">): void {
-  const sessionCount = tasks.filter((t) => t.session_id === task.session_id).length;
+  // Use the cached counter to avoid an O(n) full-scan on every insert.
+  const sessionCount = taskCountBySession.get(task.session_id) ?? 0;
   if (sessionCount >= MAX_TASKS_PER_SESSION) {
     throw new Error(`session task limit reached (max ${MAX_TASKS_PER_SESSION} per session)`);
   }
   const ts = nowSeconds();
   tasks.push({ ...task, depends_on: task.depends_on ?? [], created_at: ts, updated_at: ts });
+  taskCountBySession.set(task.session_id, sessionCount + 1);
 }
 
 export function updateTask(
@@ -203,7 +226,18 @@ export function getTeamStatus(sessionId: string): TeamStatusRow {
 // --- Artifacts ---
 
 export function insertArtifact(artifact: Omit<ArtifactRow, "created_at">): void {
+  const sessionCount = artifactCountBySession.get(artifact.session_id) ?? 0;
+  if (sessionCount >= MAX_ARTIFACTS_PER_SESSION) {
+    throw new Error(
+      `session artifact limit reached (max ${MAX_ARTIFACTS_PER_SESSION} per session)`
+    );
+  }
   artifacts.push({ ...artifact, created_at: nowSeconds() });
+  artifactCountBySession.set(artifact.session_id, sessionCount + 1);
+}
+
+export function getArtifactById(id: string, sessionId: string): ArtifactRow | null {
+  return artifacts.find((a) => a.id === id && a.session_id === sessionId) ?? null;
 }
 
 export function getArtifactByName(sessionId: string, name: string): ArtifactRow | null {
@@ -225,8 +259,13 @@ export function getAllArtifacts(sessionId: string): ArtifactRow[] {
 // --- Reviews ---
 
 export function insertReview(review: Omit<ReviewRow, "created_at" | "updated_at">): void {
+  const sessionCount = reviewCountBySession.get(review.session_id) ?? 0;
+  if (sessionCount >= MAX_REVIEWS_PER_SESSION) {
+    throw new Error(`session review limit reached (max ${MAX_REVIEWS_PER_SESSION} per session)`);
+  }
   const ts = nowSeconds();
   reviews.push({ ...review, created_at: ts, updated_at: ts });
+  reviewCountBySession.set(review.session_id, sessionCount + 1);
 }
 
 export function updateReviewStatus(
@@ -260,6 +299,12 @@ export function insertEvent(
   agentId: string | null,
   timestampMs: number
 ): void {
+  const sessionCount = eventCountBySession.get(sessionId) ?? 0;
+  if (sessionCount >= MAX_EVENTS_PER_SESSION) {
+    // Silently drop events beyond the cap — events are best-effort telemetry.
+    // Throwing here would break every MCP tool call, which is too disruptive.
+    return;
+  }
   events.push({
     id: crypto.randomUUID(),
     session_id: sessionId,
@@ -268,6 +313,7 @@ export function insertEvent(
     payload: eventPayload,
     created_at: Math.floor(timestampMs / 1000),
   });
+  eventCountBySession.set(sessionId, sessionCount + 1);
 }
 
 export function getEventsBySession(sessionId: string): string[] {
@@ -302,8 +348,13 @@ export function getAllSessions(limit = 20): SessionRow[] {
 export function _resetStore(): void {
   messages = [];
   messageSeq = 0;
+  messageCountBySession.clear();
   tasks = [];
+  taskCountBySession.clear();
   artifacts = [];
+  artifactCountBySession.clear();
   reviews = [];
+  reviewCountBySession.clear();
   events = [];
+  eventCountBySession.clear();
 }

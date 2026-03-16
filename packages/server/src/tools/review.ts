@@ -1,4 +1,4 @@
-import { getReviewById, insertReview, updateReviewStatus } from "../store";
+import { getArtifactById, getReviewById, insertReview, updateReviewStatus } from "../store";
 
 export function handleRequestReview(
   sessionId: string,
@@ -9,6 +9,11 @@ export function handleRequestReview(
   }
 ) {
   try {
+    // Verify the artifact exists in this session before creating a review record.
+    // This prevents dangling reviews that reference non-existent artifacts.
+    if (!getArtifactById(input.artifact_id, sessionId)) {
+      return { success: false, error: "artifact not found" };
+    }
     const id = crypto.randomUUID();
     insertReview({
       id,

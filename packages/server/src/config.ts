@@ -121,6 +121,11 @@ export function getSessionId(): string {
  * to store data under distinct session IDs.
  */
 export function setSessionId(id: string): void {
+  // Defense-in-depth: validate even though the start_session MCP tool already validates via Zod.
+  // Prevents unexpected values from slipping in during tests or direct programmatic calls.
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+    throw new Error(`setSessionId: invalid session ID format: "${id}"`);
+  }
   _sessionId = id;
 }
 

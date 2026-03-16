@@ -107,8 +107,10 @@ export async function handleWriteMemory(
       newContent = `${merged.trimEnd()}\n`;
     }
 
-    // Write atomically: write to a temp file then rename to avoid partial-write corruption
-    const tmpPath = `${path}.tmp`;
+    // Write atomically: write to a uniquely-named temp file then rename.
+    // Using a random suffix prevents concurrent write_memory calls for the same agent
+    // from overwriting each other's temp file before the rename completes.
+    const tmpPath = `${path}.${crypto.randomUUID()}.tmp`;
     await writeFile(tmpPath, newContent);
     try {
       await rename(tmpPath, path);

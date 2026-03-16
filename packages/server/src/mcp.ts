@@ -42,8 +42,16 @@ export async function startMcpServer(server: McpServer): Promise<void> {
     const { roots } = await server.server.listRoots();
     if (roots.length > 0) {
       const projectRoot = uriToPath(roots[0].uri);
-      setProjectRoot(projectRoot);
-      console.error(`[relay] project root: ${projectRoot}`);
+      // Guard against an empty URI — setProjectRoot("") would make getProjectRoot() return
+      // an empty string, breaking all path joins that depend on it.
+      if (projectRoot) {
+        setProjectRoot(projectRoot);
+        console.error(`[relay] project root: ${projectRoot}`);
+      } else {
+        console.error(
+          "[relay] roots/list returned an empty URI — falling back to RELAY_PROJECT_ROOT or cwd"
+        );
+      }
     } else {
       console.error(
         "[relay] roots/list returned empty — falling back to RELAY_PROJECT_ROOT or cwd"

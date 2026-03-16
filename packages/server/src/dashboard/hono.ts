@@ -184,6 +184,12 @@ app.post("/api/hook/tool-use", async (c) => {
     return c.json({ error: "forbidden" }, 403);
   }
 
+  // Reject oversized payloads — hook bodies only need agent_id, tool_name; 64 KB is generous.
+  const contentLength = Number(c.req.header("content-length") ?? 0);
+  if (contentLength > 65_536) {
+    return c.json({ error: "payload too large" }, 413);
+  }
+
   // Claude Code delivers a payload via stdin with the structure:
   // { tool_name: "mcp__relay__send_message", tool_input: { agent_id: "pm", ... }, ... }
   let body: { tool_input?: { agent_id?: string } };

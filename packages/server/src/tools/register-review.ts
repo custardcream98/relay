@@ -17,6 +17,7 @@ export function registerReviewTools(server: McpServer): void {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the agent requesting the review (the author)."),
       artifact_id: z
         .string()
+        .max(128)
         .describe(
           "ID of the artifact to be reviewed. Obtain from post_artifact response (artifact_id field)."
         ),
@@ -54,7 +55,7 @@ export function registerReviewTools(server: McpServer): void {
       agent_id: AGENT_ID_SCHEMA.describe(
         "ID of the reviewing agent. Must match the reviewer field set in request_review, otherwise returns permission denied."
       ),
-      review_id: z.string().describe("Review ID returned by request_review."),
+      review_id: z.string().max(128).describe("Review ID returned by request_review."),
       status: z
         .enum(["approved", "changes_requested"])
         .describe(

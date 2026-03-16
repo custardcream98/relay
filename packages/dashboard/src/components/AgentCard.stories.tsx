@@ -23,7 +23,7 @@ const meta = {
     lastActivityTs: null,
     inProgressCount: 0,
     isSelected: false,
-    onClick: () => {},
+    onSelectAgent: () => {},
   },
 } satisfies Meta<typeof AgentCard>;
 
@@ -120,7 +120,7 @@ export const AllAgents: Story = {
           lastActivityTs={null}
           inProgressCount={0}
           isSelected={false}
-          onClick={() => {}}
+          onSelectAgent={() => {}}
         />
       ))}
     </div>

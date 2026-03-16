@@ -2,7 +2,7 @@
 // Agent detail panel that replaces TaskBoard in Focus Mode
 // Tabs: Thoughts | Messages | Tasks
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_AGENT_ACCENT, getAgentAccent } from "../constants/agents";
 import { cn } from "../lib/cn";
 import type { AgentId, Message, Task } from "../types";
@@ -35,15 +35,22 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
   const [activeTab, setActiveTab] = useState<Tab>("thoughts");
   const accentColor = getAgentAccent(agentId);
 
-  // Filter messages and tasks for this agent
-  const agentMessages = messages.filter((m) => m.from_agent === agentId || m.to_agent === agentId);
-  const agentTasks = tasks.filter((t) => t.assignee === agentId);
+  // Memoized filters — avoids creating new arrays on every render (e.g. thinkingChunk updates)
+  const agentMessages = useMemo(
+    () => messages.filter((m) => m.from_agent === agentId || m.to_agent === agentId),
+    [messages, agentId]
+  );
+  const agentTasks = useMemo(() => tasks.filter((t) => t.assignee === agentId), [tasks, agentId]);
 
-  const TABS: { id: Tab; label: string; count?: number }[] = [
-    { id: "thoughts", label: "Thoughts" },
-    { id: "messages", label: "Messages", count: agentMessages.length },
-    { id: "tasks", label: "Tasks", count: agentTasks.length },
-  ];
+  // Stable tab definitions — only recalculate when counts change
+  const TABS = useMemo<{ id: Tab; label: string; count?: number }[]>(
+    () => [
+      { id: "thoughts", label: "Thoughts" },
+      { id: "messages", label: "Messages", count: agentMessages.length },
+      { id: "tasks", label: "Tasks", count: agentTasks.length },
+    ],
+    [agentMessages.length, agentTasks.length]
+  );
 
   return (
     <div className="flex flex-col h-full bg-[var(--color-surface-inset)]">

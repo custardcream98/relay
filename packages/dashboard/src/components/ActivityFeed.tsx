@@ -38,17 +38,26 @@ const FILTER_DEFS: FilterDef[] = [
   { type: "review:requested", label: "Review req.", icon: "🔍", defaultOn: true },
   { type: "review:updated", label: "Review result", icon: "✔", defaultOn: true },
   { type: "agent:status", label: "Status", icon: "⚡", defaultOn: false },
+  { type: "agent:joined", label: "Joined", icon: "👋", defaultOn: false },
   { type: "memory:updated", label: "Memory", icon: "💾", defaultOn: false },
 ];
 
 const FILTER_STORAGE_KEY = "relay-activity-filters";
+
+const VALID_FILTER_TYPES = new Set<string>(FILTER_DEFS.map((f) => f.type));
 
 function buildDefaultFilters(): Set<FilterableType> {
   try {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY);
     if (stored) {
       const parsed: unknown = JSON.parse(stored);
-      if (Array.isArray(parsed)) return new Set(parsed as FilterableType[]);
+      if (Array.isArray(parsed)) {
+        // Validate each element against known filter types to prevent stale/corrupted values
+        const valid = parsed.filter(
+          (item): item is FilterableType => typeof item === "string" && VALID_FILTER_TYPES.has(item)
+        );
+        if (valid.length > 0) return new Set(valid);
+      }
     }
   } catch {
     // Ignore storage errors
@@ -397,6 +406,7 @@ function EntryRenderer({ entry }: { entry: TimelineEntry }) {
       return <ReviewUpdatedEntry entry={entry} />;
     case "agent:status":
     case "memory:updated":
+    case "agent:joined":
       return <SystemEntry entry={entry} />;
     case "agent:thinking":
       // Thinking entries in the timeline are stale (replaced by thinkingChunks in real-time)
@@ -438,7 +448,9 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
     () =>
       entries.filter((e) => {
         if (focusAgent && e.agentId !== focusAgent) return false;
-        if (e.type === "agent:thinking") return false; // shown via thinkingChunks instead
+        // agent:thinking historical entries are only shown when the filter is explicitly ON.
+        // Live thinking is always rendered via thinkingChunks below (not from entries),
+        // so the toggle consistently controls both historical and live display.
         return activeFilters.has(e.type);
       }),
     [entries, focusAgent, activeFilters]

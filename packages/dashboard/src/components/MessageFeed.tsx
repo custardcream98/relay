@@ -26,7 +26,7 @@ const COLLAPSE_THRESHOLD = 3;
 
 // Copy-to-clipboard button — shown on message hover
 function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -38,32 +38,48 @@ function CopyButton({ text }: { text: string }) {
   const handleCopy = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        if (timerRef.current !== null) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          setCopied(false);
-          timerRef.current = null;
-        }, 1500);
-      });
+      navigator.clipboard.writeText(text).then(
+        () => {
+          setCopyState("copied");
+          if (timerRef.current !== null) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => {
+            setCopyState("idle");
+            timerRef.current = null;
+          }, 1500);
+        },
+        () => {
+          // Clipboard access denied (HTTP context, permissions, or focus loss)
+          setCopyState("error");
+          if (timerRef.current !== null) clearTimeout(timerRef.current);
+          timerRef.current = setTimeout(() => {
+            setCopyState("idle");
+            timerRef.current = null;
+          }, 1500);
+        }
+      );
     },
     [text]
   );
+
+  const label =
+    copyState === "copied" ? "Copied!" : copyState === "error" ? "Failed" : "Copy message";
 
   return (
     <button
       type="button"
       onClick={handleCopy}
-      title={copied ? "Copied!" : "Copy message"}
-      aria-label={copied ? "Copied!" : "Copy message"}
+      title={label}
+      aria-label={label}
       className={cn(
         "flex items-center justify-center w-[22px] h-[22px] rounded p-0 border-none cursor-pointer shrink-0 text-[11px] transition-[background,color] duration-100",
-        copied
+        copyState === "copied"
           ? "bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)]"
-          : "bg-transparent text-[var(--color-text-disabled)] hover:bg-[var(--color-surface-overlay)] hover:text-[var(--color-text-secondary)]"
+          : copyState === "error"
+            ? "bg-[var(--color-surface-overlay)] text-[var(--color-connection-dead)]"
+            : "bg-transparent text-[var(--color-text-disabled)] hover:bg-[var(--color-surface-overlay)] hover:text-[var(--color-text-secondary)]"
       )}
     >
-      {copied ? "✓" : "⎘"}
+      {copyState === "copied" ? "✓" : copyState === "error" ? "✗" : "⎘"}
     </button>
   );
 }
@@ -215,6 +231,7 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
+  const prevMessageLengthRef = useRef(messages.length);
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -256,13 +273,19 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
   }, [filtered]);
 
   // Auto-scroll to bottom on new messages, unless user scrolled up
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on message count change
   useEffect(() => {
+    const delta = messages.length - prevMessageLengthRef.current;
+    prevMessageLengthRef.current = messages.length;
+    // delta <= 0 means messages were cleared (server switch / new session) — reset badge
+    if (delta <= 0) {
+      setUnreadCount(0);
+      return;
+    }
     if (!isUserScrollingRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       setUnreadCount(0);
     } else {
-      setUnreadCount((prev) => prev + 1);
+      setUnreadCount((prev) => prev + delta);
     }
   }, [messages.length]);
 

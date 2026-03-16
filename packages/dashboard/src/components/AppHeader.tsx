@@ -20,7 +20,8 @@ export function AppHeader() {
   const { agents } = useAgents();
   const { theme, toggleTheme } = useTheme();
 
-  const portLabel = instancePort ?? window.location.port ?? "3456";
+  // window.location.port is "" (empty string) on default ports 80/443 — use || not ??
+  const portLabel = instancePort || window.location.port || "3456";
   const instanceLabel = instanceId
     ? `relay (${instanceId}) @ :${portLabel}`
     : `relay @ :${portLabel}`;

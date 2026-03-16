@@ -2,7 +2,7 @@
 // Top-right activity area: tab-switched panel — Activity feed or Message feed.
 // Data is sourced from SessionContext; sizing state comes from PanelResizeContext.
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
 import { cn } from "../../lib/cn";
@@ -15,6 +15,8 @@ export function ActivityPanel() {
   const { timelinePct, taskBoardCollapsed } = usePanelLayout();
   const { timeline, messages, selectedAgent, thinkingChunks, agentStatuses } = useSession();
   const [activeTab, setActiveTab] = useState<PanelTab>("activity");
+
+  const handleTabClick = useCallback((id: PanelTab) => setActiveTab(id), []);
 
   return (
     <div
@@ -34,7 +36,7 @@ export function ActivityPanel() {
           <button
             key={tab.id}
             type="button"
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabClick(tab.id)}
             className={cn(
               "flex items-center gap-[5px] px-[9px] py-[3px] rounded text-[11px] font-medium cursor-pointer border-none transition-[background,color] duration-100 uppercase tracking-[0.06em]",
               activeTab === tab.id

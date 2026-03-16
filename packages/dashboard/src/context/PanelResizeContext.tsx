@@ -22,11 +22,44 @@ interface PanelResizeContextValue {
 const PanelResizeContext = createContext<PanelResizeContextValue | null>(null);
 
 export function PanelResizeProvider({ children }: { children: React.ReactNode }) {
-  const resize = usePanelResize();
-  const collapse = usePanelCollapse();
+  const {
+    arenaWidth,
+    isDraggingArena,
+    timelinePct,
+    activityRef,
+    onHDividerMouseDown,
+    onVDividerMouseDown,
+  } = usePanelResize();
+  const { arenaCollapsed, taskBoardCollapsed, onToggleCollapse, onToggleTaskBoard } =
+    usePanelCollapse();
+
+  // Spread individual primitives and stable callbacks as deps — avoids always-recomputing
+  // useMemo when object references returned by hooks change every render.
   const value = useMemo<PanelResizeContextValue>(
-    () => ({ ...resize, ...collapse }),
-    [resize, collapse]
+    () => ({
+      arenaWidth,
+      isDraggingArena,
+      timelinePct,
+      activityRef,
+      onHDividerMouseDown,
+      onVDividerMouseDown,
+      arenaCollapsed,
+      taskBoardCollapsed,
+      onToggleCollapse,
+      onToggleTaskBoard,
+    }),
+    [
+      arenaWidth,
+      isDraggingArena,
+      timelinePct,
+      activityRef,
+      onHDividerMouseDown,
+      onVDividerMouseDown,
+      arenaCollapsed,
+      taskBoardCollapsed,
+      onToggleCollapse,
+      onToggleTaskBoard,
+    ]
   );
   return <PanelResizeContext.Provider value={value}>{children}</PanelResizeContext.Provider>;
 }

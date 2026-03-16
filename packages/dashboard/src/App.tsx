@@ -121,6 +121,14 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
         description: "Memory updated",
         timestamp: event.timestamp,
       };
+    case "agent:joined":
+      return {
+        id,
+        type: event.type,
+        agentId: event.agentId,
+        description: "joined session",
+        timestamp: event.timestamp,
+      };
     default:
       return null;
   }
@@ -273,6 +281,17 @@ function reducer(state: DashboardState, action: Action): DashboardState {
         case "review:updated":
           // Timeline entry is already added via eventToTimelineEntry — no state mutation needed beyond that
           return { ...state, ...baseUpdates };
+        case "agent:joined": {
+          // Add the newly-joined agent to sessionTeam if not already present
+          const alreadyInTeam = state.sessionTeam.some((a) => a.id === event.agentId);
+          return {
+            ...state,
+            ...baseUpdates,
+            sessionTeam: alreadyInTeam
+              ? state.sessionTeam
+              : [...state.sessionTeam, { id: event.agentId, name: event.agentId, emoji: "🤖" }],
+          };
+        }
         case "session:started":
           // A new relay session started — clear all live state so the dashboard shows a fresh run
           return {

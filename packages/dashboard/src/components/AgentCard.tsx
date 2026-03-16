@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/AgentCard.tsx
 // Agent card — avatar, status badge, activity preview, task count
 
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { getAgentAccent } from "../constants/agents";
 import { cn } from "../lib/cn";
 import type { AgentId } from "../types";
@@ -20,7 +20,7 @@ interface Props {
   lastActivityTs: number | null;
   inProgressCount: number;
   isSelected: boolean;
-  onClick: () => void;
+  onSelectAgent: (id: AgentId | null) => void;
 }
 
 // Status badge colors — hex so we can append alpha suffix (e.g. ${COLOR}18)
@@ -42,8 +42,19 @@ export const AgentCard = memo(function AgentCard({
   lastActivityTs,
   inProgressCount,
   isSelected,
-  onClick,
+  onSelectAgent,
 }: Props) {
+  // Stable handlers: toggle selection on click/Enter — no new function created on parent re-renders
+  const onClick = useCallback(() => {
+    onSelectAgent(isSelected ? null : id);
+  }, [onSelectAgent, isSelected, id]);
+
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") onClick();
+    },
+    [onClick]
+  );
   const accentColor = getAgentAccent(id);
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
@@ -112,7 +123,7 @@ export const AgentCard = memo(function AgentCard({
       tabIndex={0}
       aria-pressed={isSelected}
       onClick={onClick}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
+      onKeyDown={onKeyDown}
       className={cn(
         "relative flex flex-row items-start gap-3 p-3 mb-1 rounded-lg cursor-pointer",
         "transition-[background,border-color,box-shadow] duration-[120ms] outline-none",

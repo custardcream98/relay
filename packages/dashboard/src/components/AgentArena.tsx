@@ -129,7 +129,7 @@ export function AgentArena({
             lastActivityTs={agentData.lastActivityTsByAgent[agent.id] ?? null}
             inProgressCount={agentData.inProgressByAgent[agent.id] ?? 0}
             isSelected={selectedAgent === agent.id}
-            onClick={() => onSelectAgent(selectedAgent === agent.id ? null : agent.id)}
+            onSelectAgent={onSelectAgent}
           />
         ))}
       </div>

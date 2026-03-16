@@ -38,12 +38,14 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
     };
   }, [open]);
 
-  // Fetch sessions when the dropdown opens
+  // Fetch sessions when the dropdown opens.
+  // AbortController prevents setState on unmounted component if fetch is in-flight.
   useEffect(() => {
     if (!open) return;
+    const controller = new AbortController();
     setLoading(true);
     const base = serverUrl.replace(/\/$/, "");
-    fetch(`${base}/api/sessions`)
+    fetch(`${base}/api/sessions`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<{ success: boolean; sessions: string[] }>;
@@ -51,8 +53,12 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
       .then((data) => {
         setSessions(data.sessions ?? []);
       })
-      .catch(() => setSessions([]))
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
+        setSessions([]);
+      })
       .finally(() => setLoading(false));
+    return () => controller.abort();
   }, [open, serverUrl]);
 
   if (!sessionId) return null;

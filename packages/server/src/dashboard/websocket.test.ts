@@ -18,6 +18,9 @@ function makeWsStub(broken = false): { send: (d: string) => void; sent: string[]
   };
 }
 
+// Maximum concurrent WebSocket connection cap (mirrors the constant in websocket.ts)
+const MAX_WS_CLIENTS = 50;
+
 describe("websocket broadcast", () => {
   // Save the original value so we always restore it even if a test throws before afterEach
   let savedSessionId: string | undefined;
@@ -147,5 +150,82 @@ describe("websocket broadcast", () => {
     removeClient(healthy as never);
     // broken client was auto-removed by broadcast, but removeClient is idempotent
     removeClient(broken as never);
+  });
+
+  describe("addClient 50-connection cap", () => {
+    test("49th client is accepted (below cap)", () => {
+      const clients = [];
+      // Add 48 clients first
+      for (let i = 0; i < 48; i++) {
+        const ws = makeWsStub();
+        clients.push(ws);
+        addClient(ws as never);
+      }
+      // 49th client — must be accepted
+      const ws49 = makeWsStub();
+      clients.push(ws49);
+      const accepted = addClient(ws49 as never);
+      expect(accepted).toBe(true);
+
+      // Clean up
+      for (const ws of clients) removeClient(ws as never);
+    });
+
+    test("50th client is accepted (at cap boundary)", () => {
+      const clients = [];
+      // Add 49 clients
+      for (let i = 0; i < 49; i++) {
+        const ws = makeWsStub();
+        clients.push(ws);
+        addClient(ws as never);
+      }
+      // 50th client — exactly at cap, must still be accepted (size < MAX after add)
+      const ws50 = makeWsStub();
+      clients.push(ws50);
+      const accepted = addClient(ws50 as never);
+      expect(accepted).toBe(true);
+
+      // Clean up
+      for (const ws of clients) removeClient(ws as never);
+    });
+
+    test("51st client is rejected (over cap)", () => {
+      const clients = [];
+      // Fill up to MAX_WS_CLIENTS (50)
+      for (let i = 0; i < MAX_WS_CLIENTS; i++) {
+        const ws = makeWsStub();
+        clients.push(ws);
+        addClient(ws as never);
+      }
+      // 51st client must be rejected
+      const wsOver = makeWsStub();
+      const accepted = addClient(wsOver as never);
+      expect(accepted).toBe(false);
+
+      // Clean up
+      for (const ws of clients) removeClient(ws as never);
+    });
+
+    test("after removing a client, the cap slot is freed and a new client is accepted", () => {
+      const clients = [];
+      // Fill up to MAX_WS_CLIENTS
+      for (let i = 0; i < MAX_WS_CLIENTS; i++) {
+        const ws = makeWsStub();
+        clients.push(ws);
+        addClient(ws as never);
+      }
+      // Remove one client to free a slot
+      const removed = clients.pop();
+      if (removed) removeClient(removed as never);
+
+      // A new client should now be accepted
+      const wsNew = makeWsStub();
+      const accepted = addClient(wsNew as never);
+      expect(accepted).toBe(true);
+
+      // Clean up
+      for (const ws of clients) removeClient(ws as never);
+      removeClient(wsNew as never);
+    });
   });
 });

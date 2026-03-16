@@ -96,6 +96,48 @@ describe("review tool", () => {
     expect(result.success).toBe(true);
     expect(result.review?.status).toBe("approved");
   });
+
+  // Multiple reviewers may each request a review for the same artifact.
+  // Each request_review call creates an independent review record with its own review_id.
+  // This is intentional: peer review flows allow parallel reviewers.
+  test("request_review: multiple reviewers for the same artifact each get independent review IDs", async () => {
+    const { review_id: rid1 } = await handleRequestReview("sess-1", {
+      agent_id: "fe",
+      artifact_id: "art-shared",
+      reviewer: "qa",
+    });
+    const { review_id: rid2 } = await handleRequestReview("sess-1", {
+      agent_id: "fe",
+      artifact_id: "art-shared",
+      reviewer: "be",
+    });
+    expect(rid1).toBeDefined();
+    expect(rid2).toBeDefined();
+    expect(rid1).not.toBe(rid2);
+  });
+
+  // submit_review is idempotent in the error direction: calling it again after a
+  // successful submission returns an error rather than silently overwriting the decision.
+  test("submit_review: re-submitting an already-submitted review returns an error", async () => {
+    const { review_id } = await handleRequestReview("sess-1", {
+      agent_id: "fe",
+      artifact_id: "art-5",
+      reviewer: "qa",
+    });
+    await handleSubmitReview("sess-1", {
+      agent_id: "qa",
+      review_id: review_id as string,
+      status: "approved",
+    });
+    const resubmit = await handleSubmitReview("sess-1", {
+      agent_id: "qa",
+      review_id: review_id as string,
+      status: "changes_requested",
+      comments: "Changed my mind.",
+    });
+    expect(resubmit.success).toBe(false);
+    expect((resubmit as { success: false; error: string }).error).toContain("already submitted");
+  });
 });
 
 // Verifies that the mcp.ts submit_review tool handler broadcasts the correct

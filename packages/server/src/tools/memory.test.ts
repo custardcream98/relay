@@ -190,6 +190,18 @@ describe("memory tool", () => {
     expect((result as { success: false; error: string }).error).toContain("invalid key format");
   });
 
+  test("write_memory: rejects key starting with '#'", async () => {
+    // A '#'-prefixed key would render as a bare Markdown heading above the section header,
+    // corrupting the file structure. isValidMemoryKey must block it.
+    const result = await handleWriteMemory(TEST_DIR, {
+      agent_id: "fe",
+      key: "# injected heading",
+      content: "malicious",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("invalid key format");
+  });
+
   // --- write_memory without agent_id writes to project.md ---
 
   test("write_memory: writes to project.md when agent_id is omitted", async () => {

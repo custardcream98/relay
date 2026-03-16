@@ -475,4 +475,118 @@ describe("tasks tool", () => {
       expect((result as { error: string }).error).toContain("No valid fields");
     });
   });
+
+  describe("update_task ownership checks", () => {
+    test("non-assignee non-creator is denied permission", async () => {
+      // pm creates task assigned to fe; qa attempts to update
+      const { task_id } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "assigned task",
+        assignee: "fe",
+        priority: "medium",
+      });
+      const result = await handleUpdateTask("sess-1", {
+        agent_id: "qa",
+        task_id: task_id as string,
+        status: "in_progress",
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("permission denied");
+    });
+
+    test("creator can update a task assigned to someone else", async () => {
+      // pm creates task assigned to fe; pm (creator) updates it
+      const { task_id } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "assigned task",
+        assignee: "fe",
+        priority: "medium",
+      });
+      const result = await handleUpdateTask("sess-1", {
+        agent_id: "pm",
+        task_id: task_id as string,
+        status: "in_review",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("unassigned task can be updated by any agent", async () => {
+      // pm creates unassigned task; qa updates it
+      const { task_id } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "unassigned task",
+        priority: "low",
+      });
+      const result = await handleUpdateTask("sess-1", {
+        agent_id: "qa",
+        task_id: task_id as string,
+        status: "in_progress",
+      });
+      expect(result.success).toBe(true);
+    });
+
+    test("assignee can update their own task", async () => {
+      const { task_id } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "fe task",
+        assignee: "fe",
+        priority: "high",
+      });
+      const result = await handleUpdateTask("sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+        status: "in_progress",
+      });
+      expect(result.success).toBe(true);
+    });
+  });
+
+  describe("handleClaimTask TOCTOU re-check after hook", () => {
+    // The re-check path (reason: "re-check after hook") cannot be exercised in a synchronous
+    // unit test because any reverted dependency is caught by the FIRST depends_on check before
+    // the hook ever runs. Testing true TOCTOU would require injecting a store mutation inside
+    // the hook process, which is not possible with a simple echo command.
+    //
+    // This test verifies the observable invariant: when a dependency is NOT done at call time,
+    // claim is blocked regardless of whether a hook is configured. The first check is the
+    // safety net that prevents the hook from running when deps are unmet.
+    test("claim is blocked when dependency is not done before hook runs", async () => {
+      // Create a dependency task and mark it done
+      const { task_id: depId } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "dep task",
+        assignee: "be",
+        priority: "high",
+      });
+      await handleUpdateTask("sess-1", {
+        agent_id: "be",
+        task_id: depId as string,
+        status: "done",
+      });
+      // Create the dependent task
+      const { task_id } = await handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "dependent task",
+        assignee: "fe",
+        priority: "medium",
+        depends_on: [depId as string],
+      });
+      // Revert the dependency back to in_review before calling claimTask.
+      // The first depends_on check will catch this and block the claim before the hook runs.
+      await handleUpdateTask("sess-1", {
+        agent_id: "be",
+        task_id: depId as string,
+        status: "in_review",
+      });
+      const result = await handleClaimTask(
+        "sess-1",
+        { agent_id: "fe", task_id: task_id as string },
+        { before_task: ["echo ok"], after_task: [] }
+      );
+      // First check catches the unmet dep; the hook never runs
+      expect(result.success).toBe(true);
+      expect(result.claimed).toBe(false);
+      expect(result.reason).toContain("Unmet dependencies");
+    });
+  });
 });

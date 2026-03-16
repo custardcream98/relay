@@ -143,8 +143,10 @@ describe("GET /api/sessions/:id", () => {
   test("returns 404 for valid but unknown session ID", async () => {
     const res = await app.request("/api/sessions/nonexistent-session-xyz");
     expect(res.status).toBe(404);
-    const body = (await res.json()) as { error: string };
+    const body = (await res.json()) as { success: boolean; error: string };
     expect(body.error).toBeDefined();
+    // 404 response must include success:false for consistency with other error responses
+    expect(body.success).toBe(false);
   });
 });
 

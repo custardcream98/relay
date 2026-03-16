@@ -70,4 +70,41 @@ describe("artifacts tool", () => {
     });
     expect(result.artifact?.content).toBe(content);
   });
+
+  // Session isolation: an artifact posted in sess-1 must not be visible from sess-2.
+  // getArtifactByName filters by session_id, so cross-session access returns null.
+  test("get_artifact: cannot retrieve artifact from a different session", async () => {
+    await handlePostArtifact("sess-1", {
+      agent_id: "be",
+      name: "shared-name",
+      type: "document",
+      content: "secret content",
+    });
+    const result = await handleGetArtifact("sess-2", {
+      agent_id: "fe",
+      name: "shared-name",
+    });
+    expect(result.success).toBe(false);
+    expect(result.artifact).toBeNull();
+  });
+
+  // When two artifacts share the same name in the same session, get_artifact returns
+  // the most recently posted one (highest created_at, or latest insertion index on tie).
+  test("get_artifact: returns the most recently posted artifact when names collide", async () => {
+    await handlePostArtifact("sess-1", {
+      agent_id: "be",
+      name: "versioned",
+      type: "document",
+      content: "v1",
+    });
+    await handlePostArtifact("sess-1", {
+      agent_id: "be",
+      name: "versioned",
+      type: "document",
+      content: "v2",
+    });
+    const result = await handleGetArtifact("sess-1", { agent_id: "fe", name: "versioned" });
+    expect(result.success).toBe(true);
+    expect(result.artifact?.content).toBe("v2");
+  });
 });

@@ -3,6 +3,7 @@
 // Reads PanelResizeContext for divider handlers and ref binding; all data from child panels via context.
 
 import { usePanelLayout } from "../context/PanelResizeContext";
+import { cn } from "../lib/cn";
 import { AppHeader } from "./AppHeader";
 import { OfflineBanner } from "./OfflineBanner";
 import { ActivityPanel } from "./panels/ActivityPanel";
@@ -20,53 +21,24 @@ function Divider({
 }) {
   const isH = orientation === "horizontal";
 
-  // Render 3 gripper dots aligned along the drag axis
   const dots = [0, 1, 2].map((i) => (
     <span
       key={i}
-      style={{
-        width: 3,
-        height: 3,
-        borderRadius: "50%",
-        background: "var(--color-border-default)",
-        flexShrink: 0,
-        transition: "background 0.15s",
-      }}
+      className="w-[3px] h-[3px] rounded-full bg-[var(--color-border-default)] shrink-0 transition-colors duration-150 group-hover:bg-[var(--color-text-disabled)]"
     />
   ));
 
   return (
     <div
       onMouseDown={onMouseDown}
-      title={isH ? "Drag to resize panels" : "Drag to resize panels"}
-      style={{
-        [isH ? "width" : "height"]: 6,
-        ...(isH ? { alignSelf: "stretch" } : {}),
-        flexShrink: 0,
-        cursor: isH ? "col-resize" : "row-resize",
-        background: "var(--color-border-subtle)",
-        transition: "background 0.15s",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: isH ? "column" : "row",
-        gap: 3,
-      }}
-      onMouseEnter={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = "var(--color-border-default)";
-        // Brighten gripper dots on hover
-        const spans = (e.currentTarget as HTMLDivElement).querySelectorAll("span");
-        for (const s of spans) {
-          (s as HTMLSpanElement).style.background = "var(--color-text-disabled)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        (e.currentTarget as HTMLDivElement).style.background = "var(--color-border-subtle)";
-        const spans = (e.currentTarget as HTMLDivElement).querySelectorAll("span");
-        for (const s of spans) {
-          (s as HTMLSpanElement).style.background = "var(--color-border-default)";
-        }
-      }}
+      title="Drag to resize panels"
+      className={cn(
+        "group shrink-0 flex items-center justify-center gap-[3px]",
+        "bg-[var(--color-border-subtle)] transition-colors duration-150 hover:bg-[var(--color-border-default)]",
+        isH
+          ? "w-[6px] self-stretch flex-col cursor-col-resize"
+          : "h-[6px] flex-row cursor-row-resize"
+      )}
     >
       {dots}
     </div>
@@ -83,15 +55,7 @@ export function AppLayout() {
   } = usePanelLayout();
 
   return (
-    <div
-      className="h-screen flex flex-col overflow-hidden"
-      style={{
-        background: "var(--color-surface-root)",
-        color: "var(--color-text-primary)",
-        // Ensure panels never collapse below usable widths on narrow viewports
-        minWidth: 480,
-      }}
-    >
+    <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-surface-root)] text-[var(--color-text-primary)] min-w-[480px]">
       <AppHeader />
       <OfflineBanner />
 

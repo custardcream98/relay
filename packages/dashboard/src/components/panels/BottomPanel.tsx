@@ -10,36 +10,12 @@ import { TaskBoard } from "../TaskBoard";
 // Panel top label + optional badge
 function PanelHeader({ label, badge }: { label: string; badge?: number | string }) {
   return (
-    <div
-      className="flex items-center justify-between px-4 shrink-0"
-      style={{
-        height: 36,
-        borderBottom: "1px solid var(--color-border-subtle)",
-        background: "var(--color-surface-base)",
-      }}
-    >
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 500,
-          color: "var(--color-text-tertiary)",
-          textTransform: "uppercase",
-          letterSpacing: "0.07em",
-        }}
-      >
+    <div className="flex items-center justify-between px-4 shrink-0 h-9 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)]">
+      <span className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-[0.07em]">
         {label}
       </span>
       {badge !== undefined && (
-        <span
-          className="font-mono"
-          style={{
-            fontSize: 11,
-            background: "var(--color-surface-overlay)",
-            color: "var(--color-text-secondary)",
-            padding: "1px 6px",
-            borderRadius: 9999,
-          }}
-        >
+        <span className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-1.5 py-[1px] rounded-full">
           {badge}
         </span>
       )}
@@ -55,12 +31,9 @@ export function BottomPanel() {
 
   return (
     <div
+      className="flex flex-col overflow-hidden transition-[flex] duration-200 ease-[ease]"
       style={{
         flex: !isFocusMode && taskBoardCollapsed ? "0 0 36px" : "1 1 0",
-        transition: "flex 200ms ease",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
         minHeight: 36,
       }}
     >
@@ -80,39 +53,12 @@ export function BottomPanel() {
       ) : (
         <>
           {/* Single header — always rendered, chevron rotates on toggle */}
-          <div
-            className="flex items-center justify-between shrink-0"
-            style={{
-              height: 36,
-              borderTop: "1px solid var(--color-border-subtle)",
-              borderBottom: "1px solid var(--color-border-subtle)",
-              background: "var(--color-surface-base)",
-              paddingLeft: 16,
-              paddingRight: 8,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 500,
-                  color: "var(--color-text-tertiary)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.07em",
-                }}
-              >
+          <div className="flex items-center justify-between shrink-0 h-9 border-t border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] pl-4 pr-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-[0.07em]">
                 Task Board
               </span>
-              <span
-                className="font-mono"
-                style={{
-                  fontSize: 11,
-                  background: "var(--color-surface-overlay)",
-                  color: "var(--color-text-secondary)",
-                  padding: "1px 6px",
-                  borderRadius: 9999,
-                }}
-              >
+              <span className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-1.5 py-[1px] rounded-full">
                 {tasks.length}
               </span>
             </div>
@@ -120,19 +66,7 @@ export function BottomPanel() {
               type="button"
               onClick={onToggleTaskBoard}
               title={taskBoardCollapsed ? "Expand Task Board" : "Collapse Task Board"}
-              style={{
-                width: 20,
-                height: 20,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: 4,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--color-text-disabled)",
-                flexShrink: 0,
-              }}
+              className="w-5 h-5 flex items-center justify-center rounded bg-none border-none cursor-pointer text-[var(--color-text-disabled)] shrink-0"
             >
               <svg
                 width="12"
@@ -140,11 +74,8 @@ export function BottomPanel() {
                 viewBox="0 0 12 12"
                 fill="none"
                 aria-hidden="true"
-                style={{
-                  transition: "transform 200ms ease",
-                  // Points down ↓ (collapse) when expanded; rotates to ↑ (expand) when collapsed
-                  transform: taskBoardCollapsed ? "rotate(180deg)" : "rotate(0deg)",
-                }}
+                className="transition-transform duration-200 ease-[ease]"
+                style={{ transform: taskBoardCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
               >
                 <path
                   d="M2 4.5L6 8.5L10 4.5"
@@ -159,14 +90,13 @@ export function BottomPanel() {
 
           {/* Grid-animated content — 0fr collapsed, 1fr expanded */}
           <div
+            className="flex-[1_1_0] transition-[grid-template-rows] duration-200 ease-[ease]"
             style={{
               display: "grid",
               gridTemplateRows: taskBoardCollapsed ? "0fr" : "1fr",
-              transition: "grid-template-rows 200ms ease",
-              flex: "1 1 0",
             }}
           >
-            <div style={{ overflow: "hidden", minHeight: 0 }}>
+            <div className="overflow-hidden min-h-0">
               <TaskBoard tasks={tasks} />
             </div>
           </div>

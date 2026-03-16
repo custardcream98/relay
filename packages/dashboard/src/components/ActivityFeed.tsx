@@ -5,6 +5,7 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAgentAccent } from "../constants/agents";
+import { cn } from "../lib/cn";
 import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
@@ -63,6 +64,10 @@ function getEndDeclarationType(content: string): "done" | "waiting" | "failed" |
   return null;
 }
 
+// Shared row layout for message/artifact/review cards
+const ROW_BASE = "flex gap-[10px] px-4 py-[10px] border-b border-[var(--color-border-subtle)]";
+const SLIDE_IN = "animate-[slide-in-bottom_180ms_ease-out_both]";
+
 // [A] Broadcast message card
 const MessageBroadcastEntry = memo(function MessageBroadcastEntry({
   entry,
@@ -78,35 +83,15 @@ const MessageBroadcastEntry = memo(function MessageBroadcastEntry({
     );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
           <AgentChip agentId={entry.agentId} />
-          <span
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              color: "var(--color-text-disabled)",
-              background: "var(--color-surface-overlay)",
-              padding: "1px 5px",
-              borderRadius: 3,
-            }}
-          >
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] bg-[var(--color-surface-overlay)] px-[5px] py-[1px] rounded-[3px]">
             broadcast
           </span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
@@ -126,16 +111,11 @@ const MessageDirectEntry = memo(function MessageDirectEntry({
 }) {
   const toColor = getAgentAccent(toAgent);
 
-  // Stable style computed from toColor — avoids new object every render
+  // Dynamic border/background from runtime hex — must stay inline
   const containerStyle = useMemo(
     () => ({
-      display: "flex",
-      gap: 10,
-      padding: "10px 16px",
-      borderBottom: "1px solid var(--color-border-subtle)",
       background: `${toColor}06`,
       borderLeft: `2px solid ${toColor}`,
-      animation: "slide-in-bottom 180ms ease-out both",
     }),
     [toColor]
   );
@@ -143,17 +123,14 @@ const MessageDirectEntry = memo(function MessageDirectEntry({
   if (!entry.agentId || !entry.detail) return null;
 
   return (
-    <div style={containerStyle}>
+    <div className={cn(ROW_BASE, SLIDE_IN)} style={containerStyle}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
           <AgentChip agentId={entry.agentId} />
-          <span style={{ fontSize: 10, color: "var(--color-text-disabled)" }}>→</span>
+          <span className="text-[10px] text-[var(--color-text-disabled)]">→</span>
           <AgentChip agentId={toAgent} />
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
@@ -175,75 +152,45 @@ const ThinkingEntry = memo(function ThinkingEntry({
 }) {
   const accentColor = getAgentAccent(agentId);
 
-  // Stable container style — recomputed only when accentColor changes
   const containerStyle = useMemo(
-    () => ({
-      display: "flex",
-      gap: 10,
-      padding: "10px 16px",
-      borderBottom: "1px solid var(--color-border-subtle)",
-      background: "var(--color-thinking-bg)",
-      border: "1px dashed var(--color-thinking-border)",
-      borderLeft: `2px dashed ${accentColor}40`,
-      margin: "4px 12px",
-      borderRadius: 6,
-      animation: "slide-in-bottom 180ms ease-out both",
-    }),
+    () => ({ borderLeft: `2px dashed ${accentColor}40` }),
     [accentColor]
   );
 
-  // Stable thinking label style
   const thinkingLabelStyle = useMemo(
-    () => ({
-      fontSize: 10,
-      color: accentColor,
-      opacity: 0.8,
-      fontStyle: "italic" as const,
-    }),
-    [accentColor]
-  );
-
-  // Stable cursor style
-  const cursorStyle = useMemo(
-    () => ({
-      display: "inline-block",
-      width: 5,
-      height: 11,
-      background: accentColor,
-      marginLeft: 2,
-      verticalAlign: "text-bottom" as const,
-      animation: "blink 1.2s step-end infinite",
-    }),
+    () => ({ fontSize: 10, color: accentColor, opacity: 0.8 }),
     [accentColor]
   );
 
   return (
-    <div style={containerStyle}>
+    <div
+      className={cn(
+        "flex gap-[10px] px-4 py-[10px]",
+        "bg-[var(--color-thinking-bg)] border border-dashed border-[var(--color-thinking-border)]",
+        "mx-3 my-1 rounded-[6px]",
+        SLIDE_IN
+      )}
+      style={containerStyle}
+    >
       <AgentAvatar agentId={agentId} size={28} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1">
           <AgentChip agentId={agentId} />
-          <span style={thinkingLabelStyle}>thinking…</span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span style={thinkingLabelStyle} className="italic">
+            thinking…
+          </span>
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {isLive ? "live" : ""}
           </span>
         </div>
-        <p
-          style={{
-            fontSize: 11,
-            lineHeight: 1.6,
-            color: "var(--color-text-secondary)",
-            margin: 0,
-            fontFamily: "var(--font-mono)",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
+        <p className="text-[11px] leading-[1.6] text-[var(--color-text-secondary)] m-0 font-mono whitespace-pre-wrap break-words">
           {chunk}
-          {isLive && <span style={cursorStyle} />}
+          {isLive && (
+            <span
+              className="inline-block w-[5px] h-[11px] ml-[2px] align-text-bottom"
+              style={{ background: accentColor, animation: "blink 1.2s step-end infinite" }}
+            />
+          )}
         </p>
       </div>
     </div>
@@ -254,7 +201,6 @@ const ThinkingEntry = memo(function ThinkingEntry({
 const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
   const accentColor = entry.agentId ? getAgentAccent(entry.agentId) : "var(--color-text-disabled)";
 
-  // Determine icon by status keyword in description
   let icon = "📋";
   const desc = entry.description.toLowerCase();
   if (desc.includes("done")) icon = "✅";
@@ -262,45 +208,18 @@ const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: Timeli
   else if (desc.includes("in review")) icon = "👁";
   else if (desc.includes("todo")) icon = "⬜";
 
-  // Stable agent name style
-  const agentNameStyle = useMemo(
-    () => ({ fontSize: 10, fontWeight: 600, color: accentColor }),
-    [accentColor]
-  );
-
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 20px",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
-      <span style={{ fontSize: 12 }}>{icon}</span>
+    <div className={cn("flex items-center gap-1.5 px-5 py-[5px]", SLIDE_IN)}>
+      <span className="text-[12px]">{icon}</span>
       {entry.agentId && (
-        <span className="font-mono" style={agentNameStyle}>
+        <span className="font-mono text-[10px] font-semibold" style={{ color: accentColor }}>
           {entry.agentId}
         </span>
       )}
-      <span
-        style={{
-          fontSize: 11,
-          color: "var(--color-text-tertiary)",
-          flex: 1,
-          minWidth: 0,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
+      <span className="text-[11px] text-[var(--color-text-tertiary)] flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {entry.description}
       </span>
-      <span
-        className="font-mono"
-        style={{ fontSize: 10, color: "var(--color-text-disabled)", flexShrink: 0 }}
-      >
+      <span className="font-mono text-[10px] text-[var(--color-text-disabled)] shrink-0">
         {relativeTime(entry.timestamp)}
       </span>
     </div>
@@ -311,51 +230,19 @@ const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: Timeli
 const ArtifactEntry = memo(function ArtifactEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>posted artifact</span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span className="text-[11px] text-[var(--color-text-tertiary)]">posted artifact</span>
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        {/* Artifact file card */}
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 10px",
-            background: "var(--color-surface-raised)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 5,
-            maxWidth: "100%",
-          }}
-        >
-          <span style={{ fontSize: 14 }}>📄</span>
-          <span
-            className="font-mono"
-            style={{
-              fontSize: 11,
-              color: "var(--color-text-primary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
+        <div className="inline-flex items-center gap-2 px-[10px] py-1.5 bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-[5px] max-w-full">
+          <span className="text-sm">📄</span>
+          <span className="font-mono text-[11px] text-[var(--color-text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">
             {entry.description.replace(/^Artifact: /, "")}
           </span>
         </div>
@@ -368,40 +255,18 @@ const ArtifactEntry = memo(function ArtifactEntry({ entry }: { entry: TimelineEn
 const ReviewEntry = memo(function ReviewEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>
-            requested review
-          </span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span className="text-[11px] text-[var(--color-text-tertiary)]">requested review</span>
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        <div
-          style={{
-            padding: "7px 10px",
-            background: "var(--color-review-bg)",
-            border: "1px solid var(--color-review-border)",
-            borderRadius: 5,
-            fontSize: 12,
-            color: "#fbbf24",
-          }}
-        >
-          <span style={{ marginRight: 6 }}>⚠</span>
+        <div className="px-[10px] py-[7px] bg-[var(--color-review-bg)] border border-[var(--color-review-border)] rounded-[5px] text-xs text-[var(--color-end-waiting)]">
+          <span className="mr-1.5">⚠</span>
           {entry.description}
         </div>
       </div>
@@ -412,53 +277,21 @@ const ReviewEntry = memo(function ReviewEntry({ entry }: { entry: TimelineEntry 
 // [F2] Review updated card — outcome of a review (approved/rejected/changes_requested)
 const ReviewUpdatedEntry = memo(function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
-  const statusText = entry.description; // e.g. "Review approved: reviewer-id"
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>
-            submitted review
-          </span>
-          <span
-            className="font-mono"
-            style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-          >
+          <span className="text-[11px] text-[var(--color-text-tertiary)]">submitted review</span>
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        <div
-          style={{
-            padding: "7px 10px",
-            background: "var(--color-surface-raised)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 5,
-            fontSize: 12,
-            color: "var(--color-text-secondary)",
-          }}
-        >
-          {statusText}
+        <div className="px-[10px] py-[7px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-[5px] text-xs text-[var(--color-text-secondary)]">
+          {entry.description}
           {entry.detail && (
-            <p
-              style={{
-                fontSize: 11,
-                marginTop: 4,
-                marginBottom: 0,
-                color: "var(--color-text-tertiary)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}
-            >
+            <p className="text-[11px] mt-1 mb-0 text-[var(--color-text-tertiary)] whitespace-pre-wrap break-words">
               {entry.detail}
             </p>
           )}
@@ -487,37 +320,35 @@ const EndDeclarationEntry = memo(function EndDeclarationEntry({
   const color = colorMap[endType];
   const agentColor = getAgentAccent(agentId);
 
-  // Stable container style — recomputed only when agentColor changes
   const containerStyle = useMemo(
     () => ({
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "6px 16px",
-      borderBottom: "1px solid var(--color-border-subtle)",
       borderLeft: `2px solid ${agentColor}50`,
       background: `${agentColor}08`,
-      animation: "slide-in-bottom 180ms ease-out both",
     }),
     [agentColor]
   );
 
   return (
-    <div style={containerStyle}>
+    <div
+      className={cn(
+        "flex items-center gap-2 px-4 py-1.5 border-b border-[var(--color-border-subtle)]",
+        SLIDE_IN
+      )}
+      style={containerStyle}
+    >
       <AgentAvatar agentId={agentId} size={22} />
       <AgentChip agentId={agentId} />
-      <span style={{ fontSize: 11, color, fontWeight: 600 }}>{iconMap[endType]}</span>
-      <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>
+      <span className="text-[11px] font-semibold" style={{ color }}>
+        {iconMap[endType]}
+      </span>
+      <span className="text-[11px] text-[var(--color-text-tertiary)]">
         {endType === "waiting"
           ? "waiting for team"
           : endType === "done"
             ? "work complete"
             : "work failed"}
       </span>
-      <span
-        className="font-mono"
-        style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-      >
+      <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
         {relativeTime(timestamp)}
       </span>
     </div>
@@ -527,28 +358,19 @@ const EndDeclarationEntry = memo(function EndDeclarationEntry({
 // System / status / memory events — tiny inline annotation
 const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 6,
-        padding: "3px 20px",
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
-      <span style={{ fontSize: 10, color: "var(--color-text-disabled)" }}>
+    <div className={cn("flex items-center justify-center gap-1.5 px-5 py-[3px]", SLIDE_IN)}>
+      <span className="text-[10px] text-[var(--color-text-disabled)]">
         {entry.agentId && (
           <span
-            className="font-mono"
-            style={{ fontWeight: 600, color: getAgentAccent(entry.agentId) }}
+            className="font-mono font-semibold"
+            style={{ color: getAgentAccent(entry.agentId) }}
           >
             {entry.agentId}{" "}
           </span>
         )}
         {entry.description}
       </span>
-      <span className="font-mono" style={{ fontSize: 9, color: "var(--color-text-disabled)" }}>
+      <span className="font-mono text-[9px] text-[var(--color-text-disabled)]">
         {relativeTime(entry.timestamp)}
       </span>
     </div>
@@ -559,7 +381,6 @@ const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry 
 function EntryRenderer({ entry }: { entry: TimelineEntry }) {
   switch (entry.type) {
     case "message:new": {
-      // Parse to_agent from description — "→ agentId" or "Broadcast message"
       const isBroadcast =
         entry.description === "Broadcast message" || !entry.description.startsWith("→");
       if (isBroadcast) return <MessageBroadcastEntry entry={entry} />;
@@ -647,7 +468,6 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
     if (!isUserScrollingRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     } else {
-      // Show scroll button if we have new content and user is scrolled up
       setShowScrollBtn(true);
     }
   }, [entries.length, thinkingAgents.length]);
@@ -682,7 +502,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   }, [allOn]);
 
   const isFiltered = activeFilters.size < FILTER_DEFS.length;
-  // True empty = no entries at all (not just filtered); used to show "Waiting for agents" vs "No events match filter"
+  // True empty = no entries at all (not just filtered)
   const hasNoEntries = entries.length === 0 && thinkingAgents.length === 0;
   const isEmpty = filtered.length === 0 && thinkingAgents.length === 0;
 
@@ -698,53 +518,31 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Filter bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "5px 12px",
-          borderBottom: "1px solid var(--color-border-subtle)",
-          background: "var(--color-surface-base)",
-          flexShrink: 0,
-          flexWrap: "nowrap",
-          overflowX: "auto",
-        }}
-      >
+      <div className="flex items-center gap-1 px-3 py-[5px] border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] shrink-0 flex-nowrap overflow-x-auto">
         {/* Filter toggle button */}
         <button
           type="button"
           onClick={() => setFilterOpen((v) => !v)}
           title="Toggle filter panel"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            padding: "2px 7px",
-            borderRadius: 4,
-            fontSize: 10,
-            fontWeight: 500,
-            cursor: "pointer",
-            border: `1px solid ${isFiltered ? "#60a5fa50" : "var(--color-border-subtle)"}`,
-            background: isFiltered ? "#60a5fa15" : "transparent",
-            color: isFiltered ? "#60a5fa" : "var(--color-text-tertiary)",
-            flexShrink: 0,
-            transition: "background 100ms, border-color 100ms, color 100ms",
-          }}
+          className={cn(
+            "flex items-center gap-1 px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
+            isFiltered
+              ? "text-[var(--color-accent-fe)]"
+              : "border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-tertiary)]"
+          )}
+          style={
+            isFiltered
+              ? {
+                  border: "1px solid color-mix(in srgb, var(--color-accent-fe) 31%, transparent)",
+                  background: "color-mix(in srgb, var(--color-accent-fe) 8%, transparent)",
+                }
+              : undefined
+          }
         >
-          <span style={{ fontSize: 11 }}>⚙</span>
+          <span className="text-[11px]">⚙</span>
           Filter
           {isFiltered && (
-            <span
-              style={{
-                fontSize: 9,
-                background: "#60a5fa",
-                color: "#fff",
-                borderRadius: 9999,
-                padding: "0 4px",
-                fontWeight: 600,
-              }}
-            >
+            <span className="text-[9px] bg-[var(--color-accent-fe)] text-white rounded-full px-1 font-semibold">
               {FILTER_DEFS.length - activeFilters.size} off
             </span>
           )}
@@ -756,17 +554,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
             <button
               type="button"
               onClick={toggleAll}
-              style={{
-                padding: "2px 7px",
-                borderRadius: 4,
-                fontSize: 10,
-                fontWeight: 500,
-                cursor: "pointer",
-                border: "1px solid var(--color-border-default)",
-                background: "transparent",
-                color: "var(--color-text-tertiary)",
-                flexShrink: 0,
-              }}
+              className="px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer border border-[var(--color-border-default)] bg-transparent text-[var(--color-text-tertiary)] shrink-0"
             >
               {allOn ? "All off" : "All on"}
             </button>
@@ -780,37 +568,23 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
                   type="button"
                   onClick={() => toggleFilter(def.type)}
                   title={`${def.label}${count > 0 ? ` (${count})` : ""}`}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 3,
-                    padding: "2px 7px",
-                    borderRadius: 4,
-                    fontSize: 10,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    border: `1px solid ${isActive ? "var(--color-border-default)" : "var(--color-border-subtle)"}`,
-                    background: isActive ? "var(--color-surface-overlay)" : "transparent",
-                    color: isActive ? "var(--color-text-secondary)" : "var(--color-text-disabled)",
-                    flexShrink: 0,
-                    opacity: isActive ? 1 : 0.5,
-                    transition: "background 100ms, border-color 100ms, color 100ms",
-                  }}
+                  className={cn(
+                    "flex items-center gap-[3px] px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
+                    isActive
+                      ? "border border-[var(--color-border-default)] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] opacity-100"
+                      : "border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-disabled)] opacity-50"
+                  )}
                 >
-                  <span style={{ fontSize: 11 }}>{def.icon}</span>
+                  <span className="text-[11px]">{def.icon}</span>
                   {def.label}
                   {count > 0 && (
                     <span
-                      className="font-mono"
-                      style={{
-                        fontSize: 9,
-                        background: isActive ? "var(--color-surface-raised)" : "transparent",
-                        color: isActive
-                          ? "var(--color-text-tertiary)"
-                          : "var(--color-text-disabled)",
-                        padding: "0 3px",
-                        borderRadius: 3,
-                      }}
+                      className={cn(
+                        "font-mono text-[9px] px-[3px] rounded-[3px]",
+                        isActive
+                          ? "bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)]"
+                          : "bg-transparent text-[var(--color-text-disabled)]"
+                      )}
                     >
                       {count}
                     </span>
@@ -824,16 +598,16 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
 
       {/* Entry list */}
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center flex-1" style={{ gap: 10 }}>
-          <span style={{ fontSize: 28, opacity: 0.2 }}>📡</span>
-          <span style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-secondary)" }}>
+        <div className="flex flex-col items-center justify-center flex-1 gap-[10px]">
+          <span className="text-[28px] opacity-20">📡</span>
+          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
             {focusAgent
               ? `No activity for ${focusAgent}`
               : hasNoEntries
                 ? "Waiting for agents to start…"
                 : "No events match filter"}
           </span>
-          <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+          <span className="text-xs text-[var(--color-text-tertiary)]">
             {focusAgent
               ? "Events will appear when this agent is active"
               : hasNoEntries
@@ -844,20 +618,11 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
       ) : (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto"
+          className="flex-1 overflow-y-auto pt-1 pb-1 relative"
           onScroll={handleScroll}
-          style={{ paddingTop: 4, paddingBottom: 4, position: "relative" }}
         >
           {filtered.length >= 200 && (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "6px 16px",
-                fontSize: 10,
-                color: "var(--color-text-disabled)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
+            <div className="text-center px-4 py-1.5 text-[10px] text-[var(--color-text-disabled)] font-mono">
               Showing last 200 events
             </div>
           )}
@@ -876,28 +641,14 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
             />
           ))}
 
-          <div ref={bottomRef} style={{ height: 1 }} />
+          <div ref={bottomRef} className="h-px" />
 
           {/* Scroll-to-bottom button */}
           {showScrollBtn && (
             <button
               type="button"
               onClick={scrollToBottom}
-              style={{
-                position: "sticky",
-                bottom: 10,
-                display: "block",
-                marginLeft: "auto",
-                marginRight: 16,
-                fontSize: 10,
-                color: "var(--color-text-secondary)",
-                background: "var(--color-surface-overlay)",
-                border: "1px solid var(--color-border-default)",
-                borderRadius: 4,
-                padding: "3px 10px",
-                cursor: "pointer",
-                fontFamily: "var(--font-mono)",
-              }}
+              className="sticky bottom-[10px] block ml-auto mr-4 text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] rounded px-[10px] py-[3px] cursor-pointer font-mono"
             >
               ↓ New activity
             </button>

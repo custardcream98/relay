@@ -11,22 +11,20 @@ interface Props {
 export function AgentChip({ agentId }: Props) {
   const color = getAgentAccent(agentId);
 
-  // Stable style object — recomputed only when agentId changes
+  // Dynamic hex colors require inline styles
   const style = useMemo(
     () => ({
-      fontSize: 11,
-      fontWeight: 600,
       color,
       background: `${color}18`,
-      padding: "1px 5px",
-      borderRadius: 3,
-      flexShrink: 0,
     }),
     [color]
   );
 
   return (
-    <span className="font-mono" style={style}>
+    <span
+      className="font-mono text-[11px] font-semibold px-[5px] py-[1px] rounded-[3px] shrink-0"
+      style={style}
+    >
       {agentId}
     </span>
   );

@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_AGENT_ACCENT, getAgentAccent } from "../constants/agents";
+import { cn } from "../lib/cn";
 import type { AgentId, Message, Task } from "../types";
 import { formatTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
@@ -45,29 +46,11 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
   ];
 
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--color-surface-inset)" }}>
+    <div className="flex flex-col h-full bg-[var(--color-surface-inset)]">
       {/* Tab header */}
-      <div
-        className="flex items-center shrink-0"
-        style={{
-          height: 40,
-          borderBottom: "1px solid var(--color-border-subtle)",
-          background: "var(--color-surface-base)",
-          paddingLeft: 12,
-          paddingRight: 12,
-          gap: 2,
-        }}
-      >
+      <div className="flex items-center shrink-0 h-10 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] px-3 gap-0.5">
         {/* Agent name */}
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: accentColor,
-            marginRight: 12,
-            flexShrink: 0,
-          }}
-        >
+        <span className="text-xs font-semibold mr-3 shrink-0" style={{ color: accentColor }}>
           {agentId}
         </span>
 
@@ -77,32 +60,20 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
+            className="flex items-center gap-[5px] px-[10px] py-1 rounded-[5px] text-[11px] font-medium cursor-pointer border-none transition-[background,color] duration-100"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "4px 10px",
-              borderRadius: 5,
-              fontSize: 11,
-              fontWeight: 500,
-              cursor: "pointer",
-              border: "none",
               background: activeTab === tab.id ? `${accentColor}20` : "transparent",
               color: activeTab === tab.id ? accentColor : "var(--color-text-tertiary)",
-              transition: "background 100ms, color 100ms",
             }}
           >
             {tab.label}
             {tab.count !== undefined && tab.count > 0 && (
               <span
-                className="font-mono"
+                className="font-mono text-[9px] px-1 rounded-[3px]"
                 style={{
-                  fontSize: 9,
                   background:
                     activeTab === tab.id ? `${accentColor}30` : "var(--color-surface-overlay)",
                   color: activeTab === tab.id ? accentColor : "var(--color-text-disabled)",
-                  padding: "0 4px",
-                  borderRadius: 3,
                 }}
               >
                 {tab.count}
@@ -160,9 +131,9 @@ function ThoughtsTab({
 
   if (!chunk) {
     return (
-      <div className="flex flex-col items-center justify-center h-full" style={{ gap: 8 }}>
-        <span style={{ fontSize: 24, opacity: 0.3 }}>🧠</span>
-        <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>
+      <div className="flex flex-col items-center justify-center h-full gap-2">
+        <span className="text-2xl opacity-30">🧠</span>
+        <span className="text-xs text-[var(--color-text-tertiary)]">
           {status === "idle" ? "Agent is idle" : "Waiting for reasoning…"}
         </span>
       </div>
@@ -173,24 +144,14 @@ function ThoughtsTab({
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="font-mono h-full overflow-auto"
-      style={{
-        padding: "12px 16px",
-        fontSize: 11,
-        lineHeight: 1.7,
-        color: "var(--color-text-secondary)",
-      }}
+      className="font-mono h-full overflow-auto px-4 py-3 text-[11px] leading-[1.7] text-[var(--color-text-secondary)]"
     >
       {chunk}
       {/* Cursor */}
       <span
+        className="inline-block w-1.5 h-[13px] ml-[2px] align-text-bottom"
         style={{
-          display: "inline-block",
-          width: 6,
-          height: 13,
           background: status === "working" ? accentColor : "var(--color-text-disabled)",
-          marginLeft: 2,
-          verticalAlign: "text-bottom",
           animation: status === "working" ? "blink 1.2s step-end infinite" : "none",
         }}
       />
@@ -203,20 +164,7 @@ function ThoughtsTab({
             setShowScrollBtn(false);
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
-          style={{
-            position: "sticky",
-            bottom: 8,
-            display: "block",
-            marginLeft: "auto",
-            fontSize: 10,
-            color: "var(--color-text-secondary)",
-            background: "var(--color-surface-overlay)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 4,
-            padding: "3px 8px",
-            cursor: "pointer",
-            fontFamily: "var(--font-mono)",
-          }}
+          className="sticky bottom-2 block ml-auto text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] rounded px-2 py-[3px] cursor-pointer font-mono"
         >
           ↓ latest
         </button>
@@ -237,9 +185,9 @@ function MessagesTab({
 }) {
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full" style={{ gap: 8 }}>
-        <span style={{ fontSize: 24, opacity: 0.3 }}>💬</span>
-        <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>No messages yet</span>
+      <div className="flex flex-col items-center justify-center h-full gap-2">
+        <span className="text-2xl opacity-30">💬</span>
+        <span className="text-xs text-[var(--color-text-tertiary)]">No messages yet</span>
       </div>
     );
   }
@@ -254,49 +202,26 @@ function MessagesTab({
         return (
           <div
             key={msg.id}
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 8,
-              padding: "10px 14px",
-              borderBottom: "1px solid var(--color-border-subtle)",
-            }}
+            className="flex flex-row gap-2 px-[14px] py-[10px] border-b border-[var(--color-border-subtle)]"
           >
             {/* Direction indicator */}
             <span
-              style={{
-                fontSize: 14,
-                flexShrink: 0,
-                paddingTop: 1,
-                color: isSent ? accentColor : otherColor,
-              }}
+              className="text-sm shrink-0 pt-[1px]"
+              style={{ color: isSent ? accentColor : otherColor }}
             >
               {isSent ? "↑" : "↓"}
             </span>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="flex-1 min-w-0">
               {/* Header */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 4,
-                }}
-              >
+              <div className="flex items-center gap-1.5 mb-1">
                 <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: isSent ? accentColor : otherColor,
-                  }}
+                  className="text-[11px] font-semibold"
+                  style={{ color: isSent ? accentColor : otherColor }}
                 >
                   {isSent ? "→" : "←"} {otherAgent ?? "broadcast"}
                 </span>
-                <span
-                  className="font-mono"
-                  style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
-                >
+                <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
                   {formatTime(msg.created_at)}
                 </span>
               </div>
@@ -313,15 +238,15 @@ function MessagesTab({
 function TasksTab({ tasks }: { tasks: Task[] }) {
   if (tasks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full" style={{ gap: 8 }}>
-        <span style={{ fontSize: 24, opacity: 0.3 }}>✅</span>
-        <span style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>No tasks assigned</span>
+      <div className="flex flex-col items-center justify-center h-full gap-2">
+        <span className="text-2xl opacity-30">✅</span>
+        <span className="text-xs text-[var(--color-text-tertiary)]">No tasks assigned</span>
       </div>
     );
   }
 
   return (
-    <div className="overflow-y-auto h-full" style={{ padding: 12 }}>
+    <div className="overflow-y-auto h-full p-3">
       {tasks.map((task) => {
         const isDone = task.status === "done";
         // Use hex fallback (not a CSS var) so appending "18" for alpha is always valid CSS
@@ -330,42 +255,26 @@ function TasksTab({ tasks }: { tasks: Task[] }) {
         return (
           <div
             key={task.id}
-            style={{
-              padding: "10px 12px",
-              marginBottom: 6,
-              borderRadius: 6,
-              background: "var(--color-surface-raised)",
-              border: "1px solid var(--color-border-subtle)",
-              opacity: isDone ? 0.5 : 1,
-            }}
+            className={cn(
+              "px-3 py-[10px] mb-1.5 rounded-[6px] bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)]",
+              isDone && "opacity-50"
+            )}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div className="flex items-center gap-2">
               <span
-                className="font-mono"
-                style={{
-                  fontSize: 9,
-                  color: statusColor,
-                  background: `${statusColor}18`,
-                  padding: "1px 5px",
-                  borderRadius: 3,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  flexShrink: 0,
-                }}
+                className="font-mono text-[9px] px-[5px] py-[1px] rounded-[3px] uppercase tracking-[0.05em] shrink-0"
+                style={{ color: statusColor, background: `${statusColor}18` }}
               >
                 {task.status.replaceAll("_", " ")}
               </span>
               <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 450,
-                  color: isDone ? "var(--color-text-tertiary)" : "var(--color-text-primary)",
-                  textDecoration: isDone ? "line-through" : undefined,
-                  flex: 1,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
+                className={cn(
+                  "text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
+                  isDone
+                    ? "text-[var(--color-text-tertiary)] line-through"
+                    : "text-[var(--color-text-primary)]"
+                )}
+                style={{ fontWeight: 450 }}
               >
                 {task.title}
               </span>

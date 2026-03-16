@@ -3,6 +3,7 @@
 
 import type { ReactNode } from "react";
 import { memo } from "react";
+import { cn } from "../lib/cn";
 
 // Inline element parser: **bold**, *italic*, `code`
 function renderInline(text: string): ReactNode[] {
@@ -10,7 +11,7 @@ function renderInline(text: string): ReactNode[] {
   return parts.map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
       return (
-        <strong key={i} className="font-semibold" style={{ color: "var(--color-text-primary)" }}>
+        <strong key={i} className="font-semibold text-[var(--color-text-primary)]">
           {part.slice(2, -2)}
         </strong>
       );
@@ -19,15 +20,7 @@ function renderInline(text: string): ReactNode[] {
       return (
         <code
           key={i}
-          className="font-mono"
-          style={{
-            fontSize: 11,
-            // surface-overlay background, text-primary color (prev: zinc-800, emerald)
-            background: "var(--color-surface-overlay)",
-            color: "var(--color-text-primary)",
-            padding: "0 4px",
-            borderRadius: 3,
-          }}
+          className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-primary)] px-1 rounded-[3px]"
         >
           {part.slice(1, -1)}
         </code>
@@ -35,7 +28,7 @@ function renderInline(text: string): ReactNode[] {
     }
     if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
       return (
-        <em key={i} className="italic" style={{ color: "var(--color-text-secondary)" }}>
+        <em key={i} className="italic text-[var(--color-text-secondary)]">
           {part.slice(1, -1)}
         </em>
       );
@@ -65,37 +58,14 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       nodes.push(
         <pre
           key={`block-${index++}`}
-          className="my-2 overflow-x-auto"
-          style={{
-            // surface-inset background, border-subtle border
-            background: "var(--color-surface-inset)",
-            border: "1px solid var(--color-border-subtle)",
-            borderRadius: 4,
-            padding: "8px 12px",
-          }}
+          className="my-2 overflow-x-auto bg-[var(--color-surface-inset)] border border-[var(--color-border-subtle)] rounded p-[8px_12px]"
         >
           {lang && (
-            <div
-              className="font-mono uppercase"
-              style={{
-                fontSize: 10,
-                color: "var(--color-text-disabled)",
-                marginBottom: 6,
-                letterSpacing: "0.05em",
-              }}
-            >
+            <div className="font-mono uppercase text-[10px] text-[var(--color-text-disabled)] mb-1.5 tracking-[0.05em]">
               {lang}
             </div>
           )}
-          <code
-            className="font-mono"
-            style={{
-              fontSize: 11,
-              lineHeight: 1.6,
-              // text-secondary (prev: emerald)
-              color: "var(--color-text-secondary)",
-            }}
-          >
+          <code className="font-mono text-[11px] leading-[1.6] text-[var(--color-text-secondary)]">
             {codeLines.join("\n")}
           </code>
         </pre>
@@ -109,8 +79,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       nodes.push(
         <p
           key={`block-${index++}`}
-          className="mt-2 mb-0.5 text-sm font-semibold"
-          style={{ color: "var(--color-text-primary)" }}
+          className="mt-2 mb-0.5 text-sm font-semibold text-[var(--color-text-primary)]"
         >
           {renderInline(line.slice(2))}
         </p>
@@ -125,8 +94,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       nodes.push(
         <p
           key={`block-${index++}`}
-          className="mt-1.5 mb-0.5 text-xs font-semibold uppercase tracking-wide"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="mt-1.5 mb-0.5 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]"
         >
           {renderInline(line.slice(depth))}
         </p>
@@ -156,19 +124,17 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
               {rows.map((row, ri) => (
                 <tr
                   key={ri}
-                  style={
-                    ri === 0 ? { borderBottom: "1px solid var(--color-border-subtle)" } : undefined
-                  }
+                  className={ri === 0 ? "border-b border-[var(--color-border-subtle)]" : ""}
                 >
                   {row.map((cell, ci) => (
                     <td
                       key={ci}
-                      className="py-1 pr-4"
-                      style={{
-                        color:
-                          ri === 0 ? "var(--color-text-secondary)" : "var(--color-text-primary)",
-                        fontWeight: ri === 0 ? 500 : undefined,
-                      }}
+                      className={cn(
+                        "py-1 pr-4",
+                        ri === 0
+                          ? "text-[var(--color-text-secondary)] font-medium"
+                          : "text-[var(--color-text-primary)]"
+                      )}
                     >
                       {renderInline(cell)}
                     </td>
@@ -186,12 +152,8 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
     if (line.match(/^[-*] /)) {
       nodes.push(
         <div key={`block-${index++}`} className="flex gap-2 text-sm leading-relaxed">
-          <span className="mt-0.5 shrink-0" style={{ color: "var(--color-text-tertiary)" }}>
-            ·
-          </span>
-          <span style={{ color: "var(--color-text-secondary)" }}>
-            {renderInline(line.slice(2))}
-          </span>
+          <span className="mt-0.5 shrink-0 text-[var(--color-text-tertiary)]">·</span>
+          <span className="text-[var(--color-text-secondary)]">{renderInline(line.slice(2))}</span>
         </div>
       );
       i++;
@@ -209,8 +171,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
     nodes.push(
       <p
         key={`block-${index++}`}
-        className="text-sm leading-relaxed"
-        style={{ color: "var(--color-text-secondary)" }}
+        className="text-sm leading-relaxed text-[var(--color-text-secondary)]"
       >
         {renderInline(line)}
       </p>

@@ -74,6 +74,11 @@
   --color-connection-live: #34d399;
   --color-connection-dead: #ef4444;
 
+  /* Warning / offline banner — amber tones */
+  --color-warning-bg: #92400e;
+  --color-warning-text: #fef3c7;
+  --color-warning-border: #b45309;
+
   /* Fonts — matching docs */
   --font-sans: "Pretendard", "DM Sans", system-ui, -apple-system, sans-serif;
   --font-mono: "DM Mono", "JetBrains Mono", "IBM Plex Mono", monospace;

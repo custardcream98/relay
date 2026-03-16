@@ -3,6 +3,7 @@
 // Renders null when agents array is empty (zero cost for no-team sessions).
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "../lib/cn";
 import type { AgentMeta } from "../types";
 
 const MAX_VISIBLE = 5;
@@ -42,59 +43,33 @@ export function SessionTeamBadge({ agents }: Props) {
   const overflow = agents.length - MAX_VISIBLE;
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
+    <div ref={containerRef} className="relative">
       {/* Pill badge */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 0,
-          padding: "3px 8px",
-          borderRadius: 9999,
-          background: "var(--color-surface-overlay)",
-          border: `1px solid ${open ? "var(--color-border-default)" : "var(--color-border-subtle)"}`,
-          cursor: "pointer",
-          userSelect: "none",
-          transition: "border-color 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)";
-        }}
-        onMouseLeave={(e) => {
-          if (!open) {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-subtle)";
-          }
-        }}
+        className={cn(
+          "flex items-center px-2 py-[3px] rounded-full bg-[var(--color-surface-overlay)] cursor-pointer select-none transition-[border-color] duration-150",
+          open
+            ? "border border-[var(--color-border-default)]"
+            : "border border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]"
+        )}
       >
         {/* Overlapping emoji stack */}
         {visible.map((agent, i) => (
           <span
             key={agent.id}
             title={agent.name}
-            style={{
-              fontSize: 13,
-              display: "inline-block",
-              marginLeft: i === 0 ? 0 : -4,
-              zIndex: MAX_VISIBLE - i,
-              position: "relative",
-            }}
+            className="text-[13px] inline-block relative"
+            style={{ marginLeft: i === 0 ? 0 : -4, zIndex: MAX_VISIBLE - i }}
           >
             {agent.emoji}
           </span>
         ))}
         {overflow > 0 && (
-          <span
-            style={{
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-tertiary)",
-              marginLeft: 4,
-            }}
-          >
+          <span className="text-[10px] font-mono text-[var(--color-text-tertiary)] ml-1">
             +{overflow}
           </span>
         )}
@@ -104,72 +79,24 @@ export function SessionTeamBadge({ agents }: Props) {
       {open && (
         <div
           role="tooltip"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            width: 240,
-            background: "var(--color-surface-raised)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 8,
-            boxShadow: "var(--shadow-dropdown)",
-            zIndex: 100,
-            overflow: "hidden",
-          }}
+          className="absolute top-[calc(100%+6px)] right-0 w-[240px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-lg shadow-[var(--shadow-dropdown)] z-[100] overflow-hidden"
         >
           {/* Header */}
-          <div
-            style={{
-              padding: "8px 12px 6px",
-              borderBottom: "1px solid var(--color-border-subtle)",
-            }}
-          >
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-              }}
-            >
+          <div className="px-3 pt-2 pb-1.5 border-b border-[var(--color-border-subtle)]">
+            <span className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em]">
               Session team
             </span>
           </div>
 
           {/* Agent rows */}
-          <div style={{ padding: "4px 0" }}>
+          <div className="py-1">
             {agents.map((agent) => (
-              <div
-                key={agent.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  height: 36,
-                  padding: "0 12px",
-                }}
-              >
-                <span style={{ fontSize: 15, flexShrink: 0 }}>{agent.emoji}</span>
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: "var(--color-text-primary)",
-                    flex: 1,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
+              <div key={agent.id} className="flex items-center gap-2 h-9 px-3">
+                <span className="text-[15px] shrink-0">{agent.emoji}</span>
+                <span className="text-xs text-[var(--color-text-primary)] flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
                   {agent.name}
                 </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--color-text-disabled)",
-                  }}
-                >
+                <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
                   {agent.id}
                 </span>
               </div>

@@ -125,83 +125,41 @@ export function TaskDetailModal({
       aria-label={task.title}
     >
       {/* Header row — title + close */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
-        <span
-          style={{
-            flex: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            lineHeight: 1.45,
-            color: "var(--color-text-primary)",
-          }}
-        >
+      <div className="flex items-start gap-2 mb-[10px]">
+        <span className="flex-1 text-[13px] font-medium leading-[1.45] text-[var(--color-text-primary)]">
           {task.title}
         </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close task detail"
-          className="close-btn"
-          style={{
-            flexShrink: 0,
-            width: 20,
-            height: 20,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            border: "none",
-            background: "transparent",
-            color: "var(--color-text-disabled)",
-            cursor: "pointer",
-            fontSize: 14,
-            lineHeight: 1,
-          }}
+          className="close-btn shrink-0 w-5 h-5 flex items-center justify-center rounded border-none bg-transparent text-[var(--color-text-disabled)] cursor-pointer text-sm leading-none"
         >
           ×
         </button>
       </div>
 
       {/* Meta chips row */}
-      <div
-        style={{
-          display: "flex",
-          gap: 6,
-          alignItems: "center",
-          marginBottom: 12,
-          flexWrap: "wrap",
-        }}
-      >
+      <div className="flex gap-1.5 items-center mb-3 flex-wrap">
         {/* Priority badge */}
         <span
+          className="text-[10px] font-mono font-medium px-[7px] py-[2px] rounded-full uppercase tracking-[0.06em]"
           style={{
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            fontWeight: 500,
-            padding: "2px 7px",
-            borderRadius: 9999,
             background: priorityColors.bg,
             color: priorityColors.text,
             border: `1px solid ${priorityColors.border}`,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
           }}
         >
           {task.priority}
         </span>
 
-        {/* Status badge — color-coded: todo=surface, in_progress=blue, in_review=amber, done=green */}
+        {/* Status badge */}
         <span
+          className="text-[10px] font-mono px-[7px] py-[2px] rounded-full uppercase tracking-[0.06em]"
           style={{
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            padding: "2px 7px",
-            borderRadius: 9999,
             background: statusColors.bg,
             color: statusColors.text,
             border: `1px solid ${statusColors.border}`,
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
           }}
         >
           {task.status.replace(/_/g, " ")}
@@ -210,12 +168,8 @@ export function TaskDetailModal({
         {/* Assignee chip */}
         {task.assignee && accentHex && (
           <span
-            className="font-mono"
+            className="font-mono text-[10px] font-medium px-[7px] py-[2px] rounded-full"
             style={{
-              fontSize: 10,
-              fontWeight: 500,
-              padding: "2px 7px",
-              borderRadius: 9999,
               color: accentHex,
               background: `${accentHex}1a`,
               border: `1px solid ${accentHex}40`,
@@ -228,59 +182,23 @@ export function TaskDetailModal({
 
       {/* Full description — rendered as markdown */}
       {task.description ? (
-        <div
-          style={{
-            background: "var(--color-surface-inset)",
-            border: "1px solid var(--color-border-subtle)",
-            borderRadius: 6,
-            padding: "10px 12px",
-            maxHeight: 240,
-            overflowY: "auto",
-          }}
-        >
+        <div className="bg-[var(--color-surface-inset)] border border-[var(--color-border-subtle)] rounded-[6px] p-[10px_12px] max-h-[240px] overflow-y-auto">
           <MarkdownContent text={task.description} />
         </div>
       ) : (
-        <p
-          style={{
-            fontSize: 12,
-            color: "var(--color-text-disabled)",
-            fontStyle: "italic",
-          }}
-        >
-          No description provided.
-        </p>
+        <p className="text-xs text-[var(--color-text-disabled)] italic">No description provided.</p>
       )}
 
       {/* Timestamps */}
       {(task.created_at || task.updated_at) && (
-        <div
-          style={{
-            marginTop: 10,
-            display: "flex",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="mt-[10px] flex gap-3 flex-wrap">
           {task.created_at && (
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-              }}
-            >
+            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
               created {new Date(task.created_at * 1000).toLocaleString()}
             </span>
           )}
           {task.updated_at && task.updated_at !== task.created_at && (
-            <span
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-              }}
-            >
+            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
               updated {new Date(task.updated_at * 1000).toLocaleString()}
             </span>
           )}

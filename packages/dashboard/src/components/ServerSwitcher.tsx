@@ -3,6 +3,7 @@
 // Renders null when only one server is present — zero UI cost for single-server users.
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "../lib/cn";
 import type { ServerEntry } from "../types";
 
 interface Props {
@@ -22,13 +23,9 @@ function StatusDot({ status }: { status: ServerEntry["status"] }) {
 
   return (
     <span
+      className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
       style={{
-        display: "inline-block",
-        width: 6,
-        height: 6,
-        borderRadius: "50%",
         background: color,
-        flexShrink: 0,
         animation: status === "connecting" ? "server-connecting 1s step-end infinite" : undefined,
       }}
     />
@@ -80,44 +77,24 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
   const activeEntry = servers.find((s) => s.url === activeServer);
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+    <div ref={containerRef} className="relative flex items-center">
       {/* Server chip trigger */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "3px 8px",
-          borderRadius: 4,
-          background: "var(--color-surface-overlay)",
-          border: `1px solid ${open ? "var(--color-border-default)" : "var(--color-border-subtle)"}`,
-          cursor: "pointer",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--color-text-secondary)",
-          transition: "border-color 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)";
-        }}
-        onMouseLeave={(e) => {
-          if (!open) {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-subtle)";
-          }
-        }}
+        className={cn(
+          "flex items-center gap-[5px] px-2 py-[3px] rounded bg-[var(--color-surface-overlay)] cursor-pointer font-mono text-[11px] text-[var(--color-text-secondary)] transition-[border-color] duration-150",
+          open
+            ? "border border-[var(--color-border-default)]"
+            : "border border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]"
+        )}
       >
         {activeEntry && <StatusDot status={activeEntry.status} />}
         <span>{activeEntry?.label ?? activeServer}</span>
         {/* Chevron */}
         <span
-          style={{
-            fontSize: 9,
-            color: "var(--color-text-disabled)",
-            transform: open ? "rotate(180deg)" : "none",
-            transition: "transform 0.15s",
-          }}
+          className="text-[9px] text-[var(--color-text-disabled)] transition-transform duration-150"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
         >
           ▾
         </span>
@@ -128,30 +105,10 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
         <div
           role="listbox"
           aria-label="Select relay server"
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            left: 0,
-            width: 280,
-            background: "var(--color-surface-raised)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 8,
-            boxShadow: "var(--shadow-dropdown)",
-            zIndex: 100,
-            padding: 8,
-          }}
+          className="absolute top-[calc(100%+6px)] left-0 w-[280px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-lg shadow-[var(--shadow-dropdown)] z-[100] p-2"
         >
           {/* Section label */}
-          <div
-            style={{
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-disabled)",
-              textTransform: "uppercase",
-              letterSpacing: "0.07em",
-              padding: "2px 4px 6px",
-            }}
-          >
+          <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] px-1 pt-[2px] pb-1.5">
             Connected servers
           </div>
 
@@ -171,55 +128,25 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 }
                 setOpen(false);
               }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                width: "100%",
-                padding: "7px 8px",
-                borderRadius: 6,
-                background: server.isActive ? "var(--color-accent-glow)" : "transparent",
-                border: `1px solid ${server.isActive ? "var(--color-accent)" : "transparent"}`,
-                cursor: server.isActive ? "default" : "pointer",
-                textAlign: "left",
-                transition: "background 0.1s",
-              }}
-              onMouseEnter={(e) => {
-                if (!server.isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    "var(--color-surface-overlay)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!server.isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }
-              }}
+              className={cn(
+                "flex items-center gap-2 w-full px-2 py-[7px] rounded-[6px] border text-left transition-[background] duration-100",
+                server.isActive
+                  ? "bg-[var(--color-accent-glow)] border-[var(--color-accent)] cursor-default"
+                  : "bg-transparent border-transparent cursor-pointer hover:bg-[var(--color-surface-overlay)]"
+              )}
             >
               <StatusDot status={server.status} />
               <span
-                style={{
-                  flex: 1,
-                  fontSize: 13,
-                  color:
-                    server.status === "offline"
-                      ? "var(--color-text-disabled)"
-                      : "var(--color-text-primary)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
+                className={cn(
+                  "flex-1 text-[13px] overflow-hidden text-ellipsis whitespace-nowrap",
+                  server.status === "offline"
+                    ? "text-[var(--color-text-disabled)]"
+                    : "text-[var(--color-text-primary)]"
+                )}
               >
                 {server.label}
               </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-text-tertiary)",
-                  flexShrink: 0,
-                }}
-              >
+              <span className="text-[11px] font-mono text-[var(--color-text-tertiary)] shrink-0">
                 {(() => {
                   try {
                     return new URL(server.url).port || "80";
@@ -229,19 +156,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 })()}
               </span>
               {server.isActive && (
-                <span
-                  style={{
-                    fontSize: 9,
-                    fontFamily: "var(--font-mono)",
-                    color: "var(--color-accent)",
-                    background: "var(--color-accent-glow)",
-                    border: "1px solid var(--color-accent)",
-                    padding: "1px 5px",
-                    borderRadius: 9999,
-                    letterSpacing: "0.05em",
-                    flexShrink: 0,
-                  }}
-                >
+                <span className="text-[9px] font-mono text-[var(--color-accent)] bg-[var(--color-accent-glow)] border border-[var(--color-accent)] px-[5px] py-[1px] rounded-full tracking-[0.05em] shrink-0">
                   active
                 </span>
               )}
@@ -249,42 +164,22 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
           ))}
 
           {/* Divider */}
-          <div
-            style={{
-              height: 1,
-              background: "var(--color-border-subtle)",
-              margin: "6px 0",
-            }}
-          />
+          <div className="h-px bg-[var(--color-border-subtle)] my-1.5" />
 
           {/* Add server inline input */}
-          <div style={{ padding: "2px 4px" }}>
-            <div
-              style={{
-                fontSize: 10,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-                textTransform: "uppercase",
-                letterSpacing: "0.07em",
-                marginBottom: 4,
-              }}
-            >
+          <div className="px-1 py-[2px]">
+            <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] mb-1">
               Add server
             </div>
             {addError && (
               <div
-                style={{
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-server-dead, #f87171)",
-                  marginBottom: 4,
-                }}
+                className="text-[10px] font-mono text-[var(--color-server-dead)] mb-1"
                 role="alert"
               >
                 {addError}
               </div>
             )}
-            <div style={{ display: "flex", gap: 6 }}>
+            <div className="flex gap-1.5">
               <input
                 type="text"
                 value={addInput}
@@ -307,17 +202,12 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                     setOpen(false);
                   }
                 }}
-                style={{
-                  flex: 1,
-                  padding: "4px 8px",
-                  borderRadius: 4,
-                  border: `1px solid ${addError ? "var(--color-server-dead, #f87171)" : "var(--color-border-subtle)"}`,
-                  background: "var(--color-surface-overlay)",
-                  color: "var(--color-text-primary)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  outline: "none",
-                }}
+                className={cn(
+                  "flex-1 px-2 py-1 rounded border bg-[var(--color-surface-overlay)] text-[var(--color-text-primary)] font-mono text-[11px] outline-none",
+                  addError
+                    ? "border-[var(--color-server-dead)]"
+                    : "border-[var(--color-border-subtle)]"
+                )}
               />
               <button
                 type="button"
@@ -335,16 +225,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                     setOpen(false);
                   }
                 }}
-                style={{
-                  padding: "4px 10px",
-                  borderRadius: 4,
-                  border: "1px solid var(--color-border-default)",
-                  background: "var(--color-surface-overlay)",
-                  color: "var(--color-text-secondary)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
-                  cursor: "pointer",
-                }}
+                className="px-[10px] py-1 rounded border border-[var(--color-border-default)] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] font-mono text-[11px] cursor-pointer"
               >
                 +
               </button>

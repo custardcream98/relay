@@ -4,6 +4,7 @@
 // Only shown when a live session ID is known.
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "../lib/cn";
 
 interface Props {
   /** The currently active session ID (from session:snapshot) */
@@ -60,38 +61,18 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
   const shortId = sessionId.length > 16 ? `…${sessionId.slice(-12)}` : sessionId;
 
   return (
-    <div ref={containerRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
+    <div ref={containerRef} className="relative flex items-center">
       {/* Session ID chip — click to expand history */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         title={`Session: ${sessionId}\nClick to view session history`}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 5,
-          padding: "3px 8px",
-          borderRadius: 4,
-          background: open ? "var(--color-surface-overlay)" : "transparent",
-          border: `1px solid ${open ? "var(--color-border-default)" : "var(--color-border-subtle)"}`,
-          cursor: "pointer",
-          fontFamily: "var(--font-mono)",
-          fontSize: 11,
-          color: "var(--color-text-disabled)",
-          transition: "border-color 0.15s, background 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-default)";
-          (e.currentTarget as HTMLButtonElement).style.background = "var(--color-surface-overlay)";
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-tertiary)";
-        }}
-        onMouseLeave={(e) => {
-          if (!open) {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--color-border-subtle)";
-            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-disabled)";
-          }
-        }}
+        className={cn(
+          "flex items-center gap-[5px] px-2 py-[3px] rounded font-mono text-[11px] cursor-pointer transition-[border-color,background,color] duration-150",
+          open
+            ? "bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] text-[var(--color-text-tertiary)]"
+            : "bg-transparent border border-[var(--color-border-subtle)] text-[var(--color-text-disabled)] hover:border-[var(--color-border-default)] hover:bg-[var(--color-surface-overlay)] hover:text-[var(--color-text-tertiary)]"
+        )}
       >
         {/* Session icon */}
         <svg
@@ -100,7 +81,7 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
           viewBox="0 0 10 10"
           fill="none"
           aria-hidden="true"
-          style={{ flexShrink: 0 }}
+          className="shrink-0"
         >
           <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2" />
           <path
@@ -113,12 +94,8 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
         <span>{shortId}</span>
         {/* Chevron */}
         <span
-          style={{
-            fontSize: 9,
-            color: "var(--color-text-disabled)",
-            transform: open ? "rotate(180deg)" : "none",
-            transition: "transform 0.15s",
-          }}
+          className="text-[9px] text-[var(--color-text-disabled)] transition-transform duration-150"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
         >
           ▾
         </span>
@@ -126,50 +103,13 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
 
       {/* Dropdown panel */}
       {open && (
-        <div
-          style={{
-            position: "absolute",
-            top: "calc(100% + 6px)",
-            right: 0,
-            width: 260,
-            background: "var(--color-surface-raised)",
-            border: "1px solid var(--color-border-default)",
-            borderRadius: 8,
-            boxShadow: "var(--shadow-dropdown)",
-            zIndex: 100,
-            padding: 8,
-          }}
-        >
+        <div className="absolute top-[calc(100%+6px)] right-0 w-[260px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-lg shadow-[var(--shadow-dropdown)] z-[100] p-2">
           {/* Current session */}
-          <div
-            style={{
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-disabled)",
-              textTransform: "uppercase",
-              letterSpacing: "0.07em",
-              padding: "2px 4px 6px",
-            }}
-          >
+          <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] px-1 pt-[2px] pb-1.5">
             Current session
           </div>
-          <div
-            style={{
-              padding: "6px 8px",
-              borderRadius: 6,
-              background: "var(--color-accent-glow)",
-              border: "1px solid var(--color-accent)",
-              marginBottom: 6,
-            }}
-          >
-            <span
-              style={{
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-accent)",
-                wordBreak: "break-all",
-              }}
-            >
+          <div className="px-2 py-1.5 rounded-[6px] bg-[var(--color-accent-glow)] border border-[var(--color-accent)] mb-1.5">
+            <span className="text-[11px] font-mono text-[var(--color-accent)] break-all">
               {sessionId}
             </span>
           </div>
@@ -177,50 +117,22 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
           {/* Saved sessions */}
           {sessions.length > 0 && (
             <>
-              <div
-                style={{
-                  height: 1,
-                  background: "var(--color-border-subtle)",
-                  margin: "4px 0 6px",
-                }}
-              />
-              <div
-                style={{
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--color-text-disabled)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.07em",
-                  padding: "2px 4px 4px",
-                }}
-              >
+              <div className="h-px bg-[var(--color-border-subtle)] my-1 mb-1.5" />
+              <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] px-1 pt-[2px] pb-1">
                 Saved sessions
               </div>
-              <div
-                style={{
-                  maxHeight: 160,
-                  overflowY: "auto",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2,
-                }}
-              >
+              <div className="max-h-[160px] overflow-y-auto flex flex-col gap-0.5">
                 {sessions.map((s) => {
                   const isCurrent = s === sessionId;
                   return (
                     <div
                       key={s}
-                      style={{
-                        padding: "5px 8px",
-                        borderRadius: 5,
-                        fontSize: 11,
-                        fontFamily: "var(--font-mono)",
-                        color: isCurrent ? "var(--color-accent)" : "var(--color-text-secondary)",
-                        background: isCurrent ? "var(--color-accent-glow)" : "transparent",
-                        border: `1px solid ${isCurrent ? "var(--color-accent)" : "transparent"}`,
-                        wordBreak: "break-all",
-                        lineHeight: 1.4,
-                      }}
+                      className={cn(
+                        "px-2 py-[5px] rounded-[5px] text-[11px] font-mono break-all leading-[1.4] border",
+                        isCurrent
+                          ? "text-[var(--color-accent)] bg-[var(--color-accent-glow)] border-[var(--color-accent)]"
+                          : "text-[var(--color-text-secondary)] bg-transparent border-transparent"
+                      )}
                     >
                       {s}
                     </div>
@@ -231,27 +143,13 @@ export function SessionSelector({ sessionId, serverUrl }: Props) {
           )}
 
           {loading && (
-            <div
-              style={{
-                padding: "8px 4px",
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-              }}
-            >
+            <div className="px-1 py-2 text-[11px] font-mono text-[var(--color-text-disabled)]">
               Loading...
             </div>
           )}
 
           {!loading && sessions.length === 0 && (
-            <div
-              style={{
-                padding: "4px 4px",
-                fontSize: 11,
-                color: "var(--color-text-disabled)",
-                fontStyle: "italic",
-              }}
-            >
+            <div className="px-1 py-1 text-[11px] text-[var(--color-text-disabled)] italic">
               No saved sessions yet.
             </div>
           )}

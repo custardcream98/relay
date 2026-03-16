@@ -7,6 +7,7 @@ import { useConnection } from "../context/ConnectionContext";
 import { useServer } from "../context/ServerContext";
 import { useSession } from "../context/SessionContext";
 import { useTheme } from "../hooks/useTheme";
+import { cn } from "../lib/cn";
 import { ServerSwitcher } from "./ServerSwitcher";
 import { SessionSelector } from "./SessionSelector";
 import { SessionTeamBadge } from "./SessionTeamBadge";
@@ -26,54 +27,26 @@ export function AppHeader() {
 
   return (
     <div
-      className="flex items-center justify-between px-5 shrink-0"
+      className="flex items-center justify-between px-5 h-[52px] shrink-0 sticky top-0 z-50 border-b border-[var(--color-border-default)]"
       style={{
-        height: 52,
         background: "color-mix(in srgb, var(--color-surface-root) 88%, transparent)",
-        borderBottom: "1px solid var(--color-border-default)",
         backdropFilter: "blur(12px) saturate(1.2)",
         WebkitBackdropFilter: "blur(12px) saturate(1.2)",
-        position: "sticky",
-        top: 0,
-        zIndex: 50,
       }}
     >
       {/* Left: relay_ wordmark + optional server switcher */}
       <div className="flex items-center gap-3">
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span
-            style={{
-              fontSize: 15,
-              fontWeight: 500,
-              letterSpacing: "-0.04em",
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-primary)",
-              display: "flex",
-              alignItems: "baseline",
-            }}
-          >
+        <div className="flex items-baseline gap-1">
+          <span className="text-[15px] font-medium tracking-[-0.04em] font-mono text-[var(--color-text-primary)] flex items-baseline">
             relay
-            <span
-              style={{
-                color: "var(--color-accent)",
-                animation: "blink 1.1s step-end infinite",
-                fontWeight: 400,
-              }}
-            >
+            <span className="text-[var(--color-accent)] font-normal animate-[blink_1.1s_step-end_infinite]">
               _
             </span>
           </span>
 
           {servers.length > 1 ? (
             <>
-              <span
-                style={{
-                  fontSize: 13,
-                  color: "var(--color-text-disabled)",
-                  margin: "0 2px",
-                  alignSelf: "center",
-                }}
-              >
+              <span className="text-[13px] text-[var(--color-text-disabled)] mx-0.5 self-center">
                 /
               </span>
               <ServerSwitcher
@@ -84,75 +57,27 @@ export function AppHeader() {
               />
             </>
           ) : (
-            <span
-              style={{
-                fontSize: 11,
-                fontFamily: "var(--font-mono)",
-                color: "var(--color-text-disabled)",
-                letterSpacing: "0.02em",
-                alignSelf: "center",
-              }}
-            >
+            <span className="text-[11px] font-mono text-[var(--color-text-disabled)] tracking-[0.02em] self-center">
               {instanceLabel}
             </span>
           )}
         </div>
 
-        <span
-          style={{
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            background: "var(--color-accent-glow)",
-            color: "var(--color-accent)",
-            border: "1px solid var(--color-accent)",
-            padding: "2px 8px",
-            borderRadius: 9999,
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            fontWeight: 500,
-            opacity: 0.9,
-          }}
-        >
+        <span className="text-[10px] font-mono bg-[var(--color-accent-glow)] text-[var(--color-accent)] border border-[var(--color-accent)] px-2 py-[2px] rounded-full uppercase tracking-[0.08em] font-medium opacity-90">
           dashboard
         </span>
       </div>
 
       {/* Center: Focus Mode badge */}
       {selectedAgent && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "4px 12px",
-            borderRadius: 9999,
-            background: "var(--color-accent-glow)",
-            border: "1px solid var(--color-accent)",
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-accent)",
-              letterSpacing: "0.02em",
-            }}
-          >
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-glow)] border border-[var(--color-accent)]">
+          <span className="text-[11px] font-medium font-mono text-[var(--color-accent)] tracking-[0.02em]">
             focus: {selectedAgent}
           </span>
           <button
             type="button"
             onClick={() => onSelectAgent(null)}
-            style={{
-              fontSize: 14,
-              color: "var(--color-text-tertiary)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: "0 2px",
-              lineHeight: 1,
-            }}
+            className="text-sm text-[var(--color-text-tertiary)] bg-none border-none cursor-pointer px-[2px] leading-none"
             aria-label="Exit Focus Mode"
           >
             ×
@@ -166,14 +91,7 @@ export function AppHeader() {
         <SessionTeamBadge agents={sessionTeam} />
 
         {agents.length > 0 && (
-          <span
-            style={{
-              fontSize: 11,
-              fontFamily: "var(--font-mono)",
-              color: "var(--color-text-tertiary)",
-              letterSpacing: "0.04em",
-            }}
-          >
+          <span className="text-[11px] font-mono text-[var(--color-text-tertiary)] tracking-[0.04em]">
             {agents.length} agents
           </span>
         )}
@@ -183,30 +101,7 @@ export function AppHeader() {
           onClick={toggleTheme}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            border: "1px solid var(--color-border-default)",
-            background: "transparent",
-            color: "var(--color-text-tertiary)",
-            cursor: "pointer",
-            fontSize: 14,
-            flexShrink: 0,
-            transition: "background 100ms, border-color 100ms, color 100ms",
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              "var(--color-surface-overlay)";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-secondary)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-tertiary)";
-          }}
+          className="flex items-center justify-center w-7 h-7 rounded-md border border-[var(--color-border-default)] bg-transparent text-[var(--color-text-tertiary)] cursor-pointer text-sm shrink-0 transition-[background,border-color,color] duration-100 hover:bg-[var(--color-surface-overlay)] hover:text-[var(--color-text-secondary)]"
         >
           {theme === "dark" ? "☀" : "☾"}
         </button>
@@ -218,26 +113,18 @@ export function AppHeader() {
           aria-label={connected ? "Connected" : "Disconnected"}
         >
           <span
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              display: "inline-block",
-              background: connected
-                ? "var(--color-connection-live)"
-                : "var(--color-connection-dead)",
-              boxShadow: connected ? "0 0 0 2px rgba(52,211,153,0.25)" : undefined,
-              flexShrink: 0,
-            }}
+            className={cn(
+              "w-1.5 h-1.5 rounded-full inline-block shrink-0",
+              connected
+                ? "bg-[var(--color-connection-live)] shadow-[0_0_0_2px_rgba(52,211,153,0.25)]"
+                : "bg-[var(--color-connection-dead)]"
+            )}
           />
           <span
-            style={{
-              fontSize: 11,
-              color: "var(--color-text-disabled)",
-              fontFamily: "var(--font-mono)",
-              letterSpacing: "0.04em",
-              animation: reconnecting && !connected ? "blink 1.2s step-end infinite" : "none",
-            }}
+            className={cn(
+              "text-[11px] text-[var(--color-text-disabled)] font-mono tracking-[0.04em]",
+              reconnecting && !connected && "animate-[blink_1.2s_step-end_infinite]"
+            )}
           >
             {connected ? "live" : reconnecting ? "reconnecting..." : "offline"}
           </span>

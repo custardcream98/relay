@@ -3,6 +3,7 @@
 
 import { memo, useMemo } from "react";
 import { getAgentAccent } from "../constants/agents";
+import { cn } from "../lib/cn";
 import type { AgentId } from "../types";
 import { relativeTime } from "../utils/time";
 
@@ -47,124 +48,51 @@ export const AgentCard = memo(function AgentCard({
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
 
-  // Stable card container style — recomputed only when selection or accentColor changes
+  // Dynamic colors from runtime hex — must stay inline
   const cardStyle = useMemo(
     () => ({
-      position: "relative" as const,
-      display: "flex",
-      flexDirection: "row" as const,
-      alignItems: "flex-start" as const,
-      gap: 12,
-      padding: "12px 12px",
-      marginBottom: 4,
-      borderRadius: 8,
-      cursor: "pointer",
-      transition: "background 120ms, border-color 120ms, box-shadow 120ms",
       background: isSelected ? `${accentColor}12` : "transparent",
       border: `1px solid ${isSelected ? `${accentColor}30` : "var(--color-border-subtle)"}`,
       boxShadow: isSelected ? `0 0 0 1px ${accentColor}20` : "none",
-      outline: "none",
     }),
     [isSelected, accentColor]
   );
 
-  // Stable avatar circle style — recomputed only when accentColor or working state changes
   const avatarStyle = useMemo(
     () => ({
-      width: 40,
-      height: 40,
-      borderRadius: "50%",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontSize: 20,
       background: `${accentColor}15`,
       boxShadow: isWorking
         ? `0 0 0 2px ${accentColor}`
         : isWaiting
           ? `0 0 0 2px ${accentColor}60`
           : `0 0 0 1px ${accentColor}30`,
-      animation: isWorking ? "ring-pulse 1.6s ease-in-out infinite" : "none",
       color: accentColor,
-      transition: "box-shadow 300ms",
+      animation: isWorking ? "ring-pulse 1.6s ease-in-out infinite" : "none",
     }),
     [accentColor, isWorking, isWaiting]
   );
 
-  // Stable agent name color style
-  const agentNameStyle = useMemo(
-    () => ({
-      fontSize: 13,
-      fontWeight: 600,
-      color: isSelected ? accentColor : "var(--color-text-primary)",
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      whiteSpace: "nowrap" as const,
-      minWidth: 0,
-    }),
-    [isSelected, accentColor]
-  );
-
-  // Stable status badge style — recomputed only when status changes
   const statusBadgeStyle = useMemo(
     () => ({
-      fontSize: 10,
-      fontWeight: 500,
       color: STATUS_BADGE_COLOR[status],
       background: `${STATUS_BADGE_COLOR[status]}18`,
-      padding: "1px 5px",
-      borderRadius: 3,
-      textTransform: "uppercase" as const,
-      letterSpacing: "0.05em",
-      flexShrink: 0,
     }),
     [status]
   );
 
-  // Stable in-progress task count style
   const taskCountStyle = useMemo(
     () => ({
-      fontSize: 10,
       color: accentColor,
       background: `${accentColor}18`,
-      padding: "1px 6px",
-      borderRadius: 9999,
       marginLeft: isWorking ? "auto" : 0,
-      flexShrink: 0,
     }),
     [accentColor, isWorking]
   );
 
-  // Stable thinking bubble style
   const thinkingBubbleStyle = useMemo(
     () => ({
-      fontSize: 12,
-      lineHeight: 1.55,
-      color: "var(--color-text-secondary)",
       background: `${accentColor}10`,
       border: `1px solid ${accentColor}28`,
-      borderRadius: 6,
-      padding: "4px 8px",
-      fontFamily: "var(--font-mono)",
-      overflow: "hidden",
-      display: "-webkit-box",
-      WebkitLineClamp: 2,
-      WebkitBoxOrient: "vertical" as const,
-    }),
-    [accentColor]
-  );
-
-  // Stable blinking cursor style
-  const cursorStyle = useMemo(
-    () => ({
-      display: "inline-block",
-      width: 6,
-      height: 11,
-      background: accentColor,
-      marginLeft: 2,
-      verticalAlign: "text-bottom" as const,
-      animation: "blink 1.1s step-end infinite",
-      opacity: 0.8,
     }),
     [accentColor]
   );
@@ -172,7 +100,7 @@ export const AgentCard = memo(function AgentCard({
   // Activity preview: thinking chunk when working, otherwise last message
   const activityText =
     isWorking && thinkingChunk
-      ? thinkingChunk.slice(-120) // show last 120 chars
+      ? thinkingChunk.slice(-120)
       : lastMessage
         ? lastMessage.slice(0, 80)
         : null;
@@ -185,92 +113,67 @@ export const AgentCard = memo(function AgentCard({
       aria-pressed={isSelected}
       onClick={onClick}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
+      className={cn(
+        "relative flex flex-row items-start gap-3 p-3 mb-1 rounded-lg cursor-pointer",
+        "transition-[background,border-color,box-shadow] duration-[120ms] outline-none",
+        !isSelected &&
+          "hover:bg-[var(--color-surface-raised)] hover:!border-[var(--color-border-default)]"
+      )}
       style={cardStyle}
-      onMouseEnter={(e) => {
-        if (!isSelected) {
-          (e.currentTarget as HTMLDivElement).style.background = "var(--color-surface-raised)";
-          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border-default)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!isSelected) {
-          (e.currentTarget as HTMLDivElement).style.background = "transparent";
-          (e.currentTarget as HTMLDivElement).style.borderColor = "var(--color-border-subtle)";
-        }
-      }}
     >
       {/* Avatar — agent emoji + color ring */}
-      <div style={{ position: "relative", flexShrink: 0 }}>
-        <div style={avatarStyle}>{emoji}</div>
+      <div className="relative shrink-0">
+        <div
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[20px] transition-[box-shadow] duration-300"
+          style={avatarStyle}
+        >
+          {emoji}
+        </div>
         {/* Status dot — bottom right */}
         <span
-          style={{
-            position: "absolute",
-            bottom: 0,
-            right: 0,
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: STATUS_BADGE_COLOR[status],
-            border: "2px solid var(--color-surface-base)",
-            display: "block",
-            flexShrink: 0,
-          }}
+          className="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full block shrink-0 border-2 border-[var(--color-surface-base)]"
+          style={{ background: STATUS_BADGE_COLOR[status] }}
         />
       </div>
 
       {/* Content column */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         {/* Header row: name + status badge + task count */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
-            marginBottom: 4,
-          }}
-        >
+        <div className="flex items-center gap-1.5 mb-1">
           {/* Agent name */}
-          <span style={agentNameStyle}>{name}</span>
-
-          {/* Agent ID badge — always visible for disambiguation */}
           <span
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              color: "var(--color-text-disabled)",
-              background: "var(--color-surface-overlay)",
-              padding: "1px 5px",
-              borderRadius: 9999,
-              flexShrink: 0,
-            }}
+            className="text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
+            style={{ color: isSelected ? accentColor : "var(--color-text-primary)" }}
           >
+            {name}
+          </span>
+
+          {/* Agent ID badge */}
+          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] bg-[var(--color-surface-overlay)] px-[5px] py-[1px] rounded-full shrink-0">
             {id}
           </span>
 
           {/* Status badge */}
-          <span className="font-mono" style={statusBadgeStyle}>
+          <span
+            className="font-mono text-[10px] font-medium px-[5px] py-[1px] rounded-[3px] uppercase tracking-[0.05em] shrink-0"
+            style={statusBadgeStyle}
+          >
             {status}
           </span>
 
-          {/* Last active timestamp — shown when idle/done/waiting and activity exists */}
+          {/* Last active timestamp */}
           {!isWorking && lastActivityTs && (
-            <span
-              className="font-mono"
-              style={{
-                fontSize: 9,
-                color: "var(--color-text-disabled)",
-                marginLeft: "auto",
-                flexShrink: 0,
-              }}
-            >
+            <span className="font-mono text-[9px] text-[var(--color-text-disabled)] ml-auto shrink-0">
               {relativeTime(lastActivityTs)}
             </span>
           )}
 
-          {/* In-progress task count — right end, only when working */}
+          {/* In-progress task count */}
           {inProgressCount > 0 && (
-            <span className="font-mono" style={taskCountStyle}>
+            <span
+              className="font-mono text-[10px] px-1.5 py-[1px] rounded-full shrink-0"
+              style={taskCountStyle}
+            >
               {inProgressCount} {inProgressCount === 1 ? "task" : "tasks"}
             </span>
           )}
@@ -278,14 +181,7 @@ export const AgentCard = memo(function AgentCard({
 
         {/* Base persona subtitle — only for extends agents */}
         {basePersonaId && (
-          <div
-            style={{
-              fontSize: 11,
-              color: "var(--color-text-disabled)",
-              fontStyle: "italic",
-              marginBottom: 2,
-            }}
-          >
+          <div className="text-[11px] text-[var(--color-text-disabled)] italic mb-[2px]">
             ↳ {basePersonaId}
           </div>
         )}
@@ -293,36 +189,35 @@ export const AgentCard = memo(function AgentCard({
         {/* Activity preview */}
         {isWorking && thinkingChunk ? (
           // Thinking bubble — chat bubble style with blinking cursor
-          <div style={thinkingBubbleStyle}>
-            {activityText}
-            {/* Blinking cursor — reuses blink keyframe from index.css */}
-            <span style={cursorStyle} />
-          </div>
-        ) : activityText ? (
-          <p
+          <div
+            className="text-xs leading-[1.55] text-[var(--color-text-secondary)] rounded-[6px] p-[4px_8px] font-mono overflow-hidden"
             style={{
-              fontSize: 12,
-              lineHeight: 1.5,
-              color: "var(--color-text-tertiary)",
-              overflow: "hidden",
+              ...thinkingBubbleStyle,
               display: "-webkit-box",
               WebkitLineClamp: 2,
               WebkitBoxOrient: "vertical",
-              margin: 0,
-              fontFamily: "var(--font-sans)",
+            }}
+          >
+            {activityText}
+            {/* Blinking cursor — reuses blink keyframe from index.css */}
+            <span
+              className="inline-block w-1.5 h-[11px] ml-[2px] align-text-bottom opacity-80"
+              style={{ animation: "blink 1.1s step-end infinite", background: accentColor }}
+            />
+          </div>
+        ) : activityText ? (
+          <p
+            className="text-xs leading-[1.5] text-[var(--color-text-tertiary)] m-0 overflow-hidden font-sans"
+            style={{
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
             }}
           >
             {activityText}
           </p>
         ) : (
-          <p
-            style={{
-              fontSize: 12,
-              color: "var(--color-text-disabled)",
-              margin: 0,
-              fontStyle: "italic",
-            }}
-          >
+          <p className="text-xs text-[var(--color-text-disabled)] m-0 italic">
             {status === "waiting"
               ? "Waiting for work…"
               : status === "done"

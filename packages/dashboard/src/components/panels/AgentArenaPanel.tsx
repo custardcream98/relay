@@ -16,13 +16,12 @@ export function AgentArenaPanel() {
   const contentWidth = arenaWidth - 32;
 
   return (
-    <div style={{ display: "flex", flexShrink: 0 }}>
+    <div className="flex shrink-0">
       {/* Width-animated content — collapses to 0 when hidden */}
       <div
+        className="overflow-hidden shrink-0"
         style={{
           width: arenaCollapsed ? 0 : contentWidth,
-          overflow: "hidden",
-          flexShrink: 0,
           transition: isDraggingArena ? "none" : "width 200ms ease",
         }}
       >
@@ -42,35 +41,12 @@ export function AgentArenaPanel() {
       </div>
 
       {/* Always-visible toggle rail — right side of panel */}
-      <div
-        style={{
-          width: 32,
-          flexShrink: 0,
-          borderRight: "1px solid var(--color-border-subtle)",
-          background: "var(--color-surface-base)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
+      <div className="w-8 shrink-0 border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] flex flex-col items-center">
         <button
           type="button"
           onClick={onToggleCollapse}
           title={arenaCollapsed ? "Expand panel" : "Collapse panel"}
-          style={{
-            marginTop: 8,
-            width: 24,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 4,
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--color-text-disabled)",
-            flexShrink: 0,
-          }}
+          className="mt-2 w-6 h-6 flex items-center justify-center rounded bg-none border-none cursor-pointer text-[var(--color-text-disabled)] shrink-0"
         >
           <svg
             width="14"
@@ -78,11 +54,8 @@ export function AgentArenaPanel() {
             viewBox="0 0 14 14"
             fill="none"
             aria-hidden="true"
-            style={{
-              transition: "transform 200ms ease",
-              // Points left ← (collapse) when expanded; rotates to → (expand) when collapsed
-              transform: arenaCollapsed ? "rotate(180deg)" : "rotate(0deg)",
-            }}
+            className="transition-transform duration-200 ease-[ease]"
+            style={{ transform: arenaCollapsed ? "rotate(180deg)" : "rotate(0deg)" }}
           >
             <path
               d="M9 3L5 7L9 11"

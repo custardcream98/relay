@@ -5,6 +5,7 @@
 import { useState } from "react";
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
+import { cn } from "../../lib/cn";
 import { ActivityFeed } from "../ActivityFeed";
 import { MessageFeed } from "../MessageFeed";
 
@@ -17,27 +18,13 @@ export function ActivityPanel() {
 
   return (
     <div
+      className="min-h-0 overflow-hidden flex flex-col transition-[flex] duration-200 ease-[ease]"
       style={{
         flex: taskBoardCollapsed ? "1 1 0" : `0 0 ${timelinePct}%`,
-        transition: "flex 200ms ease",
-        minHeight: 0,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
       }}
     >
       {/* Panel header — tab switcher */}
-      <div
-        className="flex items-center shrink-0"
-        style={{
-          height: 36,
-          borderBottom: "1px solid var(--color-border-subtle)",
-          background: "var(--color-surface-base)",
-          paddingLeft: 12,
-          paddingRight: 8,
-          gap: 2,
-        }}
-      >
+      <div className="flex items-center shrink-0 h-9 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] pl-3 pr-2 gap-0.5">
         {(
           [
             { id: "activity" as PanelTab, label: "Activity", count: timeline.length },
@@ -48,40 +35,21 @@ export function ActivityPanel() {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              padding: "3px 9px",
-              borderRadius: 4,
-              fontSize: 11,
-              fontWeight: 500,
-              cursor: "pointer",
-              border: "none",
-              background: activeTab === tab.id ? "var(--color-surface-overlay)" : "transparent",
-              color:
-                activeTab === tab.id ? "var(--color-text-secondary)" : "var(--color-text-disabled)",
-              transition: "background 100ms, color 100ms",
-              textTransform: "uppercase",
-              letterSpacing: "0.06em",
-            }}
+            className={cn(
+              "flex items-center gap-[5px] px-[9px] py-[3px] rounded text-[11px] font-medium cursor-pointer border-none transition-[background,color] duration-100 uppercase tracking-[0.06em]",
+              activeTab === tab.id
+                ? "bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)]"
+                : "bg-transparent text-[var(--color-text-disabled)]"
+            )}
           >
             {tab.label}
             <span
-              className="font-mono"
-              style={{
-                fontSize: 10,
-                background:
-                  activeTab === tab.id
-                    ? "var(--color-surface-raised)"
-                    : "var(--color-surface-overlay)",
-                color:
-                  activeTab === tab.id
-                    ? "var(--color-text-secondary)"
-                    : "var(--color-text-disabled)",
-                padding: "0 4px",
-                borderRadius: 3,
-              }}
+              className={cn(
+                "font-mono text-[10px] px-1 py-0 rounded-[3px]",
+                activeTab === tab.id
+                  ? "bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)]"
+                  : "bg-[var(--color-surface-overlay)] text-[var(--color-text-disabled)]"
+              )}
             >
               {tab.count}
             </span>

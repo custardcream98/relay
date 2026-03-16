@@ -4,28 +4,20 @@ import {
   getArtifactByName as storeGetArtifactByName,
   insertArtifact as storeInsertArtifact,
 } from "../../store";
-import type { SqliteDatabase } from "../types";
 
 export type { ArtifactRow } from "../../store";
 
 // Insert an artifact into the in-memory store
-export function insertArtifact(
-  _db: SqliteDatabase,
-  artifact: Omit<ArtifactRow, "created_at">
-): void {
+export function insertArtifact(artifact: Omit<ArtifactRow, "created_at">): void {
   storeInsertArtifact(artifact);
 }
 
 // Look up an artifact by name within a session (most recent match)
-export function getArtifactByName(
-  _db: SqliteDatabase,
-  sessionId: string,
-  name: string
-): ArtifactRow | null {
+export function getArtifactByName(sessionId: string, name: string): ArtifactRow | null {
   return storeGetArtifactByName(sessionId, name);
 }
 
 // Fetch all artifacts in a session
-export function getAllArtifacts(_db: SqliteDatabase, sessionId: string): ArtifactRow[] {
+export function getAllArtifacts(sessionId: string): ArtifactRow[] {
   return storeGetAllArtifacts(sessionId);
 }

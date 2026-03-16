@@ -4,6 +4,8 @@
 
 // --- Types ---
 
+import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
+
 export interface MessageRow {
   id: string;
   session_id: string;
@@ -14,6 +16,8 @@ export interface MessageRow {
   /** Arbitrary key-value metadata (e.g. task_id refs, structured context) */
   metadata?: Record<string, string> | null;
   created_at: number;
+  /** Monotonically increasing sequence number. Use as cursor for get_messages to avoid re-fetching full history. */
+  seq: number;
 }
 
 export interface TaskRow {
@@ -22,8 +26,8 @@ export interface TaskRow {
   title: string;
   description: string | null;
   assignee: string | null;
-  status: string;
-  priority: string;
+  status: TaskStatus;
+  priority: TaskPriority;
   created_by: string;
   /** IDs of tasks that must be completed before this task can start */
   depends_on?: string[];
@@ -80,24 +84,34 @@ export interface SessionRow {
 // --- Collections ---
 
 let messages: MessageRow[] = [];
+let messageSeq = 0; // Monotonically increasing sequence number for reliable since-cursor pagination
 let tasks: TaskRow[] = [];
 let artifacts: ArtifactRow[] = [];
 let reviews: ReviewRow[] = [];
 let events: EventRow[] = [];
 
-function now(): number {
+function nowSeconds(): number {
   return Math.floor(Date.now() / 1000);
 }
 
 // --- Messages ---
 
-export function insertMessage(msg: Omit<MessageRow, "created_at">): void {
-  messages.push({ ...msg, metadata: msg.metadata ?? null, created_at: now() });
+export function insertMessage(msg: Omit<MessageRow, "created_at" | "seq">): number {
+  const seq = ++messageSeq;
+  messages.push({ ...msg, metadata: msg.metadata ?? null, created_at: nowSeconds(), seq });
+  return seq;
 }
 
-export function getMessagesForAgent(sessionId: string, agentId: string): MessageRow[] {
+export function getMessagesForAgent(
+  sessionId: string,
+  agentId: string,
+  afterSeq?: number
+): MessageRow[] {
   return messages.filter(
-    (m) => m.session_id === sessionId && (m.to_agent === agentId || m.to_agent === null)
+    (m) =>
+      m.session_id === sessionId &&
+      (m.to_agent === agentId || m.to_agent === null) &&
+      (afterSeq === undefined || m.seq > afterSeq)
   );
 }
 
@@ -107,10 +121,8 @@ export function getAllMessages(sessionId: string): MessageRow[] {
 
 // --- Tasks ---
 
-const ALLOWED_UPDATE_KEYS = new Set<string>(["status", "assignee", "description"]);
-
 export function insertTask(task: Omit<TaskRow, "created_at" | "updated_at">): void {
-  const ts = now();
+  const ts = nowSeconds();
   tasks.push({ ...task, depends_on: task.depends_on ?? [], created_at: ts, updated_at: ts });
 }
 
@@ -119,15 +131,13 @@ export function updateTask(
   sessionId: string,
   updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">>
 ): boolean {
-  const keys = Object.keys(updates).filter((k) => ALLOWED_UPDATE_KEYS.has(k));
-  if (keys.length === 0) return false;
+  if (Object.keys(updates).length === 0) return false;
   const task = tasks.find((t) => t.id === id && t.session_id === sessionId);
   if (!task) return false;
-  for (const k of keys) {
-    (task as unknown as Record<string, unknown>)[k] =
-      (updates as Record<string, unknown>)[k] ?? null;
-  }
-  task.updated_at = now();
+  if ("status" in updates && updates.status !== undefined) task.status = updates.status;
+  if ("assignee" in updates) task.assignee = updates.assignee ?? null;
+  if ("description" in updates) task.description = updates.description ?? null;
+  task.updated_at = nowSeconds();
   return true;
 }
 
@@ -155,25 +165,27 @@ export function claimTask(taskId: string, agentId: string, sessionId: string): b
   );
   if (!task) return false;
   task.status = "in_progress";
-  task.updated_at = now();
+  task.updated_at = nowSeconds();
   return true;
 }
 
 export function getTeamStatus(sessionId: string): TeamStatusRow {
-  const sessionTasks = tasks.filter((t) => t.session_id === sessionId);
-  return {
-    todo: sessionTasks.filter((t) => t.status === "todo").length,
-    in_progress: sessionTasks.filter((t) => t.status === "in_progress").length,
-    in_review: sessionTasks.filter((t) => t.status === "in_review").length,
-    done: sessionTasks.filter((t) => t.status === "done").length,
-    total: sessionTasks.length,
-  };
+  const counts = { todo: 0, in_progress: 0, in_review: 0, done: 0, total: 0 };
+  for (const t of tasks) {
+    if (t.session_id !== sessionId) continue;
+    counts.total++;
+    if (t.status === "todo") counts.todo++;
+    else if (t.status === "in_progress") counts.in_progress++;
+    else if (t.status === "in_review") counts.in_review++;
+    else if (t.status === "done") counts.done++;
+  }
+  return counts;
 }
 
 // --- Artifacts ---
 
 export function insertArtifact(artifact: Omit<ArtifactRow, "created_at">): void {
-  artifacts.push({ ...artifact, created_at: now() });
+  artifacts.push({ ...artifact, created_at: nowSeconds() });
 }
 
 export function getArtifactByName(sessionId: string, name: string): ArtifactRow | null {
@@ -190,7 +202,7 @@ export function getAllArtifacts(sessionId: string): ArtifactRow[] {
 // --- Reviews ---
 
 export function insertReview(review: Omit<ReviewRow, "created_at" | "updated_at">): void {
-  const ts = now();
+  const ts = nowSeconds();
   reviews.push({ ...review, created_at: ts, updated_at: ts });
 }
 
@@ -204,7 +216,7 @@ export function updateReviewStatus(
   if (review) {
     review.status = status;
     review.comments = comments;
-    review.updated_at = now();
+    review.updated_at = nowSeconds();
   }
 }
 
@@ -266,6 +278,7 @@ export function getAllSessions(limit = 20): SessionRow[] {
 /** Clear all in-memory collections. Called by runMigrations() so existing test patterns work. */
 export function _resetStore(): void {
   messages = [];
+  messageSeq = 0;
   tasks = [];
   artifacts = [];
   reviews = [];

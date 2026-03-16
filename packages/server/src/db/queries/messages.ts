@@ -4,25 +4,24 @@ import {
   getMessagesForAgent as storeGetMessagesForAgent,
   insertMessage as storeInsertMessage,
 } from "../../store";
-import type { SqliteDatabase } from "../types";
 
 export type { MessageRow } from "../../store";
 
 // Insert a message into the in-memory store
-export function insertMessage(_db: SqliteDatabase, msg: Omit<MessageRow, "created_at">): void {
-  storeInsertMessage(msg);
+export function insertMessage(msg: Omit<MessageRow, "created_at" | "seq">): number {
+  return storeInsertMessage(msg);
 }
 
 // Fetch messages received by a specific agent (direct + broadcast)
 export function getMessagesForAgent(
-  _db: SqliteDatabase,
   sessionId: string,
-  agentId: string
+  agentId: string,
+  afterSeq?: number
 ): MessageRow[] {
-  return storeGetMessagesForAgent(sessionId, agentId);
+  return storeGetMessagesForAgent(sessionId, agentId, afterSeq);
 }
 
 // Fetch all messages in a session
-export function getAllMessages(_db: SqliteDatabase, sessionId: string): MessageRow[] {
+export function getAllMessages(sessionId: string): MessageRow[] {
   return storeGetAllMessages(sessionId);
 }

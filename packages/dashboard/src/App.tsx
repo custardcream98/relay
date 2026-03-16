@@ -3,7 +3,7 @@
 // Wraps AppLayout in the 4 focused context providers; no data props are passed down.
 
 import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { AppLayout } from "./components/AppLayout";
 import { AgentsContext } from "./context/AgentsContext";
 import { ConnectionContext } from "./context/ConnectionContext";
@@ -28,7 +28,8 @@ interface DashboardState {
   sessionTeam: AgentMeta[];
   // The session ID of the live session currently shown (from session:snapshot or session:started)
   liveSessionId: string | null;
-  _seq: number; // sequence counter for pure reducer
+  // Monotonic counter for stable timeline entry IDs — prevents returning the same state reference from reducer
+  _seq: number;
 }
 
 type Action =
@@ -125,6 +126,70 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
   }
 }
 
+// Extract session:snapshot handling to a pure helper for readability and testability
+function applySnapshot(
+  state: DashboardState,
+  event: Extract<DashboardEvent, { type: "session:snapshot" }>,
+  baseUpdates: Pick<DashboardState, "_seq" | "timeline">
+): DashboardState {
+  // Snapshot payload is now fully typed — no casting needed
+  const snapshotMessages: Message[] = event.messages;
+  const snapshotTasks: Task[] = event.tasks as Task[];
+
+  // Rebuild session team from snapshot if present
+  const teamFromSnapshot: AgentMeta[] =
+    event.agents && event.agents.length > 0
+      ? event.agents.map((a) => ({ ...a, id: a.id as AgentId }))
+      : state.sessionTeam;
+
+  const snapshotEntries: TimelineEntry[] = [
+    ...snapshotMessages.map((m) => ({
+      id: `snap-msg-${m.id}`,
+      type: "message:new" as const,
+      agentId: m.from_agent,
+      description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
+      detail: m.content,
+      timestamp: m.created_at * 1000, // SQLite unixepoch → ms
+    })),
+    ...snapshotTasks.map((t) => ({
+      id: `snap-task-${t.id}`,
+      type: "task:updated" as const,
+      agentId: t.assignee,
+      description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
+      // Use task's actual timestamp for correct chronological ordering
+      timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
+    })),
+  ].sort((a, b) => a.timestamp - b.timestamp);
+
+  // Reconstruct agent statuses from the last end: declaration in snapshot messages
+  const restoredStatuses: DashboardState["agentStatuses"] = {};
+  for (const m of snapshotMessages) {
+    if (!m.from_agent) continue;
+    const c = m.content ?? "";
+    if (c.startsWith("end:waiting")) restoredStatuses[m.from_agent as AgentId] = "waiting";
+    else if (c.startsWith("end:_done") || c.startsWith("end:failed"))
+      restoredStatuses[m.from_agent as AgentId] = "done";
+  }
+
+  return {
+    ...state,
+    ...baseUpdates,
+    tasks: snapshotTasks,
+    messages: snapshotMessages,
+    timeline: snapshotEntries,
+    agentStatuses: { ...state.agentStatuses, ...restoredStatuses },
+    instanceId: event.instanceId ?? state.instanceId,
+    instancePort: event.port ?? state.instancePort,
+    sessionTeam: teamFromSnapshot,
+    liveSessionId: event.sessionId,
+  };
+}
+
+// Strip trailing slash from a server base URL so /api paths are constructed correctly
+function normalizeUrl(url: string): string {
+  return url.replace(/\/$/, "");
+}
+
 function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
     case "EVENT": {
@@ -156,59 +221,8 @@ function reducer(state: DashboardState, action: Action): DashboardState {
       }
 
       switch (event.type) {
-        case "session:snapshot": {
-          // Snapshot payload is now fully typed — no casting needed
-          const snapshotMessages: Message[] = event.messages;
-          const snapshotTasks: Task[] = event.tasks as Task[];
-
-          // Rebuild session team from snapshot if present
-          const teamFromSnapshot: AgentMeta[] =
-            event.agents && event.agents.length > 0
-              ? event.agents.map((a) => ({ ...a, id: a.id as AgentId }))
-              : state.sessionTeam;
-
-          const snapshotEntries: TimelineEntry[] = [
-            ...snapshotMessages.map((m) => ({
-              id: `snap-msg-${m.id}`,
-              type: "message:new" as const,
-              agentId: m.from_agent,
-              description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
-              detail: m.content,
-              timestamp: m.created_at * 1000, // SQLite unixepoch → ms
-            })),
-            ...snapshotTasks.map((t) => ({
-              id: `snap-task-${t.id}`,
-              type: "task:updated" as const,
-              agentId: t.assignee,
-              description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
-              // Use task's actual timestamp for correct chronological ordering
-              timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
-            })),
-          ].sort((a, b) => a.timestamp - b.timestamp);
-
-          // Reconstruct agent statuses from the last end: declaration in snapshot messages
-          const restoredStatuses: DashboardState["agentStatuses"] = {};
-          for (const m of snapshotMessages) {
-            if (!m.from_agent) continue;
-            const c = m.content ?? "";
-            if (c.startsWith("end:waiting")) restoredStatuses[m.from_agent as AgentId] = "waiting";
-            else if (c.startsWith("end:_done") || c.startsWith("end:failed"))
-              restoredStatuses[m.from_agent as AgentId] = "done";
-          }
-
-          return {
-            ...state,
-            ...baseUpdates,
-            tasks: snapshotTasks,
-            messages: snapshotMessages,
-            timeline: snapshotEntries,
-            agentStatuses: { ...state.agentStatuses, ...restoredStatuses },
-            instanceId: event.instanceId ?? state.instanceId,
-            instancePort: event.port ?? state.instancePort,
-            sessionTeam: teamFromSnapshot,
-            liveSessionId: event.sessionId,
-          };
-        }
+        case "session:snapshot":
+          return applySnapshot(state, event, baseUpdates);
         case "agent:status":
           return {
             ...state,
@@ -331,8 +345,9 @@ export default function App() {
   // Initial state already has agentsLoading=true, so no synchronous setState needed here.
   // On server switch the previous agent list stays visible until the new fetch resolves.
   useEffect(() => {
-    const base = activeServer.replace(/\/$/, "");
-    fetch(`${base}/api/agents`)
+    const controller = new AbortController();
+    const base = normalizeUrl(activeServer);
+    fetch(`${base}/api/agents`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -349,27 +364,32 @@ export default function App() {
         setAgentsLoading(false);
         setAgentsError(false);
       })
-      .catch(() => {
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
         setAgentsError(true);
         setAgentsLoading(false);
       });
+    return () => controller.abort();
   }, [activeServer]);
 
   // Fetch server list — BE will add GET /api/servers; graceful fallback to empty array
   const [servers, setServers] = useState<ServerEntry[]>([]);
 
   useEffect(() => {
-    const base = activeServer.replace(/\/$/, "");
-    fetch(`${base}/api/servers`)
+    const controller = new AbortController();
+    const base = normalizeUrl(activeServer);
+    fetch(`${base}/api/servers`, { signal: controller.signal })
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json() as Promise<ServerEntry[]>;
       })
       .then((data) => setServers(data))
-      .catch(() => {
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === "AbortError") return;
         // Graceful: /api/servers not yet available — single-server mode, no switcher shown
         setServers([]);
       });
+    return () => controller.abort();
   }, [activeServer]);
 
   // Switch active relay server: reconnects the WebSocket and clears stale state
@@ -395,46 +415,71 @@ export default function App() {
     dispatch({ type: "SELECT_AGENT", agentId: id });
   }, []);
 
+  // Stabilize context values with useMemo so consumers only re-render when relevant state changes
+  const sessionValue = useMemo(
+    () => ({
+      tasks,
+      messages,
+      agentStatuses,
+      thinkingChunks,
+      selectedAgent,
+      timeline,
+      instanceId,
+      instancePort,
+      sessionTeam,
+      liveSessionId,
+      onSelectAgent: handleSelectAgent,
+    }),
+    [
+      tasks,
+      messages,
+      agentStatuses,
+      thinkingChunks,
+      selectedAgent,
+      timeline,
+      instanceId,
+      instancePort,
+      sessionTeam,
+      liveSessionId,
+      handleSelectAgent,
+    ]
+  );
+
+  const connectionValue = useMemo(
+    () => ({
+      connected,
+      reconnecting,
+      attempt,
+      nextRetryIn,
+      onRetryNow: retryNow,
+    }),
+    [connected, reconnecting, attempt, nextRetryIn, retryNow]
+  );
+
+  const serverValue = useMemo(
+    () => ({
+      servers,
+      activeServer,
+      onSwitchServer: handleSwitchServer,
+      onAddServer: handleAddServer,
+    }),
+    [servers, activeServer, handleSwitchServer, handleAddServer]
+  );
+
+  const agentsValue = useMemo(
+    () => ({
+      agents,
+      agentsLoading,
+      agentsError,
+    }),
+    [agents, agentsLoading, agentsError]
+  );
+
   return (
-    <SessionContext.Provider
-      value={{
-        tasks,
-        messages,
-        agentStatuses,
-        thinkingChunks,
-        selectedAgent,
-        timeline,
-        instanceId,
-        instancePort,
-        sessionTeam,
-        liveSessionId,
-        onSelectAgent: handleSelectAgent,
-      }}
-    >
-      <ConnectionContext.Provider
-        value={{
-          connected,
-          reconnecting,
-          attempt,
-          nextRetryIn,
-          onRetryNow: retryNow,
-        }}
-      >
-        <ServerContext.Provider
-          value={{
-            servers,
-            activeServer,
-            onSwitchServer: handleSwitchServer,
-            onAddServer: handleAddServer,
-          }}
-        >
-          <AgentsContext.Provider
-            value={{
-              agents,
-              agentsLoading,
-              agentsError,
-            }}
-          >
+    <SessionContext.Provider value={sessionValue}>
+      <ConnectionContext.Provider value={connectionValue}>
+        <ServerContext.Provider value={serverValue}>
+          <AgentsContext.Provider value={agentsValue}>
             <PanelResizeProvider>
               <AppLayout />
             </PanelResizeProvider>

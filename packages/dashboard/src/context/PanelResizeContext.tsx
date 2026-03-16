@@ -1,8 +1,9 @@
 // packages/dashboard/src/context/PanelResizeContext.tsx
-// Lifts usePanelResize() state into context so panels own their resize state
+// Lifts usePanelResize() + usePanelCollapse() state into context so panels own their resize state
 // without prop drilling through AppLayout.
 
-import { createContext, type RefObject, useContext } from "react";
+import { createContext, type RefObject, useContext, useMemo } from "react";
+import { usePanelCollapse } from "../hooks/usePanelCollapse";
 import { usePanelResize } from "../hooks/usePanelResize";
 
 interface PanelResizeContextValue {
@@ -21,7 +22,12 @@ interface PanelResizeContextValue {
 const PanelResizeContext = createContext<PanelResizeContextValue | null>(null);
 
 export function PanelResizeProvider({ children }: { children: React.ReactNode }) {
-  const value = usePanelResize();
+  const resize = usePanelResize();
+  const collapse = usePanelCollapse();
+  const value = useMemo<PanelResizeContextValue>(
+    () => ({ ...resize, ...collapse }),
+    [resize, collapse]
+  );
   return <PanelResizeContext.Provider value={value}>{children}</PanelResizeContext.Provider>;
 }
 

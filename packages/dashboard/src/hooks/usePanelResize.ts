@@ -1,5 +1,6 @@
 // packages/dashboard/src/hooks/usePanelResize.ts
-// Custom hook encapsulating panel resize state and drag handlers
+// Custom hook encapsulating panel resize state and drag handlers.
+// Collapse state is handled separately by usePanelCollapse.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -12,7 +13,6 @@ const TIMELINE_MAX_PCT = 80;
 
 export function usePanelResize() {
   const [arenaWidth, setArenaWidth] = useState(ARENA_DEFAULT_WIDTH);
-  const [arenaCollapsed, setArenaCollapsed] = useState(false);
   const [isDraggingArena, setIsDraggingArena] = useState(false);
   const [timelinePct, setTimelinePct] = useState(TIMELINE_DEFAULT_PCT);
   const activityRef = useRef<HTMLDivElement>(null);
@@ -88,22 +88,12 @@ export function usePanelResize() {
     [timelinePct]
   );
 
-  const onToggleCollapse = useCallback(() => setArenaCollapsed((v) => !v), []);
-
-  // Task Board collapse state (bottom-right panel)
-  const [taskBoardCollapsed, setTaskBoardCollapsed] = useState(false);
-  const onToggleTaskBoard = useCallback(() => setTaskBoardCollapsed((v) => !v), []);
-
   return {
     arenaWidth,
-    arenaCollapsed,
     isDraggingArena,
     timelinePct,
     activityRef,
     onHDividerMouseDown,
     onVDividerMouseDown,
-    onToggleCollapse,
-    taskBoardCollapsed,
-    onToggleTaskBoard,
   };
 }

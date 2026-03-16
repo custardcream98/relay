@@ -1,8 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config.ts";
 import { broadcast } from "../dashboard/websocket.ts";
-import { _resetStore, getEventsBySession } from "../store.ts";
+import { _resetStore, getEventsBySession, insertArtifact } from "../store.ts";
 import { handleRequestReview, handleSubmitReview } from "./review";
+
+/** Helper: insert a minimal artifact so handleRequestReview can find it. */
+function seedArtifact(sessionId: string, artifactId: string): void {
+  insertArtifact({
+    id: artifactId,
+    session_id: sessionId,
+    name: artifactId,
+    type: "document",
+    content: "test",
+    created_by: "fe",
+    task_id: null,
+  });
+}
 
 describe("review tool", () => {
   beforeEach(() => {
@@ -10,6 +23,7 @@ describe("review tool", () => {
   });
 
   test("request_review: creates review request", async () => {
+    seedArtifact("sess-1", "art-1");
     const result = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-1",
@@ -20,6 +34,7 @@ describe("review tool", () => {
   });
 
   test("submit_review: submits review result and returns review data", async () => {
+    seedArtifact("sess-1", "art-1");
     const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-1",
@@ -39,6 +54,7 @@ describe("review tool", () => {
   });
 
   test("submit_review: returns review with changes_requested status", async () => {
+    seedArtifact("sess-1", "art-2");
     const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-2",
@@ -66,6 +82,7 @@ describe("review tool", () => {
   });
 
   test("submit_review: returns permission denied when wrong agent submits review", async () => {
+    seedArtifact("sess-1", "art-3");
     const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-3",
@@ -82,6 +99,7 @@ describe("review tool", () => {
   });
 
   test("submit_review: works with no comments (optional field)", async () => {
+    seedArtifact("sess-1", "art-4");
     const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-4",
@@ -101,6 +119,7 @@ describe("review tool", () => {
   // Each request_review call creates an independent review record with its own review_id.
   // This is intentional: peer review flows allow parallel reviewers.
   test("request_review: multiple reviewers for the same artifact each get independent review IDs", async () => {
+    seedArtifact("sess-1", "art-shared");
     const { review_id: rid1 } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-shared",
@@ -116,9 +135,42 @@ describe("review tool", () => {
     expect(rid1).not.toBe(rid2);
   });
 
+  // Session isolation: a review created in sess-1 cannot be submitted from sess-2.
+  // getReviewById filters by session_id, so cross-session access returns null → "review not found".
+  test("submit_review: cannot submit a review from a different session", async () => {
+    seedArtifact("sess-1", "art-cross");
+    const { review_id } = await handleRequestReview("sess-1", {
+      agent_id: "fe",
+      artifact_id: "art-cross",
+      reviewer: "qa",
+    });
+    // Attempt to submit using a different session_id — must be rejected
+    const result = await handleSubmitReview("sess-2", {
+      agent_id: "qa",
+      review_id: review_id as string,
+      status: "approved",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("review not found");
+  });
+
+  // request_review from sess-2 cannot see an artifact seeded in sess-1.
+  test("request_review: cannot request review for an artifact from a different session", async () => {
+    seedArtifact("sess-1", "art-other-sess");
+    // Attempt to create a review for sess-1's artifact from the sess-2 context
+    const result = await handleRequestReview("sess-2", {
+      agent_id: "fe",
+      artifact_id: "art-other-sess",
+      reviewer: "qa",
+    });
+    expect(result.success).toBe(false);
+    expect((result as { success: false; error: string }).error).toContain("artifact not found");
+  });
+
   // submit_review is idempotent in the error direction: calling it again after a
   // successful submission returns an error rather than silently overwriting the decision.
   test("submit_review: re-submitting an already-submitted review returns an error", async () => {
+    seedArtifact("sess-1", "art-5");
     const { review_id } = await handleRequestReview("sess-1", {
       agent_id: "fe",
       artifact_id: "art-5",
@@ -153,6 +205,8 @@ describe("submit_review — review:updated broadcast", () => {
   });
 
   test("broadcasts review:updated with correct review shape after successful submit_review", async () => {
+    // Seed the artifact first so handleRequestReview can find it
+    seedArtifact("broadcast-test-session", "art-broadcast-1");
     // Create a review request first so submit_review has a valid review to update
     const { review_id } = await handleRequestReview("broadcast-test-session", {
       agent_id: "be",

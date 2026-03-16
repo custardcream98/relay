@@ -9,8 +9,11 @@ import {
   insertArtifact,
   insertEvent,
   insertMessage,
+  insertReview,
   insertTask,
+  MAX_ARTIFACTS_PER_SESSION,
   MAX_MESSAGES_PER_SESSION,
+  MAX_REVIEWS_PER_SESSION,
   MAX_TASKS_PER_SESSION,
 } from "./store";
 
@@ -345,6 +348,142 @@ describe("insertTask resource limits", () => {
         priority: "low",
         created_by: "pm",
         depends_on: [],
+      })
+    ).not.toThrow();
+  });
+});
+
+describe("insertArtifact resource limits", () => {
+  test("throws when session artifact limit is reached", () => {
+    // Insert exactly MAX-1 artifacts — all must succeed
+    for (let i = 0; i < MAX_ARTIFACTS_PER_SESSION - 1; i++) {
+      insertArtifact({
+        id: `a-${i}`,
+        session_id: "s-art-limit",
+        name: `artifact-${i}`,
+        type: "document",
+        content: "content",
+        created_by: "be",
+        task_id: null,
+      });
+    }
+    // The MAX-th insert should still succeed
+    expect(() =>
+      insertArtifact({
+        id: `a-${MAX_ARTIFACTS_PER_SESSION - 1}`,
+        session_id: "s-art-limit",
+        name: "last-allowed",
+        type: "document",
+        content: "content",
+        created_by: "be",
+        task_id: null,
+      })
+    ).not.toThrow();
+    // The (MAX+1)-th insert must throw
+    expect(() =>
+      insertArtifact({
+        id: "a-overflow",
+        session_id: "s-art-limit",
+        name: "overflow",
+        type: "document",
+        content: "content",
+        created_by: "be",
+        task_id: null,
+      })
+    ).toThrow(`max ${MAX_ARTIFACTS_PER_SESSION}`);
+  });
+
+  test("limit is per-session — a different session is not affected", () => {
+    // Fill up s-art-full
+    for (let i = 0; i < MAX_ARTIFACTS_PER_SESSION; i++) {
+      insertArtifact({
+        id: `af-${i}`,
+        session_id: "s-art-full",
+        name: `artifact-${i}`,
+        type: "document",
+        content: "content",
+        created_by: "be",
+        task_id: null,
+      });
+    }
+    // s-art-other must still accept artifacts
+    expect(() =>
+      insertArtifact({
+        id: "other-a-1",
+        session_id: "s-art-other",
+        name: "ok",
+        type: "document",
+        content: "content",
+        created_by: "be",
+        task_id: null,
+      })
+    ).not.toThrow();
+  });
+});
+
+describe("insertReview resource limits", () => {
+  test("throws when session review limit is reached", () => {
+    // Insert exactly MAX-1 reviews — all must succeed
+    for (let i = 0; i < MAX_REVIEWS_PER_SESSION - 1; i++) {
+      insertReview({
+        id: `r-${i}`,
+        session_id: "s-rev-limit",
+        artifact_id: `art-${i}`,
+        reviewer: "qa",
+        requester: "be",
+        status: "pending",
+        comments: null,
+      });
+    }
+    // The MAX-th insert should still succeed
+    expect(() =>
+      insertReview({
+        id: `r-${MAX_REVIEWS_PER_SESSION - 1}`,
+        session_id: "s-rev-limit",
+        artifact_id: "art-last",
+        reviewer: "qa",
+        requester: "be",
+        status: "pending",
+        comments: null,
+      })
+    ).not.toThrow();
+    // The (MAX+1)-th insert must throw
+    expect(() =>
+      insertReview({
+        id: "r-overflow",
+        session_id: "s-rev-limit",
+        artifact_id: "art-overflow",
+        reviewer: "qa",
+        requester: "be",
+        status: "pending",
+        comments: null,
+      })
+    ).toThrow(`max ${MAX_REVIEWS_PER_SESSION}`);
+  });
+
+  test("limit is per-session — a different session is not affected", () => {
+    // Fill up s-rev-full
+    for (let i = 0; i < MAX_REVIEWS_PER_SESSION; i++) {
+      insertReview({
+        id: `rf-${i}`,
+        session_id: "s-rev-full",
+        artifact_id: `art-${i}`,
+        reviewer: "qa",
+        requester: "be",
+        status: "pending",
+        comments: null,
+      });
+    }
+    // s-rev-other must still accept reviews
+    expect(() =>
+      insertReview({
+        id: "other-r-1",
+        session_id: "s-rev-other",
+        artifact_id: "art-ok",
+        reviewer: "qa",
+        requester: "be",
+        status: "pending",
+        comments: null,
       })
     ).not.toThrow();
   });

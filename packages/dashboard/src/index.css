@@ -40,10 +40,35 @@
   --color-status-waiting: #fbbf24;
   --color-status-idle: #2a2318;
 
+  /* Task column accent colors — top border of kanban columns */
+  --color-column-in-progress: rgba(96, 165, 250, 0.5);
+  --color-column-in-review: rgba(251, 191, 36, 0.5);
+  --color-column-done: rgba(52, 211, 153, 0.5);
+
+  /* Task status badge colors */
+  --color-status-todo-bg: var(--color-surface-overlay);
+  --color-status-todo-text: var(--color-text-tertiary);
+  --color-status-todo-border: var(--color-border-subtle);
+  --color-status-in-progress-bg: rgba(96, 165, 250, 0.12);
+  --color-status-in-progress-text: #60a5fa;
+  --color-status-in-progress-border: rgba(96, 165, 250, 0.4);
+  --color-status-in-review-bg: rgba(251, 191, 36, 0.12);
+  --color-status-in-review-text: #fbbf24;
+  --color-status-in-review-border: rgba(251, 191, 36, 0.4);
+  --color-status-done-bg: rgba(52, 211, 153, 0.12);
+  --color-status-done-text: #34d399;
+  --color-status-done-border: rgba(52, 211, 153, 0.4);
+
   /* Priority */
   --color-priority-critical: #ef4444;
+  --color-priority-critical-bg: rgba(239, 68, 68, 0.12);
+  --color-priority-critical-border: rgba(239, 68, 68, 0.4);
   --color-priority-high: #f97316;
+  --color-priority-high-bg: rgba(249, 115, 22, 0.12);
+  --color-priority-high-border: rgba(249, 115, 22, 0.4);
   --color-priority-medium: #eab308;
+  --color-priority-medium-bg: rgba(234, 179, 8, 0.12);
+  --color-priority-medium-border: rgba(234, 179, 8, 0.4);
 
   /* Connection state */
   --color-connection-live: #34d399;
@@ -216,4 +241,11 @@ body {
   50% {
     opacity: 0.3;
   }
+}
+
+/* Task card hover — CSS-only, avoids React DOM style mutation */
+.task-card:not([aria-expanded="true"]):hover {
+  background: var(--color-surface-overlay);
+  border-color: var(--color-border-default);
+  box-shadow: var(--shadow-card-hover);
 }

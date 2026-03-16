@@ -1,11 +1,8 @@
 // packages/dashboard/src/types.ts
 // Canonical domain types for the dashboard — single source of truth
 
-import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
-export type { AgentId, RelayEvent };
-
-export type TaskStatus = "todo" | "in_progress" | "in_review" | "done";
-export type TaskPriority = "critical" | "high" | "medium" | "low";
+import type { AgentId, RelayEvent, TaskPriority, TaskStatus } from "@custardcream/relay-shared";
+export type { AgentId, RelayEvent, TaskPriority, TaskStatus };
 
 export interface Task {
   id: string;

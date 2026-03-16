@@ -4,7 +4,7 @@
 export const DEFAULT_AGENT_ACCENT = "#9898a8";
 
 export const AGENT_ACCENT_HEX: Partial<Record<string, string>> = {
-  pm: "#a78bfa",
+  pm: "#c084fc",
   designer: "#f472b6",
   da: "#fbbf24",
   fe: "#60a5fa",

@@ -194,6 +194,17 @@ For each base agent, determine their state:
 
 Then immediately enter the Main Event Loop below.
 
+## Orchestrator Role Boundaries — CRITICAL
+
+The orchestrator is a **pure coordinator**. It MUST NOT:
+- Use Edit, Write, or any file-modification tool
+- Use Bash to run implementation commands
+- Fix bugs, write code, or implement tasks directly — even simple ones
+
+When stranded or unassigned todo tasks remain → always re-spawn the appropriate agent.
+**Step 4 of the event loop handles stranded todos automatically. Trust the process.**
+Violating this rule defeats the entire purpose of relay.
+
 ## Main Event Loop
 
 ```
@@ -310,6 +321,20 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     if still no new work:
       warn user: "Possible deadlock. Dormant agents: {list} — {reasons}. Continue or abort?"
       proceed or abort based on user decision
+
+  # 4. Stranded todo check — runs every iteration AFTER message processing.
+  # Catches tasks assigned to agents that already declared end:_done.
+  # This is the primary structural guard: when stranded todos are found, the agent is
+  # moved back from done_agents → dormant_agents, so the while condition becomes true
+  # again and Step 1 re-spawns the agent in the next iteration.
+  # NEVER handle stranded tasks directly — always let Step 4 revive the agent.
+  if done_agents:
+    stranded_check = get_all_tasks(agent_id: "orchestrator")
+    for agentId in list(done_agents.keys()):
+      stranded = [t for t in stranded_check if t.assignee == agentId AND t.status == 'todo']
+      if stranded:
+        dormant_agents[agentId] = "stranded: new todo tasks created after end:_done — " + str([t.title for t in stranded])
+        del done_agents[agentId]
 ```
 
 ## Re-spawn Pattern
@@ -380,6 +405,10 @@ Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
 ## Session Wrap-up
 
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
+
+> Step 4 guarantees this is only reachable when the task board has no stranded todos.
+> If stranded todos existed in the previous iteration, Step 4 moved affected agents back
+> to dormant_agents, keeping the while condition true until all work is genuinely done.
 
 1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
 2. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.

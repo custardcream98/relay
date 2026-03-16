@@ -112,6 +112,7 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
   const isDirect = msg.to_agent !== null;
   const toColor = isDirect && msg.to_agent ? getAgentAccent(msg.to_agent) : null;
   const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
 
   // Dynamic border/background from runtime color requires inline style
   const containerStyle = useMemo(
@@ -123,10 +124,12 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
   );
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: hover-only interaction for copy button visibility
+    // biome-ignore lint/a11y/noStaticElementInteractions: hover/focus interaction for copy button visibility
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={() => setFocused(false)}
       className="flex gap-[10px] px-4 py-[10px] border-b border-[var(--color-border-subtle)] transition-[background] duration-[80ms] relative"
       style={containerStyle}
     >
@@ -150,12 +153,12 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
 
           {/* Timestamp — pushed to right */}
           <div className="ml-auto flex items-center gap-1">
-            {/* Copy button — only visible on hover */}
+            {/* Copy button — visible on hover or when row has keyboard focus */}
             <div
               className="transition-opacity duration-100"
               style={{
-                opacity: hovered ? 1 : 0,
-                pointerEvents: hovered ? "auto" : "none",
+                opacity: hovered || focused ? 1 : 0,
+                pointerEvents: hovered || focused ? "auto" : "none",
               }}
             >
               <CopyButton text={msg.content} />

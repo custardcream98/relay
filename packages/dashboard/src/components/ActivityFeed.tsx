@@ -420,12 +420,34 @@ function EntryRenderer({ entry }: { entry: TimelineEntry }) {
 export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuses }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const filterBarRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
   // Filter state — persisted to localStorage
   const [activeFilters, setActiveFilters] = useState<Set<FilterableType>>(buildDefaultFilters);
   const [filterOpen, setFilterOpen] = useState(false);
+
+  // Close filter panel on Escape or outside click — mirrors ServerSwitcher / SessionSelector pattern
+  useEffect(() => {
+    if (!filterOpen) return;
+
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setFilterOpen(false);
+    }
+    function handleClick(e: MouseEvent) {
+      if (filterBarRef.current && !filterBarRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+
+    document.addEventListener("keydown", handleKey);
+    document.addEventListener("mousedown", handleClick);
+    return () => {
+      document.removeEventListener("keydown", handleKey);
+      document.removeEventListener("mousedown", handleClick);
+    };
+  }, [filterOpen]);
 
   // Refresh relative timestamps every 30 seconds
   const [, setTick] = useState(0);
@@ -530,7 +552,10 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Filter bar */}
-      <div className="flex items-center gap-1 px-3 py-[5px] border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] shrink-0 flex-nowrap overflow-x-auto">
+      <div
+        ref={filterBarRef}
+        className="flex items-center gap-1 px-3 py-[5px] border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] shrink-0 flex-nowrap overflow-x-auto"
+      >
         {/* Filter toggle button */}
         <button
           type="button"
@@ -633,7 +658,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           className="flex-1 overflow-y-auto pt-1 pb-1 relative"
           onScroll={handleScroll}
         >
-          {filtered.length >= 200 && (
+          {entries.length >= 200 && (
             <div className="text-center px-4 py-1.5 text-[10px] text-[var(--color-text-disabled)] font-mono">
               Showing last 200 events
             </div>

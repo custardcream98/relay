@@ -33,7 +33,8 @@ function renderInline(text: string): ReactNode[] {
         </em>
       );
     }
-    return part;
+    // Plain text: wrap in a fragment with key to satisfy React's array-child key requirement
+    return <span key={i}>{part}</span>;
   });
 }
 

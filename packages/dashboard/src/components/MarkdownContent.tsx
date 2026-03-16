@@ -2,6 +2,7 @@
 // Lightweight dependency-free markdown renderer
 
 import type { ReactNode } from "react";
+import { memo } from "react";
 
 // Inline element parser: **bold**, *italic*, `code`
 function renderInline(text: string): ReactNode[] {
@@ -43,11 +44,11 @@ function renderInline(text: string): ReactNode[] {
   });
 }
 
-export function MarkdownContent({ text }: { text: string }) {
+export const MarkdownContent = memo(function MarkdownContent({ text }: { text: string }) {
   const lines = text.split("\n");
   const nodes: ReactNode[] = [];
   let i = 0;
-  let key = 0;
+  let index = 0;
 
   while (i < lines.length) {
     const line = lines[i];
@@ -63,7 +64,7 @@ export function MarkdownContent({ text }: { text: string }) {
       }
       nodes.push(
         <pre
-          key={key++}
+          key={`block-${index++}`}
           className="my-2 overflow-x-auto"
           style={{
             // surface-inset background, border-subtle border
@@ -107,7 +108,7 @@ export function MarkdownContent({ text }: { text: string }) {
     if (line.startsWith("# ")) {
       nodes.push(
         <p
-          key={key++}
+          key={`block-${index++}`}
           className="mt-2 mb-0.5 text-sm font-semibold"
           style={{ color: "var(--color-text-primary)" }}
         >
@@ -123,7 +124,7 @@ export function MarkdownContent({ text }: { text: string }) {
       const depth = line.startsWith("### ") ? 4 : 3;
       nodes.push(
         <p
-          key={key++}
+          key={`block-${index++}`}
           className="mt-1.5 mb-0.5 text-xs font-semibold uppercase tracking-wide"
           style={{ color: "var(--color-text-secondary)" }}
         >
@@ -149,7 +150,7 @@ export function MarkdownContent({ text }: { text: string }) {
         i++;
       }
       nodes.push(
-        <div key={key++} className="my-1.5 overflow-x-auto">
+        <div key={`block-${index++}`} className="my-1.5 overflow-x-auto">
           <table className="text-xs w-full border-collapse">
             <tbody>
               {rows.map((row, ri) => (
@@ -184,7 +185,7 @@ export function MarkdownContent({ text }: { text: string }) {
     // List item
     if (line.match(/^[-*] /)) {
       nodes.push(
-        <div key={key++} className="flex gap-2 text-sm leading-relaxed">
+        <div key={`block-${index++}`} className="flex gap-2 text-sm leading-relaxed">
           <span className="mt-0.5 shrink-0" style={{ color: "var(--color-text-tertiary)" }}>
             ·
           </span>
@@ -199,7 +200,7 @@ export function MarkdownContent({ text }: { text: string }) {
 
     // Empty line
     if (line.trim() === "") {
-      nodes.push(<div key={key++} className="h-1.5" />);
+      nodes.push(<div key={`block-${index++}`} className="h-1.5" />);
       i++;
       continue;
     }
@@ -207,7 +208,7 @@ export function MarkdownContent({ text }: { text: string }) {
     // Plain text
     nodes.push(
       <p
-        key={key++}
+        key={`block-${index++}`}
         className="text-sm leading-relaxed"
         style={{ color: "var(--color-text-secondary)" }}
       >
@@ -218,4 +219,4 @@ export function MarkdownContent({ text }: { text: string }) {
   }
 
   return <div className="space-y-0.5">{nodes}</div>;
-}
+});

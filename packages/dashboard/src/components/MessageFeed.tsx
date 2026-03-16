@@ -13,60 +13,15 @@ import { getAgentAccent } from "../constants/agents";
 import type { Message } from "../types";
 import { relativeTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
+import { AgentAvatar } from "./shared/AgentAvatar";
+import { AgentChip } from "./shared/AgentChip";
 
 interface Props {
   messages: Message[];
 }
 
-// Agent avatar — circular chip with accent color and first 2 chars of agent_id
-function AgentAvatar({ agentId, size = 28 }: { agentId: string; size?: number }) {
-  const color = getAgentAccent(agentId);
-  return (
-    <div
-      aria-hidden="true"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `${color}18`,
-        border: `1px solid ${color}40`,
-        color,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.38,
-        fontWeight: 700,
-        fontFamily: "var(--font-mono)",
-        flexShrink: 0,
-        letterSpacing: "-0.02em",
-        userSelect: "none",
-      }}
-    >
-      {agentId.slice(0, 2).toUpperCase()}
-    </div>
-  );
-}
-
-// Agent name chip — colored mono text
-function AgentChip({ agentId }: { agentId: string }) {
-  const color = getAgentAccent(agentId);
-  return (
-    <span
-      className="font-mono"
-      style={{
-        fontSize: 11,
-        fontWeight: 600,
-        color,
-        background: `${color}18`,
-        padding: "1px 5px",
-        borderRadius: 3,
-        flexShrink: 0,
-      }}
-    >
-      {agentId}
-    </span>
-  );
-}
+// Threads with more messages than this threshold are collapsed by default
+const COLLAPSE_THRESHOLD = 3;
 
 // Copy-to-clipboard button — shown on message hover
 function CopyButton({ text }: { text: string }) {
@@ -158,22 +113,28 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
   const toColor = isDirect && msg.to_agent ? getAgentAccent(msg.to_agent) : null;
   const [hovered, setHovered] = useState(false);
 
+  // Stable container style — recomputed only when isDirect/toColor changes
+  const containerStyle = useMemo(
+    () => ({
+      display: "flex",
+      gap: 10,
+      padding: "10px 16px",
+      borderBottom: "1px solid var(--color-border-subtle)",
+      // DMs: left accent bar + subtle tinted background
+      borderLeft: isDirect && toColor ? `2px solid ${toColor}` : "2px solid transparent",
+      background: isDirect && toColor ? `${toColor}06` : "transparent",
+      transition: "background 80ms",
+      position: "relative" as const,
+    }),
+    [isDirect, toColor]
+  );
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: hover-only interaction for copy button visibility
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        // DMs: left accent bar + subtle tinted background
-        borderLeft: isDirect && toColor ? `2px solid ${toColor}` : "2px solid transparent",
-        background: isDirect && toColor ? `${toColor}06` : "transparent",
-        transition: "background 80ms",
-        position: "relative",
-      }}
+      style={containerStyle}
     >
       <AgentAvatar agentId={msg.from_agent} size={30} />
 
@@ -235,7 +196,6 @@ const ThreadGroup = memo(function ThreadGroup({
   msgs: Message[];
   threadId: string | null;
 }) {
-  const COLLAPSE_THRESHOLD = 3;
   const isThread = msgs.length > 1;
   const [expanded, setExpanded] = useState(false);
 

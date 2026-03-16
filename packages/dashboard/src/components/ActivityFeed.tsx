@@ -8,6 +8,8 @@ import { getAgentAccent } from "../constants/agents";
 import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
 import { MarkdownContent } from "./MarkdownContent";
+import { AgentAvatar } from "./shared/AgentAvatar";
+import { AgentChip } from "./shared/AgentChip";
 
 interface Props {
   entries: TimelineEntry[];
@@ -59,54 +61,6 @@ function getEndDeclarationType(content: string): "done" | "waiting" | "failed" |
   if (content.startsWith("end:failed")) return "failed";
   if (content.startsWith("end:waiting")) return "waiting";
   return null;
-}
-
-// Agent avatar chip — circular, accent color background
-function AgentAvatar({ agentId, size = 28 }: { agentId: string; size?: number }) {
-  const color = getAgentAccent(agentId);
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: `${color}18`,
-        border: `1px solid ${color}40`,
-        color,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: size * 0.38,
-        fontWeight: 700,
-        fontFamily: "var(--font-mono)",
-        flexShrink: 0,
-        letterSpacing: "-0.02em",
-      }}
-    >
-      {agentId.slice(0, 2).toUpperCase()}
-    </div>
-  );
-}
-
-// Agent name chip — colored mono text
-function AgentChip({ agentId }: { agentId: string }) {
-  const color = getAgentAccent(agentId);
-  return (
-    <span
-      className="font-mono"
-      style={{
-        fontSize: 11,
-        fontWeight: 600,
-        color,
-        background: `${color}18`,
-        padding: "1px 5px",
-        borderRadius: 3,
-        flexShrink: 0,
-      }}
-    >
-      {agentId}
-    </span>
-  );
 }
 
 // [A] Broadcast message card
@@ -170,22 +124,26 @@ const MessageDirectEntry = memo(function MessageDirectEntry({
   entry: TimelineEntry;
   toAgent: string;
 }) {
-  if (!entry.agentId || !entry.detail) return null;
-
   const toColor = getAgentAccent(toAgent);
 
+  // Stable style computed from toColor — avoids new object every render
+  const containerStyle = useMemo(
+    () => ({
+      display: "flex",
+      gap: 10,
+      padding: "10px 16px",
+      borderBottom: "1px solid var(--color-border-subtle)",
+      background: `${toColor}06`,
+      borderLeft: `2px solid ${toColor}`,
+      animation: "slide-in-bottom 180ms ease-out both",
+    }),
+    [toColor]
+  );
+
+  if (!entry.agentId || !entry.detail) return null;
+
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        background: `${toColor}06`,
-        borderLeft: `2px solid ${toColor}`,
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div style={containerStyle}>
       <AgentAvatar agentId={entry.agentId} size={30} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
@@ -216,37 +174,56 @@ const ThinkingEntry = memo(function ThinkingEntry({
   isLive: boolean;
 }) {
   const accentColor = getAgentAccent(agentId);
-  const displayChunk = chunk || "";
+
+  // Stable container style — recomputed only when accentColor changes
+  const containerStyle = useMemo(
+    () => ({
+      display: "flex",
+      gap: 10,
+      padding: "10px 16px",
+      borderBottom: "1px solid var(--color-border-subtle)",
+      background: "var(--color-thinking-bg)",
+      border: "1px dashed var(--color-thinking-border)",
+      borderLeft: `2px dashed ${accentColor}40`,
+      margin: "4px 12px",
+      borderRadius: 6,
+      animation: "slide-in-bottom 180ms ease-out both",
+    }),
+    [accentColor]
+  );
+
+  // Stable thinking label style
+  const thinkingLabelStyle = useMemo(
+    () => ({
+      fontSize: 10,
+      color: accentColor,
+      opacity: 0.8,
+      fontStyle: "italic" as const,
+    }),
+    [accentColor]
+  );
+
+  // Stable cursor style
+  const cursorStyle = useMemo(
+    () => ({
+      display: "inline-block",
+      width: 5,
+      height: 11,
+      background: accentColor,
+      marginLeft: 2,
+      verticalAlign: "text-bottom" as const,
+      animation: "blink 1.2s step-end infinite",
+    }),
+    [accentColor]
+  );
 
   return (
-    <div
-      style={{
-        display: "flex",
-        gap: 10,
-        padding: "10px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        background: "var(--color-thinking-bg)",
-        border: "1px dashed var(--color-thinking-border)",
-        borderLeft: `2px dashed ${accentColor}40`,
-        margin: "4px 12px",
-        borderRadius: 6,
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div style={containerStyle}>
       <AgentAvatar agentId={agentId} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <AgentChip agentId={agentId} />
-          <span
-            style={{
-              fontSize: 10,
-              color: accentColor,
-              opacity: 0.8,
-              fontStyle: "italic",
-            }}
-          >
-            thinking…
-          </span>
+          <span style={thinkingLabelStyle}>thinking…</span>
           <span
             className="font-mono"
             style={{ fontSize: 10, color: "var(--color-text-disabled)", marginLeft: "auto" }}
@@ -265,20 +242,8 @@ const ThinkingEntry = memo(function ThinkingEntry({
             wordBreak: "break-word",
           }}
         >
-          {displayChunk}
-          {isLive && (
-            <span
-              style={{
-                display: "inline-block",
-                width: 5,
-                height: 11,
-                background: accentColor,
-                marginLeft: 2,
-                verticalAlign: "text-bottom",
-                animation: "blink 1.2s step-end infinite",
-              }}
-            />
-          )}
+          {chunk}
+          {isLive && <span style={cursorStyle} />}
         </p>
       </div>
     </div>
@@ -286,7 +251,7 @@ const ThinkingEntry = memo(function ThinkingEntry({
 });
 
 // [D] Task status change — inline pill, minimal visual weight
-function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
+const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
   const accentColor = entry.agentId ? getAgentAccent(entry.agentId) : "var(--color-text-disabled)";
 
   // Determine icon by status keyword in description
@@ -296,6 +261,12 @@ function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
   else if (desc.includes("in progress") || desc.includes("claimed")) icon = "🔄";
   else if (desc.includes("in review")) icon = "👁";
   else if (desc.includes("todo")) icon = "⬜";
+
+  // Stable agent name style
+  const agentNameStyle = useMemo(
+    () => ({ fontSize: 10, fontWeight: 600, color: accentColor }),
+    [accentColor]
+  );
 
   return (
     <div
@@ -309,7 +280,7 @@ function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
     >
       <span style={{ fontSize: 12 }}>{icon}</span>
       {entry.agentId && (
-        <span className="font-mono" style={{ fontSize: 10, fontWeight: 600, color: accentColor }}>
+        <span className="font-mono" style={agentNameStyle}>
           {entry.agentId}
         </span>
       )}
@@ -334,10 +305,10 @@ function TaskInlineEntry({ entry }: { entry: TimelineEntry }) {
       </span>
     </div>
   );
-}
+});
 
 // [E] Artifact posted card
-function ArtifactEntry({ entry }: { entry: TimelineEntry }) {
+const ArtifactEntry = memo(function ArtifactEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
   return (
     <div
@@ -391,10 +362,10 @@ function ArtifactEntry({ entry }: { entry: TimelineEntry }) {
       </div>
     </div>
   );
-}
+});
 
 // [F] Review requested card — amber action card
-function ReviewEntry({ entry }: { entry: TimelineEntry }) {
+const ReviewEntry = memo(function ReviewEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
   return (
     <div
@@ -436,10 +407,10 @@ function ReviewEntry({ entry }: { entry: TimelineEntry }) {
       </div>
     </div>
   );
-}
+});
 
 // [F2] Review updated card — outcome of a review (approved/rejected/changes_requested)
-function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
+const ReviewUpdatedEntry = memo(function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
   if (!entry.agentId) return null;
   const statusText = entry.description; // e.g. "Review approved: reviewer-id"
   return (
@@ -495,10 +466,10 @@ function ReviewUpdatedEntry({ entry }: { entry: TimelineEntry }) {
       </div>
     </div>
   );
-}
+});
 
 // [G] End declaration — compact card with avatar for clear agent attribution
-function EndDeclarationEntry({
+const EndDeclarationEntry = memo(function EndDeclarationEntry({
   agentId,
   endType,
   timestamp,
@@ -516,19 +487,23 @@ function EndDeclarationEntry({
   const color = colorMap[endType];
   const agentColor = getAgentAccent(agentId);
 
+  // Stable container style — recomputed only when agentColor changes
+  const containerStyle = useMemo(
+    () => ({
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      padding: "6px 16px",
+      borderBottom: "1px solid var(--color-border-subtle)",
+      borderLeft: `2px solid ${agentColor}50`,
+      background: `${agentColor}08`,
+      animation: "slide-in-bottom 180ms ease-out both",
+    }),
+    [agentColor]
+  );
+
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        padding: "6px 16px",
-        borderBottom: "1px solid var(--color-border-subtle)",
-        borderLeft: `2px solid ${agentColor}50`,
-        background: `${agentColor}08`,
-        animation: "slide-in-bottom 180ms ease-out both",
-      }}
-    >
+    <div style={containerStyle}>
       <AgentAvatar agentId={agentId} size={22} />
       <AgentChip agentId={agentId} />
       <span style={{ fontSize: 11, color, fontWeight: 600 }}>{iconMap[endType]}</span>
@@ -547,10 +522,10 @@ function EndDeclarationEntry({
       </span>
     </div>
   );
-}
+});
 
 // System / status / memory events — tiny inline annotation
-function SystemEntry({ entry }: { entry: TimelineEntry }) {
+const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry }) {
   return (
     <div
       style={{
@@ -578,7 +553,7 @@ function SystemEntry({ entry }: { entry: TimelineEntry }) {
       </span>
     </div>
   );
-}
+});
 
 // Route an entry to the correct renderer
 function EntryRenderer({ entry }: { entry: TimelineEntry }) {
@@ -638,25 +613,33 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   }, [activeFilters]);
 
   // Filter entries — focusAgent AND type filters combined
-  const filtered = entries.filter((e) => {
-    if (focusAgent && e.agentId !== focusAgent) return false;
-    if (e.type === "agent:thinking") return false; // shown via thinkingChunks instead
-    return activeFilters.has(e.type);
-  });
+  const filtered = useMemo(
+    () =>
+      entries.filter((e) => {
+        if (focusAgent && e.agentId !== focusAgent) return false;
+        if (e.type === "agent:thinking") return false; // shown via thinkingChunks instead
+        return activeFilters.has(e.type);
+      }),
+    [entries, focusAgent, activeFilters]
+  );
 
   // Live thinking agents — only show when working and chunk is non-empty
-  const thinkingAgents = Object.entries(thinkingChunks)
-    .filter(([agentId, chunk]) => {
-      if (!chunk) return false;
-      if (focusAgent && agentId !== focusAgent) return false;
-      if (!activeFilters.has("agent:thinking")) return false;
-      return true;
-    })
-    .map(([agentId, chunk]) => ({
-      agentId,
-      chunk: chunk ?? "",
-      isLive: agentStatuses[agentId as AgentId] === "working",
-    }));
+  const thinkingAgents = useMemo(
+    () =>
+      Object.entries(thinkingChunks)
+        .filter(([agentId, chunk]) => {
+          if (!chunk) return false;
+          if (focusAgent && agentId !== focusAgent) return false;
+          if (!activeFilters.has("agent:thinking")) return false;
+          return true;
+        })
+        .map(([agentId, chunk]) => ({
+          agentId,
+          chunk: chunk ?? "",
+          isLive: agentStatuses[agentId as AgentId] === "working",
+        })),
+    [thinkingChunks, focusAgent, activeFilters, agentStatuses]
+  );
 
   // Auto-scroll to bottom on new entries, unless user has scrolled up
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on entry count / thinking change

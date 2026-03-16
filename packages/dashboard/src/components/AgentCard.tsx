@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/AgentCard.tsx
 // Agent card — avatar, status badge, activity preview, task count
 
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { getAgentAccent } from "../constants/agents";
 import type { AgentId } from "../types";
 import { relativeTime } from "../utils/time";
@@ -47,6 +47,128 @@ export const AgentCard = memo(function AgentCard({
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
 
+  // Stable card container style — recomputed only when selection or accentColor changes
+  const cardStyle = useMemo(
+    () => ({
+      position: "relative" as const,
+      display: "flex",
+      flexDirection: "row" as const,
+      alignItems: "flex-start" as const,
+      gap: 12,
+      padding: "12px 12px",
+      marginBottom: 4,
+      borderRadius: 8,
+      cursor: "pointer",
+      transition: "background 120ms, border-color 120ms, box-shadow 120ms",
+      background: isSelected ? `${accentColor}12` : "transparent",
+      border: `1px solid ${isSelected ? `${accentColor}30` : "var(--color-border-subtle)"}`,
+      boxShadow: isSelected ? `0 0 0 1px ${accentColor}20` : "none",
+      outline: "none",
+    }),
+    [isSelected, accentColor]
+  );
+
+  // Stable avatar circle style — recomputed only when accentColor or working state changes
+  const avatarStyle = useMemo(
+    () => ({
+      width: 40,
+      height: 40,
+      borderRadius: "50%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: 20,
+      background: `${accentColor}15`,
+      boxShadow: isWorking
+        ? `0 0 0 2px ${accentColor}`
+        : isWaiting
+          ? `0 0 0 2px ${accentColor}60`
+          : `0 0 0 1px ${accentColor}30`,
+      animation: isWorking ? "ring-pulse 1.6s ease-in-out infinite" : "none",
+      color: accentColor,
+      transition: "box-shadow 300ms",
+    }),
+    [accentColor, isWorking, isWaiting]
+  );
+
+  // Stable agent name color style
+  const agentNameStyle = useMemo(
+    () => ({
+      fontSize: 13,
+      fontWeight: 600,
+      color: isSelected ? accentColor : "var(--color-text-primary)",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap" as const,
+      minWidth: 0,
+    }),
+    [isSelected, accentColor]
+  );
+
+  // Stable status badge style — recomputed only when status changes
+  const statusBadgeStyle = useMemo(
+    () => ({
+      fontSize: 10,
+      fontWeight: 500,
+      color: STATUS_BADGE_COLOR[status],
+      background: `${STATUS_BADGE_COLOR[status]}18`,
+      padding: "1px 5px",
+      borderRadius: 3,
+      textTransform: "uppercase" as const,
+      letterSpacing: "0.05em",
+      flexShrink: 0,
+    }),
+    [status]
+  );
+
+  // Stable in-progress task count style
+  const taskCountStyle = useMemo(
+    () => ({
+      fontSize: 10,
+      color: accentColor,
+      background: `${accentColor}18`,
+      padding: "1px 6px",
+      borderRadius: 9999,
+      marginLeft: isWorking ? "auto" : 0,
+      flexShrink: 0,
+    }),
+    [accentColor, isWorking]
+  );
+
+  // Stable thinking bubble style
+  const thinkingBubbleStyle = useMemo(
+    () => ({
+      fontSize: 12,
+      lineHeight: 1.55,
+      color: "var(--color-text-secondary)",
+      background: `${accentColor}10`,
+      border: `1px solid ${accentColor}28`,
+      borderRadius: 6,
+      padding: "4px 8px",
+      fontFamily: "var(--font-mono)",
+      overflow: "hidden",
+      display: "-webkit-box",
+      WebkitLineClamp: 2,
+      WebkitBoxOrient: "vertical" as const,
+    }),
+    [accentColor]
+  );
+
+  // Stable blinking cursor style
+  const cursorStyle = useMemo(
+    () => ({
+      display: "inline-block",
+      width: 6,
+      height: 11,
+      background: accentColor,
+      marginLeft: 2,
+      verticalAlign: "text-bottom" as const,
+      animation: "blink 1.1s step-end infinite",
+      opacity: 0.8,
+    }),
+    [accentColor]
+  );
+
   // Activity preview: thinking chunk when working, otherwise last message
   const activityText =
     isWorking && thinkingChunk
@@ -63,22 +185,7 @@ export const AgentCard = memo(function AgentCard({
       aria-pressed={isSelected}
       onClick={onClick}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
-      style={{
-        position: "relative",
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "flex-start",
-        gap: 12,
-        padding: "12px 12px",
-        marginBottom: 4,
-        borderRadius: 8,
-        cursor: "pointer",
-        transition: "background 120ms, border-color 120ms, box-shadow 120ms",
-        background: isSelected ? `${accentColor}12` : "transparent",
-        border: `1px solid ${isSelected ? `${accentColor}30` : "var(--color-border-subtle)"}`,
-        boxShadow: isSelected ? `0 0 0 1px ${accentColor}20` : "none",
-        outline: "none",
-      }}
+      style={cardStyle}
       onMouseEnter={(e) => {
         if (!isSelected) {
           (e.currentTarget as HTMLDivElement).style.background = "var(--color-surface-raised)";
@@ -94,29 +201,7 @@ export const AgentCard = memo(function AgentCard({
     >
       {/* Avatar — agent emoji + color ring */}
       <div style={{ position: "relative", flexShrink: 0 }}>
-        <div
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 20,
-            background: `${accentColor}15`,
-            // working state: apply ring-pulse animation
-            boxShadow: isWorking
-              ? `0 0 0 2px ${accentColor}`
-              : isWaiting
-                ? `0 0 0 2px ${accentColor}60`
-                : `0 0 0 1px ${accentColor}30`,
-            animation: isWorking ? "ring-pulse 1.6s ease-in-out infinite" : "none",
-            color: accentColor,
-            transition: "box-shadow 300ms",
-          }}
-        >
-          {emoji}
-        </div>
+        <div style={avatarStyle}>{emoji}</div>
         {/* Status dot — bottom right */}
         <span
           style={{
@@ -146,19 +231,7 @@ export const AgentCard = memo(function AgentCard({
           }}
         >
           {/* Agent name */}
-          <span
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: isSelected ? accentColor : "var(--color-text-primary)",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              minWidth: 0,
-            }}
-          >
-            {name}
-          </span>
+          <span style={agentNameStyle}>{name}</span>
 
           {/* Agent ID badge — always visible for disambiguation */}
           <span
@@ -176,20 +249,7 @@ export const AgentCard = memo(function AgentCard({
           </span>
 
           {/* Status badge */}
-          <span
-            className="font-mono"
-            style={{
-              fontSize: 10,
-              fontWeight: 500,
-              color: STATUS_BADGE_COLOR[status],
-              background: `${STATUS_BADGE_COLOR[status]}18`,
-              padding: "1px 5px",
-              borderRadius: 3,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              flexShrink: 0,
-            }}
-          >
+          <span className="font-mono" style={statusBadgeStyle}>
             {status}
           </span>
 
@@ -210,18 +270,7 @@ export const AgentCard = memo(function AgentCard({
 
           {/* In-progress task count — right end, only when working */}
           {inProgressCount > 0 && (
-            <span
-              className="font-mono"
-              style={{
-                fontSize: 10,
-                color: accentColor,
-                background: `${accentColor}18`,
-                padding: "1px 6px",
-                borderRadius: 9999,
-                marginLeft: isWorking ? "auto" : 0,
-                flexShrink: 0,
-              }}
-            >
+            <span className="font-mono" style={taskCountStyle}>
               {inProgressCount} {inProgressCount === 1 ? "task" : "tasks"}
             </span>
           )}
@@ -244,36 +293,10 @@ export const AgentCard = memo(function AgentCard({
         {/* Activity preview */}
         {isWorking && thinkingChunk ? (
           // Thinking bubble — chat bubble style with blinking cursor
-          <div
-            style={{
-              fontSize: 12,
-              lineHeight: 1.55,
-              color: "var(--color-text-secondary)",
-              background: `${accentColor}10`,
-              border: `1px solid ${accentColor}28`,
-              borderRadius: 6,
-              padding: "4px 8px",
-              fontFamily: "var(--font-mono)",
-              overflow: "hidden",
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-            }}
-          >
+          <div style={thinkingBubbleStyle}>
             {activityText}
             {/* Blinking cursor — reuses blink keyframe from index.css */}
-            <span
-              style={{
-                display: "inline-block",
-                width: 6,
-                height: 11,
-                background: accentColor,
-                marginLeft: 2,
-                verticalAlign: "text-bottom",
-                animation: "blink 1.1s step-end infinite",
-                opacity: 0.8,
-              }}
-            />
+            <span style={cursorStyle} />
           </div>
         ) : activityText ? (
           <p

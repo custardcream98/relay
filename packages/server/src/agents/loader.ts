@@ -76,10 +76,13 @@ function resolveHooks(hooks: AgentHooks): ResolvedAgentHooks {
 
 /**
  * Read a YAML file and parse it as AgentsFile.
- * Returns null if the file does not exist.
+ * Returns null if the file does not exist or cannot be parsed.
+ * Throws on YAML parse errors so callers can surface a clear error message.
  */
 function readYml(path: string): AgentsFile | null {
   if (!existsSync(path)) return null;
+  // yaml.load() throws YAMLException on malformed input — let it propagate
+  // so loadPool() callers receive a descriptive error instead of a silent null.
   return yaml.load(readFileSync(path, "utf-8")) as AgentsFile;
 }
 

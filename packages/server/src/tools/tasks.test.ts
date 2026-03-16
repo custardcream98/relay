@@ -589,4 +589,79 @@ describe("tasks tool", () => {
       expect(result.reason).toContain("Unmet dependencies");
     });
   });
+
+  describe("create_task idempotency_key", () => {
+    test("same key returns existing task_id without creating a duplicate", async () => {
+      const first = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task A",
+        priority: "medium",
+        idempotency_key: "unique-key-1",
+      });
+      const second = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task A (retry)",
+        priority: "high",
+        idempotency_key: "unique-key-1",
+      });
+      expect(first.success).toBe(true);
+      expect(second.success).toBe(true);
+      expect(second.task_id).toBe(first.task_id);
+      // Only one task should exist in the session
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "pm" });
+      expect(tasks.length).toBe(1);
+    });
+
+    test("same key in different sessions creates independent tasks", async () => {
+      const r1 = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task A",
+        priority: "medium",
+        idempotency_key: "shared-key",
+      });
+      const r2 = handleCreateTask("sess-2", {
+        agent_id: "pm",
+        title: "Task A",
+        priority: "medium",
+        idempotency_key: "shared-key",
+      });
+      expect(r1.success).toBe(true);
+      expect(r2.success).toBe(true);
+      expect(r1.task_id).not.toBe(r2.task_id);
+    });
+
+    test("omitting idempotency_key always creates a new task", async () => {
+      const r1 = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task B",
+        priority: "low",
+      });
+      const r2 = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task B",
+        priority: "low",
+      });
+      expect(r1.success).toBe(true);
+      expect(r2.success).toBe(true);
+      expect(r1.task_id).not.toBe(r2.task_id);
+    });
+
+    test("key still returns same task_id after the task has been claimed", async () => {
+      const { task_id } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task C",
+        priority: "high",
+        idempotency_key: "claimed-key",
+      });
+      await handleClaimTask("sess-1", { agent_id: "pm", task_id: task_id as string });
+      const retry = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "Task C (retry)",
+        priority: "high",
+        idempotency_key: "claimed-key",
+      });
+      expect(retry.success).toBe(true);
+      expect(retry.task_id).toBe(task_id);
+    });
+  });
 });

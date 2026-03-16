@@ -59,6 +59,13 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Optional list of task IDs that must reach 'done' before this task can be started. Enables dependency chains."
         ),
+      idempotency_key: z
+        .string()
+        .max(256)
+        .optional()
+        .describe(
+          "Optional idempotency key. If a task with this key already exists in the session, returns the existing task_id without creating a duplicate. Use to make create_task safe to call again after agent re-spawn."
+        ),
     },
     async (input) => {
       // handleCreateTask is synchronous; no await needed but the handler must be async

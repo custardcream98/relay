@@ -31,6 +31,12 @@ export interface TaskRow {
   created_by: string;
   /** IDs of tasks that must be completed before this task can start */
   depends_on?: string[];
+  /**
+   * Optional idempotency key — when provided, create_task returns the existing task
+   * instead of inserting a duplicate. Scoped to session. Safe for re-spawned agents
+   * to call create_task again without producing duplicate tasks on the board.
+   */
+  external_id?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -184,6 +190,14 @@ export function updateTask(
 
 export function getTaskById(id: string, sessionId: string): TaskRow | null {
   return tasks.find((t) => t.id === id && t.session_id === sessionId) ?? null;
+}
+
+/**
+ * Look up a task by its idempotency key within a session.
+ * Used by handleCreateTask to implement safe-to-retry task creation.
+ */
+export function getTaskByExternalId(sessionId: string, externalId: string): TaskRow | null {
+  return tasks.find((t) => t.session_id === sessionId && t.external_id === externalId) ?? null;
 }
 
 export function getTasksByAssignee(sessionId: string, assignee: string): TaskRow[] {

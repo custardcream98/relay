@@ -3,6 +3,7 @@ import type { ResolvedAgentHooks } from "../agents/types";
 import {
   claimTask,
   getAllTasks,
+  getTaskByExternalId,
   getTaskById,
   getTasksByAssignee,
   getTeamStatus,
@@ -22,7 +23,9 @@ function buildHookEnv(agentId: string, taskId: string, sessionId: string): Recor
   };
 }
 
-// Create a task and return its generated ID
+// Create a task and return its generated ID.
+// If idempotency_key is provided and a task with that key already exists in the session,
+// returns the existing task_id without creating a duplicate — safe for re-spawned agents.
 export function handleCreateTask(
   sessionId: string,
   input: {
@@ -32,9 +35,14 @@ export function handleCreateTask(
     assignee?: string;
     priority: TaskPriority;
     depends_on?: string[];
+    idempotency_key?: string;
   }
 ) {
   try {
+    if (input.idempotency_key) {
+      const existing = getTaskByExternalId(sessionId, input.idempotency_key);
+      if (existing) return { success: true, task_id: existing.id };
+    }
     const id = crypto.randomUUID();
     insertTask({
       id,
@@ -46,6 +54,7 @@ export function handleCreateTask(
       priority: input.priority,
       created_by: input.agent_id,
       depends_on: input.depends_on ?? [],
+      external_id: input.idempotency_key ?? null,
     });
     return { success: true, task_id: id };
   } catch (err) {

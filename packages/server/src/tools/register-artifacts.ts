@@ -30,6 +30,7 @@ export function registerArtifactTools(server: McpServer): void {
         .describe("Artifact content (JSON, Markdown, or plain text). Max 512 KB."),
       task_id: z
         .string()
+        .max(128)
         .optional()
         .describe("ID of the task this artifact fulfills. Links the artifact to a task card."),
     },

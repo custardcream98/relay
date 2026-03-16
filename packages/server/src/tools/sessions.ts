@@ -41,6 +41,9 @@ export async function handleListSessions(relayDir: string) {
     const sessions = readdirSync(sessionsDir, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
+      // Lexicographic sort works correctly only when all session IDs use the
+      // date-prefixed format "YYYY-MM-DD-HHmmss-XXXX" (the default auto-generated format).
+      // Custom RELAY_SESSION_ID values that are not date-prefixed will sort incorrectly.
       .sort()
       .reverse(); // most recent first
     return { success: true, sessions };

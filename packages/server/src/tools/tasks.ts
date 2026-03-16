@@ -55,6 +55,7 @@ export function handleCreateTask(
 
 // Update a task's status or assignee.
 // Returns success: false if the task does not exist or belongs to a different session.
+// Only the task's assignee or creator can update it. Unassigned tasks can be updated by anyone.
 // If hooks.after_task is set and status is being set to "done", the hook runs after the store write.
 // Non-zero exit reverts the status back to "in_review".
 export async function handleUpdateTask(
@@ -71,6 +72,19 @@ export async function handleUpdateTask(
     if (Object.keys(updates).length === 0) {
       return { success: false, error: "No valid fields to update" };
     }
+
+    // Ownership check: only the assignee or creator may update the task.
+    // Unassigned tasks (assignee === null) are open to any agent.
+    const existing = getTaskById(input.task_id, sessionId);
+    if (!existing) return { success: false, error: "task not found" };
+    if (
+      existing.assignee !== null &&
+      existing.assignee !== input.agent_id &&
+      existing.created_by !== input.agent_id
+    ) {
+      return { success: false, error: "permission denied: not the task assignee or creator" };
+    }
+
     const updated = updateTask(input.task_id, sessionId, updates);
     if (!updated) return { success: false, error: "task not found" };
 
@@ -163,6 +177,26 @@ export async function handleClaimTask(
           success: true,
           claimed: false,
           reason: `before_task hook failed (exit ${hookResult.exitCode ?? "timeout"}): ${hookResult.output}`,
+        };
+      }
+    }
+
+    // Re-check depends_on after the hook completes to close the TOCTOU window.
+    // The before_task hook can take up to 30s, during which a dependency may have been
+    // reverted from "done" back to "in_review" (e.g. via after_task hook failure).
+    if (task && (task.depends_on ?? []).length > 0) {
+      const unmetIds: string[] = [];
+      for (const depId of task.depends_on ?? []) {
+        const dep = getTaskById(depId, sessionId);
+        if (!dep || dep.status !== "done") {
+          unmetIds.push(depId);
+        }
+      }
+      if (unmetIds.length > 0) {
+        return {
+          success: true,
+          claimed: false,
+          reason: `Unmet dependencies (re-check after hook): ${unmetIds.join(", ")}`,
         };
       }
     }

@@ -45,14 +45,25 @@ export function registerTaskTools(server: McpServer): void {
         .enum(["critical", "high", "medium", "low"])
         .describe("Task priority. critical=blocking, high=this sprint, medium=next, low=backlog."),
       depends_on: z
-        .array(z.string())
+        .array(
+          z
+            .string()
+            .regex(
+              /^[a-zA-Z0-9_-]+$/,
+              "depends_on: each task ID must be alphanumeric, hyphen, or underscore"
+            )
+            .max(128, "depends_on: each task ID must be ≤ 128 characters")
+        )
+        .max(32, "depends_on: max 32 dependencies per task")
         .optional()
         .describe(
           "Optional list of task IDs that must reach 'done' before this task can be started. Enables dependency chains."
         ),
     },
     async (input) => {
-      const result = await handleCreateTask(getSessionId(), input);
+      // handleCreateTask is synchronous; no await needed but the handler must be async
+      // for consistent MCP tool handler typing across all tools.
+      const result = handleCreateTask(getSessionId(), input);
       if (result.success && result.task_id) {
         const task = getTaskById(result.task_id, getSessionId());
         if (task) {
@@ -72,7 +83,10 @@ export function registerTaskTools(server: McpServer): void {
     "Update a task's status or assignee. When setting status to 'done', the agent's after_task hook (if configured) runs; a non-zero exit reverts status to 'in_review' and returns { success: false, hook_failed: true, error } — fix the issue and retry. A { success: false } without hook_failed means the task was not found.",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the agent performing the update."),
-      task_id: z.string().describe("ID of the task to update. Must belong to the current session."),
+      task_id: z
+        .string()
+        .max(128)
+        .describe("ID of the task to update. Must belong to the current session."),
       status: z
         .enum(["todo", "in_progress", "in_review", "done"])
         .optional()
@@ -130,6 +144,7 @@ export function registerTaskTools(server: McpServer): void {
       ),
       task_id: z
         .string()
+        .max(128)
         .describe(
           "ID of the task to claim. The task must be in 'todo' status. Obtain IDs from get_all_tasks."
         ),

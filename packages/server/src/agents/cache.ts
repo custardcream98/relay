@@ -15,6 +15,10 @@ export const POOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 // Lazy agent cache — populated on first getAgents() call.
 // Key: session_id string, or "__default__" for the no-session-id case.
 // Session-specific files are written once per /relay:relay run and never mutate; no TTL needed.
+// Intentional design: unlike the pool cache (5-min TTL), session entries are never evicted.
+// Edge case: if a session YAML is corrected while the server is running, the stale entry
+// will persist until server restart or _invalidateCache() (test-only). This is acceptable
+// because session files are considered immutable after the /relay:relay run writes them.
 const agentsCache = new Map<string, Record<string, AgentPersona>>();
 
 let pool: Record<string, AgentPersona> | null = null;

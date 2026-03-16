@@ -28,11 +28,13 @@ export function handleSendMessage(sessionId: string, input: SendMessageInput) {
       thread_id: input.thread_id ?? null,
       metadata: input.metadata ?? null,
     };
-    const seq = insertMessage(msg);
+    // insertMessage returns { seq, created_at } so the broadcast payload reflects the exact
+    // timestamp stored in the in-memory collection, eliminating clock-tick drift.
+    const { seq, created_at } = insertMessage(msg);
     return {
       success: true as const,
       message_id: id,
-      message: { ...msg, created_at: Math.floor(Date.now() / 1000), seq },
+      message: { ...msg, created_at, seq },
     };
   } catch (err) {
     return { success: false as const, error: String(err) };

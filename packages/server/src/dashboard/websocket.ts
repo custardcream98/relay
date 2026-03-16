@@ -7,8 +7,17 @@ import type { RelayEvent } from "./events";
 // Set of currently connected WebSocket clients
 const clients = new Set<WebSocket>();
 
-export function addClient(ws: WebSocket): void {
+// Maximum concurrent WebSocket connections.
+// Prevents unbounded memory growth from many open dashboard tabs or scripted clients.
+const MAX_WS_CLIENTS = 50;
+
+/** Adds a client to the broadcast set. Returns false if the cap is reached (caller should close the socket). */
+export function addClient(ws: WebSocket): boolean {
+  if (clients.size >= MAX_WS_CLIENTS) {
+    return false;
+  }
   clients.add(ws);
+  return true;
 }
 
 export function removeClient(ws: WebSocket): void {

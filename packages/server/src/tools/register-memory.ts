@@ -27,7 +27,12 @@ export function registerMemoryTools(server: McpServer): void {
     "write_memory",
     {
       agent_id: AGENT_ID_SCHEMA.optional().describe("Agent ID. Omit to write to project.md"),
-      key: z.string().describe("Memory section key (e.g. conventions, api-patterns)"),
+      key: z
+        .string()
+        .min(1)
+        .max(256)
+        .regex(/^[^#\n\r][^\n\r]*$/, "key must not start with '#' and must not contain newlines")
+        .describe("Memory section key (e.g. conventions, api-patterns)"),
       content: z.string().max(131072).describe("Content to store"),
     },
     async (input) => {

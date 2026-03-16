@@ -40,6 +40,8 @@ export function getInstanceId(): string | undefined {
 
 /**
  * Returns the SQLite DB file path for this instance.
+ * Not called by the production server (which uses the in-memory store), but exposed
+ * as a utility for external tooling and test helpers that need to locate the DB file.
  * Priority:
  * 1. RELAY_DB_PATH env var (explicit override)
  * 2. .relay/relay-{instance}.db when RELAY_INSTANCE is set

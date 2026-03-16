@@ -86,6 +86,10 @@ app.get("/api/health", (c) => {
 
 // API: session snapshot (used for initial dashboard load)
 // Supports optional pagination via ?offset=N&limit=N on tasks and messages.
+// Note: the same offset/limit values are applied independently to both tasks and messages.
+// There is no way to paginate tasks and messages separately via this endpoint.
+// For independent pagination, clients should track totals and make separate requests,
+// or rely on WebSocket events for incremental updates instead.
 app.get("/api/session", (c) => {
   try {
     const sessionId = getSessionId();
@@ -157,13 +161,17 @@ app.get("/api/sessions/:id", async (c) => {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   const result = await handleGetSessionSummary(getRelayDir(), { session_id: sessionId });
-  if (!result.success) return c.json({ error: result.error }, 404);
+  if (!result.success) return c.json({ success: false, error: result.error }, 404);
   return c.json(result);
 });
 
-// Tracks agent IDs seen within the current session to emit agent:joined once per agent.
-// Reset is not needed — server process lifetime == session lifetime for typical usage.
-const seenAgentIds = new Set<string>();
+// Tracks agent IDs seen per session to emit agent:joined once per agent per session.
+// Keyed by session ID so that when setSessionId() advances the session (e.g. a second
+// /relay:relay invocation within the same process), agents re-emit agent:joined for the new session.
+// Capped at MAX_SEEN_SESSIONS entries to prevent unbounded growth in long-running processes
+// that run many relay sessions sequentially.
+const MAX_SEEN_SESSIONS = 10;
+const seenAgentIdsBySession = new Map<string, Set<string>>();
 
 // Called by the PostToolUse hook — broadcasts agent:status events to the dashboard
 app.post("/api/hook/tool-use", async (c) => {
@@ -191,16 +199,32 @@ app.post("/api/hook/tool-use", async (c) => {
       : "unknown";
 
   const now = Date.now();
+  const currentSessionId = getSessionId();
 
-  // Emit agent:joined the first time this agent ID appears in the session
-  if (agentId !== "unknown" && !seenAgentIds.has(agentId)) {
-    seenAgentIds.add(agentId);
-    broadcast({
-      type: "agent:joined",
-      agentId: markAsAgentId(agentId),
-      sessionId: getSessionId(),
-      timestamp: now,
-    });
+  // Emit agent:joined the first time this agent ID appears in the current session.
+  // Using a per-session set ensures agents re-emit agent:joined when a new session starts
+  // within the same server process (e.g. after setSessionId() is called).
+  if (agentId !== "unknown") {
+    let seenInSession = seenAgentIdsBySession.get(currentSessionId);
+    if (!seenInSession) {
+      seenInSession = new Set<string>();
+      seenAgentIdsBySession.set(currentSessionId, seenInSession);
+      // Evict the oldest session entry once the cap is exceeded to prevent unbounded growth.
+      // Map iteration order is insertion order, so the first entry is always the oldest.
+      if (seenAgentIdsBySession.size > MAX_SEEN_SESSIONS) {
+        const oldestKey = seenAgentIdsBySession.keys().next().value;
+        if (oldestKey !== undefined) seenAgentIdsBySession.delete(oldestKey);
+      }
+    }
+    if (!seenInSession.has(agentId)) {
+      seenInSession.add(agentId);
+      broadcast({
+        type: "agent:joined",
+        agentId: markAsAgentId(agentId),
+        sessionId: currentSessionId,
+        timestamp: now,
+      });
+    }
   }
 
   broadcast({

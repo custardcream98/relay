@@ -174,11 +174,24 @@ export function registerAgentTools(server: McpServer): void {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
     },
     async () => {
-      const poolFile = loadPoolFile(getRelayDir(), getProjectRoot());
-      const workflow = getWorkflow(poolFile);
-      return {
-        content: [{ type: "text", text: JSON.stringify({ success: true, workflow }) }],
-      };
+      try {
+        const poolFile = loadPoolFile(getRelayDir(), getProjectRoot());
+        // loadPoolFile() uses yaml.load() which returns null for an empty file.
+        // Guard against null so getWorkflow() does not throw TypeError.
+        const workflow = getWorkflow(poolFile ?? { agents: {} });
+        return {
+          content: [{ type: "text", text: JSON.stringify({ success: true, workflow }) }],
+        };
+      } catch (err) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ success: false, error: (err as Error).message }),
+            },
+          ],
+        };
+      }
     }
   );
 }

@@ -5,9 +5,16 @@ import { appendFile, readFile, rename, unlink, writeFile } from "node:fs/promise
 import { join } from "node:path";
 import { isValidId } from "../utils/validate.js";
 
-// Validate memory section key — newlines would corrupt section headers; 256-char max
+// Validate memory section key — newlines would corrupt section headers; '#' prefix would create
+// a spurious Markdown heading above the section; 256-char max
 function isValidMemoryKey(key: string): boolean {
-  return key.length > 0 && key.length <= 256 && !key.includes("\n") && !key.includes("\r");
+  return (
+    key.length > 0 &&
+    key.length <= 256 &&
+    !key.startsWith("#") &&
+    !key.includes("\n") &&
+    !key.includes("\r")
+  );
 }
 
 // Path to an agent's personal memory file
@@ -93,7 +100,9 @@ export async function handleWriteMemory(
       if (endIdx === -1) endIdx = lines.length;
       const before = lines.slice(0, startIdx);
       const after = lines.slice(endIdx);
-      const newSection = [`## ${input.key}`, "", input.content];
+      // Trim trailing whitespace/newlines from content before building the section
+      // to prevent double blank lines accumulating between sections on repeated overwrites.
+      const newSection = [`## ${input.key}`, "", input.content.trimEnd()];
       const merged = [...before, ...newSection, ...after].join("\n");
       newContent = `${merged.trimEnd()}\n`;
     }

@@ -192,7 +192,11 @@ dashboardServer.on("upgrade", (request, socket, head) => {
   }
   // pathname === "/ws" is guaranteed here by the early-return above
   wss.handleUpgrade(request, socket, head, (ws) => {
-    addClient(ws);
+    if (!addClient(ws)) {
+      // Reject connection when the client cap is reached to prevent unbounded memory growth
+      ws.close(1013, "too many clients");
+      return;
+    }
     markClientAlive(ws);
     // Mark client as alive when it responds to a ping
     ws.on("pong", () => markClientAlive(ws));

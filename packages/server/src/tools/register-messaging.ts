@@ -33,7 +33,8 @@ export function registerMessagingTools(server: McpServer): void {
         .optional()
         .describe("Thread ID to group related messages (e.g. a task ID or review ID). Optional."),
       metadata: z
-        .record(z.string(), z.string())
+        .record(z.string().max(64), z.string().max(1024))
+        .refine((obj) => Object.keys(obj).length <= 20, { message: "metadata: max 20 keys" })
         .optional()
         .describe(
           "Optional key-value pairs for structured context (e.g. { task_id: 'abc', severity: 'high' }). Values must be strings."

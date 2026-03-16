@@ -81,6 +81,11 @@ export interface SessionRow {
   event_count: number;
 }
 
+// --- Per-session limits (resource exhaustion prevention) ---
+// These caps bound memory growth for long-running or adversarial sessions.
+export const MAX_MESSAGES_PER_SESSION = 10_000;
+export const MAX_TASKS_PER_SESSION = 1_000;
+
 // --- Collections ---
 
 let messages: MessageRow[] = [];
@@ -96,10 +101,19 @@ function nowSeconds(): number {
 
 // --- Messages ---
 
-export function insertMessage(msg: Omit<MessageRow, "created_at" | "seq">): number {
+/** Inserts a message and returns { seq, created_at } so callers can echo the exact stored timestamp. */
+export function insertMessage(msg: Omit<MessageRow, "created_at" | "seq">): {
+  seq: number;
+  created_at: number;
+} {
+  const sessionCount = messages.filter((m) => m.session_id === msg.session_id).length;
+  if (sessionCount >= MAX_MESSAGES_PER_SESSION) {
+    throw new Error(`session message limit reached (max ${MAX_MESSAGES_PER_SESSION} per session)`);
+  }
   const seq = ++messageSeq;
-  messages.push({ ...msg, metadata: msg.metadata ?? null, created_at: nowSeconds(), seq });
-  return seq;
+  const created_at = nowSeconds();
+  messages.push({ ...msg, metadata: msg.metadata ?? null, created_at, seq });
+  return { seq, created_at };
 }
 
 export function getMessagesForAgent(
@@ -122,6 +136,10 @@ export function getAllMessages(sessionId: string): MessageRow[] {
 // --- Tasks ---
 
 export function insertTask(task: Omit<TaskRow, "created_at" | "updated_at">): void {
+  const sessionCount = tasks.filter((t) => t.session_id === task.session_id).length;
+  if (sessionCount >= MAX_TASKS_PER_SESSION) {
+    throw new Error(`session task limit reached (max ${MAX_TASKS_PER_SESSION} per session)`);
+  }
   const ts = nowSeconds();
   tasks.push({ ...task, depends_on: task.depends_on ?? [], created_at: ts, updated_at: ts });
 }
@@ -189,10 +207,15 @@ export function insertArtifact(artifact: Omit<ArtifactRow, "created_at">): void 
 }
 
 export function getArtifactByName(sessionId: string, name: string): ArtifactRow | null {
+  // Collect matching entries together with their insertion index for stable tie-breaking.
+  // created_at is second-precision, so two artifacts posted within the same second would have
+  // equal sort keys — insertion index (position in the array) breaks the tie so the most
+  // recently inserted artifact always wins.
   const matches = artifacts
-    .filter((a) => a.session_id === sessionId && a.name === name)
-    .sort((a, b) => b.created_at - a.created_at);
-  return matches[0] ?? null;
+    .map((a, idx) => ({ a, idx }))
+    .filter(({ a }) => a.session_id === sessionId && a.name === name)
+    .sort((x, y) => y.a.created_at - x.a.created_at || y.idx - x.idx);
+  return matches[0]?.a ?? null;
 }
 
 export function getAllArtifacts(sessionId: string): ArtifactRow[] {
@@ -250,7 +273,7 @@ export function insertEvent(
 export function getEventsBySession(sessionId: string): string[] {
   return events
     .filter((e) => e.session_id === sessionId)
-    .sort((a, b) => a.created_at - b.created_at || 0)
+    .sort((a, b) => a.created_at - b.created_at || a.id.localeCompare(b.id))
     .map((e) => e.payload);
 }
 

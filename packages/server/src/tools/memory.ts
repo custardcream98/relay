@@ -3,11 +3,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { appendFile, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
-// Validate agent_id to prevent path traversal attacks
-function isValidId(id: string): boolean {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
-}
+import { isValidId } from "../utils/validate.js";
 
 // Validate memory section key — newlines would corrupt section headers; 256-char max
 function isValidMemoryKey(key: string): boolean {

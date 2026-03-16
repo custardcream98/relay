@@ -3,11 +3,7 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-
-// Validate session_id to prevent path traversal attacks
-function isValidId(id: string): boolean {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
-}
+import { isValidId } from "../utils/validate.js";
 
 /**
  * Save a session summary to disk.

@@ -1,3 +1,4 @@
+import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
 import type { ResolvedAgentHooks } from "../agents/types";
 import type { TaskRow } from "../db/queries/tasks";
 import {
@@ -9,25 +10,33 @@ import {
   insertTask,
   updateTask,
 } from "../db/queries/tasks";
-import type { SqliteDatabase } from "../db/types";
 import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner";
+
+// Build the env vars injected into before_task and after_task hooks.
+// Centralised here to avoid duplicating the same object literal in claim and update flows.
+function buildHookEnv(agentId: string, taskId: string, sessionId: string): Record<string, string> {
+  return {
+    RELAY_AGENT_ID: agentId,
+    RELAY_TASK_ID: taskId,
+    RELAY_SESSION_ID: sessionId,
+  };
+}
 
 // Create a task and return its generated ID
 export function handleCreateTask(
-  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;
     title: string;
     description?: string;
     assignee?: string;
-    priority: string;
+    priority: TaskPriority;
     depends_on?: string[];
   }
 ) {
   try {
     const id = crypto.randomUUID();
-    insertTask(db, {
+    insertTask({
       id,
       session_id: sessionId,
       title: input.title,
@@ -49,9 +58,8 @@ export function handleCreateTask(
 // If hooks.after_task is set and status is being set to "done", the hook runs after the store write.
 // Non-zero exit reverts the status back to "in_review".
 export async function handleUpdateTask(
-  db: SqliteDatabase,
   sessionId: string,
-  input: { agent_id: string; task_id: string; status?: string; assignee?: string },
+  input: { agent_id: string; task_id: string; status?: TaskStatus; assignee?: string },
   hooks?: ResolvedAgentHooks,
   projectRoot?: string
 ) {
@@ -59,22 +67,18 @@ export async function handleUpdateTask(
     const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};
     if (input.status !== undefined) updates.status = input.status;
     if (input.assignee !== undefined) updates.assignee = input.assignee;
-    // Guard against empty updates before hitting the DB
+    // Guard against empty updates before hitting the store
     if (Object.keys(updates).length === 0) {
       return { success: false, error: "No valid fields to update" };
     }
-    const updated = updateTask(db, input.task_id, sessionId, updates);
+    const updated = updateTask(input.task_id, sessionId, updates);
     if (!updated) return { success: false, error: "task not found" };
 
     // Run after_task hook when status transitions to "done".
     // Runs AFTER the store write (store is in-memory and cannot fail, so no need for pre-write guard).
     // Non-zero exit reverts the task status back to "in_review".
     if (input.status === "done" && hooks?.after_task?.length) {
-      const hookEnv = {
-        RELAY_AGENT_ID: input.agent_id,
-        RELAY_TASK_ID: input.task_id,
-        RELAY_SESSION_ID: sessionId,
-      };
+      const hookEnv = buildHookEnv(input.agent_id, input.task_id, sessionId);
       const hookResult = await runHooks(
         hooks.after_task,
         hookEnv,
@@ -83,7 +87,7 @@ export async function handleUpdateTask(
       );
       if (!hookResult.success) {
         // Revert status to in_review so the agent knows to fix the issue
-        updateTask(db, input.task_id, sessionId, { status: "in_review" });
+        updateTask(input.task_id, sessionId, { status: "in_review" });
         return {
           success: false,
           // hook_failed: true distinguishes this from "task not found" (success: false without hook_failed).
@@ -103,13 +107,13 @@ export async function handleUpdateTask(
 
 // Fetch all tasks assigned to an agent
 export function handleGetMyTasks(
-  db: SqliteDatabase,
   sessionId: string,
-  input: { agent_id: string }
+  input: { agent_id: string; include_description?: boolean }
 ) {
   try {
-    const tasks = getTasksByAssignee(db, sessionId, input.agent_id);
-    return { success: true, tasks };
+    const tasks = getTasksByAssignee(sessionId, input.agent_id);
+    const result = input.include_description ? tasks : tasks.map(({ description: _d, ...t }) => t);
+    return { success: true, tasks: result };
   } catch (err) {
     return { success: false, tasks: [], error: String(err) };
   }
@@ -120,7 +124,6 @@ export function handleGetMyTasks(
 // If the task has depends_on entries, all referenced tasks must be in 'done' state first.
 // If hooks.before_task is set, the shell command runs BEFORE claiming. Non-zero exit blocks claiming.
 export async function handleClaimTask(
-  db: SqliteDatabase,
   sessionId: string,
   input: { agent_id: string; task_id: string },
   hooks?: ResolvedAgentHooks,
@@ -128,11 +131,11 @@ export async function handleClaimTask(
 ) {
   try {
     // Check depends_on before attempting the atomic claim
-    const task = getTaskById(db, input.task_id, sessionId);
+    const task = getTaskById(input.task_id, sessionId);
     if (task && (task.depends_on ?? []).length > 0) {
       const unmetIds: string[] = [];
       for (const depId of task.depends_on ?? []) {
-        const dep = getTaskById(db, depId, sessionId);
+        const dep = getTaskById(depId, sessionId);
         if (!dep || dep.status !== "done") {
           unmetIds.push(depId);
         }
@@ -148,11 +151,7 @@ export async function handleClaimTask(
 
     // Run before_task hook BEFORE claiming so a hook failure never creates a phantom in_progress task
     if (hooks?.before_task?.length) {
-      const hookEnv = {
-        RELAY_AGENT_ID: input.agent_id,
-        RELAY_TASK_ID: input.task_id,
-        RELAY_SESSION_ID: sessionId,
-      };
+      const hookEnv = buildHookEnv(input.agent_id, input.task_id, sessionId);
       const hookResult = await runHooks(
         hooks.before_task,
         hookEnv,
@@ -168,7 +167,7 @@ export async function handleClaimTask(
       }
     }
 
-    const claimed = claimTask(db, input.task_id, input.agent_id, sessionId);
+    const claimed = claimTask(input.task_id, input.agent_id, sessionId);
     if (!claimed) {
       return {
         success: true,
@@ -184,13 +183,9 @@ export async function handleClaimTask(
 
 // Returns aggregated task counts for the session.
 // Agents use has_pending_work to decide when to broadcast end:waiting or end:done.
-export function handleGetTeamStatus(
-  db: SqliteDatabase,
-  sessionId: string,
-  _input: { agent_id: string }
-) {
+export function handleGetTeamStatus(sessionId: string, _input: { agent_id: string }) {
   try {
-    const status = getTeamStatus(db, sessionId);
+    const status = getTeamStatus(sessionId);
     const has_pending_work = status.todo + status.in_progress + status.in_review > 0;
     return { success: true as const, ...status, has_pending_work };
   } catch (err) {
@@ -201,14 +196,15 @@ export function handleGetTeamStatus(
 // Returns all tasks in the session regardless of assignee.
 // Used by agents to get an overview of the entire team's work status.
 // Optional status filter avoids client-side filtering for common queries.
+// Descriptions are omitted by default to reduce token consumption — pass include_description: true when needed.
 export function handleGetAllTasks(
-  db: SqliteDatabase,
   sessionId: string,
-  input: { agent_id: string; status?: string }
+  input: { agent_id: string; status?: string; include_description?: boolean }
 ) {
   try {
-    const tasks = getAllTasks(db, sessionId, input.status);
-    return { success: true, tasks };
+    const tasks = getAllTasks(sessionId, input.status);
+    const result = input.include_description ? tasks : tasks.map(({ description: _d, ...t }) => t);
+    return { success: true, tasks: result };
   } catch (err) {
     return { success: false, tasks: [], error: String(err) };
   }

@@ -1,8 +1,6 @@
 import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
-import type { SqliteDatabase } from "../db/types";
 
 export function handlePostArtifact(
-  db: SqliteDatabase,
   sessionId: string,
   input: {
     agent_id: string;
@@ -14,7 +12,7 @@ export function handlePostArtifact(
 ) {
   try {
     const id = crypto.randomUUID();
-    insertArtifact(db, {
+    insertArtifact({
       id,
       session_id: sessionId,
       name: input.name,
@@ -29,13 +27,9 @@ export function handlePostArtifact(
   }
 }
 
-export function handleGetArtifact(
-  db: SqliteDatabase,
-  sessionId: string,
-  input: { agent_id: string; name: string }
-) {
+export function handleGetArtifact(sessionId: string, input: { agent_id: string; name: string }) {
   try {
-    const artifact = getArtifactByName(db, sessionId, input.name);
+    const artifact = getArtifactByName(sessionId, input.name);
     if (!artifact) {
       return {
         success: false,

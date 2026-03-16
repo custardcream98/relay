@@ -1,19 +1,11 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { beforeEach, describe, expect, test } from "bun:test";
 import { markAsAgentId } from "@custardcream/relay-shared";
-import { _setDb, closeDb } from "../client.ts";
-import { runMigrations } from "../schema.ts";
-import type { SqliteDatabase } from "../types.ts";
-import { getEventsBySession, insertEvent } from "./events.ts";
+import { _resetStore, getEventsBySession, insertEvent } from "../../store";
 
 describe("events queries", () => {
   beforeEach(() => {
-    const db = new Database(":memory:");
-    runMigrations(db as unknown as SqliteDatabase);
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
   });
-
-  afterEach(() => closeDb());
 
   test("can store and retrieve events", () => {
     const event = {
@@ -29,10 +21,10 @@ describe("events queries", () => {
       },
       timestamp: Date.now(),
     };
-    insertEvent("session-1", event);
-    const events = getEventsBySession("session-1");
-    expect(events).toHaveLength(1);
-    expect(events[0].type).toBe("message:new");
+    insertEvent("session-1", JSON.stringify(event), event.type, null, event.timestamp);
+    const payloads = getEventsBySession("session-1");
+    expect(payloads).toHaveLength(1);
+    expect((JSON.parse(payloads[0]) as typeof event).type).toBe("message:new");
   });
 
   test("events are stored separately per session", () => {
@@ -42,8 +34,10 @@ describe("events queries", () => {
       status: "working" as const,
       timestamp: Date.now(),
     });
-    insertEvent("session-A", makeEvent("pm"));
-    insertEvent("session-B", makeEvent("fe"));
+    const evA = makeEvent("pm");
+    const evB = makeEvent("fe");
+    insertEvent("session-A", JSON.stringify(evA), evA.type, evA.agentId, evA.timestamp);
+    insertEvent("session-B", JSON.stringify(evB), evB.type, evB.agentId, evB.timestamp);
     expect(getEventsBySession("session-A")).toHaveLength(1);
     expect(getEventsBySession("session-B")).toHaveLength(1);
   });

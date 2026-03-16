@@ -9,10 +9,8 @@ import { getSessionId, setPort } from "./config";
 import { app } from "./dashboard/hono";
 import { isLocalhostOrigin } from "./dashboard/utils";
 import { addClient, markClientAlive, removeClient, startHeartbeat } from "./dashboard/websocket";
-import { getAllArtifacts } from "./db/queries/artifacts";
-import { getAllMessages } from "./db/queries/messages";
-import { getAllTasks } from "./db/queries/tasks";
 import { createMcpServer, startMcpServer } from "./mcp";
+import { getAllArtifacts, getAllMessages, getAllTasks } from "./store";
 
 // MCP connects via piped stdin — if stdin is a TTY, this is a manual invocation; exit with guidance
 if (process.stdin.isTTY) {

@@ -8,18 +8,13 @@ import {
   insertMessage,
   insertTask,
 } from "../store";
-import { runMigrations } from "./schema";
-import type { SqliteDatabase } from "./types";
 
-// Dummy db — runMigrations no longer touches SQLite; it just resets the in-memory store
-const dummyDb = {} as unknown as SqliteDatabase;
-
-describe("DB schema migrations", () => {
+describe("in-memory store reset", () => {
   beforeEach(() => {
     _resetStore();
   });
 
-  test("runMigrations resets the in-memory store", () => {
+  test("_resetStore clears all collections", () => {
     insertTask({
       id: "t1",
       session_id: "sess-1",
@@ -52,15 +47,15 @@ describe("DB schema migrations", () => {
     expect(getAllMessages("sess-1")).toHaveLength(1);
     expect(getAllArtifacts("sess-1")).toHaveLength(1);
 
-    runMigrations(dummyDb);
+    _resetStore();
 
     expect(getAllTasks("sess-1")).toHaveLength(0);
     expect(getAllMessages("sess-1")).toHaveLength(0);
     expect(getAllArtifacts("sess-1")).toHaveLength(0);
   });
 
-  test("runMigrations is idempotent (calling twice does not throw)", () => {
-    expect(() => runMigrations(dummyDb)).not.toThrow();
-    expect(() => runMigrations(dummyDb)).not.toThrow();
+  test("_resetStore is idempotent (calling twice does not throw)", () => {
+    expect(() => _resetStore()).not.toThrow();
+    expect(() => _resetStore()).not.toThrow();
   });
 });

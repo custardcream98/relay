@@ -1,13 +1,9 @@
 // packages/server/src/dashboard/websocket.test.ts
 // Tests for the WebSocket broadcast module — client management and selective DB persistence.
-import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import { _resetSessionId } from "../config.ts";
-import { _setDb, closeDb } from "../db/client.ts";
-import { getEventsBySession } from "../db/queries/events.ts";
-import { runMigrations } from "../db/schema.ts";
-import type { SqliteDatabase } from "../db/types.ts";
+import { _resetStore, getEventsBySession } from "../store.ts";
 import { addClient, broadcast, removeClient } from "./websocket";
 
 // Minimal WebSocket stub — tracks sent messages and can simulate a broken connection.
@@ -28,10 +24,7 @@ describe("websocket broadcast", () => {
 
   beforeEach(() => {
     savedSessionId = process.env.RELAY_SESSION_ID;
-
-    const db = new Database(":memory:");
-    runMigrations(db as unknown as SqliteDatabase);
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     // Use a fixed session ID so insertEvent does not rely on getSessionId auto-generate
     process.env.RELAY_SESSION_ID = "ws-test-session";
   });
@@ -43,7 +36,6 @@ describe("websocket broadcast", () => {
       process.env.RELAY_SESSION_ID = savedSessionId;
     }
     _resetSessionId();
-    closeDb();
   });
 
   test("sends an event payload to all connected clients", () => {
@@ -87,7 +79,8 @@ describe("websocket broadcast", () => {
       timestamp: Date.now(),
     });
 
-    const events = getEventsBySession("ws-test-session");
+    const payloads = getEventsBySession("ws-test-session");
+    const events = payloads.map((p) => JSON.parse(p) as { type: string });
     expect(events.some((e) => e.type === "message:new")).toBe(true);
 
     removeClient(client as never);
@@ -104,7 +97,8 @@ describe("websocket broadcast", () => {
       timestamp: Date.now(),
     });
 
-    const events = getEventsBySession("ws-test-session");
+    const payloads = getEventsBySession("ws-test-session");
+    const events = payloads.map((p) => JSON.parse(p) as { type: string });
     expect(events.every((e) => e.type !== "agent:thinking")).toBe(true);
     // But the event is still sent to the client
     expect(client.sent).toHaveLength(1);
@@ -122,7 +116,8 @@ describe("websocket broadcast", () => {
       timestamp: Date.now(),
     });
 
-    const events = getEventsBySession("ws-test-session");
+    const payloads = getEventsBySession("ws-test-session");
+    const events = payloads.map((p) => JSON.parse(p) as { type: string });
     expect(events.every((e) => e.type !== "session:started")).toBe(true);
     // Still forwarded to client
     expect(client.sent).toHaveLength(1);

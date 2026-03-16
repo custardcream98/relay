@@ -1,15 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../schema";
-import { getArtifactByName, insertArtifact } from "./artifacts";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore, getArtifactByName, insertArtifact } from "../../store";
 
 describe("artifact queries", () => {
-  let db: Database;
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-  afterEach(() => db.close());
 
   test("store artifact and retrieve by name", () => {
     insertArtifact({

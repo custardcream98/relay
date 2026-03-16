@@ -1,4 +1,4 @@
-import { getMessagesForAgent, insertMessage } from "../db/queries/messages";
+import { getMessagesForAgent, insertMessage } from "../store";
 
 interface SendMessageInput {
   agent_id: string;

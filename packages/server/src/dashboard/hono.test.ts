@@ -1,31 +1,17 @@
 // packages/server/src/dashboard/hono.test.ts
 // Tests for Hono REST API routes using in-process app.request()
-import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config";
-import { _setDb, closeDb } from "../db/client";
-import { runMigrations } from "../db/schema";
-import type { SqliteDatabase } from "../db/types";
+import { _resetStore } from "../store";
 import { app } from "./hono";
 
-// Helpers to inject a fresh in-memory DB per test
-function makeDb(): Database {
-  const db = new Database(":memory:");
-  runMigrations(db as unknown as SqliteDatabase);
-  return db;
-}
-
 describe("GET /api/session", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("test-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -56,16 +42,12 @@ describe("GET /api/session", () => {
 });
 
 describe("POST /api/hook/tool-use", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("hook-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -135,16 +117,12 @@ describe("POST /api/hook/tool-use", () => {
 });
 
 describe("GET /api/sessions/:id", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("summary-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -171,16 +149,12 @@ describe("GET /api/sessions/:id", () => {
 });
 
 describe("GET /api/agents", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("agents-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -193,16 +167,12 @@ describe("GET /api/agents", () => {
 });
 
 describe("GET /api/health", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("health-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -217,16 +187,12 @@ describe("GET /api/health", () => {
 });
 
 describe("GET /api/sessions/live", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("live-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -240,16 +206,12 @@ describe("GET /api/sessions/live", () => {
 });
 
 describe("GET /api/sessions/:id/replay", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("replay-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -271,16 +233,12 @@ describe("GET /api/sessions/:id/replay", () => {
 });
 
 describe("GET /api/session with pagination", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("paginated-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -302,16 +260,12 @@ describe("GET /api/session with pagination", () => {
 });
 
 describe("POST /api/hook/tool-use agent:joined emission", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = makeDb();
-    _setDb(db as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("joined-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 

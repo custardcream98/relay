@@ -1,4 +1,4 @@
-import { getReviewById, insertReview, updateReviewStatus } from "../db/queries/reviews";
+import { getReviewById, insertReview, updateReviewStatus } from "../store";
 
 export function handleRequestReview(
   sessionId: string,

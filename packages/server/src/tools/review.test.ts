@@ -1,20 +1,13 @@
-import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config.ts";
 import { broadcast } from "../dashboard/websocket.ts";
-import { _setDb, closeDb } from "../db/client.ts";
-import { getEventsBySession } from "../db/queries/events.ts";
-import { runMigrations } from "../db/schema";
-import type { SqliteDatabase } from "../db/types.ts";
+import { _resetStore, getEventsBySession } from "../store.ts";
 import { handleRequestReview, handleSubmitReview } from "./review";
 
 describe("review tool", () => {
-  let db: Database;
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-  afterEach(() => db.close());
 
   test("request_review: creates review request", async () => {
     const result = await handleRequestReview("sess-1", {
@@ -59,7 +52,7 @@ describe("review tool", () => {
     });
     expect(result.success).toBe(true);
     expect(result.review?.status).toBe("changes_requested");
-    expect(result.review?.id).toBe(review_id);
+    expect(result.review?.id).toBe(review_id as string);
   });
 
   test("submit_review: returns error when review does not exist", async () => {
@@ -108,17 +101,12 @@ describe("review tool", () => {
 // Verifies that the mcp.ts submit_review tool handler broadcasts the correct
 // review:updated event shape after a successful review submission.
 describe("submit_review — review:updated broadcast", () => {
-  let inMemDb: Database;
-
   beforeEach(() => {
-    inMemDb = new Database(":memory:");
-    runMigrations(inMemDb);
-    _setDb(inMemDb as unknown as SqliteDatabase);
+    _resetStore();
     setSessionId("broadcast-test-session");
   });
 
   afterEach(() => {
-    closeDb();
     _resetSessionId();
   });
 
@@ -150,20 +138,25 @@ describe("submit_review — review:updated broadcast", () => {
       });
     }
 
-    // Verify the event was persisted with the correct shape (broadcast writes to events DB)
-    const events = getEventsBySession("broadcast-test-session");
-    const reviewUpdatedEvents = events.filter((e) => e.type === "review:updated");
+    // Verify the event was persisted with the correct shape (broadcast writes to events store)
+    type ReviewUpdatedEvent = {
+      type: "review:updated";
+      review: { id: string; status: string; reviewer: string; comments: string | null };
+    };
+    const payloads = getEventsBySession("broadcast-test-session");
+    const events = payloads.map((p) => JSON.parse(p) as { type: string });
+    const reviewUpdatedEvents = events.filter(
+      (e) => e.type === "review:updated"
+    ) as ReviewUpdatedEvent[];
     expect(reviewUpdatedEvents).toHaveLength(1);
 
     const event = reviewUpdatedEvents[0];
     expect(event.type).toBe("review:updated");
 
     // Assert the review payload contains the required fields
-    if (event.type === "review:updated") {
-      expect(event.review.id).toBe(review_id as string);
-      expect(event.review.status).toBe("approved");
-      expect(event.review.reviewer).toBe("qa");
-      expect(event.review.comments).toBe("All checks pass.");
-    }
+    expect(event.review.id).toBe(review_id as string);
+    expect(event.review.status).toBe("approved");
+    expect(event.review.reviewer).toBe("qa");
+    expect(event.review.comments).toBe("All checks pass.");
   });
 });

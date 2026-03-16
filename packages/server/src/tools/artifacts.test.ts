@@ -1,15 +1,11 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore } from "../store";
 import { handleGetArtifact, handlePostArtifact } from "./artifacts";
 
 describe("artifacts tool", () => {
-  let db: Database;
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-  afterEach(() => db.close());
 
   test("post_artifact: saves artifact", async () => {
     const result = await handlePostArtifact("sess-1", {

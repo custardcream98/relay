@@ -1,6 +1,5 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore } from "../store";
 import {
   handleClaimTask,
   handleCreateTask,
@@ -11,14 +10,9 @@ import {
 } from "./tasks";
 
 describe("tasks tool", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-
-  afterEach(() => db.close());
 
   test("create_task: creates a task", async () => {
     const result = await handleCreateTask("sess-1", {

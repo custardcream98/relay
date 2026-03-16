@@ -1,17 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../schema";
-import { getTaskById, getTasksByAssignee, insertTask, updateTask } from "./tasks";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore, getTaskById, getTasksByAssignee, insertTask, updateTask } from "../../store";
 
 describe("task queries", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-
-  afterEach(() => db.close());
 
   test("create task and retrieve by ID", () => {
     insertTask({
@@ -74,7 +67,7 @@ describe("task queries", () => {
     expect(feTasks[0].title).toBe("FE task");
   });
 
-  test("updateTask: empty updates should not throw (prevents SQL error)", () => {
+  test("updateTask: empty updates returns false without mutating the task", () => {
     insertTask({
       id: "task-3",
       session_id: "sess-1",

@@ -7,8 +7,8 @@ import { z } from "zod";
 import { getAgents } from "../agents/cache.js";
 import { getProjectRoot, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
-import { getTaskById } from "../db/queries/tasks.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { getTaskById } from "../store.js";
 import { taskToPayload } from "../utils/broadcast.js";
 import {
   handleClaimTask,

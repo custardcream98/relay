@@ -1,15 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../schema";
-import { getReviewsByReviewer, insertReview, updateReviewStatus } from "./reviews";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore, getReviewsByReviewer, insertReview, updateReviewStatus } from "../../store";
 
 describe("review queries", () => {
-  let db: Database;
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-  afterEach(() => db.close());
 
   test("create review request", () => {
     insertReview({

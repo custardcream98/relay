@@ -1,9 +1,8 @@
 // packages/server/src/tools/session-isolation.test.ts
 // Tests for concurrent session isolation — verifies that data from one session
 // is never visible to queries in a different session, across all tool handlers.
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore } from "../store";
 import { handleGetArtifact, handlePostArtifact } from "./artifacts";
 import { handleGetMessages, handleSendMessage } from "./messaging";
 import { handleRequestReview, handleSubmitReview } from "./review";
@@ -17,14 +16,9 @@ import {
 } from "./tasks";
 
 describe("session isolation — cross-session data leakage", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-
-  afterEach(() => db.close());
 
   // ─── Messages ───────────────────────────────────────────────────────────────
 

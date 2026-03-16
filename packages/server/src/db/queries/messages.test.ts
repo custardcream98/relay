@@ -1,17 +1,10 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../schema";
-import { getMessagesForAgent, insertMessage } from "./messages";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore, getMessagesForAgent, insertMessage } from "../../store";
 
 describe("message queries", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-
-  afterEach(() => db.close());
 
   test("insert and fetch messages", () => {
     insertMessage({

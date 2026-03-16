@@ -1,4 +1,4 @@
-import { getArtifactByName, insertArtifact } from "../db/queries/artifacts";
+import { getArtifactByName, insertArtifact } from "../store";
 
 export function handlePostArtifact(
   sessionId: string,

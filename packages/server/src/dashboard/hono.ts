@@ -9,11 +9,13 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { getPool } from "../agents/cache";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
-import { getAllArtifacts } from "../db/queries/artifacts";
-import { getEventsBySession } from "../db/queries/events";
-import { getAllMessages } from "../db/queries/messages";
-import { getAllSessions } from "../db/queries/sessions";
-import { getAllTasks } from "../db/queries/tasks";
+import {
+  getAllArtifacts,
+  getAllMessages,
+  getAllSessions,
+  getAllTasks,
+  getEventsBySession,
+} from "../store";
 import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
 import { isLocalhostOrigin } from "./utils";
 import { broadcast } from "./websocket";
@@ -139,7 +141,7 @@ app.get("/api/sessions/:id/replay", (c) => {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   try {
-    const events = getEventsBySession(sessionId);
+    const events = getEventsBySession(sessionId).map((payload) => JSON.parse(payload));
     return c.json({ success: true, sessionId, events });
   } catch (err) {
     console.error("[relay] internal error:", err);

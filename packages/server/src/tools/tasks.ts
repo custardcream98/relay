@@ -1,6 +1,5 @@
 import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
 import type { ResolvedAgentHooks } from "../agents/types";
-import type { TaskRow } from "../db/queries/tasks";
 import {
   claimTask,
   getAllTasks,
@@ -8,8 +7,9 @@ import {
   getTasksByAssignee,
   getTeamStatus,
   insertTask,
+  type TaskRow,
   updateTask,
-} from "../db/queries/tasks";
+} from "../store";
 import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner";
 
 // Build the env vars injected into before_task and after_task hooks.

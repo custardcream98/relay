@@ -1,17 +1,11 @@
-import { Database } from "bun:sqlite";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { runMigrations } from "../db/schema";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { _resetStore } from "../store";
 import { handleGetMessages, handleSendMessage } from "./messaging";
 
 describe("messaging tool", () => {
-  let db: Database;
-
   beforeEach(() => {
-    db = new Database(":memory:");
-    runMigrations(db);
+    _resetStore();
   });
-
-  afterEach(() => db.close());
 
   test("send_message: sends message successfully", async () => {
     const result = await handleSendMessage("sess-1", {

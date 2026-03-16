@@ -1,7 +1,7 @@
 // packages/server/src/dashboard/websocket.ts
 import type { WebSocket } from "ws";
 import { getSessionId } from "../config";
-import { insertEvent } from "../db/queries/events";
+import { insertEvent } from "../store";
 import type { RelayEvent } from "./events";
 
 // Set of currently connected WebSocket clients
@@ -20,7 +20,13 @@ export function broadcast(event: RelayEvent): void {
   // agent:thinking is fire-and-forget (streaming chunk) — no DB write.
   if (event.type !== "session:started" && event.type !== "agent:thinking") {
     try {
-      insertEvent(getSessionId(), event);
+      insertEvent(
+        getSessionId(),
+        JSON.stringify(event),
+        event.type,
+        "agentId" in event ? event.agentId : null,
+        event.timestamp
+      );
     } catch (err) {
       // DB failure does not block broadcasting, but log the error
       console.error("[relay] failed to persist event:", err);

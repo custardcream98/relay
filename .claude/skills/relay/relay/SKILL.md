@@ -9,17 +9,45 @@ react to messages and tasks organically, like a Slack-first team.
 ## Pre-flight Checks
 
 1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
+   - Note: `list_agents` is used here only to verify MCP connectivity. Pool browsing uses `list_pool_agents` (Team Composition step 1) — that tool returns metadata without `systemPrompt` and does not require a session file.
    - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
 2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
    - If absent: suggest running `/relay:init` first to set up the pool.
-3. Generate a new session ID in `YYYY-MM-DD-NNN-XXXX` format, where `XXXX` is 4 random hex digits.
-   - Example: `2026-03-14-001-a3f7`
-   - The random suffix prevents file-name collisions when two sessions start within the same second
-     (both would write to the same `session-agents-{id}.yml` without it).
-   - If the `RELAY_INSTANCE` environment variable is set, prefix the session ID:
-     `{RELAY_INSTANCE}-YYYY-MM-DD-NNN-XXXX` (e.g. `project-a-2026-03-14-001-a3f7`).
-4. Call `get_server_info` to get the actual dashboard URL (the server auto-selects a port from 3456–3465).
-   - Tell the user: "Dashboard: {dashboardUrl}"
+3. In parallel, call `list_sessions` and `get_server_info` to determine the correct session ID and dashboard URL.
+
+   **3a. Compute the next NNN counter** using `list_sessions` result:
+   - Today's date prefix: `YYYY-MM-DD` (current date).
+   - If `instanceId` is non-null (from `get_server_info`), filter for sessions whose IDs start with `{instanceId}-YYYY-MM-DD-`; otherwise filter for sessions starting with `YYYY-MM-DD-`.
+   - For each matching session ID, strip the `{instanceId}-` prefix if present
+     (i.e. `sessionId.slice(instanceId.length + 1)` — `+1` accounts for the `-` separator),
+     then split by `-` and parse the **segment at index 3** as an integer (that is the NNN counter).
+     Example: `project-a-2026-03-14-007-a3f7` → strip `project-a-` → `2026-03-14-007-a3f7` → index 3 = `007`.
+   - Next NNN = max of all parsed counters + 1, or 1 if no sessions match today.
+   - Format NNN as a 3-digit zero-padded integer (e.g. `001`, `007`).
+
+   **3b. Compose the session ID:**
+   - Base: `YYYY-MM-DD-NNN-XXXX` where `XXXX` is 4 random hex digits (collision guard for same-second starts).
+   - If `instanceId` is non-null: `{instanceId}-YYYY-MM-DD-NNN-XXXX`.
+   - Example (no instance): `2026-03-14-007-a3f7`
+   - Example (with instance `project-a`): `project-a-2026-03-14-007-a3f7`
+
+   **3c. Register the session:** Call `start_session(agent_id: "orchestrator", session_id: "{composedId}")`.
+   This activates the session ID on the server and resets the live dashboard view.
+
+   After `start_session` returns, write the orchestrator session state file to enable the Stop hook.
+   Set shell variables first, then run the command — bash expands `${RELAY_SESSION_ID}` and
+   `${DASHBOARD_PORT}` automatically, so no manual text substitution is needed:
+   ```bash
+   RELAY_SESSION_ID="<the composed session ID from step 3b>"
+   DASHBOARD_PORT=<port from get_server_info>
+   mkdir -p .relay/sessions
+   cat > ".relay/sessions/${CLAUDE_SESSION_ID}.json" <<EOF_STATE
+   {"type":"orchestrator","relay_session_id":"${RELAY_SESSION_ID}","dashboard_port":${DASHBOARD_PORT},"iteration":0,"created_at":$(date -u +%s)}
+   EOF_STATE
+   ```
+   The `$(date -u +%s)` subshell call is evaluated by bash to produce the current Unix epoch timestamp.
+
+4. Report to the user: `"Session: {session_id} | Dashboard: {dashboardUrl}"`
 
 ## Team Composition (Dynamic Agent Selection)
 
@@ -63,15 +91,16 @@ Go directly to pool selection below.
      distinct name (e.g. "Frontend Engineer 1", "Frontend Engineer 2", "Frontend Engineer 3").
 
 5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
-   - To build the file, call `list_pool_agents` — it returns full personas including `systemPrompt`.
-     Map each selected agent ID to its full persona config.
+   - Use the fields returned by `list_pool_agents`: `name`, `emoji`, `description`, `tools`.
+   - Do NOT include `systemPrompt` — `list_pool_agents` intentionally omits it. The server
+     resolves `systemPrompt` directly from the pool file at load time when `list_agents` is called.
    - For **single instances**, write the agent entry directly:
      ```yaml
      agents:
        fe:
          name: Frontend Engineer
          emoji: "🎨"
-         systemPrompt: "..."
+         description: "Builds UI components"
          tools: [...]
      ```
    - For **multiple instances of the same pool agent**, use the `extends` pattern so the
@@ -97,6 +126,28 @@ Go directly to pool selection below.
 > **Fallback**: if no pool is configured, the session cannot start. Prompt the user to
 > create `.relay/agents.pool.yml` (see `agents.pool.example.yml`).
 
+## Planning Phase (Optional)
+
+**Skip condition**: Skip this phase for clearly trivial tasks (single-file change, typo fix, rename). For tasks involving 2+ files or cross-cutting concerns, use this phase to front-load task creation and reduce agent idle time.
+
+**Re-entry skip**: If you are recovering after context compaction and already know the session is underway (the session ID is present in your summarized context), skip directly to Session Startup and use `get_orchestrator_state` there to restore loop state. Do not re-run Planning Phase — tasks were already created in the prior run and idempotency keys protect against duplicates.
+
+1. Identify the PM/coordinator agent from the selected team — agent whose `name` or `description` mentions "coordinator", "manager", or "PM"; or alphabetically first if ambiguous.
+2. Spawn the PM agent alone with a restricted tool set: `create_task`, `post_artifact`, `send_message`, `broadcast_thinking`, `get_all_tasks`, `get_server_info`.
+3. The PM's sole goal in this phase:
+   - Analyze the user's request deeply
+   - Post a `session-brief` artifact via `post_artifact` (fields: goal, success_criteria, constraints, task_breakdown)
+   - Pre-create ALL tasks via `create_task` with: descriptive titles, detailed descriptions, correct `assignee`, `depends_on` for dependency chains, `idempotency_key` for re-spawn safety. **Create prerequisite tasks before tasks that reference them in `depends_on`** — IDs must exist at creation time.
+   - Declare `end:waiting | planning complete`
+4. Wait for the PM's `end:waiting | planning complete` declaration before proceeding.
+5. Proceed to Session Startup. Non-PM agents receive this modified initial message:
+   ```
+   ## Session Start
+   Session {session_id} has begun. The task board has been pre-populated by the coordinator.
+   Call get_all_tasks(include_description: true) to see your assigned tasks, then
+   claim_task on your first task and begin work immediately.
+   ```
+
 ## Session Startup
 
 ### Step 1: Load all agents
@@ -110,11 +161,26 @@ Separate agents into:
 
 ### Step 2: Spawn all base agents in parallel
 
+**State restore check (re-entry guard):**
+Before building system prompts, call `get_orchestrator_state(agent_id: "orchestrator")`.
+If the returned state is non-null, parse it and restore:
+- `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_msg_id`, `agent_last_seen`, `base_agents`
+- Skip re-spawning agents already in `done_agents` — they have finished work
+- Use the restored `base_agents` list as the authoritative count for the while condition
+
 Spawn all base agents simultaneously. For each agent:
 1. Load persona from the cached `list_agents` result.
-2. Load memory: `read_memory(agent_id)` + `read_memory()` (project + lessons).
+2. Load memory: `read_memory(agent_id: "{agentId}")` (personal memory) + `read_memory()` (project.md).
+   - For recent session history, call `list_sessions` then `get_session_summary` on the last 1–2 sessions only when the task requires historical context (e.g. "continue from last session").
 3. Build system prompt: persona systemPrompt + memory.
 4. Restrict available tools to the agent's `tools` array from `list_agents`.
+5. If the agent has `validate_prompt` set (from the `list_agents` result), append to the system prompt:
+   ```
+   ## Validation Before Completion
+   Before calling update_task(status: "done"), verify all of the following:
+   {validate_prompt}
+   Fix any failures before marking the task as done.
+   ```
 
 **The agent whose name or description suggests a coordinator/PM role** receives the user's original request appended to its system prompt:
 ```
@@ -138,21 +204,55 @@ If no clear coordinator exists, prepend the task to the first agent alphabetical
 - Always claim_task before starting work on a task (marks it in_progress atomically).
 - Always update_task(status: "done") immediately after finishing a task — completing a file
   change alone does not close the task.
-- Before declaring end:_done or end:waiting, call get_my_tasks() to confirm no open tasks remain.
+- Before declaring end:_done or end:waiting, call get_all_tasks(assignee: your_agent_id) to confirm no open tasks remain.
 
 ## Visibility
 - Before each significant operation, call broadcast_thinking(content: "what you're about to do").
   This streams your intent to the dashboard so the team can see what you're working on.
+
+## Mandatory Communication Protocol
+You MUST call send_message at key moments — this is not optional. Without these messages,
+the orchestrator cannot detect your completion and the team loses visibility into your work.
+
+**After completing significant work** (before declaring end:):
+  send_message(to: null, content: "Completed: {summary of what you did}")
+
+**When blocked or waiting on another agent:**
+  send_message(to: null, content: "Blocked: waiting for {agent} to complete {task}")
+
+**When handing off work to a specific agent:**
+  send_message(to: "{agentId}", content: "Handoff: {what was done}, {what you need from them}")
+
+**End declarations are send_message calls — always send them:**
+  send_message(to: null, content: "end:waiting | {reason}")   ← when you have more work to do later
+  send_message(to: null, content: "end:_done | {summary}")    ← when all your tasks are complete
+  NEVER skip these. The orchestrator detects your state ONLY through these messages.
+  Skipping them causes the session to stall or your work to be silently lost.
 ```
 
 ### Step 3: Collect first-round declarations
 
-After all agents complete their first run, collect their `end:` messages from broadcasts.
+After all agent spawns return, **immediately** call `get_messages(agent_id: "orchestrator")`.
 
-Each agent broadcasts one of:
-- `end:waiting | {reason}` — no current work, but session continues
-- `end:_done | {summary}` — fully done
-- `end:failed | {reason}` — unrecoverable error → abort workflow, report to user
+For each base agent, determine their state:
+- Message starts with `end:waiting` → add to `dormant_agents` with reason
+- Message starts with `end:_done` → add to `done_agents` with summary
+- Message starts with `end:failed` → report failure to user
+- **No `end:` message found** → treat as implicitly `end:waiting | no declaration` (the agent
+  completed its Agent call without broadcasting — assume it needs a follow-up)
+
+Then immediately enter the Main Event Loop below.
+
+## Orchestrator Role Boundaries — CRITICAL
+
+The orchestrator is a **pure coordinator**. It MUST NOT:
+- Use Edit, Write, or any file-modification tool
+- Use Bash to run implementation commands
+- Fix bugs, write code, or implement tasks directly — even simple ones
+
+When stranded or unassigned todo tasks remain → always re-spawn the appropriate agent.
+**Step 4 of the event loop handles stranded todos automatically. Trust the process.**
+Violating this rule defeats the entire purpose of relay.
 
 ## Main Event Loop
 
@@ -162,16 +262,58 @@ done_agents = {}           # agentId → summary (declared end:_done)
 spawned_reviewers = []     # reviewer agent IDs spawned on demand
 last_seen_msg_id = None    # tracks last processed message to avoid reprocessing
 agent_last_seen = {}       # agentId → last message ID seen at their last spawn
+iteration_counter = 0      # incremented each loop iteration; persisted to orchestrator state
 
 while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
-  # 1. Check if any dormant agent has new todo tasks
+  # 1. Re-spawn dormant agents that have actionable conditions
   all_tasks = get_all_tasks(agent_id: "orchestrator")
-  for each dormant_agent in dormant_agents:
+  for each dormant_agent, reason in dormant_agents.items():
+
+    # 1a. New todo tasks assigned to this agent
     my_tasks = [t for t in all_tasks if t.assignee == dormant_agent AND t.status == 'todo']
     if my_tasks:
       re-spawn dormant_agent (see Re-spawn Pattern)
       remove dormant_agent from dormant_agents
+      continue
+
+    # 1b. Agent is waiting on a question or ambiguity — re-spawn immediately with "proceed" answer
+    # Heuristics for question-type waits (apply ANY):
+    # - reason contains "?" (explicit question mark)
+    # - reason contains words like "proceed", "confirm", "should", "approve", "진행", "확인", "수정"
+    # - reason is very short (< 20 chars) and not a well-known wait reason like "waiting for review"
+    is_question_wait = ("?" in reason
+                        OR any(kw in reason.lower() for kw in
+                               ["proceed", "confirm", "should", "approve", "진행", "확인", "수정"])
+                        OR (len(reason) < 20 AND "review" not in reason.lower()
+                                             AND "team" not in reason.lower()))
+    if is_question_wait:
+      # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+      # then replace the Re-spawn Context block with this inline context:
+      re-spawn dormant_agent with context:
+        "Your previous run ended with: '{reason}'.
+         Yes — proceed with the implementation. Do not ask for further confirmation.
+         Check get_messages() for full context, then complete your work."
+      remove dormant_agent from dormant_agents
+      continue
+
+    # 1c. Agent declared no end: at all (implicit waiting) — re-spawn with a communication reminder
+    if reason == "no declaration":
+      # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+      # then replace the Re-spawn Context block with this inline context:
+      re-spawn dormant_agent with context:
+        "Your previous run ended without sending any end: declaration via send_message.
+         This means the team has no visibility into what you did or whether you finished.
+         REQUIRED steps upon re-spawn:
+         1. Call get_messages() and get_all_tasks(assignee: your_agent_id) to review full context.
+         2. Call send_message(to: null, content: 'Summary: {what you completed in your previous run}')
+            so the team knows what was done.
+         3. Complete any remaining work.
+         4. Call send_message(to: null, content: 'end:_done | {summary}') or
+            send_message(to: null, content: 'end:waiting | {reason}').
+         Do NOT skip send_message — these calls are mandatory."
+      remove dormant_agent from dormant_agents
+      continue
 
   # 2. Process new broadcast messages
   all_messages = get_messages(agent_id: "orchestrator")  # broadcasts + messages to "orchestrator"
@@ -190,7 +332,9 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
       my_open_tasks = [t for t in all_tasks
                        if t.assignee == msg.from_agent AND t.status in ("todo", "in_progress")]
       if my_open_tasks:
-        # Agent has unfinished tasks — re-spawn to close them out
+        # Agent has unfinished tasks — re-spawn to close them out.
+        # Follow Re-spawn Pattern steps 1–4 for system prompt rebuild and message fetch,
+        # then replace the Re-spawn Context block with this inline context:
         re-spawn msg.from_agent with context:
           "You declared end:_done but still have open tasks: {my_open_tasks}.
            Call update_task(status: 'done') for each completed task, then re-declare end:_done."
@@ -227,18 +371,52 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     if still no new work:
       warn user: "Possible deadlock. Dormant agents: {list} — {reasons}. Continue or abort?"
       proceed or abort based on user decision
+
+  # 4. Stranded todo check — runs every iteration AFTER message processing.
+  # Catches tasks assigned to agents that already declared end:_done.
+  # This is the primary structural guard: when stranded todos are found, the agent is
+  # moved back from done_agents → dormant_agents, so the while condition becomes true
+  # again and Step 1 re-spawns the agent in the next iteration.
+  # NEVER handle stranded tasks directly — always let Step 4 revive the agent.
+  if done_agents:
+    stranded_check = get_all_tasks(agent_id: "orchestrator")
+    for agentId in list(done_agents.keys()):
+      stranded = [t for t in stranded_check if t.assignee == agentId AND t.status == 'todo']
+      if stranded:
+        dormant_agents[agentId] = "stranded: new todo tasks created after end:_done — " + str([t.title for t in stranded])
+        del done_agents[agentId]
+
+  # 5. Persist event loop state — survives context compaction and orchestrator re-spawn
+  iteration_counter += 1
+  save_orchestrator_state(agent_id: "orchestrator", state: JSON.stringify({
+    base_agents: [...base_agents],
+    dormant_agents: dormant_agents,
+    done_agents: done_agents,
+    last_seen_msg_id: last_seen_msg_id,
+    agent_last_seen: agent_last_seen,
+    iteration: iteration_counter,
+    spawned_reviewers: spawned_reviewers
+  }))
 ```
 
 ## Re-spawn Pattern
 
 When re-spawning a dormant agent:
 
-1. Load their persona + memory (same as initial spawn).
-2. Fetch all messages: `get_messages(agent_id: "{agentId}")`.
+1. Rebuild the system prompt:
+   - Start with the cached persona `systemPrompt` from `list_agents`.
+   - Load personal memory: `read_memory(agent_id: "{agentId}")` and prepend it.
+   - Re-inject the Task Board Discipline, Visibility, Mandatory Communication Protocol, and (if present) validate_prompt
+     blocks from Session Startup step 2.
+   - (project.md is intentionally skipped — it was already injected at initial spawn.
+     Mid-session project.md updates are communicated via messages to reduce re-spawn context load.)
+2. Fetch all messages: `all_msgs = get_messages(agent_id: "{agentId}")`.
 3. Compute new messages since last spawn:
    - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
    - Update: `agent_last_seen[agentId] = max(m.id for m in all_msgs)`
-4. Inject re-spawn context into their system prompt:
+4. Fetch current task state for the Re-spawn Context block:
+   - `my_tasks = get_all_tasks(agent_id: "orchestrator", assignee: "{agentId}")`
+5. Inject re-spawn context into their system prompt:
 ```
 ## Re-spawn Context
 You were waiting. Here is what has happened since your last run:
@@ -247,15 +425,12 @@ New events:
 {list of new_msgs}
 
 Your current tasks:
-{get_my_tasks result — fetched by orchestrator before spawning}
-
-Team status:
-{get_team_status result — fetched by orchestrator before spawning}
+{my_tasks}
 
 Resume your work. Call get_messages() first to read the full history.
 ```
-5. Spawn with their allowed tools.
-6. Collect their new `end:` declaration.
+6. Spawn with their allowed tools.
+7. Collect their new `end:` declaration.
 
 ## Reviewer Spawn Pattern
 
@@ -271,10 +446,11 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
    ## Reviewer Role
    You are acting as a peer reviewer (agent_id: {reviewerId}).
    Call get_messages(agent_id: "{reviewerId}") to find the review request.
-   Fetch the artifact, review it thoroughly, and call submit_review.
+   Fetch the artifact via get_artifact, then call request_review(artifact_id, reviewer: "{reviewerId}") to create the review record.
+   Review thoroughly, then call submit_review(review_id, status: "approved"|"changes_requested", comments: "...").
    IMPORTANT: After submit_review, broadcast the result:
      send_message(to: null, "Review complete: {requesterId} artifact {artifact_id} {approved|changes_requested} — {summary}")
-   After reviewing, call get_team_status() and declare end:waiting or end:_done.
+   After reviewing, declare end:waiting or end:_done.
    ```
 
 3. Allowed tools: same as the base persona's tools array.
@@ -289,10 +465,17 @@ Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
 
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 
-1. Save team retrospective: `append_memory(content: "Session {session_id}: {overall summary}")` (no agent_id → writes to lessons.md).
-2. Archive: `save_session_summary(session_id, summary)`.
-3. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
-4. Report results to the user.
+> Step 4 guarantees this is only reachable when the task board has no stranded todos.
+> If stranded todos existed in the previous iteration, Step 4 moved affected agents back
+> to dormant_agents, keeping the while condition true until all work is genuinely done.
+
+1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
+1b. Delete orchestrator session state file (disables the Stop hook for this session):
+   ```bash
+   rm -f ".relay/sessions/${CLAUDE_SESSION_ID}.json"
+   ```
+2. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
+3. Report results to the user.
 
 ## Multi-Instance Notes
 
@@ -300,9 +483,8 @@ When running multiple relay servers simultaneously (e.g. two projects in separat
 
 - Each server instance should have a unique `DASHBOARD_PORT` (e.g. 3456 and 3457).
 - Use `RELAY_INSTANCE` to give each instance a name (e.g. `project-a`, `project-b`).
-  Session IDs will be automatically prefixed: `project-a-2026-03-14-001`.
-- Each instance uses a separate SQLite DB when `RELAY_INSTANCE` is set:
-  `.relay/relay-{instance}.db` (e.g. `.relay/relay-project-a.db`).
+  Session IDs will be automatically prefixed: `project-a-2026-03-14-007-a3f7`.
+- Session data is in-memory per process — each instance maintains its own isolated in-memory state.
 - The skill always operates on the MCP server it was invoked from. When Claude Code has
   two relay MCP servers registered, use the correct one's skill invocation.
 

@@ -4,6 +4,7 @@
 
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
+import { cn } from "../../lib/cn";
 import { AgentDetailPanel } from "../AgentDetailPanel";
 import { TaskBoard } from "../TaskBoard";
 
@@ -24,14 +25,17 @@ function PanelHeader({ label, badge }: { label: string; badge?: number | string 
 }
 
 export function BottomPanel() {
-  const { taskBoardCollapsed, onToggleTaskBoard } = usePanelLayout();
+  const { taskBoardCollapsed, isDraggingTimeline, onToggleTaskBoard } = usePanelLayout();
   const { tasks, messages, agentStatuses, thinkingChunks, selectedAgent } = useSession();
 
   const isFocusMode = selectedAgent !== null;
 
   return (
     <div
-      className="flex flex-col overflow-hidden transition-[flex] duration-200 ease-[ease]"
+      className={cn(
+        "flex flex-col overflow-hidden",
+        !isDraggingTimeline && "transition-[flex] duration-200 ease-[ease]"
+      )}
       style={{
         flex: !isFocusMode && taskBoardCollapsed ? "0 0 36px" : "1 1 0",
         minHeight: 36,

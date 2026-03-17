@@ -12,7 +12,7 @@ import { MessageFeed } from "../MessageFeed";
 type PanelTab = "activity" | "messages";
 
 export function ActivityPanel() {
-  const { timelinePct, taskBoardCollapsed } = usePanelLayout();
+  const { timelinePct, taskBoardCollapsed, isDraggingTimeline } = usePanelLayout();
   const { timeline, messages, selectedAgent, thinkingChunks, agentStatuses } = useSession();
   const [activeTab, setActiveTab] = useState<PanelTab>("activity");
 
@@ -20,7 +20,10 @@ export function ActivityPanel() {
 
   return (
     <div
-      className="min-h-0 overflow-hidden flex flex-col transition-[flex] duration-200 ease-[ease]"
+      className={cn(
+        "min-h-0 overflow-hidden flex flex-col",
+        !isDraggingTimeline && "transition-[flex] duration-200 ease-[ease]"
+      )}
       style={{
         flex: taskBoardCollapsed ? "1 1 0" : `0 0 ${timelinePct}%`,
       }}

@@ -10,6 +10,7 @@ interface PanelResizeContextValue {
   arenaWidth: number;
   arenaCollapsed: boolean;
   isDraggingArena: boolean;
+  isDraggingTimeline: boolean;
   timelinePct: number;
   activityRef: RefObject<HTMLDivElement | null>;
   taskBoardCollapsed: boolean;
@@ -25,6 +26,7 @@ export function PanelResizeProvider({ children }: { children: React.ReactNode })
   const {
     arenaWidth,
     isDraggingArena,
+    isDraggingTimeline,
     timelinePct,
     activityRef,
     onHDividerMouseDown,
@@ -39,6 +41,7 @@ export function PanelResizeProvider({ children }: { children: React.ReactNode })
     () => ({
       arenaWidth,
       isDraggingArena,
+      isDraggingTimeline,
       timelinePct,
       activityRef,
       onHDividerMouseDown,
@@ -51,6 +54,7 @@ export function PanelResizeProvider({ children }: { children: React.ReactNode })
     [
       arenaWidth,
       isDraggingArena,
+      isDraggingTimeline,
       timelinePct,
       activityRef,
       onHDividerMouseDown,

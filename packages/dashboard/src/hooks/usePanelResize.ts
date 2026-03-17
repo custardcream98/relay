@@ -14,6 +14,7 @@ const TIMELINE_MAX_PCT = 80;
 export function usePanelResize() {
   const [arenaWidth, setArenaWidth] = useState(ARENA_DEFAULT_WIDTH);
   const [isDraggingArena, setIsDraggingArena] = useState(false);
+  const [isDraggingTimeline, setIsDraggingTimeline] = useState(false);
   const [timelinePct, setTimelinePct] = useState(TIMELINE_DEFAULT_PCT);
   const activityRef = useRef<HTMLDivElement>(null);
 
@@ -63,6 +64,7 @@ export function usePanelResize() {
   const onVDividerMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
+      setIsDraggingTimeline(true);
       const startY = e.clientY;
       const startPct = timelinePct;
       const activityH = activityRef.current?.clientHeight ?? 600;
@@ -73,6 +75,7 @@ export function usePanelResize() {
         );
       };
       const onUp = () => {
+        setIsDraggingTimeline(false);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
         vDragCleanupRef.current = null;
@@ -81,6 +84,7 @@ export function usePanelResize() {
       window.addEventListener("mouseup", onUp);
       // Store cleanup so unmount can remove listeners if drag is in progress
       vDragCleanupRef.current = () => {
+        setIsDraggingTimeline(false);
         window.removeEventListener("mousemove", onMove);
         window.removeEventListener("mouseup", onUp);
       };
@@ -91,6 +95,7 @@ export function usePanelResize() {
   return {
     arenaWidth,
     isDraggingArena,
+    isDraggingTimeline,
     timelinePct,
     activityRef,
     onHDividerMouseDown,

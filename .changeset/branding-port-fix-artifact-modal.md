@@ -1,6 +1,5 @@
 ---
 "@custardcream/relay": minor
-"@custardcream/relay-dashboard": minor
 ---
 
 ### Branding consistency

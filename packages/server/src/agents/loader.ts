@@ -80,13 +80,59 @@ function readYml(path: string): AgentsFile | null {
 }
 
 /**
+ * Resolve {{block_name}} placeholders in a systemPrompt using shared_blocks definitions.
+ * Also substitutes {agent_id} within each block with the actual agent ID.
+ * Throws if a referenced block is not defined in shared_blocks.
+ */
+export function resolveSharedBlocks(
+  systemPrompt: string,
+  sharedBlocks: Record<string, string>,
+  agentId: string
+): string {
+  return systemPrompt.replace(/\{\{([a-zA-Z0-9_-]+)\}\}/g, (_match, blockName: string) => {
+    const block = sharedBlocks[blockName];
+    if (block === undefined) {
+      throw new Error(
+        `shared_blocks reference "{{${blockName}}}" in agent "${agentId}" is not defined. ` +
+          `Available blocks: ${Object.keys(sharedBlocks).join(", ") || "(none)"}`
+      );
+    }
+    // Substitute {agent_id} within the block content
+    return block.replace(/\{agent_id\}/g, agentId);
+  });
+}
+
+/**
+ * Validate that an agent's systemPrompt contains required sections.
+ * Throws on missing sections — agents without proper structure lose context between spawns.
+ * Called by loadPool() to enforce prompt quality at pool load time.
+ */
+export function validatePromptSections(agentId: string, systemPrompt: string): void {
+  const requiredSections = [
+    { header: "### On Each Spawn", label: "On Each Spawn" },
+    { header: "### Declaring End", label: "Declaring End" },
+    { header: "## Rules", label: "Rules" },
+  ];
+
+  const missing = requiredSections.filter(({ header }) => !systemPrompt.includes(header));
+  if (missing.length > 0) {
+    throw new Error(
+      `agent "${agentId}" systemPrompt is missing required sections: ${missing.map((s) => `"${s.label}"`).join(", ")}. ` +
+        `Every agent must include "### On Each Spawn", "### Declaring End", and "## Rules".`
+    );
+  }
+}
+
+/**
  * Pass 1: Resolve base agents (those without extends).
  * Returns a merged record of resolved personas.
  */
 function resolveBaseAgents(
   entries: [string, AgentsFile["agents"][string]][],
   globalLanguage: string | undefined,
-  poolAgents: Record<string, AgentPersona> | undefined
+  poolAgents: Record<string, AgentPersona> | undefined,
+  sharedBlocks?: Record<string, string>,
+  globalReviewChecklist?: string
 ): Record<string, AgentPersona> {
   const merged: Record<string, AgentPersona> = {};
 
@@ -97,17 +143,24 @@ function resolveBaseAgents(
     validateAgentId(id);
 
     const language = config.language ?? globalLanguage;
+    const review_checklist = config.review_checklist ?? globalReviewChecklist;
 
     // Agent without extends must have all required fields.
     // systemPrompt may be omitted in session-agents files — fall back to the pool agent's prompt.
     const { name, emoji, tools } = config;
-    const systemPrompt = config.systemPrompt ?? poolAgents?.[id]?.systemPrompt;
+    let systemPrompt = config.systemPrompt ?? poolAgents?.[id]?.systemPrompt;
     if (!name || !emoji || !tools || !systemPrompt) {
       throw new Error(
         `agent "${id}" is missing required fields (name, emoji, tools, systemPrompt). ` +
           `If this is a session-agents file, ensure the agent ID matches a pool entry so systemPrompt can be resolved from the pool.`
       );
     }
+
+    // Resolve {{block_name}} placeholders in systemPrompt
+    if (sharedBlocks) {
+      systemPrompt = resolveSharedBlocks(systemPrompt, sharedBlocks, id);
+    }
+
     // Validate that all listed tools are registered MCP tools
     const unknownTools = tools.filter((t) => !REGISTERED_MCP_TOOLS.has(t));
     if (unknownTools.length > 0) {
@@ -122,6 +175,7 @@ function resolveBaseAgents(
       // Use the resolved systemPrompt (may come from pool fallback when config omits it)
       systemPrompt,
       ...(language ? { language } : {}),
+      ...(review_checklist ? { review_checklist } : {}),
     } as AgentPersona;
 
     // Normalize hooks: false → undefined; string | string[] → string[]
@@ -145,7 +199,9 @@ function resolveExtendsAgents(
   entries: [string, AgentsFile["agents"][string]][],
   merged: Record<string, AgentPersona>,
   globalLanguage: string | undefined,
-  poolAgents: Record<string, AgentPersona> | undefined
+  poolAgents: Record<string, AgentPersona> | undefined,
+  sharedBlocks?: Record<string, string>,
+  globalReviewChecklist?: string
 ): void {
   for (const [id, config] of entries) {
     if (config.disabled) continue;
@@ -165,12 +221,23 @@ function resolveExtendsAgents(
       );
     }
 
+    // review_checklist inheritance: config > base > global
+    // Unlike language (which is a directive), review_checklist should cascade through extends.
+    const review_checklist =
+      config.review_checklist ?? base.review_checklist ?? globalReviewChecklist;
+
     // Only spread config keys that are explicitly set (not undefined) so that
     // omitted fields don't overwrite inherited values from base.
     // hooks: false is an explicit opt-out of inherited hooks.
     const configOverrides = Object.fromEntries(
       Object.entries(config).filter(([, v]) => v !== undefined)
     );
+
+    // If extends agent overrides systemPrompt and shared_blocks exist, resolve placeholders
+    let resolvedSystemPrompt: string | undefined;
+    if (config.systemPrompt && sharedBlocks) {
+      resolvedSystemPrompt = resolveSharedBlocks(config.systemPrompt, sharedBlocks, id);
+    }
 
     const merged_persona = {
       ...base,
@@ -179,6 +246,9 @@ function resolveExtendsAgents(
       extends: undefined,
       basePersonaId: config.extends, // preserve the base persona ID before clearing extends
       ...(language ? { language } : {}),
+      ...(review_checklist ? { review_checklist } : {}),
+      // Use resolved systemPrompt if the extends agent overrides it with shared_blocks
+      ...(resolvedSystemPrompt ? { systemPrompt: resolvedSystemPrompt } : {}),
     } as AgentPersona;
 
     // Normalize hooks from this agent's config entry (if present).
@@ -213,11 +283,26 @@ export function loadAgents(
 ): Record<string, AgentPersona> {
   const entries = Object.entries(override.agents);
   const globalLanguage = override.language;
+  const sharedBlocks = override.shared_blocks;
+  const globalReviewChecklist = override.review_checklist;
 
   // Two-pass resolution: first resolve base agents, then extends agents.
   // This makes YAML declaration order irrelevant for extends chains.
-  const merged = resolveBaseAgents(entries, globalLanguage, poolAgents);
-  resolveExtendsAgents(entries, merged, globalLanguage, poolAgents);
+  const merged = resolveBaseAgents(
+    entries,
+    globalLanguage,
+    poolAgents,
+    sharedBlocks,
+    globalReviewChecklist
+  );
+  resolveExtendsAgents(
+    entries,
+    merged,
+    globalLanguage,
+    poolAgents,
+    sharedBlocks,
+    globalReviewChecklist
+  );
 
   return merged;
 }
@@ -231,7 +316,12 @@ export function loadAgents(
 export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
   if (override) {
     // When an explicit override is provided, load it as agents directly
-    return loadAgents(override);
+    const agents = loadAgents(override);
+    // Pool agents must have proper prompt structure — validate and throw on missing sections
+    for (const [id, persona] of Object.entries(agents)) {
+      validatePromptSections(id, persona.systemPrompt);
+    }
+    return agents;
   }
 
   // Try .relay/agents.pool.yml, then root-level agents.pool.yml

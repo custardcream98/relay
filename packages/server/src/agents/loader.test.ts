@@ -3,8 +3,18 @@ import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { markAsAgentId } from "@custardcream/relay-shared";
-import { buildSystemPromptWithMemory, loadAgents, loadPool } from "./loader";
+import {
+  buildSystemPromptWithMemory,
+  loadAgents,
+  loadPool,
+  resolveSharedBlocks,
+  validatePromptSections,
+} from "./loader";
 import type { AgentsFile } from "./types";
+
+/** Wraps a short description with required prompt sections for pool validation. */
+const poolPrompt = (desc: string) =>
+  `${desc}\n### On Each Spawn\nCheck messages.\n### Declaring End\nDeclare end.\n## Rules\nFollow rules.`;
 
 describe("loadAgents", () => {
   test("loads successfully with explicit agent file", () => {
@@ -363,14 +373,14 @@ describe("loadPool", () => {
           name: "Analyst",
           emoji: "📊",
           tools: ["send_message", "get_messages"],
-          systemPrompt: "You are an analyst.",
+          systemPrompt: poolPrompt("You are an analyst."),
           tags: ["research", "data"],
         },
         writer: {
           name: "Writer",
           emoji: "✍️",
           tools: ["send_message"],
-          systemPrompt: "You are a writer.",
+          systemPrompt: poolPrompt("You are a writer."),
           tags: ["marketing", "content"],
         },
       },
@@ -390,7 +400,7 @@ describe("loadPool", () => {
           name: "Helper",
           emoji: "🤝",
           tools: ["send_message"],
-          systemPrompt: "You help the team.",
+          systemPrompt: poolPrompt("You help the team."),
         },
       },
     };
@@ -405,7 +415,7 @@ describe("loadPool", () => {
           name: "SEO Specialist",
           emoji: "🔍",
           tools: ["send_message"],
-          systemPrompt: "You optimize for search.",
+          systemPrompt: poolPrompt("You optimize for search."),
           tags: ["marketing", "seo", "content"],
         },
       },
@@ -421,7 +431,7 @@ describe("loadPool", () => {
           name: "Active",
           emoji: "✅",
           tools: ["send_message"],
-          systemPrompt: "Active agent.",
+          systemPrompt: poolPrompt("Active agent."),
         },
         inactive: {
           name: "Inactive",
@@ -435,6 +445,20 @@ describe("loadPool", () => {
     const pool = loadPool(poolFile);
     expect(pool.active).toBeDefined();
     expect(pool.inactive).toBeUndefined();
+  });
+
+  test("throws when pool agent is missing required prompt sections", () => {
+    const poolFile: AgentsFile = {
+      agents: {
+        bad: {
+          name: "Bad Agent",
+          emoji: "🚫",
+          tools: ["send_message"],
+          systemPrompt: "No required sections here.",
+        },
+      },
+    };
+    expect(() => loadPool(poolFile)).toThrow(/missing required sections/);
   });
 
   test("session agents can extend pool agents when poolAgents is provided", () => {
@@ -534,7 +558,7 @@ describe("loadPool", () => {
           name: "Researcher",
           emoji: "🔬",
           tools: ["send_message", "get_messages"],
-          systemPrompt: "You are a researcher.",
+          systemPrompt: poolPrompt("You are a researcher."),
           tags: ["research"],
         },
         senior_researcher: {
@@ -684,5 +708,346 @@ describe("buildSystemPromptWithMemory — memory injection", () => {
     expect(prompt.indexOf("Project Memory")).toBeLessThan(prompt.indexOf("My Memory"));
 
     rmSync(tmpDir, { recursive: true, force: true });
+  });
+});
+
+// ─── shared_blocks tests ──────────────────────────────────────────────────────
+
+describe("resolveSharedBlocks", () => {
+  test("substitutes a single block reference", () => {
+    const result = resolveSharedBlocks(
+      "Before\n{{greeting}}\nAfter",
+      { greeting: "Hello world" },
+      "test-agent"
+    );
+    expect(result).toBe("Before\nHello world\nAfter");
+  });
+
+  test("substitutes {agent_id} within block content", () => {
+    const result = resolveSharedBlocks(
+      "{{rules}}",
+      { rules: 'Always set agent_id to "{agent_id}".' },
+      "fe"
+    );
+    expect(result).toBe('Always set agent_id to "fe".');
+  });
+
+  test("substitutes multiple blocks in one prompt", () => {
+    const result = resolveSharedBlocks(
+      "{{header}}\nContent\n{{footer}}",
+      { header: "# Title", footer: "---" },
+      "agent"
+    );
+    expect(result).toBe("# Title\nContent\n---");
+  });
+
+  test("throws on undefined block reference", () => {
+    expect(() => resolveSharedBlocks("{{nonexistent}}", {}, "test-agent")).toThrow(
+      /shared_blocks reference "{{nonexistent}}".*not defined/
+    );
+  });
+
+  test("returns prompt unchanged when no placeholders exist", () => {
+    const prompt = "No placeholders here.";
+    const result = resolveSharedBlocks(prompt, { unused: "block" }, "agent");
+    expect(result).toBe(prompt);
+  });
+
+  test("handles block names with hyphens and underscores", () => {
+    const result = resolveSharedBlocks(
+      "{{my-block}} {{my_block2}}",
+      { "my-block": "A", my_block2: "B" },
+      "agent"
+    );
+    expect(result).toBe("A B");
+  });
+});
+
+describe("validatePromptSections", () => {
+  test("does not throw when all sections present", () => {
+    expect(() =>
+      validatePromptSections(
+        "test",
+        "### On Each Spawn\nstuff\n### Declaring End\nstuff\n## Rules\nstuff"
+      )
+    ).not.toThrow();
+  });
+
+  test("throws for missing sections", () => {
+    expect(() => validatePromptSections("test", "Just a simple prompt.")).toThrow(
+      /missing required sections.*On Each Spawn.*Declaring End.*Rules/
+    );
+  });
+
+  test("throws naming the specific missing section", () => {
+    expect(() =>
+      validatePromptSections("fe", "### On Each Spawn\nstuff\n### Declaring End\nstuff")
+    ).toThrow(/agent "fe".*missing required sections.*"Rules"/);
+  });
+});
+
+describe("shared_blocks — loadAgents integration", () => {
+  test("resolves shared_blocks in base agent systemPrompts", () => {
+    const custom: AgentsFile = {
+      shared_blocks: {
+        rules: '## Rules\nAlways set agent_id to "{agent_id}".',
+      },
+      agents: {
+        fe: {
+          name: "Frontend",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt:
+            "You are FE.\n### On Each Spawn\nCheck messages.\n### Declaring End\nDone.\n{{rules}}",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.systemPrompt).toContain('Always set agent_id to "fe".');
+    expect(result.fe.systemPrompt).not.toContain("{{rules}}");
+  });
+
+  test("resolves shared_blocks in extends agent that overrides systemPrompt", () => {
+    const custom: AgentsFile = {
+      shared_blocks: {
+        core: "Core block for {agent_id}",
+      },
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt:
+            "Base prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{core}}",
+        },
+        derived: {
+          extends: "base",
+          name: "Derived",
+          systemPrompt:
+            "Derived prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{core}}",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.base.systemPrompt).toContain("Core block for base");
+    expect(result.derived.systemPrompt).toContain("Core block for derived");
+  });
+
+  test("extends agent without systemPrompt override inherits already-resolved prompt", () => {
+    const custom: AgentsFile = {
+      shared_blocks: {
+        tag: "Resolved for {agent_id}",
+      },
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{tag}}",
+        },
+        copy: {
+          extends: "base",
+          name: "Copy",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    // base gets its own id substituted
+    expect(result.base.systemPrompt).toContain("Resolved for base");
+    // copy inherits base's already-resolved prompt (no double-substitution)
+    expect(result.copy.systemPrompt).toContain("Resolved for base");
+  });
+
+  test("throws on undefined shared_block reference", () => {
+    const custom: AgentsFile = {
+      shared_blocks: {},
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "{{undefined_block}}",
+        },
+      },
+    };
+    expect(() => loadAgents(custom)).toThrow(/shared_blocks reference "{{undefined_block}}"/);
+  });
+
+  test("shared_blocks + review_checklist work together in extends chain", () => {
+    const custom: AgentsFile = {
+      shared_blocks: {
+        rules: '## Rules\nAlways set agent_id to "{agent_id}".',
+      },
+      review_checklist: "Global checklist",
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "FE prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n{{rules}}",
+          review_checklist: "FE checklist",
+        },
+        fe2: {
+          extends: "fe",
+          name: "FE 2",
+          // inherits resolved prompt from fe, inherits fe's review_checklist over global
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    // shared_blocks resolved with base agent's id
+    expect(result.fe.systemPrompt).toContain('agent_id to "fe"');
+    // fe2 inherits already-resolved prompt (contains fe's id, not fe2's)
+    expect(result.fe2.systemPrompt).toContain('agent_id to "fe"');
+    // review_checklist: fe2 inherits fe's per-agent checklist, not global
+    expect(result.fe.review_checklist).toBe("FE checklist");
+    expect(result.fe2.review_checklist).toBe("FE checklist");
+  });
+
+  test("works without shared_blocks", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "Plain prompt with no blocks.",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.systemPrompt).toBe("Plain prompt with no blocks.");
+  });
+});
+
+// ─── review_checklist tests ───────────────────────────────────────────────────
+
+describe("review_checklist", () => {
+  test("global review_checklist applies to all agents", () => {
+    const custom: AgentsFile = {
+      review_checklist: "- [ ] No TypeScript any\n- [ ] No console.log",
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "FE prompt.",
+        },
+        be: {
+          name: "BE",
+          emoji: "⚙️",
+          tools: ["send_message"],
+          systemPrompt: "BE prompt.",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.review_checklist).toBe("- [ ] No TypeScript any\n- [ ] No console.log");
+    expect(result.be.review_checklist).toBe("- [ ] No TypeScript any\n- [ ] No console.log");
+  });
+
+  test("per-agent review_checklist overrides global", () => {
+    const custom: AgentsFile = {
+      review_checklist: "Global checklist",
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "FE prompt.",
+          review_checklist: "FE-specific checklist",
+        },
+        be: {
+          name: "BE",
+          emoji: "⚙️",
+          tools: ["send_message"],
+          systemPrompt: "BE prompt.",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.review_checklist).toBe("FE-specific checklist");
+    expect(result.be.review_checklist).toBe("Global checklist");
+  });
+
+  test("review_checklist is undefined when not set", () => {
+    const custom: AgentsFile = {
+      agents: {
+        fe: {
+          name: "FE",
+          emoji: "💻",
+          tools: ["send_message"],
+          systemPrompt: "FE prompt.",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.fe.review_checklist).toBeUndefined();
+  });
+
+  test("extends agent inherits review_checklist from global", () => {
+    const custom: AgentsFile = {
+      review_checklist: "Global checklist",
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "Base prompt.",
+        },
+        derived: {
+          extends: "base",
+          name: "Derived",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.derived.review_checklist).toBe("Global checklist");
+  });
+
+  test("extends agent inherits base review_checklist over global", () => {
+    const custom: AgentsFile = {
+      review_checklist: "Global checklist",
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "Base prompt.",
+          review_checklist: "Base-specific checklist",
+        },
+        derived: {
+          extends: "base",
+          name: "Derived",
+          // does NOT set review_checklist — should inherit base's, not global
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.base.review_checklist).toBe("Base-specific checklist");
+    expect(result.derived.review_checklist).toBe("Base-specific checklist");
+  });
+
+  test("extends agent can override review_checklist", () => {
+    const custom: AgentsFile = {
+      review_checklist: "Global checklist",
+      agents: {
+        base: {
+          name: "Base",
+          emoji: "🔵",
+          tools: ["send_message"],
+          systemPrompt: "Base prompt.",
+          review_checklist: "Base checklist",
+        },
+        derived: {
+          extends: "base",
+          name: "Derived",
+          review_checklist: "Derived checklist",
+        },
+      },
+    };
+    const result = loadAgents(custom);
+    expect(result.base.review_checklist).toBe("Base checklist");
+    expect(result.derived.review_checklist).toBe("Derived checklist");
   });
 });

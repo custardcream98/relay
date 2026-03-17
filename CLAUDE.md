@@ -52,6 +52,8 @@ The MCP server handles all inter-agent communication infrastructure.
 - `session-agents-{sessionId}.yml`: ephemeral per-session team file written by `/relay:relay` Team Composition step. Gitignored. Filename includes session ID to avoid concurrent-session collisions.
 - `loadPool()` in `loader.ts`: reads pool file; throws a clear error when no pool is configured (no silent fallback).
 - **Multi-instance same agent**: Use `extends` in pool YAML — `fe2: { extends: fe }` inherits fe's full persona with a different agent ID. Supports parallel fe/fe2/fe3 teams.
+- `shared_blocks` at pool top level: reusable prompt fragments referenced as `{{block_name}}` in systemPrompt. `{agent_id}` within blocks is substituted at load time. Undefined references throw at load time.
+- `review_checklist` at pool top level: default review criteria for all agents; per-agent override via `review_checklist` field in agent config. Exposed in `list_agents` and `list_pool_agents` API responses.
 
 ### Install modes (global / local)
 - Global (user scope): `/plugin install relay@relay`

@@ -37,11 +37,16 @@ export interface AgentConfig {
   /** Optional validation criteria injected into the agent's system prompt before task completion.
    *  Agents should verify all listed criteria before calling update_task(status: "done"). */
   validate_prompt?: string;
+  /** Optional review checklist for structured code reviews (Fix-First framework).
+   *  Top-level default can be overridden per agent. Injected into reviewer context at spawn time. */
+  review_checklist?: string;
 }
 
 export interface AgentsFile {
   agents: Record<string, Partial<AgentConfig>>;
   language?: string; // Default language for all agents (can be overridden per agent)
+  shared_blocks?: Record<string, string>; // Reusable text blocks for systemPrompt templates — {{block_name}} in prompts
+  review_checklist?: string; // Default review checklist for all agents (can be overridden per agent)
 }
 
 // Fully resolved persona returned by loader after merging defaults and custom overrides

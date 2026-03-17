@@ -9,7 +9,10 @@ Every `/relay:relay` session picks a task-specific team from this pool.
 ## Top-level structure
 
 ```yaml
-language: string   # optional — default language for all agents
+language: string          # optional — default language for all agents
+shared_blocks:            # optional — reusable text blocks
+  {block_name}: string
+review_checklist: string  # optional — default review checklist for all agents
 agents:
   {agentId}:
     # agent configuration
@@ -36,6 +39,7 @@ agents:
       after_task:  string | [string]
     # hooks: false         # opt out of inherited hooks (for extends-based agents)
     validate_prompt: string  # optional — validation criteria injected before task completion
+    review_checklist: string # optional — override global review checklist for this agent
 ```
 
 ## Available tools
@@ -64,6 +68,54 @@ get_orchestrator_state
 list_agents
 list_pool_agents
 broadcast_thinking
+```
+
+## shared_blocks
+
+Define reusable text blocks at the top level and reference them with `{{block_name}}` inside agent `systemPrompt` fields. This eliminates prompt duplication when multiple agents share common instructions.
+
+Within a block, `{agent_id}` is automatically substituted with the actual agent ID at load time.
+
+If a `systemPrompt` references an undefined block (e.g. `{{nonexistent}}`), the pool loader throws a load-time error.
+
+```yaml
+shared_blocks:
+  coding_standards: |
+    - Follow the project style guide
+    - Write tests for all new code
+    - Agent {agent_id} must request review before marking done
+
+agents:
+  fe:
+    systemPrompt: |
+      You are a Frontend Engineer.
+      {{coding_standards}}
+  be:
+    systemPrompt: |
+      You are a Backend Engineer.
+      {{coding_standards}}
+```
+
+## review_checklist
+
+Structured review criteria for peer reviews. Set a top-level `review_checklist` to apply default criteria to all agents. Individual agents can override it with their own `review_checklist` field.
+
+Inheritance for `extends`-based agents follows a 3-tier priority: per-agent value > base agent's value > global default. An extending agent that does not set `review_checklist` inherits from its base agent first, then falls back to global.
+
+The review checklist follows a **Fix-First** framework: reviewers must verify each criterion before approving, and request fixes for any unmet item.
+
+```yaml
+review_checklist: |
+  - [ ] Code follows project conventions
+  - [ ] Tests cover the new functionality
+  - [ ] No security vulnerabilities introduced
+
+agents:
+  security:
+    review_checklist: |
+      - [ ] No hardcoded secrets
+      - [ ] Input validation on all endpoints
+      - [ ] OWASP Top 10 compliance
 ```
 
 ## hooks field
@@ -162,6 +214,12 @@ agents:
 ```yaml
 language: English
 
+shared_blocks:
+  collaboration_rules: |
+    - Always broadcast_thinking before starting work
+    - Request review from a peer before marking tasks done
+    - Agent {agent_id} must update memory at session end
+
 agents:
   pm:
     name: "Product Manager"
@@ -177,6 +235,7 @@ agents:
     systemPrompt: |
       You are the Product Manager.
       Break down requirements into tasks and coordinate the team.
+      {{collaboration_rules}}
 
   fe:
     name: "Frontend Engineer"
@@ -193,6 +252,7 @@ agents:
     systemPrompt: |
       You are a Frontend Engineer.
       Implement UI components and create PR artifacts for review.
+      {{collaboration_rules}}
 
   security:
     name: "Security Engineer"

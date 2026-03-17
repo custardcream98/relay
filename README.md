@@ -153,9 +153,13 @@ Copy `agents.pool.example.yml` — 12 pre-built personas spanning web-dev, resea
 
 `/relay:relay` reads the pool each time and assembles a task-optimized team from it. Set a top-level `language: "Korean"` to default all agents to a specific language.
 
-Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`.
+Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`, `review_checklist`.
 
 **`validate_prompt`** — declarative validation criteria injected into the agent's system prompt. Agents check all listed criteria before calling `update_task(status: "done")`.
+
+**`review_checklist`** — structured review criteria for peer reviews. Set at the top level for all agents, or per-agent for role-specific checklists.
+
+**`shared_blocks`** — define reusable text blocks at the top level and reference them as `{{block_name}}` in agent systemPrompts. Eliminates prompt duplication across agents.
 
 **Derived tasks** — `create_task` supports `parent_task_id` (max depth 1) and `derived_reason` to track where sub-tasks came from. A circuit breaker limits depth to 1 level and max 3 siblings per parent.
 

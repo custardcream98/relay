@@ -153,9 +153,13 @@ agents:
 
 `/relay:relay`는 매번 풀을 읽고 태스크에 최적화된 팀을 선택해요. 최상단에 `language: "Korean"`을 설정하면 모든 에이전트의 기본 언어를 지정할 수 있어요.
 
-필수 필드: `name`, `emoji`, `tools`, `systemPrompt`. 선택 필드: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`.
+필수 필드: `name`, `emoji`, `tools`, `systemPrompt`. 선택 필드: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`, `review_checklist`.
 
 **`validate_prompt`** — 에이전트 시스템 프롬프트에 주입되는 선언형 검증 기준이에요. 에이전트가 `update_task(status: "done")` 호출 전에 모든 기준을 확인해요.
+
+**`review_checklist`** — 피어 리뷰를 위한 구조화된 리뷰 기준이에요. 최상위에 설정하면 모든 에이전트에 적용되고, 에이전트별로 역할에 맞는 체크리스트를 오버라이드할 수 있어요.
+
+**`shared_blocks`** — 최상위에 재사용 가능한 텍스트 블록을 정의하고 에이전트 systemPrompt에서 `{{block_name}}`으로 참조할 수 있어요. 에이전트 간 프롬프트 중복을 제거해 줘요.
 
 **파생 태스크** — `create_task`는 `parent_task_id`(최대 깊이 1)와 `derived_reason`을 지원해서 서브태스크의 출처를 추적할 수 있어요. 서킷 브레이커가 깊이를 1단계, 부모당 최대 3개 형제로 제한해요.
 

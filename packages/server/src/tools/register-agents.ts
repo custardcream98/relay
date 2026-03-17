@@ -117,6 +117,7 @@ export function registerAgentTools(server: McpServer): void {
                 systemPrompt: a.systemPrompt,
                 basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
                 validate_prompt: a.validate_prompt,
+                review_checklist: a.review_checklist,
               })),
             }),
           },
@@ -159,6 +160,7 @@ export function registerAgentTools(server: McpServer): void {
                 tags: a.tags,
                 tools: a.tools,
                 validate_prompt: a.validate_prompt,
+                review_checklist: a.review_checklist,
                 // systemPrompt intentionally omitted — pool metadata only
               })),
             }),

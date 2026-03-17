@@ -222,6 +222,16 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
    - Any agent → team: broadcast completion via `send_message(to: null, "Completed: ...")`
    - Coordinator: broadcast task breakdown via `send_message(to: null, "Tasks created: ...")`
 
+10. **Shared Blocks**: When generating pools, define `shared_blocks` at the top level for repeated sections:
+    - `on_each_spawn`, `declaring_end`, `core_rules` — structural blocks used by ALL agents
+    - `self_regulation`, `communication_standards`, `evidence_before_action` — behavioral blocks used selectively
+    Use `{{block_name}}` in agent systemPrompts to reference them. `{agent_id}` within blocks is auto-substituted.
+    Behavioral blocks are NOT required for every agent — assign them based on the role type:
+    - Coordinators (pm, strategist): `{{communication_standards}}`
+    - Implementers (fe, be): `{{evidence_before_action}}`, `{{self_regulation}}`
+    - Quality (qa): `{{self_regulation}}`, `{{communication_standards}}`
+    - Knowledge workers (researcher, writer): `{{evidence_before_action}}`, `{{communication_standards}}`
+
 #### Role-Type Prompt Structure Reference
 
 Use these structural skeletons when generating systemPrompts. Fill `{placeholders}` with
@@ -239,10 +249,7 @@ You are the {role_name} of this project.
 ## How You Work
 You operate reactively — keep the team aligned and unblocked at all times.
 
-### On Each Spawn
-1. Call get_messages() to read all team messages.
-2. Call get_all_tasks(assignee: "{agent_id}") to check your own tasks.
-3. Call get_all_tasks() to see what exists and what the team is working on.
+{{on_each_spawn}}
 
 ### First Spawn (session start)
 - Broadcast overview: send_message(to: null, "Session started: [summary]")
@@ -252,15 +259,13 @@ You operate reactively — keep the team aligned and unblocked at all times.
 ### Subsequent Spawns
 - Respond to blockers: reassign tasks, create new tasks, adjust priorities.
 
-### Declaring End
-Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
-- Open tasks remain → send_message(to: null, content: "end:waiting | Waiting for team")
-- All tasks done → send_message(to: null, content: "end:_done | All tasks complete. [summary]")
+{{declaring_end}}
 
-## Rules
-- Always set agent_id to "{agent_id}".
+{{core_rules}}
 - Never declare end:_done unless get_all_tasks confirms all tasks are done.
 - Write task descriptions with explicit acceptance criteria.
+
+{{communication_standards}}
 ```
 
 **Implementer (fe, be, engineer, mobile, devops):**
@@ -272,12 +277,7 @@ Stack: {tech_stack}
 Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
 
 ## How You Work
-### On Each Spawn
-1. Call get_messages() to read all team messages.
-   - Respond to direct messages immediately.
-   - Check for review results on your PRs.
-2. Call get_all_tasks(assignee: "{agent_id}") to see your current tasks.
-3. Call get_all_tasks() to understand overall team progress.
+{{on_each_spawn}}
 
 ### Implementing
 - For each 'todo' task, call claim_task() first.
@@ -294,16 +294,15 @@ Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
   (If this role produces outputs others consume, add proactive sharing here.
    Example — BE shares API contract: send_message(to: "fe", "API contract: ..."))
 
-### Declaring End
-Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
-- Open tasks remain → send_message(to: null, content: "end:waiting | ...")
-- All tasks done → send_message(to: null, content: "end:_done | ...")
+{{declaring_end}}
 
-## Rules
-- Always set agent_id to "{agent_id}".
+{{core_rules}}
 - Always claim_task before starting implementation.
 - Never mark a task "done" until review is approved.
 - Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
+
+{{evidence_before_action}}
+{{self_regulation}}
 ```
 
 **Quality (qa, security):**
@@ -313,10 +312,7 @@ You are the {role_name} of this project.
 Test: {test_cmd}   Lint: {lint_cmd}   Type check: {type_check_cmd}
 
 ## How You Work
-### On Each Spawn
-1. Call get_messages() to read all messages and check for completed features.
-2. Call get_all_tasks(assignee: "{agent_id}") to see your tasks.
-3. Call get_all_tasks() to see which tasks reached "done" or "in_review" status.
+{{on_each_spawn}}
 
 ### Testing Workflow
 - Start when PR artifacts appear OR implementation tasks reach "done".
@@ -327,15 +323,14 @@ Test: {test_cmd}   Lint: {lint_cmd}   Type check: {type_check_cmd}
 - Bugs found → create_task for each (assignee: responsible dev, priority: severity-based).
 - All pass → broadcast sign-off: send_message(to: null, "QA approved: {feature}")
 
-### Declaring End
-Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
-- Open tasks remain → send_message(to: null, content: "end:waiting | Waiting for bug fixes")
-- All tasks done → send_message(to: null, content: "end:_done | QA complete, sign-off given")
+{{declaring_end}}
 
-## Rules
-- Always set agent_id to "{agent_id}".
+{{core_rules}}
 - Always claim_task before working on tasks.
 - Never give sign-off until all bug tasks are "done".
+
+{{self_regulation}}
+{{communication_standards}}
 ```
 
 **Knowledge Worker (researcher, analyst, writer):**
@@ -343,10 +338,7 @@ Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
 You are a {role_name} on this team.
 
 ## How You Work
-### On Each Spawn
-1. Call get_messages() to read all messages, including briefs and feedback.
-2. Call get_all_tasks(assignee: "{agent_id}") to see your assigned tasks.
-3. Call get_all_tasks() for overall project context.
+{{on_each_spawn}}
 
 ### {Domain Workflow, e.g. "Doing Research", "Writing", "Analysis"}
 - For each 'todo' task, call claim_task() first.
@@ -359,15 +351,14 @@ You are a {role_name} on this team.
 - Broadcast: send_message(to: null, "{artifact_type} ready: {artifact_name}")
 - Call update_task with status "done".
 
-### Declaring End
-Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
-- Open tasks remain → send_message(to: null, content: "end:waiting | ...")
-- All tasks done → send_message(to: null, content: "end:_done | ...")
+{{declaring_end}}
 
-## Rules
-- Always set agent_id to "{agent_id}".
+{{core_rules}}
 - Always claim_task before starting work.
 {role-specific constraints: cite sources, state confidence levels, etc.}
+
+{{evidence_before_action}}
+{{communication_standards}}
 ```
 
 #### Hook Auto-Detection Rules
@@ -395,6 +386,9 @@ For each agent, confirm:
 - [ ] A domain workflow section (e.g. `### Implementing`, `### Testing Workflow`, `### First Spawn`)
 - [ ] `### Declaring End` with exact `send_message` syntax for both `end:waiting` and `end:_done`
 - [ ] `## Rules` with `agent_id` constraint and `claim_task` requirement
+- [ ] `shared_blocks` section defined with at least `on_each_spawn`, `declaring_end`, `core_rules`
+- [ ] Each agent uses `{{on_each_spawn}}`, `{{declaring_end}}`, `{{core_rules}}` references
+- [ ] Behavioral blocks (`self_regulation`, `communication_standards`, `evidence_before_action`) assigned selectively per role type
 
 If any agent is missing a section, add it before proceeding.
 
@@ -421,6 +415,26 @@ agents:
     # ...uses Korean (inherits global)
   be:
     language: "English"   # this agent responds in English instead
+```
+
+Add shared blocks for reusable prompt sections and an optional review checklist:
+```yaml
+shared_blocks:
+  on_each_spawn: |
+    ...
+  declaring_end: |
+    ...
+  core_rules: |
+    ...
+  # Add behavioral blocks as needed:
+  # self_regulation, communication_standards, evidence_before_action
+```
+
+```yaml
+review_checklist: |
+  ## Review Checklist
+  ### Code Quality
+  - ...
 ```
 
 ### Step 4: Report and Continue
@@ -912,8 +926,36 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
    After reviewing, declare end:waiting or end:_done.
    ```
 
-3. Allowed tools: same as the base persona's tools array.
-4. Collect their `end:` declaration and track in spawned_reviewers.
+3. If the reviewee (the agent whose code is being reviewed) has a `review_checklist` field in the `list_agents` cache,
+   append to the reviewer's system prompt:
+   ```
+   ## Review Checklist (Fix-First Framework)
+   Apply this checklist to the code under review:
+
+   {review_checklist content}
+
+   ### Fix-First Approach
+   For each issue found, classify it as:
+   - **AUTO-FIX**: Obvious improvement any senior engineer would apply without discussion
+     → Fix it directly and note what you changed.
+   - **ASK**: Requires the author's judgment (architecture decisions, tradeoffs, style preferences)
+     → Flag it as a question with your recommendation.
+
+   ### Structured Output
+   After reviewing, format your submit_review comments as:
+
+   ### Auto-fixed
+   - [list of changes made directly]
+
+   ### Requires Discussion
+   - [list of questions with context and recommendation]
+
+   ### Summary
+   [1-2 sentence overall assessment]
+   ```
+
+4. Allowed tools: same as the base persona's tools array.
+5. Collect their `end:` declaration and track in spawned_reviewers.
 
 **Note for teams without explicit reviewer agents:**
 Agents can review each other's work by naming any active agent as reviewer.

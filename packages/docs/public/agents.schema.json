@@ -10,6 +10,15 @@
       "type": "string",
       "description": "Default response language for all agents (e.g. 'Korean', 'English', 'Japanese'). Can be overridden per agent."
     },
+    "shared_blocks": {
+      "type": "object",
+      "description": "Reusable text blocks for systemPrompt templates. Reference as {{block_name}} in agent systemPrompts. {agent_id} within blocks is auto-substituted with the actual agent ID.",
+      "additionalProperties": { "type": "string" }
+    },
+    "review_checklist": {
+      "type": "string",
+      "description": "Default review checklist for all agents. Injected into reviewer context at spawn time. Can be overridden per agent."
+    },
     "agents": {
       "type": "object",
       "description": "Agent persona overrides. Keys are agent IDs.",
@@ -97,6 +106,10 @@
         "validate_prompt": {
           "type": "string",
           "description": "Validation criteria injected before task completion. Agent checks all criteria before marking done."
+        },
+        "review_checklist": {
+          "type": "string",
+          "description": "Override the global review checklist for this specific agent."
         }
       }
     },

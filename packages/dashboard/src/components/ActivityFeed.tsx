@@ -5,9 +5,11 @@
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAgentAccent } from "../constants/agents";
+import { useServer } from "../context/ServerContext";
 import { cn } from "../lib/cn";
 import type { AgentId, TimelineEntry } from "../types";
 import { relativeTime } from "../utils/time";
+import { ArtifactDetailModal } from "./ArtifactDetailModal";
 import { MarkdownContent } from "./MarkdownContent";
 import { AgentAvatar } from "./shared/AgentAvatar";
 import { AgentChip } from "./shared/AgentChip";
@@ -74,7 +76,7 @@ function getEndDeclarationType(content: string): "done" | "waiting" | "failed" |
 }
 
 // Shared row layout for message/artifact/review cards
-const ROW_BASE = "flex gap-[10px] px-4 py-[10px] border-b border-[var(--color-border-subtle)]";
+const ROW_BASE = "flex gap-[10px] px-4 py-[10px] border-b border-(--color-border-subtle)";
 const SLIDE_IN = "animate-[slide-in-bottom_180ms_ease-out_both]";
 
 // [A] Broadcast message card
@@ -97,10 +99,10 @@ const MessageBroadcastEntry = memo(function MessageBroadcastEntry({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1">
           <AgentChip agentId={entry.agentId} />
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] bg-[var(--color-surface-overlay)] px-[5px] py-[1px] rounded-[3px]">
+          <span className="font-mono text-[10px] text-(--color-text-disabled) bg-(--color-surface-overlay) px-[5px] py-px rounded-[3px]">
             broadcast
           </span>
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
@@ -137,9 +139,9 @@ const MessageDirectEntry = memo(function MessageDirectEntry({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1">
           <AgentChip agentId={entry.agentId} />
-          <span className="text-[10px] text-[var(--color-text-disabled)]">→</span>
+          <span className="text-[10px] text-(--color-text-disabled)">→</span>
           <AgentChip agentId={toAgent} />
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
@@ -175,7 +177,7 @@ const ThinkingEntry = memo(function ThinkingEntry({
     <div
       className={cn(
         "flex gap-[10px] px-4 py-[10px]",
-        "bg-[var(--color-thinking-bg)] border border-dashed border-[var(--color-thinking-border)]",
+        "bg-(--color-thinking-bg) border border-dashed border-(--color-thinking-border)",
         "mx-3 my-1 rounded-[6px]",
         SLIDE_IN
       )}
@@ -188,11 +190,11 @@ const ThinkingEntry = memo(function ThinkingEntry({
           <span style={thinkingLabelStyle} className="italic">
             thinking…
           </span>
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {isLive ? "live" : ""}
           </span>
         </div>
-        <p className="text-[11px] leading-[1.6] text-[var(--color-text-secondary)] m-0 font-mono whitespace-pre-wrap break-words">
+        <p className="text-[11px] leading-[1.6] text-(--color-text-secondary) m-0 font-mono whitespace-pre-wrap wrap-break-word">
           {chunk}
           {isLive && (
             <span
@@ -225,10 +227,10 @@ const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: Timeli
           {entry.agentId}
         </span>
       )}
-      <span className="text-[11px] text-[var(--color-text-tertiary)] flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+      <span className="text-[11px] text-(--color-text-tertiary) flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
         {entry.description}
       </span>
-      <span className="font-mono text-[10px] text-[var(--color-text-disabled)] shrink-0">
+      <span className="font-mono text-[10px] text-(--color-text-disabled) shrink-0">
         {relativeTime(entry.timestamp)}
       </span>
     </div>
@@ -236,25 +238,38 @@ const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry: Timeli
 });
 
 // [E] Artifact posted card
-const ArtifactEntry = memo(function ArtifactEntry({ entry }: { entry: TimelineEntry }) {
+const ArtifactEntry = memo(function ArtifactEntry({
+  entry,
+  onClickArtifact,
+}: {
+  entry: TimelineEntry;
+  onClickArtifact?: (artifactId: string, rect: DOMRect) => void;
+}) {
   if (!entry.agentId) return null;
+  const artifactId = entry.detail;
   return (
     <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span className="text-[11px] text-[var(--color-text-tertiary)]">posted artifact</span>
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="text-[11px] text-(--color-text-tertiary)">posted artifact</span>
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        <div className="inline-flex items-center gap-2 px-[10px] py-1.5 bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-[5px] max-w-full">
+        <button
+          type="button"
+          className="inline-flex items-center gap-2 px-[10px] py-1.5 bg-(--color-surface-raised) border border-(--color-border-default) rounded-[5px] max-w-full cursor-pointer transition-[border-color,background] duration-100 hover:border-(--color-accent) hover:bg-(--color-surface-overlay)"
+          onClick={(e) => {
+            if (artifactId) onClickArtifact?.(artifactId, e.currentTarget.getBoundingClientRect());
+          }}
+        >
           <span className="text-sm">📄</span>
-          <span className="font-mono text-[11px] text-[var(--color-text-primary)] overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="font-mono text-[11px] text-(--color-text-primary) overflow-hidden text-ellipsis whitespace-nowrap">
             {entry.description.replace(/^Artifact: /, "")}
           </span>
-        </div>
+        </button>
       </div>
     </div>
   );
@@ -269,12 +284,12 @@ const ReviewEntry = memo(function ReviewEntry({ entry }: { entry: TimelineEntry 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span className="text-[11px] text-[var(--color-text-tertiary)]">requested review</span>
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="text-[11px] text-(--color-text-tertiary)">requested review</span>
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        <div className="px-[10px] py-[7px] bg-[var(--color-review-bg)] border border-[var(--color-review-border)] rounded-[5px] text-xs text-[var(--color-end-waiting)]">
+        <div className="px-[10px] py-[7px] bg-(--color-review-bg) border border-(--color-review-border) rounded-[5px] text-xs text-(--color-end-waiting)">
           <span className="mr-1.5">⚠</span>
           {entry.description}
         </div>
@@ -292,15 +307,15 @@ const ReviewUpdatedEntry = memo(function ReviewUpdatedEntry({ entry }: { entry: 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span className="text-[11px] text-[var(--color-text-tertiary)]">submitted review</span>
-          <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+          <span className="text-[11px] text-(--color-text-tertiary)">submitted review</span>
+          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
             {relativeTime(entry.timestamp)}
           </span>
         </div>
-        <div className="px-[10px] py-[7px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-[5px] text-xs text-[var(--color-text-secondary)]">
+        <div className="px-[10px] py-[7px] bg-(--color-surface-raised) border border-(--color-border-default) rounded-[5px] text-xs text-(--color-text-secondary)">
           {entry.description}
           {entry.detail && (
-            <p className="text-[11px] mt-1 mb-0 text-[var(--color-text-tertiary)] whitespace-pre-wrap break-words">
+            <p className="text-[11px] mt-1 mb-0 text-(--color-text-tertiary) whitespace-pre-wrap wrap-break-word">
               {entry.detail}
             </p>
           )}
@@ -340,7 +355,7 @@ const EndDeclarationEntry = memo(function EndDeclarationEntry({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-4 py-1.5 border-b border-[var(--color-border-subtle)]",
+        "flex items-center gap-2 px-4 py-1.5 border-b border-(--color-border-subtle)",
         SLIDE_IN
       )}
       style={containerStyle}
@@ -350,14 +365,14 @@ const EndDeclarationEntry = memo(function EndDeclarationEntry({
       <span className="text-[11px] font-semibold" style={{ color }}>
         {iconMap[endType]}
       </span>
-      <span className="text-[11px] text-[var(--color-text-tertiary)]">
+      <span className="text-[11px] text-(--color-text-tertiary)">
         {endType === "waiting"
           ? "waiting for team"
           : endType === "done"
             ? "work complete"
             : "work failed"}
       </span>
-      <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+      <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
         {relativeTime(timestamp)}
       </span>
     </div>
@@ -368,7 +383,7 @@ const EndDeclarationEntry = memo(function EndDeclarationEntry({
 const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry }) {
   return (
     <div className={cn("flex items-center justify-center gap-1.5 px-5 py-[3px]", SLIDE_IN)}>
-      <span className="text-[10px] text-[var(--color-text-disabled)]">
+      <span className="text-[10px] text-(--color-text-disabled)">
         {entry.agentId && (
           <span
             className="font-mono font-semibold"
@@ -379,7 +394,7 @@ const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry 
         )}
         {entry.description}
       </span>
-      <span className="font-mono text-[9px] text-[var(--color-text-disabled)]">
+      <span className="font-mono text-[9px] text-(--color-text-disabled)">
         {relativeTime(entry.timestamp)}
       </span>
     </div>
@@ -392,14 +407,16 @@ function EntryRenderer({
   isFocused,
   entryId,
   isExpanded,
+  onClickArtifact,
 }: {
   entry: TimelineEntry;
   isFocused: boolean;
   entryId: string;
   isExpanded: boolean;
+  onClickArtifact?: (artifactId: string, rect: DOMRect) => void;
 }) {
   const focusStyle = isFocused
-    ? "ring-1 ring-inset ring-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
+    ? "ring-1 ring-inset ring-(--color-accent) bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
     : "";
   switch (entry.type) {
     case "message:new": {
@@ -427,7 +444,7 @@ function EntryRenderer({
     case "artifact:posted":
       return (
         <div id={entryId} className={focusStyle}>
-          <ArtifactEntry entry={entry} />
+          <ArtifactEntry entry={entry} onClickArtifact={onClickArtifact} />
         </div>
       );
     case "review:requested":
@@ -482,11 +499,21 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   // Track expanded entries (for Enter toggle)
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
+  // Artifact detail modal state
+  const { activeServer } = useServer();
+  const [artifactModal, setArtifactModal] = useState<{
+    artifactId: string;
+    rect: DOMRect;
+  } | null>(null);
+  const handleClickArtifact = useCallback((artifactId: string, rect: DOMRect) => {
+    setArtifactModal({ artifactId, rect });
+  }, []);
+
   // Filter state — persisted to localStorage
   const [activeFilters, setActiveFilters] = useState<Set<FilterableType>>(buildDefaultFilters);
   const [filterOpen, setFilterOpen] = useState(false);
 
-  // Close filter panel on Escape or outside click — mirrors ServerSwitcher / SessionSelector pattern
+  // Close filter panel on Escape or outside click — mirrors ServerSwitcher pattern
   useEffect(() => {
     if (!filterOpen) return;
 
@@ -674,7 +701,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
       {/* Filter bar */}
       <div
         ref={filterBarRef}
-        className="flex items-center gap-1 px-3 py-[5px] border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] shrink-0 flex-nowrap overflow-x-auto"
+        className="flex items-center gap-1 px-3 py-[5px] border-b border-(--color-border-subtle) bg-(--color-surface-base) shrink-0 flex-nowrap overflow-x-auto"
       >
         {/* Filter toggle button */}
         <button
@@ -684,8 +711,8 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           className={cn(
             "flex items-center gap-1 px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
             isFiltered
-              ? "text-[var(--color-accent-fe)]"
-              : "border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-tertiary)]"
+              ? "text-(--color-accent-fe)"
+              : "border border-(--color-border-subtle) bg-transparent text-(--color-text-tertiary)"
           )}
           style={
             isFiltered
@@ -699,7 +726,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           <span className="text-[11px]">⚙</span>
           Filter
           {isFiltered && (
-            <span className="text-[9px] bg-[var(--color-accent-fe)] text-white rounded-full px-1 font-semibold">
+            <span className="text-[9px] bg-(--color-accent-fe) text-white rounded-full px-1 font-semibold">
               {FILTER_DEFS.length - activeFilters.size} off
             </span>
           )}
@@ -711,7 +738,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
             <button
               type="button"
               onClick={toggleAll}
-              className="px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer border border-[var(--color-border-default)] bg-transparent text-[var(--color-text-tertiary)] shrink-0"
+              className="px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer border border-(--color-border-default) bg-transparent text-(--color-text-tertiary) shrink-0"
             >
               {allOn ? "All off" : "All on"}
             </button>
@@ -728,8 +755,8 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
                   className={cn(
                     "flex items-center gap-[3px] px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
                     isActive
-                      ? "border border-[var(--color-border-default)] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] opacity-100"
-                      : "border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-disabled)] opacity-50"
+                      ? "border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) opacity-100"
+                      : "border border-(--color-border-subtle) bg-transparent text-(--color-text-disabled) opacity-50"
                   )}
                 >
                   <span className="text-[11px]">{def.icon}</span>
@@ -739,8 +766,8 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
                       className={cn(
                         "font-mono text-[9px] px-[3px] rounded-[3px]",
                         isActive
-                          ? "bg-[var(--color-surface-raised)] text-[var(--color-text-tertiary)]"
-                          : "bg-transparent text-[var(--color-text-disabled)]"
+                          ? "bg-(--color-surface-raised) text-(--color-text-tertiary)"
+                          : "bg-transparent text-(--color-text-disabled)"
                       )}
                     >
                       {count}
@@ -757,14 +784,14 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
       {isEmpty ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-[10px]">
           <span className="text-[28px] opacity-20">📡</span>
-          <span className="text-sm font-medium text-[var(--color-text-secondary)]">
+          <span className="text-sm font-medium text-(--color-text-secondary)">
             {focusAgent
               ? `No activity for ${focusAgent}`
               : hasNoEntries
                 ? "Waiting for agents to start…"
                 : "No events match filter"}
           </span>
-          <span className="text-xs text-[var(--color-text-tertiary)]">
+          <span className="text-xs text-(--color-text-tertiary)">
             {focusAgent
               ? "Events will appear when this agent is active"
               : hasNoEntries
@@ -790,7 +817,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           }
         >
           {entries.length >= 200 && (
-            <div className="text-center px-4 py-1.5 text-[10px] text-[var(--color-text-disabled)] font-mono">
+            <div className="text-center px-4 py-1.5 text-[10px] text-(--color-text-disabled) font-mono">
               Showing last 200 events
             </div>
           )}
@@ -802,6 +829,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
               isFocused={focusedIndex === idx}
               entryId={`activity-entry-${entry.id}`}
               isExpanded={expandedEntries.has(entry.id)}
+              onClickArtifact={handleClickArtifact}
             />
           ))}
 
@@ -822,12 +850,22 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
             <button
               type="button"
               onClick={scrollToBottom}
-              className="sticky bottom-[10px] block ml-auto mr-4 text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] rounded px-[10px] py-[3px] cursor-pointer font-mono"
+              className="sticky bottom-[10px] block ml-auto mr-4 text-[10px] text-(--color-text-secondary) bg-(--color-surface-overlay) border border-(--color-border-default) rounded px-[10px] py-[3px] cursor-pointer font-mono"
             >
               ↓ New activity
             </button>
           )}
         </div>
+      )}
+
+      {/* Artifact detail modal */}
+      {artifactModal && (
+        <ArtifactDetailModal
+          artifactId={artifactModal.artifactId}
+          serverUrl={activeServer}
+          anchorRect={artifactModal.rect}
+          onClose={() => setArtifactModal(null)}
+        />
       )}
     </div>
   );

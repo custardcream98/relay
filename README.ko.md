@@ -72,7 +72,7 @@ relay (plugin)
 /plugin install relay@relay
 ```
 
-`/reload-plugins`를 실행하거나 Claude Code를 재시작하세요. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`)와 훅이 자동으로 설치돼요.
+`/reload-plugins`를 실행하거나 Claude Code를 재시작하세요. Skills (`/relay:relay`, `/relay:agent`)와 훅이 자동으로 설치돼요.
 
 > 특정 프로젝트에만 적용하려면 `--scope project`를 추가하세요.
 
@@ -81,10 +81,7 @@ relay (plugin)
 ## 퀵스타트
 
 ```bash
-# 프로젝트 최초 사용 시 — 모든 에이전트가 병렬로 코드베이스를 스캔해요
-/relay:init
-
-# 원하는 것을 말하면 돼요
+# 원하는 것을 말하면 돼요 — 첫 실행 시 풀이 자동 생성돼요
 /relay:relay "쇼핑카트 기능 추가해줘"
 ```
 
@@ -220,7 +217,7 @@ agents:
 ---
 
 <p align="center">
-  <strong>명령어 두 줄. 팀 전체. 다음 기능을 더 빠르게.</strong>
+  <strong>명령어 하나. 팀 전체. 다음 기능을 더 빠르게.</strong>
   <br /><br />
   <a href="https://custardcream98.github.io/relay/ko-KR"><strong>문서 보기 →</strong></a>
 </p>

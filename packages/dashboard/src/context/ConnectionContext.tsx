@@ -6,6 +6,7 @@ import { createContext, useContext } from "react";
 export interface ConnectionContextValue {
   connected: boolean;
   reconnecting: boolean;
+  maxRetriesExhausted: boolean;
   attempt: number;
   nextRetryIn: number;
   onRetryNow: () => void;

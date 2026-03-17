@@ -30,6 +30,7 @@ export interface AgentMeta {
   name: string;
   emoji: string;
   basePersonaId?: string; // set when agent was created via `extends`
+  joinedAt?: number; // Unix ms timestamp when this agent joined mid-session
 }
 
 // Timeline entry for the EventTimeline display component

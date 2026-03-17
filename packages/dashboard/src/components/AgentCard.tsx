@@ -21,6 +21,8 @@ interface Props {
   inProgressCount: number;
   isSelected: boolean;
   onSelectAgent: (id: AgentId | null) => void;
+  // Unix ms timestamp when this agent joined — null if present from session start
+  joinedAt: number | null;
 }
 
 // Status badge colors — hex so we can append alpha suffix (e.g. ${COLOR}18)
@@ -43,6 +45,7 @@ export const AgentCard = memo(function AgentCard({
   inProgressCount,
   isSelected,
   onSelectAgent,
+  joinedAt,
 }: Props) {
   // Stable handlers: toggle selection on click/Enter — no new function created on parent re-renders
   const onClick = useCallback(() => {
@@ -58,6 +61,7 @@ export const AgentCard = memo(function AgentCard({
   const accentColor = getAgentAccent(id);
   const isWorking = status === "working";
   const isWaiting = status === "waiting";
+  const isNewlyJoined = joinedAt !== null && Date.now() - joinedAt < 3000;
 
   // Dynamic colors from runtime hex — must stay inline
   const cardStyle = useMemo(
@@ -128,7 +132,8 @@ export const AgentCard = memo(function AgentCard({
         "relative flex flex-row items-start gap-3 p-3 mb-1 rounded-lg cursor-pointer",
         "transition-[background,border-color,box-shadow] duration-[120ms] outline-none",
         !isSelected &&
-          "hover:bg-[var(--color-surface-raised)] hover:!border-[var(--color-border-default)]"
+          "hover:bg-[var(--color-surface-raised)] hover:!border-[var(--color-border-default)]",
+        isNewlyJoined && "animate-[agent-join-glow_3s_ease-out_forwards]"
       )}
       style={cardStyle}
     >
@@ -192,7 +197,10 @@ export const AgentCard = memo(function AgentCard({
 
         {/* Base persona subtitle — only for extends agents */}
         {basePersonaId && (
-          <div className="text-[11px] text-[var(--color-text-disabled)] italic mb-[2px]">
+          <div
+            className="text-[11px] text-[var(--color-text-disabled)] italic mb-[2px]"
+            title={`Extends ${basePersonaId}`}
+          >
             ↳ {basePersonaId}
           </div>
         )}

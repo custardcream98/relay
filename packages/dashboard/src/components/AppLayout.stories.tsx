@@ -240,7 +240,14 @@ function MockProviders({
       }}
     >
       <ConnectionContext.Provider
-        value={{ connected, reconnecting, attempt, nextRetryIn, onRetryNow: () => {} }}
+        value={{
+          connected,
+          reconnecting,
+          maxRetriesExhausted: false,
+          attempt,
+          nextRetryIn,
+          onRetryNow: () => {},
+        }}
       >
         <ServerContext.Provider
           value={{

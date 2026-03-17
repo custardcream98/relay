@@ -45,8 +45,7 @@ packages/
 └── docs/         @custardcream/relay-docs — Astro + Starlight 문서 사이트
 
 skills/           Claude Code Plugin 스킬 파일 (.md)
-├── relay/SKILL.md    /relay:relay — 전체 워크플로우
-├── init/SKILL.md     /relay:init — 프로젝트 스캔
+├── relay/SKILL.md    /relay:relay — 전체 워크플로우 (자동 풀 생성 포함)
 └── agent/SKILL.md    /relay:agent — 단일 에이전트 실행
 
 hooks/hooks.json  PostToolUse 훅 → /api/hook/tool-use → agent:status:working 브로드캐스트
@@ -196,9 +195,8 @@ hooks/hooks.json  PostToolUse 훅 → /api/hook/tool-use → agent:status:workin
 
 ## Workflow
 
-1. `/relay:init` — 최초 1회; 전체 에이전트 병렬 코드베이스 스캔 → `.relay/memory/` 초기화
-2. `/relay:relay "task"` — 전체 팀 이벤트 드리븐 협업
-3. `/relay:agent {id} "task"` — 단일 에이전트 독립 실행
+1. `/relay:relay "task"` — 첫 실행 시 에이전트 풀 자동 생성; 전체 팀 이벤트 드리븐 협업
+2. `/relay:agent {id} "task"` — 단일 에이전트 독립 실행
 
 세션 시작 시: `project.md` + 개인 메모리 → 시스템 프롬프트 자동 주입
 세션 종료 시: `write_memory` / `append_memory`로 학습 내용 기록

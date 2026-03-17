@@ -248,6 +248,18 @@ body {
   }
 }
 
+/* AgentCard join highlight — pulse glow for newly joined agents */
+@keyframes agent-join-glow {
+  0% {
+    box-shadow:
+      0 0 0 2px var(--color-accent),
+      0 0 12px var(--color-accent-glow);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
 /* Task card hover — CSS-only, avoids React DOM style mutation */
 .task-card:not([aria-expanded="true"]):hover {
   background: var(--color-surface-overlay);

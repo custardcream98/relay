@@ -134,8 +134,7 @@ packages/
 └── docs/                 # @custardcream/relay-docs — Astro + Starlight docs site
 
 skills/                   # Claude Code Plugin skill files
-├── relay/SKILL.md        # /relay:relay - full workflow
-├── init/SKILL.md         # /relay:init - project scan
+├── relay/SKILL.md        # /relay:relay - full workflow (includes auto-pool generation)
 └── agent/SKILL.md        # /relay:agent - single agent invocation
 
 hooks/
@@ -183,10 +182,9 @@ hooks:
 
 ## Workflow
 
-1. `/relay:init` — run once; all configured agents scan in parallel and initialize `.relay/memory/`
-2. `/relay:relay "task"` — all agents spawn simultaneously; react to messages/tasks event-driven; orchestrator re-spawns dormant agents when new work arrives
-3. `/relay:agent {id} "task"` — invoke a single agent in isolation
-4. At session end, agents update memory and archive the session
+1. `/relay:relay "task"` — auto-generates pool on first run, then all agents spawn simultaneously; react to messages/tasks event-driven; orchestrator re-spawns dormant agents when new work arrives
+2. `/relay:agent {id} "task"` — invoke a single agent in isolation
+3. At session end, agents update memory and archive the session
 
 ### Event-driven collaboration model
 - All agents start at the same time (no phases)

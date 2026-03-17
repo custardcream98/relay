@@ -421,8 +421,7 @@ agents:
       - .relay/agents.pool.yml — project-level pool (takes priority)
       - packages/server/src/agents/loader.ts — loadAgents(), loadPool(), error messages
       - packages/server/src/index.ts — CLI arg parsing, startup messages
-      - skills/init/SKILL.md — /relay:init onboarding flow
-      - skills/relay/SKILL.md — /relay:relay team composition pre-flight
+      - skills/relay/SKILL.md — /relay:relay full workflow (includes auto-pool generation)
 
       DX principles:
       - Errors should be actionable ("No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml).")

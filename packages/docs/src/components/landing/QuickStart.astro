@@ -21,14 +21,8 @@ const snippets = [
   {
     step: "02",
     label: t("qs.step2.label"),
-    code: `/relay:init`,
-    comment: t("qs.step2.comment"),
-  },
-  {
-    step: "03",
-    label: t("qs.step3.label"),
     code: `/relay:relay "add OAuth login with Google"`,
-    comment: t("qs.step3.comment"),
+    comment: t("qs.step2.comment"),
   },
 ];
 ---
@@ -67,8 +61,6 @@ const snippets = [
           </div>
         ))
       }
-      <!-- prerequisite note -->
-      <p class="qs__note">{t("qs.prereqNote")}</p>
     </div>
   </div>
 </section>
@@ -228,17 +220,6 @@ const snippets = [
     color: var(--color-text-primary);
     opacity: 0.55;
     letter-spacing: 0.02em;
-  }
-
-  /* Prerequisite note */
-  .qs__note {
-    font-family: var(--font-mono);
-    font-size: 0.6875rem;
-    color: var(--color-text-secondary);
-    opacity: 0.65;
-    margin: 0.25rem 0 0;
-    padding: 0 0.125rem;
-    line-height: 1.6;
   }
 
   /* Responsive */

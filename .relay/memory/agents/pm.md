@@ -69,9 +69,8 @@ relay (plugin)
 - extends, tags, validate_prompt, hooks 지원
 
 **워크플로우:**
-1. `/relay:init` — 최초 1회; 전체 에이전트 병렬 코드베이스 스캔 → `.relay/memory/` 초기화
-2. `/relay:relay "task"` — 전체 팀 동시 스폰; 이벤트 드리븐 협업
-3. `/relay:agent {id} "task"` — 단일 에이전트 독립 실행
+1. `/relay:relay "task"` — 첫 실행 시 에이전트 풀 자동 생성; 전체 팀 동시 스폰; 이벤트 드리븐 협업
+2. `/relay:agent {id} "task"` — 단일 에이전트 독립 실행
 
 **릴리즈:**
 - changeset 워크플로우 사용 (`bunx changeset` → PR → CI 자동 npm 배포)
@@ -87,4 +86,4 @@ relay (plugin)
 - 세션 종료 시 `write_memory` / `append_memory`로 학습 내용 기록
 
 **로드맵 현황 (완료):**
-MCP 서버 + 핵심 툴 (27개), 메모리 툴, 페르소나 YAML 풀 시스템, 아티팩트/리뷰 툴, 실시간 대시보드, Skills, Init 모드, Claude Code Plugin 형식, 이벤트 드리븐 협업, 범용 에이전트 아키텍처, Agent Task Hooks, 에이전트 thoughts 스트리밍, 세션 리플레이 UI, idempotency_key 지원, 멀티 인스턴스 지원
+MCP 서버 + 핵심 툴 (27개), 메모리 툴, 페르소나 YAML 풀 시스템, 아티팩트/리뷰 툴, 실시간 대시보드, Skills, Auto-Pool Generation (제로 컨피그 첫 실행), Claude Code Plugin 형식, 이벤트 드리븐 협업, 범용 에이전트 아키텍처, Agent Task Hooks, 에이전트 thoughts 스트리밍, 세션 리플레이 UI, idempotency_key 지원, 멀티 인스턴스 지원

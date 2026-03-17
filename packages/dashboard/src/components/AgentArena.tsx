@@ -2,6 +2,7 @@
 // Left panel: agent card list — collapsible and drag-resizable
 
 import { useMemo } from "react";
+import { useSession } from "../context/SessionContext";
 import type { AgentId, AgentMeta, Message, Task } from "../types";
 import { AgentCard } from "./AgentCard";
 
@@ -64,6 +65,16 @@ export function AgentArena({
 
     return { inProgressByAgent, lastActivityByAgent, lastActivityTsByAgent };
   }, [tasks, messages]);
+
+  // Lookup joinedAt from sessionTeam for newly-joined agent highlight
+  const { sessionTeam } = useSession();
+  const joinedAtByAgent = useMemo(() => {
+    const map: Record<string, number | null> = {};
+    for (const a of sessionTeam) {
+      map[a.id] = a.joinedAt ?? null;
+    }
+    return map;
+  }, [sessionTeam]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-base)]">
@@ -130,6 +141,7 @@ export function AgentArena({
             inProgressCount={agentData.inProgressByAgent[agent.id] ?? 0}
             isSelected={selectedAgent === agent.id}
             onSelectAgent={onSelectAgent}
+            joinedAt={joinedAtByAgent[agent.id] ?? null}
           />
         ))}
       </div>

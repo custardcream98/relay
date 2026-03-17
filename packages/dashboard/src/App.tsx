@@ -289,7 +289,10 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             ...baseUpdates,
             sessionTeam: alreadyInTeam
               ? state.sessionTeam
-              : [...state.sessionTeam, { id: event.agentId, name: event.agentId, emoji: "🤖" }],
+              : [
+                  ...state.sessionTeam,
+                  { id: event.agentId, name: event.agentId, emoji: "🤖", joinedAt: Date.now() },
+                ],
           };
         }
         case "session:started":
@@ -336,11 +339,12 @@ export default function App() {
   const handleEvent = useCallback((event: RelayEvent) => {
     dispatch({ type: "EVENT", event: event as DashboardEvent });
   }, []);
-  const { connected, reconnecting, attempt, nextRetryIn, retryNow } = useRelaySocket({
-    onEvent: handleEvent,
-    // Pass the active server URL so the hook reconnects when the user switches servers
-    serverUrl: activeServer,
-  });
+  const { connected, reconnecting, maxRetriesExhausted, attempt, nextRetryIn, retryNow } =
+    useRelaySocket({
+      onEvent: handleEvent,
+      // Pass the active server URL so the hook reconnects when the user switches servers
+      serverUrl: activeServer,
+    });
 
   const {
     tasks,
@@ -468,11 +472,12 @@ export default function App() {
     () => ({
       connected,
       reconnecting,
+      maxRetriesExhausted,
       attempt,
       nextRetryIn,
       onRetryNow: retryNow,
     }),
-    [connected, reconnecting, attempt, nextRetryIn, retryNow]
+    [connected, reconnecting, maxRetriesExhausted, attempt, nextRetryIn, retryNow]
   );
 
   const serverValue = useMemo(

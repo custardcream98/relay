@@ -72,7 +72,7 @@ The **MCP server** stores and routes data only — no AI, no decisions. Agents r
 /plugin install relay@relay
 ```
 
-Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:init`, `/relay:agent`) and hooks install automatically.
+Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:agent`) and hooks install automatically.
 
 > Install for a single project only: add `--scope project`.
 
@@ -81,10 +81,7 @@ Run `/reload-plugins` or restart Claude Code. Skills (`/relay:relay`, `/relay:in
 ## Quick start
 
 ```bash
-# First time on a new project — all agents scan your codebase in parallel
-/relay:init
-
-# Describe what you want
+# Describe what you want — pool auto-generates on first run
 /relay:relay "add a shopping cart"
 ```
 

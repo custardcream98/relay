@@ -245,7 +245,7 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
 
   // No pool file found — throw a clear, actionable error
   throw new Error(
-    "No agent pool configured. Run `/relay:init` to set up your team, or create .relay/agents.pool.yml manually (see agents.pool.example.yml)."
+    "No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml) or run /relay:relay to auto-generate one."
   );
 }
 

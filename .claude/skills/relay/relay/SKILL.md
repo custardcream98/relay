@@ -11,8 +11,9 @@ react to messages and tasks organically, like a Slack-first team.
 1. Confirm the relay MCP server is connected by calling `list_agents` (do **not** pass `session_id` here — the session-specific file has not been written yet; `session_id` is passed only in Session Startup step 1).
    - Note: `list_agents` is used here only to verify MCP connectivity. Pool browsing uses `list_pool_agents` (Team Composition step 1) — that tool returns metadata without `systemPrompt` and does not require a session file.
    - `list_agents` will return 0 agents when no pool-based session file is configured — this is expected. Proceed to Team Composition.
-2. Verify the agent pool is configured: check that `.relay/agents.pool.yml` or `agents.pool.yml` exists.
-   - If absent: suggest running `/relay:init` first to set up the pool.
+2. Check agent pool: call `list_pool_agents`.
+   - Returns agents → pool exists, skip to Team Composition.
+   - Returns error/empty → run Auto-Pool Generation below.
 3. In parallel, call `list_sessions` and `get_server_info` to determine the correct session ID and dashboard URL.
 
    **3a. Compute the next NNN counter** using `list_sessions` result:
@@ -49,6 +50,147 @@ react to messages and tasks organically, like a Slack-first team.
 
 4. Report to the user: `"Session: {session_id} | Dashboard: {dashboardUrl}"`
 
+## Auto-Pool Generation (first run only)
+
+Runs once per project when no `.relay/agents.pool.yml` exists.
+After this, the file persists and all subsequent sessions skip this section.
+
+### Step 1: Project Analysis
+
+Read in parallel (silent, no user interaction):
+- README.md (or README.*) — purpose, tech stack
+- package.json / pyproject.toml / Cargo.toml / go.mod / Gemfile — deps, scripts
+- Directory listing: root + main source dir
+- Config files: tsconfig.json, biome.json, .eslintrc*, etc.
+
+Derive:
+- Domain: web app, library, CLI, data pipeline, research, docs site, etc.
+- Tech stack: languages, frameworks, build/test/lint tools
+- Conventions: lint cmd, type-check cmd, test cmd (from scripts)
+
+### Step 2: Generate Pool YAML
+
+Generate 4-8 agents organized in **3 functional lanes**.
+The orchestrator selects agents based on detected signals — not every lane needs agents.
+
+#### Lane 1: Coordination & Planning (always 1 agent)
+
+| Agent | When | Role |
+|-------|------|------|
+| **pm** | Always | Task decomposition, acceptance criteria, dependency ordering. First to act, last to close. |
+
+#### Lane 2: Implementation (1-4 agents, based on tech stack)
+
+| Signal | Agent | Key Responsibility |
+|--------|-------|--------------------|
+| Frontend code: React/Vue/Svelte/Next.js/HTML+CSS | **fe** | UI components, styling, client-side logic |
+| Backend code: Express/Hono/FastAPI/Django/Rails/Go | **be** | API, data layer, server logic |
+| Mobile: React Native/Flutter/Swift/Kotlin | **mobile** | Mobile app implementation |
+| Infra: Dockerfile, terraform, k8s, CI config | **devops** | Build pipeline, deployment, infra |
+| Only 1 language detected (simple project) | **engineer** | Full-stack single implementer |
+| Monorepo with 3+ packages | **architect** | Cross-package coordination, dependency graph |
+
+#### Lane 3: Quality & Review (1-2 agents, based on project maturity)
+
+| Signal | Agent | Key Responsibility |
+|--------|-------|--------------------|
+| Test runner configured (jest/vitest/pytest/go test) | **qa** | Test strategy, regression checks, coverage |
+| Security-sensitive (auth, payments, user data) | **security** | Vulnerability audit, input validation |
+| No test runner, no linter (early-stage project) | *(skip lane)* | PM handles basic verification |
+
+#### Lane Selection Logic (pseudocode)
+
+```
+agents = [pm]  # always
+
+# Lane 2: Implementation
+if has_frontend AND has_backend:
+    agents += [fe, be]
+elif has_frontend:
+    agents += [fe]
+elif has_backend:
+    agents += [be]
+else:
+    agents += [engineer]  # generic implementer
+
+if is_monorepo and package_count >= 3:
+    agents += [architect]
+if has_mobile:
+    agents += [mobile]
+if has_infra_config:
+    agents += [devops]
+
+# Lane 3: Quality
+if has_test_runner:
+    agents += [qa]
+if is_security_sensitive:  # detected from: auth libs, payment SDKs, user model
+    agents += [security]
+
+# Cap at 8 agents
+agents = agents[:8]
+```
+
+#### Agent Prompt Design Principles
+
+Each generated systemPrompt MUST follow these patterns:
+
+1. **Specificity > Generality**: Reference actual file paths, actual commands, actual conventions.
+   - Bad: "You are a backend engineer."
+   - Good: "You own `packages/server/src/`. Stack: Hono + TypeScript strict. Test: `bun test packages/server`. Lint: `bunx biome check --write .`"
+
+2. **Methodology Embedding**: Inject domain-specific workflows into the prompt.
+   - QA: "Run tests → check coverage → lint → type-check → report. File bugs as create_task."
+   - BE: "Read before edit → claim_task → implement → post_artifact(PR) → request_review → update_task(in_review)"
+
+3. **Evidence-Based Completion**: Agents must prove they're done, not just declare it.
+   - "Before declaring end:_done, run `{test_cmd}` and `{lint_cmd}`. Report pass/fail counts."
+
+4. **Scope Boundaries**: Clearly state what the agent owns and doesn't.
+   - FE: "You own `src/components/` and `src/pages/`. Do NOT modify `src/server/` — that's BE's domain."
+
+5. **Tool Restrictions**: Only grant tools the agent needs.
+   - PM: `[create_task, update_task, get_all_tasks, send_message, get_messages, post_artifact, broadcast_thinking]`
+   - FE/BE: `[get_messages, get_all_tasks, claim_task, update_task, get_artifact, post_artifact, send_message, request_review, submit_review, broadcast_thinking]`
+   - QA: `[get_messages, get_all_tasks, claim_task, update_task, get_artifact, post_artifact, send_message, create_task, broadcast_thinking]`
+
+#### Hook Auto-Detection Rules
+
+| Detected File/Config | Generated Hook |
+|----------------------|----------------|
+| `biome.json` or `@biomejs/biome` in deps | `after_task: ["bunx biome check --write ."]` |
+| `tsconfig.json` in root | Append `"bunx tsc --noEmit"` to after_task |
+| `tsconfig.json` in subdir only | Append `"cd {subdir} && bunx tsc --noEmit"` |
+| `.eslintrc*` or `eslint` in deps | `after_task: ["npx eslint --fix ."]` |
+| `ruff` in deps (Python) | `after_task: ["ruff check --fix ."]` |
+| `mypy` in deps (Python) | Append `"mypy ."` to after_task |
+| `clippy` detected (Rust) | `after_task: ["cargo clippy -- -D warnings"]` |
+| `golangci-lint` (Go) | `after_task: ["golangci-lint run"]` |
+| No tooling detected | No hooks (avoid false positives) |
+
+### Step 3: Write Pool File
+
+Write to `.relay/agents.pool.yml` using the Write tool (`mkdir -p .relay` via Bash first).
+Include a header comment:
+```yaml
+# Auto-generated by relay on {date}. Customize freely.
+# Project: {domain} ({tech stack summary})
+# To regenerate: delete this file and run /relay:relay again.
+```
+
+### Step 4: Report and Continue
+
+Show brief summary:
+```
+Auto-generated agent pool for your {domain} project:
+  pm — Product Manager
+  be — Backend Engineer ({framework} in {path})
+  qa — QA Engineer ({test runner})
+
+Saved to .relay/agents.pool.yml — edit anytime.
+```
+
+Proceed directly to Team Composition. No confirmation needed.
+
 ## Team Composition (Dynamic Agent Selection)
 
 This step runs **before** spawning any agents. Every session assembles a purpose-built team
@@ -63,8 +205,7 @@ Go directly to pool selection below.
 ### Pool Selection Conversation
 
 1. Call `list_pool_agents` to fetch all available pool entries.
-   - If it returns 0 entries, tell the user: "No agent pool configured. Create
-     `.relay/agents.pool.yml` (see `agents.pool.example.yml`)." and stop.
+   - If it returns 0 entries and auto-pool was not just generated, this is an error — stop.
 
 2. Ask the user:
    > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
@@ -123,9 +264,6 @@ Go directly to pool selection below.
      in Pre-flight step 3).
    - Do NOT set `RELAY_SESSION_AGENTS_FILE` — pass `session_id` directly to `list_agents` instead.
 
-> **Fallback**: if no pool is configured, the session cannot start. Prompt the user to
-> create `.relay/agents.pool.yml` (see `agents.pool.example.yml`).
-
 ## Planning Phase (Optional)
 
 **Skip condition**: Skip this phase for clearly trivial tasks (single-file change, typo fix, rename). For tasks involving 2+ files or cross-cutting concerns, use this phase to front-load task creation and reduce agent idle time.
@@ -172,6 +310,13 @@ Spawn all base agents simultaneously. For each agent:
 1. Load persona from the cached `list_agents` result.
 2. Load memory: `read_memory(agent_id: "{agentId}")` (personal memory) + `read_memory()` (project.md).
    - For recent session history, call `list_sessions` then `get_session_summary` on the last 1–2 sessions only when the task requires historical context (e.g. "continue from last session").
+   - If both personal and project memory are empty (first session), append to agent's system prompt:
+     ```
+     ## First Session
+     This is your first session. As you work, note key file paths,
+     conventions, and patterns relevant to your role.
+     At session end, persist what you learned via write_memory.
+     ```
 3. Build system prompt: persona systemPrompt + memory.
 4. Restrict available tools to the agent's `tools` array from `list_agents`.
 5. If the agent has `validate_prompt` set (from the `list_agents` result), append to the system prompt:
@@ -474,6 +619,9 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
    ```bash
    rm -f ".relay/sessions/${CLAUDE_SESSION_ID}.json"
    ```
+1c. If `.relay/memory/project.md` does not exist:
+    The PM/coordinator writes project.md summarizing what the team
+    learned (via `write_memory` with no `agent_id`, or direct file write).
 2. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
 3. Report results to the user.
 

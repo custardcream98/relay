@@ -20,6 +20,23 @@ Examples:
 /relay:relay "Harden the payment API security"
 ```
 
+## Zero-config first run
+
+When you run `/relay:relay` on a project without `.relay/agents.pool.yml`, relay automatically:
+
+1. **Analyzes your project** — reads README, package.json, directory structure, and config files
+2. **Generates a tailored agent pool** — selects 4-8 agents across three lanes:
+   - **Coordination**: PM (always present)
+   - **Implementation**: FE, BE, mobile, devops, etc. based on detected tech stack
+   - **Quality**: QA (if test runner detected), security (if auth/payments detected)
+3. **Writes `.relay/agents.pool.yml`** — customize freely, or delete and re-generate
+
+The generated prompts reference actual file paths, commands, and conventions from your project. After generation, relay proceeds directly to team composition.
+
+<Aside type="tip">
+To regenerate the pool: delete `.relay/agents.pool.yml` and run `/relay:relay` again.
+</Aside>
+
 ## What happens when you run it
 
 ### 1. Team composition

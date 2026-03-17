@@ -24,6 +24,7 @@ const meta = {
     inProgressCount: 0,
     isSelected: false,
     onSelectAgent: () => {},
+    joinedAt: null,
   },
 } satisfies Meta<typeof AgentCard>;
 
@@ -121,6 +122,7 @@ export const AllAgents: Story = {
           inProgressCount={0}
           isSelected={false}
           onSelectAgent={() => {}}
+          joinedAt={null}
         />
       ))}
     </div>

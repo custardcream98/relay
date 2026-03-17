@@ -29,6 +29,7 @@ interface UseRelaySocketOptions {
 interface UseRelaySocketResult {
   connected: boolean;
   reconnecting: boolean; // waiting to reconnect
+  maxRetriesExhausted: boolean; // all reconnect attempts failed
   attempt: number; // current attempt index (0-indexed)
   nextRetryIn: number; // seconds until next reconnect attempt
   retryNow: () => void; // trigger an immediate reconnect
@@ -50,6 +51,7 @@ export function useRelaySocket({
 }: UseRelaySocketOptions): UseRelaySocketResult {
   const [connected, setConnected] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
+  const [maxRetriesExhausted, setMaxRetriesExhausted] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [nextRetryIn, setNextRetryIn] = useState(0);
 
@@ -104,6 +106,7 @@ export function useRelaySocket({
         }
         setConnected(true);
         setReconnecting(false);
+        setMaxRetriesExhausted(false);
         setNextRetryIn(0);
         attemptRef.current = 0;
         setAttempt(0);
@@ -135,6 +138,12 @@ export function useRelaySocket({
         attemptRef.current += 1;
         setAttempt(currentAttempt);
         setReconnecting(true);
+
+        if (attemptRef.current >= RECONNECT_DELAY_MS.length) {
+          setMaxRetriesExhausted(true);
+          setReconnecting(false);
+          return;
+        }
 
         // Countdown: decrement nextRetryIn every second
         const delaySec = Math.ceil(delay / 1000);
@@ -183,9 +192,12 @@ export function useRelaySocket({
       timerRef.current = null;
     }
     clearCountdown();
+    setMaxRetriesExhausted(false);
+    attemptRef.current = 0;
+    setAttempt(0);
     setNextRetryIn(0);
     connectRef.current?.();
   }, [clearCountdown]);
 
-  return { connected, reconnecting, attempt, nextRetryIn, retryNow };
+  return { connected, reconnecting, maxRetriesExhausted, attempt, nextRetryIn, retryNow };
 }

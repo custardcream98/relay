@@ -93,11 +93,6 @@ export default defineConfig({
           translations: { "ko-KR": "가이드" },
           items: [
             {
-              label: "/relay:init — project scan",
-              translations: { "ko-KR": "/relay:init — 프로젝트 파악" },
-              slug: "guides/relay-init",
-            },
-            {
               label: "/relay:relay — full workflow",
               translations: { "ko-KR": "/relay:relay — 전체 워크플로" },
               slug: "guides/relay",

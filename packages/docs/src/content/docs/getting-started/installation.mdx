@@ -7,7 +7,7 @@ import { Aside } from "@astrojs/starlight/components";
 
 relay is a **Claude Code plugin**. When you install it, Claude Code automatically sets up:
 
-- Three slash commands: `/relay:relay`, `/relay:init`, `/relay:agent`
+- Two slash commands: `/relay:relay`, `/relay:agent`
 - A `PostToolUse` hook that streams agent activity to the real-time dashboard
 - An MCP server that handles all inter-agent communication
 
@@ -40,17 +40,17 @@ To install for the current project only (shared with teammates who trust the rep
 /plugin install relay@relay --scope project
 ```
 
-After installing, run `/reload-plugins` or restart Claude Code. You should see `/relay:relay`, `/relay:init`, and `/relay:agent` in the slash command list.
+After installing, run `/reload-plugins` or restart Claude Code. You should see `/relay:relay` and `/relay:agent` in the slash command list.
 
 <Aside type="note">
-Skills are namespaced by the plugin name — `/relay:init`, not `/init`. This prevents conflicts with other plugins.
+Skills are namespaced by the plugin name — `/relay:relay`, not `/relay`. This prevents conflicts with other plugins.
 </Aside>
 
-## Step 3 — Configure your agent pool
+## Step 3 — Configure your agent pool (optional)
 
-relay ships with no built-in agents. You define your team in `.relay/agents.pool.yml` at the project root.
+relay auto-generates a project-specific agent pool on first run. You can skip this step and go straight to Step 4.
 
-Copy the example pool to get started:
+To customize your team instead, define it in `.relay/agents.pool.yml` at the project root. Copy the example pool to get started:
 
 ```bash
 curl -O https://raw.githubusercontent.com/custardcream98/relay/main/agents.pool.example.yml
@@ -87,10 +87,10 @@ Commit `.relay/agents.pool.yml` to git. Everyone on your team shares the same ag
 
 ## Step 4 — Verify
 
-Run the project scan to confirm everything is wired up:
+Run a quick test to confirm everything is wired up:
 
 ```
-/relay:init
+/relay:relay "hello"
 ```
 
-All configured agents spawn in parallel, scan the codebase, and write what they learned to `.relay/memory/`. If agents start and the dashboard URL appears in the output, installation is complete.
+relay will auto-generate an agent pool for your project and start a session. If agents start and the dashboard URL appears in the output, installation is complete.

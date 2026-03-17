@@ -1,28 +1,13 @@
 ---
 title: Quick start
-description: Get relay running in under 5 minutes — install the plugin, scan your project, then run your first multi-agent session.
+description: Get relay running in under 5 minutes — install the plugin, then run your first multi-agent session.
 ---
 
 import { Aside } from "@astrojs/starlight/components";
 
-Four commands. That's all it takes to go from zero to a full team of AI agents working through your feature in parallel.
+Two commands. That's all it takes to go from zero to a full team of AI agents working through your feature in parallel.
 
-1. **Scan the project (once per project)**
-
-   Run this the first time you use relay in a new project, or after major codebase changes:
-
-   ```
-   /relay:init
-   ```
-
-   All configured agents spawn in parallel and scan the codebase from their own perspective.
-   Each agent writes what it learned to `.relay/memory/` — shared context that persists across sessions.
-
-   <Aside type="tip">
-   Commit `.relay/memory/` to git. Your whole team shares the same agent context.
-   </Aside>
-
-2. **Run a task**
+1. **Run a task**
 
    Describe what you want built:
 
@@ -30,11 +15,17 @@ Four commands. That's all it takes to go from zero to a full team of AI agents w
    /relay:relay "Add a shopping cart feature"
    ```
 
+   On first run, relay auto-generates a project-specific agent pool (`.relay/agents.pool.yml`) by analyzing your codebase — tech stack, frameworks, test runners, and more. You can customize this file anytime.
+
    All agents start simultaneously. Each one claims tasks, communicates through MCP tools, and
    collaborates peer-to-peer — no orchestrator bottleneck. Watch it happen live at the dashboard URL
    shown when the session starts.
 
-3. **Check the dashboard (optional)**
+   <Aside type="tip">
+   Commit `.relay/memory/` to git after the first session. Your whole team shares the same agent context.
+   </Aside>
+
+2. **Check the dashboard (optional)**
 
    Open the real-time dashboard while agents are running:
 
@@ -44,7 +35,7 @@ Four commands. That's all it takes to go from zero to a full team of AI agents w
 
    Agent Arena (agent status sidebar), Activity Feed (combined messages + thinking streams), and Task Board (collapsible Kanban at the bottom) — all updating as work happens.
 
-4. **Invoke a single agent when needed**
+3. **Invoke a single agent when needed**
 
    Need one specific perspective without spinning up the whole team?
 

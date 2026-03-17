@@ -19,20 +19,17 @@ const ui = {
 
     // HowItWorks
     "how.label": "// how it works",
-    "how.title1": "Four commands.",
-    "how.title2": "From install to running.",
+    "how.title1": "Three commands.",
+    "how.title2": "From install to shipping.",
     "how.subtitle": "No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.",
     "how.step1.title": "Install",
     "how.step1.desc":
       "Install the relay plugin inside Claude Code. Pick agents from the pool — any role, any domain.",
-    "how.step2.title": "Init",
+    "how.step2.title": "Ship",
     "how.step2.desc":
-      "Run /relay:init once per project. Every agent scans the codebase in parallel and writes shared context to .relay/memory/. Commit it to git.",
-    "how.step3.title": "Ship",
+      "Describe what you want built. relay auto-generates a project-specific agent pool on first run, then all agents start simultaneously — claim tasks, collaborate peer-to-peer, no waiting.",
+    "how.step3.title": "Watch it run",
     "how.step3.desc":
-      "Describe what you want built. All agents start simultaneously, claim tasks, and collaborate peer-to-peer — no phases, no waiting.",
-    "how.step4.title": "Watch it run",
-    "how.step4.desc":
       "Open the realtime dashboard while agents are running. Kanban board, message feed, and live agent reasoning — all updating via WebSocket.",
 
     // AgentRoster
@@ -74,16 +71,12 @@ const ui = {
     "qs.title1": "Up and running",
     "qs.title2": "in two minutes.",
     "qs.desc":
-      "Four commands take you from installation to a running multi-agent team working through your feature collaboratively.",
+      "Two commands take you from installation to a running multi-agent team working through your feature collaboratively.",
     "qs.link": "Full installation guide",
     "qs.step1.label": "Install the plugin",
     "qs.step1.comment": "# inside Claude Code",
-    "qs.step2.label": "Initialise project memory",
-    "qs.step2.comment": "# agents scan the codebase in parallel",
-    "qs.step3.label": "Ship a feature",
-    "qs.step3.comment": "# all agents start simultaneously, peer-to-peer",
-    "qs.prereqNote":
-      "Note: Copy agents.pool.example.yml to .relay/agents.pool.yml before running /relay:init.",
+    "qs.step2.label": "Ship a feature",
+    "qs.step2.comment": "# pool auto-generates on first run, then agents collaborate",
 
     // DashboardPreview
     "dashboard.label": "// live dashboard",
@@ -119,21 +112,18 @@ const ui = {
 
     // HowItWorks
     "how.label": "// 작동 방식",
-    "how.title1": "네 가지 명령어.",
-    "how.title2": "설치부터 실행까지.",
+    "how.title1": "세 가지 명령어.",
+    "how.title2": "설치부터 배포까지.",
     "how.subtitle":
       "오케스트레이터도, 추가 요금도 없습니다. Claude Code 내장 Agent 툴만 사용합니다.",
     "how.step1.title": "설치",
     "how.step1.desc":
       "Claude Code 안에서 relay 플러그인을 설치합니다. 풀에서 에이전트를 선택하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
-    "how.step2.title": "초기화",
+    "how.step2.title": "배포",
     "how.step2.desc":
-      "프로젝트당 한 번 /relay:init을 실행합니다. 모든 에이전트가 병렬로 코드베이스를 스캔하고 .relay/memory/에 공유 컨텍스트를 기록합니다. git에 커밋하세요.",
-    "how.step3.title": "배포",
+      "만들고 싶은 것을 설명하면 됩니다. relay가 첫 실행 시 프로젝트에 맞는 에이전트 풀을 자동 생성한 뒤, 모든 에이전트가 동시에 시작합니다 — 태스크를 클레임하고 P2P로 협업합니다.",
+    "how.step3.title": "실시간으로 확인",
     "how.step3.desc":
-      "만들고 싶은 것을 설명하면 됩니다. 모든 에이전트가 동시에 시작해 작업을 클레임하고 P2P로 협업합니다 — 단계도 없고 대기도 없습니다.",
-    "how.step4.title": "실시간으로 확인",
-    "how.step4.desc":
       "에이전트가 실행되는 동안 실시간 대시보드를 열어보세요. Kanban 보드, 메시지 피드, 에이전트별 추론 스트림이 WebSocket으로 업데이트됩니다.",
 
     // AgentRoster
@@ -175,16 +165,12 @@ const ui = {
     "qs.title1": "2분이면",
     "qs.title2": "시작할 수 있습니다.",
     "qs.desc":
-      "명령어 네 줄로 설치부터 멀티 에이전트 팀이 함께 기능을 구현하는 단계까지 바로 진입할 수 있습니다.",
+      "명령어 두 줄로 설치부터 멀티 에이전트 팀이 함께 기능을 구현하는 단계까지 바로 진입할 수 있습니다.",
     "qs.link": "전체 설치 가이드",
     "qs.step1.label": "플러그인 설치",
     "qs.step1.comment": "# Claude Code 안에서 실행",
-    "qs.step2.label": "프로젝트 메모리 초기화",
-    "qs.step2.comment": "# 에이전트들이 코드베이스를 병렬로 스캔합니다",
-    "qs.step3.label": "기능 출시",
-    "qs.step3.comment": "# 모든 에이전트가 동시에 시작, P2P 협업",
-    "qs.prereqNote":
-      "참고: /relay:init 실행 전에 agents.pool.example.yml을 .relay/agents.pool.yml로 복사해서 시작하세요.",
+    "qs.step2.label": "기능 출시",
+    "qs.step2.comment": "# 첫 실행 시 풀 자동 생성, 에이전트들이 협업합니다",
 
     // DashboardPreview
     "dashboard.label": "// 실시간 대시보드",

@@ -28,9 +28,11 @@ relay는 Claude Code 서브에이전트 팀을 생성합니다 — 각자의 역
 
 `http://localhost:3456`의 실시간 대시보드가 에이전트 작업에 따라 WebSocket으로 업데이트됩니다:
 
-- **Agent Arena** — 모든 에이전트를 나란히 표시 — 실시간 상태, 활성 태스크 수, 현재 생각 스니펫
-- **Activity Feed** — 메시지, 추론 스트림, 태스크 변경, 아티팩트를 하나의 뷰에 통합한 타임라인
-- **Task Board** — 하단의 접기 가능한 Kanban: `todo` → `in_progress` → `in_review` → `done`
+- **세션 진행 위젯** — 헤더에서 태스크 완료 비율, 활성 에이전트 수, 경과 시간을 한눈에 표시
+- **Agent Arena** — 모든 에이전트를 나란히 표시 — 실시간 상태, 현재 생각 스니펫, 카드별 태스크 완료 미니 바
+- **Activity Feed** — 메시지, 추론 스트림, 태스크 변경, 아티팩트를 하나의 뷰에 통합한 타임라인. 키보드 단축키(`j`/`k`/`Enter`/`Escape`)로 탐색 가능
+- **Task Board** — 색상별 프로그레스 바와 의존성 표시("Blocked by N" / "Blocks N tasks")가 있는 접기 가능한 Kanban
+- **모바일 레이아웃** — 좁은 화면에서 Agents / Activity / Tasks 탭의 하단 내비게이션
 
 세션 데이터는 서버 프로세스가 살아있는 동안 in-memory로 유지됩니다.
 

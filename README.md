@@ -106,11 +106,15 @@ The MCP server starts a live dashboard at session start (default `http://localho
 
 ![relay dashboard](./packages/docs/public/screenshots/dashboard-en.png)
 
-**Agent Arena** (left) — all session agents with live status (`idle` / `working` / `waiting`) and a snippet of their current thinking. Click any agent to focus the Activity Feed on them.
+**Session Progress** (header) — task completion ratio, active agent count, and elapsed time at a glance.
 
-**Activity Feed** (top right) — real-time timeline of every event: messages, task updates, artifact posts, review requests, and agent thinking streams. Filter by event type or agent. Switch to the **Messages** tab for a Slack-style thread view of all inter-agent conversations.
+**Agent Arena** (left) — all session agents with live status and current thinking. Each card includes a task completion mini-bar. Click any agent to focus the Activity Feed.
 
-**Task Board** (bottom, collapsible) — Kanban across `todo → in_progress → in_review → done`. Click any task for the detail modal.
+**Activity Feed** (top right) — real-time timeline of every event: messages, task updates, artifacts, reviews, and agent thinking streams. Filter by event type or agent. Navigate with keyboard shortcuts (`j`/`k`/`Enter`/`Escape`).
+
+**Task Board** (bottom, collapsible) — Kanban with a color-coded progress bar at the top. Task cards show dependency indicators ("Blocked by N" / "Blocks N tasks"). Click any task for the detail modal with dependency visualization.
+
+**Mobile** — on narrow screens, a bottom tab bar replaces the three-panel layout with Agents / Activity / Tasks tabs.
 
 Session data lives in-memory for the duration of the server process. The session switcher in the header lets you navigate between sessions from the current run.
 

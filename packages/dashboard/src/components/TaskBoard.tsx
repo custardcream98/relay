@@ -62,8 +62,8 @@ const TaskCard = memo(function TaskCard({
         isDone && "opacity-[0.45]",
         isBlocked && !isDone && "opacity-60 border-dashed",
         isSelected
-          ? "bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] shadow-[var(--shadow-card-hover)]"
-          : "bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] shadow-[var(--shadow-card)]"
+          ? "bg-(--color-surface-overlay) border border-(--color-border-default) shadow-(--shadow-card-hover)"
+          : "bg-(--color-surface-raised) border border-(--color-border-subtle) shadow-(--shadow-card)"
       )}
       aria-label={`Task: ${task.title}. Click to view details.`}
       aria-expanded={isSelected}
@@ -79,9 +79,7 @@ const TaskCard = memo(function TaskCard({
       <span
         className={cn(
           "text-[13px] font-normal leading-[1.45] block",
-          isDone
-            ? "text-[var(--color-text-tertiary)] line-through"
-            : "text-[var(--color-text-primary)]"
+          isDone ? "text-(--color-text-tertiary) line-through" : "text-(--color-text-primary)"
         )}
       >
         {task.title}
@@ -90,7 +88,7 @@ const TaskCard = memo(function TaskCard({
       {/* Description preview — 2-line clamp */}
       {task.description && (
         <p
-          className="text-[11px] leading-[1.5] text-[var(--color-text-tertiary)] mt-1 overflow-hidden break-words"
+          className="text-[11px] leading-normal text-(--color-text-tertiary) mt-1 overflow-hidden wrap-break-word"
           style={{
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -107,7 +105,7 @@ const TaskCard = memo(function TaskCard({
           {/* Assignee chip */}
           {task.assignee && accentHex && (
             <span
-              className="font-mono text-[11px] font-medium px-1.5 py-[1px] rounded-[3px]"
+              className="font-mono text-[11px] font-medium px-1.5 py-px rounded-[3px]"
               style={{
                 color: accentHex,
                 background: `${accentHex}1a`,
@@ -118,7 +116,7 @@ const TaskCard = memo(function TaskCard({
           )}
           {/* critical/high priority label */}
           {showPriorityLabel && (
-            <span className="font-mono text-[11px] text-[var(--color-text-secondary)]">
+            <span className="font-mono text-[11px] text-(--color-text-secondary)">
               {task.priority}
             </span>
           )}
@@ -129,12 +127,12 @@ const TaskCard = memo(function TaskCard({
       {(blockedByCount > 0 || blocksCount > 0) && (
         <div className="mt-1.5 flex flex-col gap-0.5">
           {blockedByCount > 0 && (
-            <span className="text-[10px] font-mono font-medium px-1.5 py-[1px] rounded-[3px] text-[var(--color-end-waiting)] bg-[var(--color-status-in-review-bg)]">
+            <span className="text-[10px] font-mono font-medium px-1.5 py-px rounded-[3px] text-(--color-end-waiting) bg-(--color-status-in-review-bg)">
               Blocked by {blockedByCount}
             </span>
           )}
           {blocksCount > 0 && (
-            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
+            <span className="text-[10px] font-mono text-(--color-text-disabled)">
               Blocks {blocksCount} {blocksCount === 1 ? "task" : "tasks"}
             </span>
           )}
@@ -166,17 +164,17 @@ const TaskColumn = memo(function TaskColumn({
   const accentColor = COLUMN_ACCENT[col];
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-[var(--color-border-subtle)]">
+    <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-(--color-border-subtle)">
       {/* Column header — 36px, includes top accent bar */}
       <div
-        className="h-9 shrink-0 flex items-center gap-2 px-3 border-b border-[var(--color-border-subtle)]"
+        className="h-9 shrink-0 flex items-center gap-2 px-3 border-b border-(--color-border-subtle)"
         style={{ borderTop: accentColor ? `2px solid ${accentColor}` : undefined }}
       >
-        <span className="text-[11px] font-medium text-[var(--color-text-secondary)] uppercase tracking-[0.07em] font-sans">
+        <span className="text-[11px] font-medium text-(--color-text-secondary) uppercase tracking-[0.07em] font-sans">
           {COLUMN_LABELS[col]}
         </span>
         {/* Count badge — always visible (including 0) */}
-        <span className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] rounded-[3px] px-[5px] py-[1px]">
+        <span className="font-mono text-[11px] bg-(--color-surface-overlay) text-(--color-text-secondary) rounded-[3px] px-[5px] py-px">
           {tasks.length}
         </span>
       </div>
@@ -192,7 +190,7 @@ const TaskColumn = memo(function TaskColumn({
               viewBox="0 0 20 20"
               fill="none"
               aria-hidden="true"
-              className="text-[var(--color-text-disabled)]"
+              className="text-(--color-text-disabled)"
             >
               <rect
                 x="3"
@@ -205,7 +203,7 @@ const TaskColumn = memo(function TaskColumn({
                 strokeDasharray="3 2"
               />
             </svg>
-            <span className="text-[11px] text-[var(--color-text-disabled)] text-center leading-[1.4]">
+            <span className="text-[11px] text-(--color-text-disabled) text-center leading-[1.4]">
               No tasks yet
             </span>
           </div>

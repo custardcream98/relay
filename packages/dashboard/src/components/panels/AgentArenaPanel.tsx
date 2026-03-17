@@ -41,12 +41,12 @@ export function AgentArenaPanel() {
       </div>
 
       {/* Always-visible toggle rail — right side of panel */}
-      <div className="w-8 shrink-0 border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] flex flex-col items-center">
+      <div className="w-8 shrink-0 border-r border-(--color-border-subtle) bg-(--color-surface-base) flex flex-col items-center">
         <button
           type="button"
           onClick={onToggleCollapse}
           title={arenaCollapsed ? "Expand panel" : "Collapse panel"}
-          className="mt-2 w-6 h-6 flex items-center justify-center rounded bg-none border-none cursor-pointer text-[var(--color-text-disabled)] shrink-0"
+          className="mt-2 w-6 h-6 flex items-center justify-center rounded bg-none border-none cursor-pointer text-(--color-text-disabled) shrink-0"
         >
           <svg
             width="14"

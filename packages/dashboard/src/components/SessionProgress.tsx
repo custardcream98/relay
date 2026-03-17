@@ -65,7 +65,7 @@ export function SessionProgress() {
     >
       {/* Task completion */}
       {totalCount > 0 && (
-        <span className="flex items-center gap-1.5 text-[var(--color-text-secondary)]">
+        <span className="flex items-center gap-1.5 text-(--color-text-secondary)">
           <span
             className="font-semibold tabular-nums"
             style={{
@@ -74,9 +74,9 @@ export function SessionProgress() {
           >
             {doneCount}/{totalCount}
           </span>
-          <span className="text-[var(--color-text-disabled)]">tasks</span>
+          <span className="text-(--color-text-disabled)">tasks</span>
           <span
-            className="text-[10px] font-medium tabular-nums px-[5px] py-[1px] rounded-[3px]"
+            className="text-[10px] font-medium tabular-nums px-[5px] py-px rounded-[3px]"
             style={{
               color: pct === 100 ? "var(--color-status-done-text)" : "var(--color-text-tertiary)",
               background:
@@ -90,12 +90,12 @@ export function SessionProgress() {
 
       {/* Separator */}
       {totalCount > 0 && activeAgentCount > 0 && (
-        <span className="w-px h-3 bg-[var(--color-border-subtle)]" />
+        <span className="w-px h-3 bg-(--color-border-subtle)" />
       )}
 
       {/* Active agents */}
       {activeAgentCount > 0 && (
-        <span className="flex items-center gap-1 text-[var(--color-text-secondary)]">
+        <span className="flex items-center gap-1 text-(--color-text-secondary)">
           <span
             className="w-[6px] h-[6px] rounded-full inline-block shrink-0"
             style={{
@@ -104,18 +104,18 @@ export function SessionProgress() {
             }}
           />
           <span className="font-semibold tabular-nums">{activeAgentCount}</span>
-          <span className="text-[var(--color-text-disabled)]">active</span>
+          <span className="text-(--color-text-disabled)">active</span>
         </span>
       )}
 
       {/* Separator */}
       {elapsedLabel && (totalCount > 0 || activeAgentCount > 0) && (
-        <span className="w-px h-3 bg-[var(--color-border-subtle)]" />
+        <span className="w-px h-3 bg-(--color-border-subtle)" />
       )}
 
       {/* Elapsed time */}
       {elapsedLabel && (
-        <span className="text-[var(--color-text-disabled)] tabular-nums">{elapsedLabel}</span>
+        <span className="text-(--color-text-disabled) tabular-nums">{elapsedLabel}</span>
       )}
     </div>
   );

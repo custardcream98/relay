@@ -83,17 +83,17 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex items-center gap-[5px] px-2 py-[3px] rounded bg-[var(--color-surface-overlay)] cursor-pointer font-mono text-[11px] text-[var(--color-text-secondary)] transition-[border-color] duration-150",
+          "flex items-center gap-[5px] px-2 py-[3px] rounded bg-(--color-surface-overlay) cursor-pointer font-mono text-[11px] text-(--color-text-secondary) transition-[border-color] duration-150",
           open
-            ? "border border-[var(--color-border-default)]"
-            : "border border-[var(--color-border-subtle)] hover:border-[var(--color-border-default)]"
+            ? "border border-(--color-border-default)"
+            : "border border-(--color-border-subtle) hover:border-(--color-border-default)"
         )}
       >
         {activeEntry && <StatusDot status={activeEntry.status} />}
         <span>{activeEntry?.label ?? activeServer}</span>
         {/* Chevron */}
         <span
-          className="text-[9px] text-[var(--color-text-disabled)] transition-transform duration-150"
+          className="text-[9px] text-(--color-text-disabled) transition-transform duration-150"
           style={{ transform: open ? "rotate(180deg)" : "none" }}
         >
           ▾
@@ -105,10 +105,10 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
         <div
           role="listbox"
           aria-label="Select relay server"
-          className="absolute top-[calc(100%+6px)] left-0 w-[280px] bg-[var(--color-surface-raised)] border border-[var(--color-border-default)] rounded-lg shadow-[var(--shadow-dropdown)] z-[100] p-2"
+          className="absolute top-[calc(100%+6px)] left-0 w-[280px] bg-(--color-surface-raised) border border-(--color-border-default) rounded-lg shadow-(--shadow-dropdown) z-100 p-2"
         >
           {/* Section label */}
-          <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] px-1 pt-[2px] pb-1.5">
+          <div className="text-[10px] font-mono text-(--color-text-disabled) uppercase tracking-[0.07em] px-1 pt-[2px] pb-1.5">
             Connected servers
           </div>
 
@@ -131,8 +131,8 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
               className={cn(
                 "flex items-center gap-2 w-full px-2 py-[7px] rounded-[6px] border text-left transition-[background] duration-100",
                 server.isActive
-                  ? "bg-[var(--color-accent-glow)] border-[var(--color-accent)] cursor-default"
-                  : "bg-transparent border-transparent cursor-pointer hover:bg-[var(--color-surface-overlay)]"
+                  ? "bg-(--color-accent-glow) border-(--color-accent) cursor-default"
+                  : "bg-transparent border-transparent cursor-pointer hover:bg-(--color-surface-overlay)"
               )}
             >
               <StatusDot status={server.status} />
@@ -140,13 +140,13 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 className={cn(
                   "flex-1 text-[13px] overflow-hidden text-ellipsis whitespace-nowrap",
                   server.status === "offline"
-                    ? "text-[var(--color-text-disabled)]"
-                    : "text-[var(--color-text-primary)]"
+                    ? "text-(--color-text-disabled)"
+                    : "text-(--color-text-primary)"
                 )}
               >
                 {server.label}
               </span>
-              <span className="text-[11px] font-mono text-[var(--color-text-tertiary)] shrink-0">
+              <span className="text-[11px] font-mono text-(--color-text-tertiary) shrink-0">
                 {(() => {
                   try {
                     return new URL(server.url).port || "80";
@@ -156,7 +156,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 })()}
               </span>
               {server.isActive && (
-                <span className="text-[9px] font-mono text-[var(--color-accent)] bg-[var(--color-accent-glow)] border border-[var(--color-accent)] px-[5px] py-[1px] rounded-full tracking-[0.05em] shrink-0">
+                <span className="text-[9px] font-mono text-(--color-accent) bg-(--color-accent-glow) border border-(--color-accent) px-[5px] py-px rounded-full tracking-[0.05em] shrink-0">
                   active
                 </span>
               )}
@@ -164,18 +164,15 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
           ))}
 
           {/* Divider */}
-          <div className="h-px bg-[var(--color-border-subtle)] my-1.5" />
+          <div className="h-px bg-(--color-border-subtle) my-1.5" />
 
           {/* Add server inline input */}
           <div className="px-1 py-[2px]">
-            <div className="text-[10px] font-mono text-[var(--color-text-disabled)] uppercase tracking-[0.07em] mb-1">
+            <div className="text-[10px] font-mono text-(--color-text-disabled) uppercase tracking-[0.07em] mb-1">
               Add server
             </div>
             {addError && (
-              <div
-                className="text-[10px] font-mono text-[var(--color-server-dead)] mb-1"
-                role="alert"
-              >
+              <div className="text-[10px] font-mono text-(--color-server-dead) mb-1" role="alert">
                 {addError}
               </div>
             )}
@@ -203,10 +200,8 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                   }
                 }}
                 className={cn(
-                  "flex-1 px-2 py-1 rounded border bg-[var(--color-surface-overlay)] text-[var(--color-text-primary)] font-mono text-[11px] outline-none",
-                  addError
-                    ? "border-[var(--color-server-dead)]"
-                    : "border-[var(--color-border-subtle)]"
+                  "flex-1 px-2 py-1 rounded border bg-(--color-surface-overlay) text-(--color-text-primary) font-mono text-[11px] outline-none",
+                  addError ? "border-(--color-server-dead)" : "border-(--color-border-subtle)"
                 )}
               />
               <button
@@ -225,7 +220,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                     setOpen(false);
                   }
                 }}
-                className="px-[10px] py-1 rounded border border-[var(--color-border-default)] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] font-mono text-[11px] cursor-pointer"
+                className="px-[10px] py-1 rounded border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) font-mono text-[11px] cursor-pointer"
               >
                 +
               </button>

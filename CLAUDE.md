@@ -16,7 +16,7 @@ The MCP server handles all inter-agent communication infrastructure.
 - **API server**: Hono (runs in the same process as the MCP server)
 - **Realtime**: `ws` WebSocket
 - **Frontend**: React + Vite (`packages/dashboard/`)
-- **Styling**: Tailwind CSS
+- **Styling**: Tailwind CSS v4 — always use canonical class forms (e.g. `text-(--color-text-primary)` not `text-[var(--color-text-primary)]`, `py-px` not `py-[1px]`). Run `npx @tailwindcss/upgrade --force` to auto-fix.
 - **DB**: In-memory store (`store.ts`) — ephemeral, no native bindings required. Tests call `_resetStore()` in `beforeEach` for isolation.
 - **Memory**: Markdown files (`.relay/memory/`)
 - **Persona config**: YAML (`.relay/agents.pool.yml` / `agents.pool.yml`)

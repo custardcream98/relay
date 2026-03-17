@@ -10,12 +10,12 @@ import { TaskBoard } from "../TaskBoard";
 // Panel top label + optional badge
 function PanelHeader({ label, badge }: { label: string; badge?: number | string }) {
   return (
-    <div className="flex items-center justify-between px-4 shrink-0 h-9 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)]">
-      <span className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-[0.07em]">
+    <div className="flex items-center justify-between px-4 shrink-0 h-9 border-b border-(--color-border-subtle) bg-(--color-surface-base)">
+      <span className="text-[11px] font-medium text-(--color-text-tertiary) uppercase tracking-[0.07em]">
         {label}
       </span>
       {badge !== undefined && (
-        <span className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-1.5 py-[1px] rounded-full">
+        <span className="font-mono text-[11px] bg-(--color-surface-overlay) text-(--color-text-secondary) px-1.5 py-px rounded-full">
           {badge}
         </span>
       )}
@@ -53,12 +53,12 @@ export function BottomPanel() {
       ) : (
         <>
           {/* Single header — always rendered, chevron rotates on toggle */}
-          <div className="flex items-center justify-between shrink-0 h-9 border-t border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] pl-4 pr-2">
+          <div className="flex items-center justify-between shrink-0 h-9 border-t border-b border-(--color-border-subtle) bg-(--color-surface-base) pl-4 pr-2">
             <div className="flex items-center gap-2">
-              <span className="text-[11px] font-medium text-[var(--color-text-tertiary)] uppercase tracking-[0.07em]">
+              <span className="text-[11px] font-medium text-(--color-text-tertiary) uppercase tracking-[0.07em]">
                 Task Board
               </span>
-              <span className="font-mono text-[11px] bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)] px-1.5 py-[1px] rounded-full">
+              <span className="font-mono text-[11px] bg-(--color-surface-overlay) text-(--color-text-secondary) px-1.5 py-px rounded-full">
                 {tasks.length}
               </span>
             </div>
@@ -66,7 +66,7 @@ export function BottomPanel() {
               type="button"
               onClick={onToggleTaskBoard}
               title={taskBoardCollapsed ? "Expand Task Board" : "Collapse Task Board"}
-              className="w-5 h-5 flex items-center justify-center rounded bg-none border-none cursor-pointer text-[var(--color-text-disabled)] shrink-0"
+              className="w-5 h-5 flex items-center justify-center rounded bg-none border-none cursor-pointer text-(--color-text-disabled) shrink-0"
             >
               <svg
                 width="12"

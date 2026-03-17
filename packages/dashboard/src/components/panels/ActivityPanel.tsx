@@ -26,7 +26,7 @@ export function ActivityPanel() {
       }}
     >
       {/* Panel header — tab switcher */}
-      <div className="flex items-center shrink-0 h-9 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] pl-3 pr-2 gap-0.5">
+      <div className="flex items-center shrink-0 h-9 border-b border-(--color-border-subtle) bg-(--color-surface-base) pl-3 pr-2 gap-0.5">
         {(
           [
             { id: "activity" as PanelTab, label: "Activity", count: timeline.length },
@@ -40,8 +40,8 @@ export function ActivityPanel() {
             className={cn(
               "flex items-center gap-[5px] px-[9px] py-[3px] rounded text-[11px] font-medium cursor-pointer border-none transition-[background,color] duration-100 uppercase tracking-[0.06em]",
               activeTab === tab.id
-                ? "bg-[var(--color-surface-overlay)] text-[var(--color-text-secondary)]"
-                : "bg-transparent text-[var(--color-text-disabled)]"
+                ? "bg-(--color-surface-overlay) text-(--color-text-secondary)"
+                : "bg-transparent text-(--color-text-disabled)"
             )}
           >
             {tab.label}
@@ -49,8 +49,8 @@ export function ActivityPanel() {
               className={cn(
                 "font-mono text-[10px] px-1 py-0 rounded-[3px]",
                 activeTab === tab.id
-                  ? "bg-[var(--color-surface-raised)] text-[var(--color-text-secondary)]"
-                  : "bg-[var(--color-surface-overlay)] text-[var(--color-text-disabled)]"
+                  ? "bg-(--color-surface-raised) text-(--color-text-secondary)"
+                  : "bg-(--color-surface-overlay) text-(--color-text-disabled)"
               )}
             >
               {tab.count}

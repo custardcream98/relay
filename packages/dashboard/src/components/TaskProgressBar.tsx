@@ -36,9 +36,9 @@ export const TaskProgressBar = memo(function TaskProgressBar({ tasks }: Props) {
 
   if (total === 0) {
     return (
-      <div className="px-3 py-2 border-b border-[var(--color-border-subtle)] shrink-0">
-        <div className="h-[6px] rounded-full bg-[var(--color-surface-overlay)]" />
-        <p className="text-[10px] font-mono text-[var(--color-text-disabled)] mt-1.5 text-center">
+      <div className="px-3 py-2 border-b border-(--color-border-subtle) shrink-0">
+        <div className="h-[6px] rounded-full bg-(--color-surface-overlay)" />
+        <p className="text-[10px] font-mono text-(--color-text-disabled) mt-1.5 text-center">
           No tasks
         </p>
       </div>
@@ -46,9 +46,9 @@ export const TaskProgressBar = memo(function TaskProgressBar({ tasks }: Props) {
   }
 
   return (
-    <div className="px-3 py-2 border-b border-[var(--color-border-subtle)] shrink-0">
+    <div className="px-3 py-2 border-b border-(--color-border-subtle) shrink-0">
       {/* Stacked bar */}
-      <div className="flex h-[6px] rounded-full overflow-hidden bg-[var(--color-surface-overlay)]">
+      <div className="flex h-[6px] rounded-full overflow-hidden bg-(--color-surface-overlay)">
         {STATUS_ORDER.map((status) => {
           const count = counts[status] ?? 0;
           if (count === 0) return null;
@@ -73,14 +73,12 @@ export const TaskProgressBar = memo(function TaskProgressBar({ tasks }: Props) {
           const count = counts[status] ?? 0;
           return (
             <span key={status} className="flex items-center gap-0.5">
-              {idx > 0 && (
-                <span className="text-[var(--color-text-disabled)] text-[9px] mx-0.5">·</span>
-              )}
+              {idx > 0 && <span className="text-(--color-text-disabled) text-[9px] mx-0.5">·</span>}
               <span
                 className="w-[6px] h-[6px] rounded-full inline-block shrink-0"
                 style={{ background: STATUS_COLORS[status] }}
               />
-              <span className="font-mono text-[10px] text-[var(--color-text-tertiary)]">
+              <span className="font-mono text-[10px] text-(--color-text-tertiary)">
                 {count} {STATUS_LABELS[status]}
               </span>
             </span>

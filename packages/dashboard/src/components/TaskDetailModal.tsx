@@ -203,14 +203,14 @@ export function TaskDetailModal({
     >
       {/* Header row — title + close */}
       <div className="flex items-start gap-2 mb-1">
-        <span className="flex-1 text-[13px] font-medium leading-[1.45] text-[var(--color-text-primary)]">
+        <span className="flex-1 text-[13px] font-medium leading-[1.45] text-(--color-text-primary)">
           {task.title}
         </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close task detail"
-          className="close-btn shrink-0 w-5 h-5 flex items-center justify-center rounded border-none bg-transparent text-[var(--color-text-disabled)] cursor-pointer text-sm leading-none"
+          className="close-btn shrink-0 w-5 h-5 flex items-center justify-center rounded border-none bg-transparent text-(--color-text-disabled) cursor-pointer text-sm leading-none"
         >
           ×
         </button>
@@ -218,7 +218,7 @@ export function TaskDetailModal({
 
       {/* Task ID — muted reference */}
       <div className="mb-2">
-        <span className="text-[9px] font-mono text-[var(--color-text-disabled)] select-all">
+        <span className="text-[9px] font-mono text-(--color-text-disabled) select-all">
           {task.id}
         </span>
       </div>
@@ -266,17 +266,17 @@ export function TaskDetailModal({
 
       {/* Full description — rendered as markdown */}
       {task.description ? (
-        <div className="bg-[var(--color-surface-inset)] border border-[var(--color-border-subtle)] rounded-[6px] p-[10px_12px] max-h-[200px] overflow-y-auto">
+        <div className="bg-(--color-surface-inset) border border-(--color-border-subtle) rounded-[6px] p-[10px_12px] max-h-[200px] overflow-y-auto">
           <MarkdownContent text={task.description} />
         </div>
       ) : (
-        <p className="text-xs text-[var(--color-text-disabled)] italic">No description provided.</p>
+        <p className="text-xs text-(--color-text-disabled) italic">No description provided.</p>
       )}
 
       {/* Depends on section */}
       {dependsOnTasks.length > 0 && (
         <div className="mt-3">
-          <span className="text-[10px] font-medium text-[var(--color-text-disabled)] uppercase tracking-[0.06em] mb-1.5 block">
+          <span className="text-[10px] font-medium text-(--color-text-disabled) uppercase tracking-[0.06em] mb-1.5 block">
             Depends on
           </span>
           <div className="flex flex-col gap-1">
@@ -286,11 +286,11 @@ export function TaskDetailModal({
                 <button
                   key={dep.id}
                   type="button"
-                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] text-left cursor-pointer hover:border-[var(--color-border-default)] transition-[border-color] duration-100"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-(--color-surface-overlay) border border-(--color-border-subtle) text-left cursor-pointer hover:border-(--color-border-default) transition-[border-color] duration-100"
                   onClick={() => onSelectTask?.(dep)}
                 >
                   <span
-                    className="text-[9px] font-mono font-medium px-[5px] py-[1px] rounded-full uppercase tracking-[0.05em] shrink-0"
+                    className="text-[9px] font-mono font-medium px-[5px] py-px rounded-full uppercase tracking-[0.05em] shrink-0"
                     style={{
                       background: depStatusColors.bg,
                       color: depStatusColors.text,
@@ -299,7 +299,7 @@ export function TaskDetailModal({
                   >
                     {dep.status.replace(/_/g, " ")}
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)] overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                  <span className="text-[11px] text-(--color-text-secondary) overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
                     {dep.title}
                   </span>
                 </button>
@@ -312,7 +312,7 @@ export function TaskDetailModal({
       {/* Derived tasks section */}
       {derivedTasks.length > 0 && (
         <div className="mt-3">
-          <span className="text-[10px] font-medium text-[var(--color-text-disabled)] uppercase tracking-[0.06em] mb-1.5 block">
+          <span className="text-[10px] font-medium text-(--color-text-disabled) uppercase tracking-[0.06em] mb-1.5 block">
             Derived tasks
           </span>
           <div className="flex flex-col gap-1">
@@ -322,11 +322,11 @@ export function TaskDetailModal({
                 <button
                   key={child.id}
                   type="button"
-                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] text-left cursor-pointer hover:border-[var(--color-border-default)] transition-[border-color] duration-100"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-(--color-surface-overlay) border border-(--color-border-subtle) text-left cursor-pointer hover:border-(--color-border-default) transition-[border-color] duration-100"
                   onClick={() => onSelectTask?.(child)}
                 >
                   <span
-                    className="text-[9px] font-mono font-medium px-[5px] py-[1px] rounded-full uppercase tracking-[0.05em] shrink-0"
+                    className="text-[9px] font-mono font-medium px-[5px] py-px rounded-full uppercase tracking-[0.05em] shrink-0"
                     style={{
                       background: childStatusColors.bg,
                       color: childStatusColors.text,
@@ -335,7 +335,7 @@ export function TaskDetailModal({
                   >
                     {child.status.replace(/_/g, " ")}
                   </span>
-                  <span className="text-[11px] text-[var(--color-text-secondary)] overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                  <span className="text-[11px] text-(--color-text-secondary) overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
                     {child.title}
                   </span>
                 </button>
@@ -349,12 +349,12 @@ export function TaskDetailModal({
       {(task.created_at || task.updated_at) && (
         <div className="mt-3 flex gap-3 flex-wrap">
           {task.created_at && (
-            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
+            <span className="text-[10px] font-mono text-(--color-text-disabled)">
               created {new Date(task.created_at * 1000).toLocaleString()}
             </span>
           )}
           {task.updated_at && task.updated_at !== task.created_at && (
-            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
+            <span className="text-[10px] font-mono text-(--color-text-disabled)">
               updated {new Date(task.updated_at * 1000).toLocaleString()}
             </span>
           )}

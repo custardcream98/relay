@@ -22,7 +22,7 @@ export function AgentChip({ agentId }: Props) {
 
   return (
     <span
-      className="font-mono text-[11px] font-semibold px-[5px] py-[1px] rounded-[3px] shrink-0"
+      className="font-mono text-[11px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
       style={style}
     >
       {agentId}

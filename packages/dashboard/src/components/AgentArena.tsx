@@ -89,14 +89,14 @@ export function AgentArena({
   }, [sessionTeam]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden border-r border-[var(--color-border-subtle)] bg-[var(--color-surface-base)]">
+    <div className="flex flex-col h-full overflow-hidden border-r border-(--color-border-subtle) bg-(--color-surface-base)">
       {/* Panel header */}
-      <div className="flex items-center justify-between px-4 shrink-0 h-10 border-b border-[var(--color-border-subtle)]">
-        <span className="text-[10px] font-medium text-[var(--color-text-disabled)] uppercase tracking-[0.07em]">
+      <div className="flex items-center justify-between px-4 shrink-0 h-10 border-b border-(--color-border-subtle)">
+        <span className="text-[10px] font-medium text-(--color-text-disabled) uppercase tracking-[0.07em]">
           Agent Arena
         </span>
         {agents.length > 0 && (
-          <span className="font-mono text-[10px] bg-[var(--color-surface-overlay)] text-[var(--color-text-tertiary)] px-1.5 py-[1px] rounded-full">
+          <span className="font-mono text-[10px] bg-(--color-surface-overlay) text-(--color-text-tertiary) px-1.5 py-px rounded-full">
             {agents.length}
           </span>
         )}
@@ -105,7 +105,7 @@ export function AgentArena({
       {/* Agent card list */}
       <div className="flex-1 overflow-y-auto p-2">
         {agentsError && (
-          <div className="flex items-center justify-center h-full text-[var(--color-end-failed)] text-xs">
+          <div className="flex items-center justify-center h-full text-(--color-end-failed) text-xs">
             Failed to load agents
           </div>
         )}
@@ -116,7 +116,7 @@ export function AgentArena({
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-16 rounded-lg bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] opacity-40"
+                className="h-16 rounded-lg bg-(--color-surface-raised) border border-(--color-border-subtle) opacity-40"
               />
             ))}
           </div>
@@ -126,14 +126,12 @@ export function AgentArena({
         {!agentsError && !agentsLoading && agents.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full gap-[10px]">
             <span className="text-[28px] opacity-20">👥</span>
-            <span className="text-[13px] font-medium text-[var(--color-text-secondary)]">
+            <span className="text-[13px] font-medium text-(--color-text-secondary)">
               No agents yet
             </span>
-            <span className="text-[11px] text-[var(--color-text-disabled)] text-center max-w-[190px] leading-[1.5]">
+            <span className="text-[11px] text-(--color-text-disabled) text-center max-w-[190px] leading-normal">
               Start a{" "}
-              <span className="font-mono text-[var(--color-text-tertiary)] text-[10px]">
-                /relay
-              </span>{" "}
+              <span className="font-mono text-(--color-text-tertiary) text-[10px]">/relay</span>{" "}
               session — agents will appear here
             </span>
           </div>

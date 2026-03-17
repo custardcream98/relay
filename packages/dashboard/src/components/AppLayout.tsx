@@ -28,7 +28,7 @@ function Divider({
   const dots = [0, 1, 2].map((i) => (
     <span
       key={i}
-      className="w-[3px] h-[3px] rounded-full bg-[var(--color-border-default)] shrink-0 transition-colors duration-150 group-hover:bg-[var(--color-text-disabled)]"
+      className="w-[3px] h-[3px] rounded-full bg-(--color-border-default) shrink-0 transition-colors duration-150 group-hover:bg-(--color-text-disabled)"
     />
   ));
 
@@ -38,7 +38,7 @@ function Divider({
       title="Drag to resize panels"
       className={cn(
         "group shrink-0 items-center justify-center gap-[3px] hidden md:flex",
-        "bg-[var(--color-border-subtle)] transition-colors duration-150 hover:bg-[var(--color-border-default)]",
+        "bg-(--color-border-subtle) transition-colors duration-150 hover:bg-(--color-border-default)",
         isH
           ? "w-[6px] self-stretch flex-col cursor-col-resize"
           : "h-[6px] flex-row cursor-row-resize"
@@ -59,7 +59,7 @@ export function AppLayout() {
   } = usePanelLayout();
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[var(--color-surface-root)] text-[var(--color-text-primary)]">
+    <div className="h-screen flex flex-col overflow-hidden bg-(--color-surface-root) text-(--color-text-primary)">
       <AppHeader />
       <OfflineBanner />
 

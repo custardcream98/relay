@@ -71,7 +71,7 @@ interface Props {
 export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange, badges }: Props) {
   return (
     <nav
-      className="flex items-center justify-around h-12 shrink-0 border-t border-[var(--color-border-default)] bg-[var(--color-surface-base)]"
+      className="flex items-center justify-around h-12 shrink-0 border-t border-(--color-border-default) bg-(--color-surface-base)"
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
@@ -86,7 +86,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             onClick={() => onTabChange(tab.id)}
             className={cn(
               "flex flex-col items-center justify-center gap-0.5 flex-1 h-full border-none bg-transparent cursor-pointer transition-colors duration-100",
-              isActive ? "text-[var(--color-accent)]" : "text-[var(--color-text-disabled)]"
+              isActive ? "text-(--color-accent)" : "text-(--color-text-disabled)"
             )}
             aria-label={tab.label}
             aria-current={isActive ? "page" : undefined}
@@ -94,7 +94,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             <div className="relative">
               {tab.icon}
               {badge !== undefined && badge > 0 && (
-                <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-mono font-bold text-white bg-[var(--color-accent)] rounded-full px-[3px] leading-none">
+                <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-mono font-bold text-white bg-(--color-accent) rounded-full px-[3px] leading-none">
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}
@@ -102,7 +102,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             <span className="text-[10px] font-medium tracking-[0.02em]">{tab.label}</span>
             {/* Active indicator — bottom bar */}
             {isActive && (
-              <span className="absolute bottom-0 w-8 h-[2px] rounded-full bg-[var(--color-accent)]" />
+              <span className="absolute bottom-0 w-8 h-[2px] rounded-full bg-(--color-accent)" />
             )}
           </button>
         );

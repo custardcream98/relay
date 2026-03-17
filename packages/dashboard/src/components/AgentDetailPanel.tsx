@@ -53,9 +53,9 @@ export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tas
   );
 
   return (
-    <div className="flex flex-col h-full bg-[var(--color-surface-inset)]">
+    <div className="flex flex-col h-full bg-(--color-surface-inset)">
       {/* Tab header */}
-      <div className="flex items-center shrink-0 h-10 border-b border-[var(--color-border-subtle)] bg-[var(--color-surface-base)] px-3 gap-0.5">
+      <div className="flex items-center shrink-0 h-10 border-b border-(--color-border-subtle) bg-(--color-surface-base) px-3 gap-0.5">
         {/* Agent name */}
         <span className="text-xs font-semibold mr-3 shrink-0" style={{ color: accentColor }}>
           {agentId}
@@ -140,7 +140,7 @@ function ThoughtsTab({
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
         <span className="text-2xl opacity-30">🧠</span>
-        <span className="text-xs text-[var(--color-text-tertiary)]">
+        <span className="text-xs text-(--color-text-tertiary)">
           {status === "idle" ? "Agent is idle" : "Waiting for reasoning…"}
         </span>
       </div>
@@ -151,7 +151,7 @@ function ThoughtsTab({
     <div
       ref={scrollRef}
       onScroll={handleScroll}
-      className="font-mono h-full overflow-auto px-4 py-3 text-[11px] leading-[1.7] text-[var(--color-text-secondary)]"
+      className="font-mono h-full overflow-auto px-4 py-3 text-[11px] leading-[1.7] text-(--color-text-secondary)"
     >
       {chunk}
       {/* Cursor */}
@@ -171,7 +171,7 @@ function ThoughtsTab({
             setShowScrollBtn(false);
             bottomRef.current?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="sticky bottom-2 block ml-auto text-[10px] text-[var(--color-text-secondary)] bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] rounded px-2 py-[3px] cursor-pointer font-mono"
+          className="sticky bottom-2 block ml-auto text-[10px] text-(--color-text-secondary) bg-(--color-surface-overlay) border border-(--color-border-default) rounded px-2 py-[3px] cursor-pointer font-mono"
         >
           ↓ latest
         </button>
@@ -194,7 +194,7 @@ function MessagesTab({
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
         <span className="text-2xl opacity-30">💬</span>
-        <span className="text-xs text-[var(--color-text-tertiary)]">No messages yet</span>
+        <span className="text-xs text-(--color-text-tertiary)">No messages yet</span>
       </div>
     );
   }
@@ -209,11 +209,11 @@ function MessagesTab({
         return (
           <div
             key={msg.id}
-            className="flex flex-row gap-2 px-[14px] py-[10px] border-b border-[var(--color-border-subtle)]"
+            className="flex flex-row gap-2 px-[14px] py-[10px] border-b border-(--color-border-subtle)"
           >
             {/* Direction indicator */}
             <span
-              className="text-sm shrink-0 pt-[1px]"
+              className="text-sm shrink-0 pt-px"
               style={{ color: isSent ? accentColor : otherColor }}
             >
               {isSent ? "↑" : "↓"}
@@ -228,7 +228,7 @@ function MessagesTab({
                 >
                   {isSent ? "→" : "←"} {otherAgent ?? "broadcast"}
                 </span>
-                <span className="font-mono text-[10px] text-[var(--color-text-disabled)] ml-auto">
+                <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
                   {formatTime(msg.created_at)}
                 </span>
               </div>
@@ -247,7 +247,7 @@ function TasksTab({ tasks }: { tasks: Task[] }) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2">
         <span className="text-2xl opacity-30">✅</span>
-        <span className="text-xs text-[var(--color-text-tertiary)]">No tasks assigned</span>
+        <span className="text-xs text-(--color-text-tertiary)">No tasks assigned</span>
       </div>
     );
   }
@@ -263,13 +263,13 @@ function TasksTab({ tasks }: { tasks: Task[] }) {
           <div
             key={task.id}
             className={cn(
-              "px-3 py-[10px] mb-1.5 rounded-[6px] bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)]",
+              "px-3 py-[10px] mb-1.5 rounded-[6px] bg-(--color-surface-raised) border border-(--color-border-subtle)",
               isDone && "opacity-50"
             )}
           >
             <div className="flex items-center gap-2">
               <span
-                className="font-mono text-[9px] px-[5px] py-[1px] rounded-[3px] uppercase tracking-[0.05em] shrink-0"
+                className="font-mono text-[9px] px-[5px] py-px rounded-[3px] uppercase tracking-[0.05em] shrink-0"
                 style={{ color: statusColor, background: `${statusColor}18` }}
               >
                 {task.status.replaceAll("_", " ")}
@@ -278,8 +278,8 @@ function TasksTab({ tasks }: { tasks: Task[] }) {
                 className={cn(
                   "text-xs flex-1 overflow-hidden text-ellipsis whitespace-nowrap",
                   isDone
-                    ? "text-[var(--color-text-tertiary)] line-through"
-                    : "text-[var(--color-text-primary)]"
+                    ? "text-(--color-text-tertiary) line-through"
+                    : "text-(--color-text-primary)"
                 )}
                 style={{ fontWeight: 450 }}
               >

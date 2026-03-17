@@ -76,7 +76,9 @@ function isPortAvailable(port: number): Promise<boolean> {
     server.once("listening", () => {
       server.close(() => resolve(true));
     });
-    server.listen(port, "127.0.0.1");
+    // No hostname — binds on all interfaces (same as @hono/node-server's serve()),
+    // so the check accurately reflects whether serve() will succeed.
+    server.listen(port);
   });
 }
 
@@ -110,8 +112,7 @@ async function resolvePort(): Promise<number> {
   return found;
 }
 
-const DASHBOARD_PORT = await resolvePort();
-setPort(DASHBOARD_PORT);
+const initialPort = await resolvePort();
 
 /**
  * Build a session:snapshot event payload serialized to JSON.
@@ -155,72 +156,90 @@ function buildSessionSnapshot(port: number): string {
 }
 
 // Dashboard HTTP + WebSocket server.
-// EADDRINUSE is emitted asynchronously on the server's "error" event — not catchable via try/catch.
-// If the port is already in use, skip the dashboard but keep the MCP stdio server running (graceful degradation)
-const dashboardServer = serve({ fetch: app.fetch, port: DASHBOARD_PORT });
+// tryServe() awaits the "listening" event before resolving, so the port is guaranteed bound on success.
+// On EADDRINUSE, it retries with the next available port in the auto-select range.
+// Returns null when no port can be bound — MCP stdio server still runs (graceful degradation).
+type DashboardResult = { server: ReturnType<typeof serve>; port: number } | null;
 
-dashboardServer.on("error", (err: NodeJS.ErrnoException) => {
-  if (err.code === "EADDRINUSE") {
-    // Port is occupied — clear the port so get_server_info reports no dashboard URL
-    // instead of pointing agents at a server that belongs to another instance.
-    setPort(null);
-    console.error(
-      `[relay] dashboard port ${DASHBOARD_PORT} already in use — dashboard unavailable, MCP server will still start.\n` +
-        `  To fix: set a unique DASHBOARD_PORT for each relay instance in .mcp.json.\n` +
-        `  Example: DASHBOARD_PORT=3457 for a second instance.`
-    );
-  } else {
-    console.error("[relay] dashboard server error:", err);
-  }
-});
+async function tryServe(port: number): Promise<DashboardResult> {
+  return new Promise((resolve) => {
+    const srv = serve({ fetch: app.fetch, port });
+    srv.once("error", async (err: NodeJS.ErrnoException) => {
+      srv.close(); // Release the failed server instance before retry or bail
+      if (err.code === "EADDRINUSE") {
+        // Port was occupied — try next available port in the auto-select range
+        const next = await findAvailablePort(port + 1, PORT_AUTO_END);
+        if (next !== null) {
+          resolve(await tryServe(next));
+        } else {
+          console.error(
+            `[relay] no available port in ${PORT_AUTO_START}-${PORT_AUTO_END} — dashboard unavailable, MCP server will still start.`
+          );
+          resolve(null);
+        }
+      } else {
+        console.error("[relay] dashboard server error:", err);
+        resolve(null);
+      }
+    });
+    srv.once("listening", () => {
+      console.error(`[relay] dashboard: http://localhost:${port}`);
+      resolve({ server: srv, port });
+    });
+  });
+}
 
-dashboardServer.on("listening", () => {
-  console.error(`[relay] dashboard: http://localhost:${DASHBOARD_PORT}`);
-});
+const dashResult = await tryServe(initialPort);
 
-// WebSocket server — handles /ws upgrade requests
-const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 });
+if (dashResult) {
+  const { server: dashboardServer, port: confirmedPort } = dashResult;
+  setPort(confirmedPort);
 
-dashboardServer.on("upgrade", (request, socket, head) => {
-  // Reject WebSocket upgrades from non-localhost origins.
-  // This prevents arbitrary web pages from subscribing to all real-time events.
-  const origin = request.headers.origin;
-  // Reject WebSocket upgrades from non-localhost origins.
-  // isLocalhostOrigin() returns false for malformed origins, so one check covers both cases.
-  if (origin && !isLocalhostOrigin(origin)) {
-    socket.destroy();
-    return;
-  }
+  // WebSocket server — handles /ws upgrade requests
+  const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 });
 
-  const url = new URL(request.url ?? "/", `http://localhost:${DASHBOARD_PORT}`);
-  if (url.pathname !== "/ws") {
-    // Reject WebSocket upgrade requests targeting any path other than /ws.
-    // Leaving the socket open without handling it would leak a half-open TCP connection.
-    socket.destroy();
-    return;
-  }
-  // pathname === "/ws" is guaranteed here by the early-return above
-  wss.handleUpgrade(request, socket, head, (ws) => {
-    if (!addClient(ws)) {
-      // Reject connection when the client cap is reached to prevent unbounded memory growth
-      ws.close(1013, "too many clients");
+  dashboardServer.on("upgrade", (request, socket, head) => {
+    // Reject WebSocket upgrades from non-localhost origins.
+    // isLocalhostOrigin() returns false for malformed origins, so one check covers both cases.
+    const origin = request.headers.origin;
+    if (origin && !isLocalhostOrigin(origin)) {
+      socket.destroy();
       return;
     }
-    markClientAlive(ws);
-    // Mark client as alive when it responds to a ping
-    ws.on("pong", () => markClientAlive(ws));
-    ws.on("close", () => removeClient(ws));
-    // Send current session snapshot on new connection — for dashboard initial hydration
-    try {
-      ws.send(buildSessionSnapshot(DASHBOARD_PORT));
-    } catch (err) {
-      console.error("[relay] failed to send session snapshot:", err);
-    }
-  });
-});
 
-// Start WebSocket ping/pong heartbeat so the dashboard can detect stale connections
-startHeartbeat();
+    const url = new URL(request.url ?? "/", `http://localhost:${confirmedPort}`);
+    if (url.pathname !== "/ws") {
+      // Reject WebSocket upgrade requests targeting any path other than /ws.
+      // Leaving the socket open without handling it would leak a half-open TCP connection.
+      socket.destroy();
+      return;
+    }
+    // pathname === "/ws" is guaranteed here by the early-return above
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      if (!addClient(ws)) {
+        // Reject connection when the client cap is reached to prevent unbounded memory growth
+        ws.close(1013, "too many clients");
+        return;
+      }
+      markClientAlive(ws);
+      // Mark client as alive when it responds to a ping
+      ws.on("pong", () => markClientAlive(ws));
+      ws.on("close", () => removeClient(ws));
+      // Send current session snapshot on new connection — for dashboard initial hydration
+      try {
+        ws.send(buildSessionSnapshot(confirmedPort));
+      } catch (err) {
+        console.error("[relay] failed to send session snapshot:", err);
+      }
+    });
+  });
+
+  // Start WebSocket ping/pong heartbeat so the dashboard can detect stale connections
+  startHeartbeat();
+} else {
+  // Dashboard unavailable — MCP stdio server still runs
+  setPort(null);
+}
 
 // MCP server (stdio)
 const server = createMcpServer();

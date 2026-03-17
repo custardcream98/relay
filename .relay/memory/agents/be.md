@@ -1,17 +1,18 @@
 ## api-structure
 
 ### Entry Point
-- `packages/server/src/index.ts`: Bun.serve()로 HTTP+WebSocket 서버(기본 포트 3456) 시작 후 MCP 서버(stdio) 시작
+- `packages/server/src/index.ts`: Node.js HTTP+WebSocket 서버(기본 포트 3456) 시작 후 MCP 서버(stdio) 시작
 - 두 서버가 동일 프로세스에서 실행됨
 
-### MCP Tools (총 16개, packages/server/src/mcp.ts)
+### MCP Tools (총 23개, packages/server/src/mcp.ts)
 **Messaging**: `send_message`, `get_messages`
-**Tasks**: `create_task`, `update_task`, `get_my_tasks`, `claim_task`, `get_team_status`, `get_all_tasks`
+**Tasks**: `create_task`, `update_task`, `claim_task`, `get_all_tasks`
 **Artifacts**: `post_artifact`, `get_artifact`
 **Review**: `request_review`, `submit_review`
 **Memory**: `read_memory`, `write_memory`, `append_memory`
-**Sessions**: `save_session_summary`, `list_sessions`, `get_session_summary`
-**Agents**: `list_agents`, `get_workflow`
+**Sessions**: `save_session_summary`, `list_sessions`, `get_session_summary`, `save_orchestrator_state`, `get_orchestrator_state`
+**Agents**: `list_agents`, `list_pool_agents`
+**Other**: `broadcast_thinking`, `start_session`, `get_server_info`
 
 ### Hono REST API (packages/server/src/dashboard/hono.ts)
 - `GET /api/agents` — 에이전트 목록 (캐싱)
@@ -23,45 +24,35 @@
 - Static: `/assets/*` → 빌드된 dashboard 디렉토리
 
 ### WebSocket
-- `GET /ws` — Bun 네이티브 WebSocket 업그레이드
+- `GET /ws` — WebSocket 업그레이드 (`ws` 라이브러리)
 - 단방향 서버→클라이언트 브로드캐스트 (클라이언트 발신 메시지 미사용)
 - broadcast() 함수로 모든 MCP 도구 결과 후 이벤트 전송
 
 ### Patterns
-- 모든 MCP 도구 핸들러는 `{ success: boolean, data?, error? }` 형식 반환
+- 모든 MCP 도구 핸들러는 `{ success: boolean, ...fields }` 플랫 구조 반환 (중첩 `data` 필드 없음)
 - 도구마다 `agent_id` 파라미터 필수 (추적용)
 - SESSION_ID: `process.env.RELAY_SESSION_ID ?? "default"`
 - RELAY_DIR: `process.env.RELAY_DIR ?? cwd()/.relay`
 
-## db-schema
+## store-schema
 
-### SQLite (bun:sqlite, WAL 모드)
-DB 경로: `process.env.DB_PATH ?? "relay.db"`
-싱글턴 패턴 (getDb() in db/client.ts)
+### In-Memory Store (store.ts)
+SQLite/bun:sqlite 없음. 모든 세션 데이터는 `store.ts`의 배열/Map에 보관됨 — 서버 재시작 시 소멸(ephemeral).
+테스트 격리: `_resetStore()` 사용.
 
-### Tables
+### 주요 컬렉션
 
-**messages**
-- id TEXT PK, session_id TEXT, from_agent TEXT, to_agent TEXT (nullable = 브로드캐스트), content TEXT, thread_id TEXT (nullable), created_at INTEGER (unixepoch)
-- Index: (session_id, to_agent)
+**messages**: `{ id, session_id, from_agent, to_agent (null=브로드캐스트), content, thread_id, created_at }`
 
-**tasks**
-- id TEXT PK, session_id TEXT, title TEXT, description TEXT, assignee TEXT (nullable), status TEXT ('todo'|'in_progress'|'in_review'|'done'), priority TEXT ('critical'|'high'|'medium'|'low'), created_by TEXT, created_at/updated_at INTEGER
-- Index: (session_id, assignee)
-- `claim_task()`: 원자적 UPDATE — status='todo' AND (assignee=agentId OR assignee IS NULL) 조건
+**tasks**: `{ id, session_id, title, description, assignee, status ('todo'|'in_progress'|'in_review'|'done'), priority ('critical'|'high'|'medium'|'low'), created_by, created_at, updated_at }`
+- `claim_task()`: 원자적 체크 — status='todo' AND (assignee=agentId OR assignee IS NULL)
 
-**artifacts**
-- id TEXT PK, session_id TEXT, name TEXT, type TEXT ('figma_spec'|'pr'|'report'|'analytics_plan'|'design'), content TEXT, created_by TEXT, task_id TEXT (nullable), created_at INTEGER
-- Index: (session_id)
+**artifacts**: `{ id, session_id, name, type, content, created_by, task_id, created_at }`
 
-**reviews**
-- id TEXT PK, session_id TEXT, artifact_id TEXT, reviewer TEXT, requester TEXT, status TEXT ('pending'|'approved'|'changes_requested'), comments TEXT, created_at/updated_at INTEGER
-- Index: (session_id, reviewer)
+**reviews**: `{ id, session_id, artifact_id, reviewer, requester, status ('pending'|'approved'|'changes_requested'), comments, created_at, updated_at }`
 - 권한 검사: submit_review 시 agent_id == reviewer 확인
 
-**events**
-- id TEXT PK, session_id TEXT, type TEXT, agent_id TEXT, payload TEXT (JSON), created_at INTEGER
-- Index: (session_id, created_at)
+**events**: `{ id, session_id, type, agent_id, payload (object), created_at }`
 - 대시보드 히스토리 리플레이용 이벤트 로그
 
 ### Memory (파일 기반, .relay/memory/)
@@ -75,13 +66,16 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 ## external-deps
 
 ### Runtime & Build
-- **Runtime**: Bun (bun:sqlite, Bun.serve, Bun.file, Bun.write)
-- **Version**: @types/bun 1.3.10
+- **Runtime (production)**: Node.js (`node:` 내장 모듈 사용)
+- **Dev tooling**: Bun (`bun run`, `bun test` — Bun API는 프로덕션 src/에 사용 금지)
+- **Version**: @types/bun (테스트 파일의 bun:test 타입 지원용)
 
 ### Key Dependencies (packages/server/package.json)
 - `@modelcontextprotocol/sdk ^1.27.1` — MCP 서버/전송 계층 (McpServer, StdioServerTransport)
-- `hono ^4.12.7` — Hono REST API 프레임워크 (serveStatic, Bun 어댑터)
-- `js-yaml ^4.1.1` — agents.yml / agents.default.yml 파싱
+- `@hono/node-server` — Hono Node.js 어댑터
+- `hono ^4.12.7` — Hono REST API 프레임워크
+- `ws` — WebSocket 서버
+- `js-yaml ^4.1.1` — agents.pool.yml 파싱
 - `zod ^4.3.6` — MCP 도구 입력 파라미터 유효성 검사
 
 ### Security Patterns
@@ -90,5 +84,5 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 - task update: 허용 컬럼 화이트리스트 (ALLOWED_UPDATE_KEYS)
 
 ### Published Package
-- `@custardcream/relay` v0.2.1, bin: `relay → dist/index.js`
+- `@custardcream/relay` v0.13.1, bin: `relay → dist/index.js`
 - npx 실행: `npx -y --package @custardcream/relay relay`

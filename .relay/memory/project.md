@@ -1,13 +1,13 @@
 # relay — Project Memory
 
-> Last updated: 2026-03-13 (PM agent synthesis)
+> Last updated: 2026-03-17 (SQLite → in-memory store migration sync)
 
 ## Overview
 
 relay는 Claude Code 기반의 도메인-범용 멀티에이전트 협업 프레임워크다.
-사용자가 `agents.yml`에 팀을 정의하면(웹 개발, 리서치, 마케팅, 법률 등 무엇이든) relay가 나머지를 처리한다.
+사용자가 `.relay/agents.pool.yml`에 에이전트 풀을 정의하면(웹 개발, 리서치, 마케팅, 법률 등 무엇이든) relay가 나머지를 처리한다.
 
-- **npm 패키지**: `@custardcream/relay` v0.2.1, bin: `relay`
+- **npm 패키지**: `@custardcream/relay` v0.13.1, bin: `relay`
 - **GitHub**: https://github.com/custardcream98/relay
 - **대시보드**: http://localhost:3456
 - **문서 사이트**: https://custardcream98.github.io/relay
@@ -34,11 +34,11 @@ relay (plugin)
 packages/
 ├── server/       @custardcream/relay — MCP + Hono 서버 (유일하게 npm 배포됨)
 │   └── src/
-│       ├── index.ts            진입점: Bun.serve(HTTP+WebSocket, :3456) + MCP stdio 서버 동시 구동
-│       ├── mcp.ts              MCP 서버 인스턴스 및 16개 툴 등록
-│       ├── tools/              messaging, tasks, artifacts, review, memory, sessions
-│       ├── agents/             types.ts + loader.ts (agents.yml 로드 + 병합 + 메모리 주입)
-│       ├── db/                 bun:sqlite (client, schema, queries)
+│       ├── index.ts            진입점: @hono/node-server(HTTP+WebSocket, :3456) + MCP stdio 서버 동시 구동
+│       ├── mcp.ts              MCP 서버 인스턴스
+│       ├── tools/              messaging, tasks, artifacts, review, memory, sessions (register-*.ts 파일로 툴 등록)
+│       ├── agents/             types.ts + loader.ts (agents.pool.yml 로드 + 병합 + 메모리 주입)
+│       ├── store.ts            인메모리 세션 데이터 (messages, tasks, artifacts, reviews, events)
 │       └── dashboard/          hono.ts (REST API) + websocket.ts + events.ts
 ├── shared/       @custardcream/relay-shared — 공유 타입 (AgentId, RelayEvent)
 ├── dashboard/    @custardcream/relay-dashboard — React + Vite 실시간 UI
@@ -55,36 +55,36 @@ hooks/hooks.json  PostToolUse 훅 → /api/hook/tool-use → agent:status:workin
 ```
 
 **메모리 이중 구조:**
-- Session 메모리: SQLite (messages, tasks, artifacts, reviews, events) — 세션 내 임시
+- Session 메모리: 인메모리 store.ts (messages, tasks, artifacts, reviews, events) — 서버 프로세스 내 임시; 재시작 시 초기화
 - Project 메모리: `.relay/memory/` Markdown 파일 — 세션 간 영구 보존; git에 커밋하여 팀 공유
 
 ## Tech Stack
 
 | 영역 | 기술 |
 |---|---|
-| Runtime | Bun (Node.js 대신 사용; `bun:sqlite`, `Bun.serve`, `Bun.file`, `Bun.build` 내장 활용) |
+| Runtime | Node.js (프로덕션); Bun (dev 툴링 전용 — `bun test`, `bun run`, `bun build`) |
 | Language | TypeScript strict mode |
 | Package manager | bun (npm/yarn/pnpm 사용 금지) |
 | MCP | `@modelcontextprotocol/sdk ^1.27.1` (McpServer + StdioServerTransport) |
-| HTTP/API | Hono `^4.12.7` (Bun-native) |
+| HTTP/API | Hono `^4.12.7` + `@hono/node-server` |
 | Validation | Zod `^4.3.6` (MCP 툴 입력 파라미터) |
-| Config | `js-yaml ^4.1.1` (agents.yml 파싱) |
+| Config | `js-yaml ^4.1.1` (agents.pool.yml 파싱) |
 | Frontend | React 19.2.4 + Vite 8.x + Tailwind CSS v4 |
 | Linter/Formatter | Biome `^2.4.6` |
 | Git hooks | Husky `^9.1.7` |
-| DB | `bun:sqlite` (WAL 모드, 싱글턴 패턴) |
+| DB | 인메모리 store.ts (배열/Map 기반, 싱글턴); 테스트 격리는 `_resetStore()` 호출로 처리 |
 
-## MCP Tools (16개)
+## MCP Tools (27개)
 
 | 카테고리 | 툴 |
 |---|---|
 | Messaging | `send_message`, `get_messages` |
-| Tasks | `create_task`, `update_task`, `get_my_tasks`, `claim_task`, `get_team_status`, `get_all_tasks` |
+| Tasks | `create_task`, `update_task`, `claim_task`, `get_all_tasks` |
 | Artifacts | `post_artifact`, `get_artifact` |
 | Review | `request_review`, `submit_review` |
 | Memory | `read_memory`, `write_memory`, `append_memory` |
-| Sessions | `save_session_summary`, `list_sessions`, `get_session_summary` |
-| Agents | `list_agents`, `get_workflow` |
+| Sessions | `start_session`, `save_session_summary`, `list_sessions`, `get_session_summary`, `save_orchestrator_state`, `get_orchestrator_state` |
+| Agents | `list_agents`, `list_pool_agents`, `get_server_info`, `broadcast_thinking` |
 
 ## Hono REST API
 
@@ -112,22 +112,24 @@ hooks/hooks.json  PostToolUse 훅 → /api/hook/tool-use → agent:status:workin
 | `session:snapshot` | 대시보드 초기 하이드레이션 |
 | `memory:updated` | 에이전트가 프로젝트 메모리 기록 |
 
-이벤트 흐름: MCP 툴 호출 → `broadcast()` → SQLite `events` 테이블 저장 + WebSocket 팬아웃
+이벤트 흐름: MCP 툴 호출 → `broadcast()` → 인메모리 events 배열 저장 + WebSocket 팬아웃
 
-## DB Schema (SQLite)
+## In-Memory Store (store.ts)
 
-DB 경로: `process.env.DB_PATH ?? "relay.db"`
+세션 데이터는 `store.ts`의 인메모리 배열/Map에 저장됨. 서버 재시작 시 초기화됨.
 
-- **messages**: id, session_id, from_agent, to_agent (nullable=브로드캐스트), content, thread_id, created_at
-- **tasks**: id, session_id, title, description, assignee, status, priority, created_by, created_at, updated_at
-- **artifacts**: id, session_id, name, type, content, created_by, task_id, created_at
-- **reviews**: id, session_id, artifact_id, reviewer, requester, status, comments, created_at, updated_at
-- **events**: id, session_id, type, agent_id, payload (JSON), created_at
+- **messages**: `{ id, session_id, from_agent, to_agent, content, thread_id, created_at }`
+- **tasks**: `{ id, session_id, title, description, assignee, status, priority, created_by, created_at, updated_at }`
+- **artifacts**: `{ id, session_id, name, type, content, created_by, task_id, created_at }`
+- **reviews**: `{ id, session_id, artifact_id, reviewer, requester, status, comments, created_at, updated_at }`
+- **events**: `{ id, session_id, type, agent_id, payload, created_at }`
+- **orchestrator state**: Map (session_id → JSON 문자열) — 동일 프로세스 내에서만 유지
+
+테스트 격리: `_resetStore()` 호출로 상태 초기화 (각 테스트 beforeEach에서 사용).
 
 환경 변수:
 - `RELAY_SESSION_ID` (default: `"default"`)
 - `RELAY_DIR` (default: `cwd()/.relay`)
-- `DB_PATH` (default: `"relay.db"`)
 
 ## Dashboard (Frontend)
 
@@ -150,19 +152,24 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 
 ## Persona Configuration
 
-- `agents.default.yml`: 프레임워크 기본값 — **절대 수정 금지**, `agents: {}` 빈 상태로 배포
-- `agents.example.yml`: 완전한 웹개발팀 예시 (참고용)
-- `agents.yml`: 사용자 팀 정의 (필수; 최소 1개 에이전트; `extends`, `disabled` 지원)
-- `packages/server/src/agents/loader.ts`: agents.yml 로드 + 병합 + 메모리 주입
+풀 전용(pool-only) 아키텍처 — 세션마다 풀에서 팀을 동적으로 구성:
+
+- `.relay/agents.pool.yml`: 프로젝트별 에이전트 풀 (우선순위 높음)
+- `agents.pool.yml` (프로젝트 루트): 폴백 풀 위치
+- `agents.pool.example.yml`: 12개 이상 페르소나 예시 (웹개발, 리서치, 마케팅 도메인) — 참고용
+- `extends` 패턴: `fe2: { extends: fe }` — 동일 페르소나를 다른 agent_id로 병렬 실행
+- `tags: string[]`: 스마트 팀 추천용 메타데이터
+- `validate_prompt?: string`: 태스크 완료 전 선언적 검증 기준 — 에이전트가 완료 표시 전에 확인
+- `packages/server/src/agents/loader.ts`: agents.pool.yml 로드 + 병합 + 메모리 주입
 
 ## Key Patterns & Conventions
 
 **코딩 컨벤션:**
-- 코멘트: 한국어
+- 코멘트: 영어 (English)
 - MCP 툴명: snake_case
 - 모든 툴에 `agent_id` 파라미터 필수 (호출자 추적)
-- 모든 툴 응답: `{ success: boolean, data?, error? }`
-- Bun 내장 API 우선 (`node:` 접두사 모듈 지양)
+- 모든 툴 응답: `{ success: boolean, ...fields }` — 중첩 `data` 필드 없음; 실패 시 `{ success: false, error: string }`
+- 프로덕션 코드에서 `node:` 내장 모듈 사용 (Bun이 구현함); Bun 전용 API는 테스트/빌드 툴링에서만
 - Claude API 직접 호출 절대 금지
 
 **보안 패턴:**
@@ -175,15 +182,17 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 
 ## Team Structure
 
-현재 릴리즈된 `agents.default.yml` 기준 팀:
+팀 구성은 세션마다 풀에서 동적으로 선택됨 (`agents.pool.yml` 기반). 고정된 기본 팀 파일은 없음.
+
+`agents.pool.example.yml`에 정의된 예시 페르소나:
 - **pm**: 프로젝트 매니저 — 태스크 분배, 진행 모니터링
-- **fe**: 프론트엔드 엔지니어 — React/Vite/Tailwind
-- **be**: 백엔드 엔지니어 — MCP 서버, Hono API, SQLite
+- **fe** / **fe2** / **fe3**: 프론트엔드 엔지니어 — `extends: fe`로 병렬 실행 가능
+- **be**: 백엔드 엔지니어 — MCP 서버, Hono API, 인메모리 store
 - **qa**: QA 엔지니어 — 테스트, CI/CD
 - **deployer**: 배포 담당 — 빌드, 릴리즈, 설치
+- **designer**, **da**, **researcher**, **marketer** 등 도메인별 다양한 페르소나 포함
 
-> **참고**: designer, da 에이전트는 `agents.yml` 커스텀 설정으로 존재하나,
-> 순수 개발 도구인 relay의 기본 팀에서는 불필요하다고 판단됨.
+> 실제 팀은 각 프로젝트의 `.relay/agents.pool.yml`에서 정의하며, `/relay:relay` 실행 시 태스크에 최적화된 팀이 선택됨.
 
 ## Workflow
 
@@ -202,9 +211,9 @@ DB 경로: `process.env.DB_PATH ?? "relay.db"`
 3. `bun run build:release` = dashboard:build + build:server (combined)
 
 **서버 빌드 특징:**
-- `Bun.build()` (target: "bun"), `bun:sqlite` externalize
-- `#!/usr/bin/env bun` shebang + chmod 755
-- 단일 번들 파일 (`dist/index.js`)
+- `esbuild` (target: "node"), 단일 번들 파일 (`dist/index.js`)
+- `#!/usr/bin/env node` shebang + chmod 755
+- 프로덕션 런타임은 Node.js — Bun 전용 API 사용 불가
 
 **릴리즈 워크플로우 (changeset 사용):**
 ```bash
@@ -233,9 +242,10 @@ git push
 ## Test Coverage
 
 **커버리지 있는 영역 (bun:test):**
-- DB 레이어: 5개 테이블 스키마 마이그레이션, 전체 CRUD 쿼리
+- 인메모리 store 레이어: messaging, tasks, artifacts, review 전체 CRUD + 세션 격리
 - MCP 툴 핸들러: messaging, tasks, artifacts, review, memory, sessions
 - Agent loader: extends/disabled/language 설정, 워크플로우 로더
+- 테스트 격리: 각 테스트 `beforeEach`에서 `_resetStore()` 호출
 
 **테스트 없는 영역 (주의):**
 | 영역 | 갭 |
@@ -246,7 +256,7 @@ git push
 | `packages/server/src/mcp.ts` | 툴 등록 와이어링 미테스트 |
 | `packages/server/src/index.ts` | 서버 스타트업 미테스트 |
 | `skills/*.md` | 자동화 테스트 불가 |
-| Integration / E2E | 에이전트 플로우 → MCP → DB → WebSocket 전체 흐름 없음 |
+| Integration / E2E | 에이전트 플로우 → MCP → store → WebSocket 전체 흐름 없음 |
 | 커버리지 측정 | CI에 `--coverage` 없음 |
 
 **권장 개선:**
@@ -258,8 +268,8 @@ git push
 ## Known Gaps & Roadmap
 
 **미완료 기능:**
-- 대시보드 에이전트 thoughts 스트리밍 (UI 측 `agent:thinking` 핸들러 구현 필요)
-- 세션 리플레이 UI
+- ~~대시보드 에이전트 thoughts 스트리밍 (UI 측 `agent:thinking` 핸들러 구현 필요)~~ **완료**
+- ~~세션 리플레이 UI~~ **완료**
 - 공개 문서 사이트 (deploy-docs.yml은 있으나 콘텐츠 미완성)
 
 **데이터 측정 갭:**
@@ -275,9 +285,9 @@ git push
 ## Critical Rules
 
 1. **Claude API 직접 호출 절대 금지** — 항상 Claude Code Agent 툴 사용
-2. **`agents.default.yml` 수정 금지** — 커스터마이징은 `agents.yml`에만
+2. **풀 파일 규칙**: `.relay/agents.pool.yml`은 프로젝트별 풀 파일; `agents.pool.example.yml`은 참조용 — 프로젝트 풀은 프로젝트 루트의 `agents.pool.yml` 또는 `.relay/agents.pool.yml`에 정의
 3. **릴리즈는 changeset 워크플로우만 사용** — `bun run publish:server` 직접 실행 금지
 4. **`.mcp.json`에 `--package <pkg> <bin>` 명시** — bin명 ≠ 패키지명일 때 npx 실패 방지
 5. **`.relay/memory/` 파일을 git에 커밋** — 팀 간 프로젝트 메모리 공유
 6. **패키지 매니저는 bun만** — npm/yarn/pnpm 사용 금지
-7. **Bun 내장 API 우선** — `node:` 접두사 모듈 지양
+7. **프로덕션 코드는 `node:` 내장 모듈 사용** — Bun 전용 API는 테스트/빌드 툴링에서만

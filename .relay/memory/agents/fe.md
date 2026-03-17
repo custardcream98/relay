@@ -58,7 +58,7 @@ src/
 ## conventions
 
 ### Styling system
-- Dark theme only — CSS custom properties defined in `:root` in `index.css`
+- Dark/light theme support — CSS custom properties defined in `:root` (dark) and `[data-theme="light"]` in `index.css`; toggle via `useTheme.ts` hook + `AppHeader` toggle button
 - Token naming: `--color-surface-{root|base|raised|overlay|inset}`, `--color-text-{primary|secondary|tertiary|disabled}`, `--color-border-{subtle|default|strong}`
 - Per-agent accent colors: `--color-accent-{pm|designer|da|fe|be|qa|deployer}` (also in `AGENT_ACCENT_HEX` constant)
 - Status colors: `--color-status-{working|waiting|idle}` + `--color-connection-{live|dead}`

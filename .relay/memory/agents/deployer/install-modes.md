@@ -21,7 +21,7 @@ Used when running from npm:
 
 ## Plugin Config (`.claude-plugin/plugin.json`)
 
-- name: "relay", version: "0.1.0"
+- name: "relay", version: "0.13.1"
 - Metadata only: description, author, repository, license, keywords
 
 ## Post-install

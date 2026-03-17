@@ -19,20 +19,20 @@ All events carry a `timestamp: number` field (milliseconds, `Date.now()`).
 
 ## Timestamp Conventions
 - Outer envelope `timestamp`: milliseconds (`Date.now()`)
-- Message payload `created_at` sub-field: seconds (Unix epoch, matching SQLite `unixepoch()`)
-- DB `insertEvent` converts ms → seconds via `Math.floor(event.timestamp / 1000)`
+- Message payload `created_at` sub-field: seconds (Unix epoch)
+- Store records timestamps in milliseconds; consumers convert as needed
 
 ## Event Flow
 1. MCP tool is called by an agent
 2. Tool handler calls `broadcast(event)` from `websocket.ts`
-3. `broadcast` persists event to `events` table (SQLite) AND fans out to all connected WebSocket clients
+3. `broadcast` fans out to all connected WebSocket clients (events are NOT persisted to a DB; WebSocket-only)
 4. Dashboard receives event and updates UI in realtime
-5. On reconnect / session switch: `GET /api/sessions/:id/events` replays all stored events in chronological order
+5. On reconnect / session switch: `GET /api/sessions/:id/snapshot` returns the current in-memory state
 
 ## Hook-Triggered Events
 - `POST /api/hook/tool-use` (called by Claude Code PostToolUse hook) → broadcasts `agent:status { status: "working" }`
 - Only fires `agent:status`; no other event types are hook-generated
 
 ## AgentId
-- `AgentId = string` (open — custom agents can be added via `agents.yml`)
+- `AgentId = string` (open — custom agents can be added via `agents.pool.yml`)
 - No closed union; any string is valid

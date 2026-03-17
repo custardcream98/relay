@@ -4,12 +4,13 @@
 
 ### MCP Tool handlers (`packages/server/src/tools/`)
 - **messaging**: send_message, get_messages — happy path + isolation checks
-- **tasks**: create, update, get_my_tasks, claim_task (happy + edge cases), get_team_status, get_all_tasks — session isolation verified
+- **tasks**: create, update, claim_task (happy + edge cases), get_all_tasks (with assignee filter) — session isolation verified
 - **review**, **artifacts**, **memory**, **sessions** — test files exist (content not fully read, but present)
 
-### DB layer (`packages/server/src/db/`)
-- Schema migration: all 5 tables verified (messages, tasks, artifacts, reviews, events)
-- Query-level tests for all major tables
+### In-memory store (`packages/server/src/store.ts`)
+- All session data lives in `store.ts` (arrays/Map) — no SQLite/db/ layer in production
+- Test isolation via `_resetStore()` called in `beforeEach`/`afterEach`
+- Store collections verified: messages, tasks, artifacts, reviews, events
 
 ### Agent loader (`packages/server/src/agents/loader.ts`)
 - Empty agents error

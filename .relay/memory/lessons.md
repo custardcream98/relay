@@ -31,7 +31,7 @@ _2026-03-14_
 
 **Accomplishments:**
 - BE: `loadPool()` in loader.ts with fallback chain (`.relay/agents.pool.yml` → `agents.pool.yml` → `loadAgents()`); `list_pool_agents` MCP tool (no systemPrompt); `RELAY_SESSION_AGENTS_FILE` env var in `getAgents()`; `tags?: string[]` on AgentPersona/AgentConfig
-- BE: Multi-server — `config.ts` with `getInstanceId()`/`getDbPath()`, auto port selection (3456–3465), CLI `--port`/`--session` args, `RELAY_DB_PATH`/`RELAY_INSTANCE` env vars
+- BE: Multi-server — `config.ts` with `getInstanceId()`, auto port selection (3456–3465), CLI `--port`/`--session` args, `RELAY_INSTANCE` env var; `RELAY_DB_PATH` was later removed when DB was replaced by in-memory store
 - BE: `skills/relay/SKILL.md` — Team Composition pre-flight step (conversational team selection, session-agents.yml, skip if user confirms agents.yml), multi-instance notes
 - Designer: `agents.pool.example.yml` — 12 agents across web-dev (6), research (3), marketing (3), all with tags
 - FE: `SessionTeamBadge`, `ServerSwitcher`, AppHeader instance label, `team:composed` WS event — all with graceful fallbacks for single-server installs
@@ -310,7 +310,7 @@ _2026-03-15_
 
 **MCP Architect (5 fixes + findings):**
 - agent:thinking excluded from DB persistence
-- get_server_info, list_agents, list_pool_agents, get_workflow: added success: true envelope
+- get_server_info, list_agents, list_pool_agents: added success: true envelope
 - loader.ts: extends two-pass resolution bug fixed
 - Remaining low-priority: session:snapshot not emitted via WS, team:composed missing from RelayEvent, tools array not validated
 
@@ -458,7 +458,7 @@ _2026-03-15_
 11. Event replay ordering non-deterministic: `getEventsBySession` sorts by `created_at` (seconds resolution) with no tiebreaker.
 12. `GET /api/sessions/:id` (summary route) missing input validation guard — sibling routes `/snapshot` and `/events` both validate.
 13. MCP server version hardcoded as `"0.1.0"` in `mcp.ts` — not synced with `package.json`.
-14. `db/queries/events.ts` uses `.ts` extension in import — inconsistent with all other files.
+14. ~~`db/queries/events.ts` uses `.ts` extension in import~~ — no longer applicable; `db/` directory removed (migrated to in-memory store).
 15. `save_session_summary` Zod description says `YYYY-MM-DD-NNN` format — stale, actual is `YYYY-MM-DD-NNN-XXXX`.
 16. `team:composed` RelayEvent type defined in shared/index.ts but never emitted.
 17. `handlePostArtifact` and `handleGetArtifact` declared `async` with no actual async ops.
@@ -485,8 +485,8 @@ _2026-03-15_
 **BE (6 tasks):**
 - agent_id `.regex(/^[a-zA-Z0-9_-]+$/).max(64)` added to all 20 agent_id fields in mcp.ts
 - handleWriteMemory: unlink .tmp file on rename() failure
-- config.ts: path.resolve() applied to RELAY_DIR and RELAY_DB_PATH env vars
-- db/client.ts: PRAGMA foreign_keys = ON after migrations
+- config.ts: path.resolve() applied to RELAY_DIR env var (RELAY_DB_PATH removed — no SQLite)
+- (db/client.ts PRAGMA foreign_keys — no longer applicable; DB replaced by in-memory store)
 - index.ts: WebSocketServer maxPayload: 1MB
 - CLAUDE.md: fixed MCP tool response envelope docs (flat responses, not nested data)
 
@@ -527,7 +527,7 @@ _2026-03-15_
 - hono.ts: /api/sessions/:id/events and /snapshot had no try/catch → unhandled DB exceptions
 - mcp.ts: getAgents() returned {} (not null) on malformed YAML → silently treated as empty team
 - review.ts: handleSubmitReview could return { success: true, review: null } on re-fetch failure
-- db/queries/sessions.ts + websocket.ts: .ts extension in module imports (invalid in Node ESM builds)
+- ~~db/queries/sessions.ts~~ + websocket.ts: .ts extension in module imports (invalid in Node ESM builds) — db/queries/ no longer exists; websocket.ts fix still relevant
 
 **Security (8 fixes in mcp.ts):**
 - title .max(256), description .max(8192) on create_task
@@ -548,7 +548,7 @@ _2026-03-15_
 
 **MCP Architect (1 fix):**
 - review.ts: handleSubmitReview null re-fetch now returns proper error (confirmed above)
-- Confirmed: 24 tools registered, REGISTERED_MCP_TOOLS matches exactly, all RelayEvent types covered
+- Confirmed: 23 tools registered, REGISTERED_MCP_TOOLS matches exactly, all RelayEvent types covered
 - Low-priority: session:snapshot hydrates agents from pool (not session-specific team file)
 
 **DX (8 fixes):**
@@ -561,7 +561,7 @@ _2026-03-15_
 **Lessons:**
 - broadcast_thinking missing from agents.pool.example.yml is a critical DX bug class: the skill injects the tool into agent prompts but pool file didn't list it → calls blocked silently. Always cross-check skill-injected tool names against pool file tool arrays.
 - Session ID collision was a real risk: two server processes starting in the same UTC second would share a session ID and mix data. The 4-char hex suffix + already-present session_id + rowid tiebreaker together make collisions statistically impossible.
-- MCP tool count drifts from persona descriptions as tools are added — mcp-architect persona said "18 tools" but actual count was 24. Consider generating this count dynamically or adding a CI check.
+- MCP tool count drifts from persona descriptions as tools are added — mcp-architect persona said "18 tools" but actual count is now 23 (after removing `get_my_tasks`, `get_team_status`, `get_ready_tasks`, `get_workflow`). Consider generating this count dynamically or adding a CI check.
 - session:snapshot uses pool agents (loadPool()) not the session-specific team for agent metadata — this means the dashboard shows all pool agents, not just the active session team. Low priority but worth noting.
 
 

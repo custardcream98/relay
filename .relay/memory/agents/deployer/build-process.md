@@ -9,17 +9,17 @@
 3. Combined: `bun run build:release` = dashboard:build + build:server
 
 ## Server Build Details (`packages/server/build.ts`)
-- Bundles `src/index.ts` using `Bun.build()` with target: "bun"
-- Externalizes `bun:sqlite` (Bun built-in, cannot be bundled)
-- Adds `#!/usr/bin/env bun` shebang and sets executable bit (chmod 755)
+- Bundles `src/index.ts` using `esbuild` with `platform: "node"`, `target: "node18"` (switched from `Bun.build()`)
+- No SQLite dependency — store is fully in-memory (`store.ts`)
+- Adds `#!/usr/bin/env node` shebang and sets executable bit (chmod 755)
 - Copies dashboard `dist/` → `packages/server/dist/dashboard/`
 - Output: `packages/server/dist/index.js` (single bundled file)
 
 ## Published Package (`@custardcream/relay`)
 - `files`: only `dist/` directory is published
-- `bin`: `relay-server` → `./dist/index.js`
+- `bin`: `relay` → `./dist/index.js`
 - `publishConfig.access`: "public" (npm public package)
-- Version: 0.2.1 (server package; root monorepo is private at 0.1.0)
+- Version: 0.13.1 (server package; root monorepo is private at 0.1.0)
 
 ## Key Scripts (root package.json)
 - `bun run dev` — dev server with hot reload (filter: @custardcream/relay)

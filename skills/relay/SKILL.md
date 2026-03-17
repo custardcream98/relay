@@ -1000,12 +1000,12 @@ Example `.mcp.json` for two instances:
   "mcpServers": {
     "relay": {
       "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "args": ["-y", "--package", "relay-server", "relay"],
       "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
     },
     "relay-b": {
       "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "args": ["-y", "--package", "relay-server", "relay"],
       "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
     }
   }

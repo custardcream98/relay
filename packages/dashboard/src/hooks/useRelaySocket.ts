@@ -1,7 +1,7 @@
 // packages/dashboard/src/hooks/useRelaySocket.ts
 
-import type { RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { RelayEvent } from "relay-shared";
 
 const DEFAULT_WS_URL = `${
   window.location.protocol === "https:" ? "wss:" : "ws:"

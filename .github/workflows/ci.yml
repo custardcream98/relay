@@ -49,4 +49,4 @@ jobs:
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile  # installs all workspace packages
-      - run: bun run --filter @custardcream/relay-dashboard build
+      - run: bun run --filter relay-dashboard build

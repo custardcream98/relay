@@ -1,7 +1,7 @@
 // packages/server/src/agents/types.ts
 // Agent persona type definitions
 
-import type { AgentId } from "@custardcream/relay-shared";
+import type { AgentId } from "relay-shared";
 
 /**
  * Git-hook style task lifecycle hooks. Shell commands are run by the MCP server

@@ -18,7 +18,7 @@ const config: StorybookConfig = {
       ...(typeof config.resolve.alias === "object" && !Array.isArray(config.resolve.alias)
         ? config.resolve.alias
         : {}),
-      "@custardcream/relay-shared": resolve(__dirname, "../../shared/index.ts"),
+      "relay-shared": resolve(__dirname, "../../shared/index.ts"),
     };
     return config;
   },

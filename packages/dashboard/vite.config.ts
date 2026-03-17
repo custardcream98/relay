@@ -9,7 +9,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "@custardcream/relay-shared": resolve(__dirname, "../shared/index.ts"),
+      "relay-shared": resolve(__dirname, "../shared/index.ts"),
     },
   },
   server: {

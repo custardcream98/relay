@@ -1,4 +1,4 @@
-# @custardcream/relay
+# relay-server
 
 ## 0.18.0
 
@@ -116,7 +116,7 @@
 
 - 2a15b7a: ## Refactoring: Remove SQLite db layer, improve dashboard styling
 
-  ### Server (`@custardcream/relay`)
+  ### Server (`relay-server`)
 
   **Remove redundant `db/queries/` pass-through layer**
 
@@ -126,7 +126,7 @@
 
   No changes to any MCP tool API or agent configuration format.
 
-  ### Dashboard (`@custardcream/relay-dashboard`, internal)
+  ### Dashboard (`relay-dashboard`, internal)
 
   **Introduce `cn()` utility (clsx + tailwind-merge)**
 
@@ -148,7 +148,7 @@
 
   Comprehensive clean-code pass across the entire codebase. No breaking changes to MCP tool APIs or agent configuration format.
 
-  ### Server (`@custardcream/relay`)
+  ### Server (`relay-server`)
 
   **Architecture**
 
@@ -184,7 +184,7 @@
   - New: `get_messages` self-exclusion filter, `get_all_tasks` status filter, `update_task` no-valid-fields guard
   - Strengthened: weak assertions, env isolation, schema reset coverage
 
-  ### Dashboard (`@custardcream/relay`)
+  ### Dashboard (`relay-dashboard`)
 
   **React Best Practices**
 
@@ -213,7 +213,7 @@
   - `rules-of-hooks` violation in `ActivityFeed.MessageDirectEntry` fixed
   - `rgba()` magic strings replaced with CSS custom properties throughout
 
-  ### Shared (`@custardcream/relay-shared`)
+  ### Shared (`relay-shared`)
 
   - `TaskStatus` and `TaskPriority` exported as proper union types (previously `string`)
 
@@ -453,11 +453,11 @@
   **Breaking change:** MCP registration command has changed. Re-register with:
 
   ```
-  claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay
+  claude mcp add --scope user relay -- npx -y --package relay-server relay
   ```
 
   - Replace Bun runtime with Node.js for production (`better-sqlite3`, `ws`, `@hono/node-server`)
-  - Rename bin `relay-server` → `relay` — enables simpler `npx -y --package @custardcream/relay relay`
+  - Rename bin `relay-server` → `relay` — enables simpler `npx -y --package relay-server relay`
   - Bun remains as dev tooling only (test runner, build)
 
 ## 0.3.6

@@ -1,8 +1,8 @@
 // packages/server/src/index.ts
 
 import { createServer } from "node:net";
-import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 import { serve } from "@hono/node-server";
+import type { AgentId, RelayEvent } from "relay-shared";
 import { WebSocketServer } from "ws";
 import { loadPool } from "./agents/loader";
 import { getSessionId, setPort } from "./config";

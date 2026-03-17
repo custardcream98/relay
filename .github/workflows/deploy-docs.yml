@@ -41,7 +41,7 @@ jobs:
         uses: actions/configure-pages@v4
 
       - name: Build docs
-        run: bun run --filter @custardcream/relay-docs build
+        run: bun run --filter relay-docs build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

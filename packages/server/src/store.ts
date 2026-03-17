@@ -4,7 +4,7 @@
 
 // --- Types ---
 
-import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
+import type { TaskPriority, TaskStatus } from "relay-shared";
 
 interface MessageRow {
   id: string;

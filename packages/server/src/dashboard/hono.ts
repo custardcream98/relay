@@ -3,10 +3,10 @@
 import { access, readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { markAsAgentId } from "@custardcream/relay-shared";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { markAsAgentId } from "relay-shared";
 import { getPool } from "../agents/cache";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
 import {

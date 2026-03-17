@@ -9,7 +9,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "paths": {
-      "@custardcream/relay-shared": ["./packages/shared/index.ts"]
+      "relay-shared": ["./packages/shared/index.ts"]
     }
   },
   "include": ["packages/server/src/**/*", "packages/shared/**/*"]

@@ -1,5 +1,5 @@
 // packages/server/build.ts
-// Build script for @custardcream/relay npm package
+// Build script for relay server
 // Usage: bun run build.ts (called from root build:server script)
 
 import { chmod, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -29,7 +29,9 @@ await esbuild.build({
   format: "esm",
   minify: false,
   sourcemap: false,
-  packages: "external", // do not bundle node_modules — npx installs them
+  alias: {
+    "relay-shared": join(serverRoot, "../shared/index.ts"),
+  },
 });
 
 // 3. Add shebang + make executable

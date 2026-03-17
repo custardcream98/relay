@@ -12,8 +12,6 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@custardcream/relay"><img src="https://img.shields.io/npm/v/%40custardcream%2Frelay?style=flat-square&color=C17F24&label=npm" alt="npm version" /></a>
-  &nbsp;
   <img src="https://img.shields.io/badge/license-MIT-C17F24?style=flat-square" alt="MIT license" />
   &nbsp;
   <img src="https://img.shields.io/badge/Claude%20Code-Plugin-E8A83A?style=flat-square&logo=anthropic&logoColor=white" alt="Claude Code Plugin" />

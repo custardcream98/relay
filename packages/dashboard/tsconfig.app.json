@@ -25,7 +25,7 @@
     "noUncheckedSideEffectImports": true,
     "paths": {
       "@shared/*": ["../shared/*"],
-      "@custardcream/relay-shared": ["../shared/index.ts"]
+      "relay-shared": ["../shared/index.ts"]
     }
   },
   "include": ["src"]

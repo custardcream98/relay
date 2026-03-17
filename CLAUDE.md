@@ -80,12 +80,12 @@ Example `.mcp.json` for two instances:
   "mcpServers": {
     "relay": {
       "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "args": ["-y", "--package", "relay-server", "relay"],
       "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
     },
     "relay-b": {
       "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay", "relay"],
+      "args": ["-y", "--package", "relay-server", "relay"],
       "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
     }
   }
@@ -96,7 +96,7 @@ Example `.mcp.json` for two instances:
 
 ```
 packages/
-├── server/               # @custardcream/relay — MCP + Hono server
+├── server/               # relay-server — MCP + Hono server
 │   └── src/
 │       ├── index.ts      # entry point: starts MCP + Hono servers together
 │       ├── mcp.ts        # MCP server instance and tool registration
@@ -130,10 +130,10 @@ packages/
 │           ├── websocket.ts   # WebSocket broadcaster
 │           ├── events.ts      # RelayEvent union type (server-side)
 │           └── utils.ts       # isLocalhostOrigin helper
-├── shared/               # @custardcream/relay-shared — shared types
+├── shared/               # relay-shared — shared types
 │   └── index.ts          # AgentId, RelayEvent discriminated union
-├── dashboard/            # @custardcream/relay-dashboard — React + Vite realtime UI
-└── docs/                 # @custardcream/relay-docs — Astro + Starlight docs site
+├── dashboard/            # relay-dashboard — React + Vite realtime UI
+└── docs/                 # relay-docs — Astro + Starlight docs site
 
 skills/                   # Claude Code Plugin skill files
 ├── relay/SKILL.md        # /relay:relay - full workflow (includes auto-pool generation)
@@ -267,5 +267,5 @@ bun run version-packages
 - Commit `.relay/memory/` files to git so the team shares memory
 - Define your pool in `.relay/agents.pool.yml` (use `agents.pool.example.yml` as reference)
 - The bin name in `.mcp.json` must be specified explicitly with `--package`:
-  - Correct: `["npx", "-y", "--package", "@custardcream/relay", "relay"]`
+  - Correct: `["npx", "-y", "--package", "relay-server", "relay"]`
   - This ensures npx finds the `relay` binary even when the package name differs from the bin name

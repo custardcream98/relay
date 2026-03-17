@@ -1,4 +1,4 @@
-import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
+import type { TaskPriority, TaskStatus } from "relay-shared";
 import type { ResolvedAgentHooks } from "../agents/types";
 import {
   claimTask,

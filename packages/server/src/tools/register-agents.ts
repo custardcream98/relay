@@ -2,8 +2,8 @@
 // Registers list_agents, list_pool_agents, get_server_info, and broadcast_thinking
 // MCP tools on the server.
 
-import { markAsAgentId } from "@custardcream/relay-shared";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { markAsAgentId } from "relay-shared";
 import { z } from "zod";
 import { getAgents, getPool } from "../agents/cache.js";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config.js";

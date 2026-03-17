@@ -1,4 +1,4 @@
-# @custardcream/relay-shared
+# relay-shared
 
 ## 0.2.0
 
@@ -8,7 +8,7 @@
 
   Comprehensive clean-code pass across the entire codebase. No breaking changes to MCP tool APIs or agent configuration format.
 
-  ### Server (`@custardcream/relay`)
+  ### Server (`relay-server`)
 
   **Architecture**
 
@@ -44,7 +44,7 @@
   - New: `get_messages` self-exclusion filter, `get_all_tasks` status filter, `update_task` no-valid-fields guard
   - Strengthened: weak assertions, env isolation, schema reset coverage
 
-  ### Dashboard (`@custardcream/relay`)
+  ### Dashboard (`relay-dashboard`)
 
   **React Best Practices**
 
@@ -73,7 +73,7 @@
   - `rules-of-hooks` violation in `ActivityFeed.MessageDirectEntry` fixed
   - `rgba()` magic strings replaced with CSS custom properties throughout
 
-  ### Shared (`@custardcream/relay-shared`)
+  ### Shared (`relay-shared`)
 
   - `TaskStatus` and `TaskPriority` exported as proper union types (previously `string`)
 

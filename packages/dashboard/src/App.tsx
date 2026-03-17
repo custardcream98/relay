@@ -2,8 +2,8 @@
 // Data layer only — manages WebSocket, reducer state, and server-switching.
 // Wraps AppLayout in the 4 focused context providers; no data props are passed down.
 
-import type { AgentId, RelayEvent } from "@custardcream/relay-shared";
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import type { AgentId, RelayEvent } from "relay-shared";
 import { AppLayout } from "./components/AppLayout";
 import { AgentsContext } from "./context/AgentsContext";
 import { ConnectionContext } from "./context/ConnectionContext";

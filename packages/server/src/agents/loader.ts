@@ -2,8 +2,8 @@
 // Loads agent personas from an explicit AgentsFile override or from the pool file.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { markAsAgentId } from "@custardcream/relay-shared";
 import yaml from "js-yaml";
+import { markAsAgentId } from "relay-shared";
 import { getProjectRoot, getRelayDir } from "../config";
 import { isValidId } from "../utils/validate";
 import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from "./types";

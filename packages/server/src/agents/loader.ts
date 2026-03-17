@@ -339,29 +339,3 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
   );
 }
 
-/**
- * Inject memory into an agent's system prompt.
- * Prepends project memory (project.md) and the agent's personal memory (agents/{id}.md).
- * If persona.language is set, appends a language instruction at the end.
- */
-export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: string): string {
-  const memoryPath = join(relayDir, "memory", "agents", `${persona.id}.md`);
-  const projectPath = join(relayDir, "memory", "project.md");
-
-  const agentMemory = existsSync(memoryPath) ? readFileSync(memoryPath, "utf-8") : null;
-  const projectMemory = existsSync(projectPath) ? readFileSync(projectPath, "utf-8") : null;
-
-  // Language instruction — appended last to give it the highest priority
-  const languageInstruction = persona.language
-    ? `\n\n## Language\n\nYou MUST respond in ${persona.language} at all times.`
-    : "";
-
-  const parts: string[] = [
-    projectMemory ? `## Project Memory\n\n${projectMemory}` : null,
-    agentMemory ? `## My Memory (learned from previous sessions)\n\n${agentMemory}` : null,
-  ].filter((s): s is string => s !== null);
-
-  if (parts.length === 0) return `${persona.systemPrompt}${languageInstruction}`;
-
-  return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}${languageInstruction}`;
-}

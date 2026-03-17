@@ -39,6 +39,65 @@ describe("GET /api/session", () => {
     expect(body.messages).toHaveLength(0);
     expect(body.artifacts).toHaveLength(0);
   });
+
+  test("task payloads include depends_on, parent_task_id, depth, derived_reason, created_at, updated_at", async () => {
+    insertTask({
+      id: "dep-task",
+      session_id: "test-session",
+      title: "Dependency Task",
+      description: null,
+      status: "done",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "be",
+      depends_on: [],
+      depth: 0,
+    });
+    insertTask({
+      id: "child-task",
+      session_id: "test-session",
+      title: "Child Task",
+      description: "A derived task",
+      status: "todo",
+      priority: "high",
+      created_by: "pm",
+      assignee: "fe",
+      depends_on: ["dep-task"],
+      parent_task_id: "dep-task",
+      depth: 1,
+      derived_reason: "Needs FE work",
+    });
+    const res = await app.request("/api/session");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      tasks: Array<{
+        id: string;
+        depends_on: string[];
+        parent_task_id: string | null;
+        depth: number;
+        derived_reason: string | null;
+        created_at: number;
+        updated_at: number;
+      }>;
+    };
+    expect(body.tasks).toHaveLength(2);
+
+    const root = body.tasks.find((t) => t.id === "dep-task");
+    expect(root?.depends_on).toEqual([]);
+    expect(root?.parent_task_id).toBeNull();
+    expect(root?.depth).toBe(0);
+    expect(root?.derived_reason).toBeNull();
+    expect(typeof root?.created_at).toBe("number");
+    expect(typeof root?.updated_at).toBe("number");
+
+    const child = body.tasks.find((t) => t.id === "child-task");
+    expect(child?.depends_on).toEqual(["dep-task"]);
+    expect(child?.parent_task_id).toBe("dep-task");
+    expect(child?.depth).toBe(1);
+    expect(child?.derived_reason).toBe("Needs FE work");
+    expect(typeof child?.created_at).toBe("number");
+    expect(typeof child?.updated_at).toBe("number");
+  });
 });
 
 describe("POST /api/hook/tool-use", () => {

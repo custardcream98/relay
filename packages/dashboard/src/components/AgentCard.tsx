@@ -19,6 +19,8 @@ interface Props {
   // Unix ms timestamp of most recent task/message activity — null if no activity yet
   lastActivityTs: number | null;
   inProgressCount: number;
+  taskDoneCount: number;
+  taskTotalCount: number;
   isSelected: boolean;
   onSelectAgent: (id: AgentId | null) => void;
   // Unix ms timestamp when this agent joined — null if present from session start
@@ -43,6 +45,8 @@ export const AgentCard = memo(function AgentCard({
   lastMessage,
   lastActivityTs,
   inProgressCount,
+  taskDoneCount,
+  taskTotalCount,
   isSelected,
   onSelectAgent,
   joinedAt,
@@ -243,6 +247,24 @@ export const AgentCard = memo(function AgentCard({
                 ? "Session complete"
                 : "No activity yet"}
           </p>
+        )}
+
+        {/* Task completion mini-bar */}
+        {taskTotalCount > 0 && (
+          <div
+            className="mt-2 h-[3px] rounded-full overflow-hidden"
+            style={{ background: `${accentColor}15` }}
+            title={`${taskDoneCount} of ${taskTotalCount} tasks done`}
+          >
+            <div
+              className="h-full rounded-full"
+              style={{
+                width: `${(taskDoneCount / taskTotalCount) * 100}%`,
+                background: accentColor,
+                transition: "width 300ms ease",
+              }}
+            />
+          </div>
         )}
       </div>
     </div>

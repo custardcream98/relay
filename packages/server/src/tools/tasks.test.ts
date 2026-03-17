@@ -815,7 +815,7 @@ describe("tasks tool", () => {
       // Verify depends_on is actually persisted in the store
       const stored = getTaskById(taskId, "sess-1");
       expect(stored).not.toBeNull();
-      expect(stored!.depends_on).toEqual([depId]);
+      expect(stored?.depends_on).toEqual([depId]);
     });
 
     test("idempotency key bypasses depends_on validation on re-spawn", () => {

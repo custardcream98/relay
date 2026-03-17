@@ -1,6 +1,6 @@
 // packages/dashboard/src/components/TaskDetailModal.tsx
 // Task detail popover — shows full title, description, and metadata
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { getAgentAccent } from "../constants/agents";
 import type { Task } from "../types";
 import { MarkdownContent } from "./MarkdownContent";
@@ -33,6 +33,14 @@ const STATUS_BADGE_COLOR: Record<string, { bg: string; text: string; border: str
   },
 };
 
+// Priority top border color
+const PRIORITY_BORDER_COLOR: Record<string, string> = {
+  critical: "var(--color-priority-critical)",
+  high: "var(--color-priority-high)",
+  medium: "var(--color-priority-medium)",
+  low: "transparent",
+};
+
 // Priority label color for the detail modal badge
 const PRIORITY_BADGE_COLOR: Record<string, { bg: string; text: string; border: string }> = {
   critical: {
@@ -61,15 +69,35 @@ export function TaskDetailModal({
   task,
   onClose,
   anchorRect,
+  allTasks = [],
+  onSelectTask,
 }: {
   task: Task;
   onClose: () => void;
   anchorRect: DOMRect | null;
+  allTasks?: Task[];
+  onSelectTask?: (task: Task) => void;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const accentHex = task.assignee ? getAgentAccent(task.assignee) : null;
   const priorityColors = PRIORITY_BADGE_COLOR[task.priority] ?? PRIORITY_BADGE_COLOR.low;
   const statusColors = STATUS_BADGE_COLOR[task.status] ?? STATUS_BADGE_COLOR.todo;
+  const priorityBorderColor = PRIORITY_BORDER_COLOR[task.priority] ?? "transparent";
+
+  // Compute dependency info
+  const dependsOnTasks = useMemo(() => {
+    if (!task.depends_on || task.depends_on.length === 0 || allTasks.length === 0) return [];
+    const taskMap = new Map(allTasks.map((t) => [t.id, t]));
+    return task.depends_on.map((id) => taskMap.get(id)).filter((t): t is Task => t !== undefined);
+  }, [task.depends_on, allTasks]);
+
+  const derivedTasks = useMemo(() => {
+    if (allTasks.length === 0) return [];
+    return allTasks.filter((t) => t.parent_task_id === task.id);
+  }, [task.id, allTasks]);
+
+  // Detect mobile viewport
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
 
   // Close on Escape or outside click; trap focus within the modal
   useEffect(() => {
@@ -121,34 +149,48 @@ export function TaskDetailModal({
     };
   }, [onClose]);
 
-  // Position the popover below the anchor card if possible; otherwise above
+  // Position the popover — mobile: bottom sheet; desktop: anchored popover
   const popoverStyle: React.CSSProperties = {
     position: "fixed",
-    width: 320,
     background: "var(--color-surface-raised)",
     border: "1px solid var(--color-border-default)",
-    borderRadius: 8,
     boxShadow: "var(--shadow-modal)",
     zIndex: 200,
     padding: 16,
+    borderTop: `3px solid ${priorityBorderColor}`,
+    animation: "task-modal-open 150ms ease-out both",
   };
 
-  if (anchorRect) {
-    const spaceBelow = window.innerHeight - anchorRect.bottom;
-    const popoverHeight = 300; // estimated
-    if (spaceBelow > popoverHeight || spaceBelow > window.innerHeight / 2) {
-      popoverStyle.top = anchorRect.bottom + 6;
-    } else {
-      popoverStyle.bottom = window.innerHeight - anchorRect.top + 6;
-    }
-    // Horizontal: align to left of anchor, clamped to viewport
-    const left = Math.min(anchorRect.left, window.innerWidth - 328);
-    popoverStyle.left = Math.max(8, left);
+  if (isMobile) {
+    // Bottom sheet on mobile
+    popoverStyle.bottom = 0;
+    popoverStyle.left = 0;
+    popoverStyle.right = 0;
+    popoverStyle.width = "100%";
+    popoverStyle.maxHeight = "70vh";
+    popoverStyle.borderRadius = "12px 12px 0 0";
+    popoverStyle.overflowY = "auto";
   } else {
-    // Fallback: centered
-    popoverStyle.top = "50%";
-    popoverStyle.left = "50%";
-    popoverStyle.transform = "translate(-50%, -50%)";
+    popoverStyle.width = 340;
+    popoverStyle.maxHeight = "min(420px, 70vh)";
+    popoverStyle.overflowY = "auto";
+    popoverStyle.borderRadius = 8;
+
+    if (anchorRect) {
+      const spaceBelow = window.innerHeight - anchorRect.bottom;
+      const popoverHeight = 360;
+      if (spaceBelow > popoverHeight || spaceBelow > window.innerHeight / 2) {
+        popoverStyle.top = anchorRect.bottom + 6;
+      } else {
+        popoverStyle.bottom = window.innerHeight - anchorRect.top + 6;
+      }
+      const left = Math.min(anchorRect.left, window.innerWidth - 348);
+      popoverStyle.left = Math.max(8, left);
+    } else {
+      popoverStyle.top = "50%";
+      popoverStyle.left = "50%";
+      popoverStyle.transform = "translate(-50%, -50%)";
+    }
   }
 
   return (
@@ -160,7 +202,7 @@ export function TaskDetailModal({
       aria-label={task.title}
     >
       {/* Header row — title + close */}
-      <div className="flex items-start gap-2 mb-[10px]">
+      <div className="flex items-start gap-2 mb-1">
         <span className="flex-1 text-[13px] font-medium leading-[1.45] text-[var(--color-text-primary)]">
           {task.title}
         </span>
@@ -172,6 +214,13 @@ export function TaskDetailModal({
         >
           ×
         </button>
+      </div>
+
+      {/* Task ID — muted reference */}
+      <div className="mb-2">
+        <span className="text-[9px] font-mono text-[var(--color-text-disabled)] select-all">
+          {task.id}
+        </span>
       </div>
 
       {/* Meta chips row */}
@@ -217,16 +266,88 @@ export function TaskDetailModal({
 
       {/* Full description — rendered as markdown */}
       {task.description ? (
-        <div className="bg-[var(--color-surface-inset)] border border-[var(--color-border-subtle)] rounded-[6px] p-[10px_12px] max-h-[240px] overflow-y-auto">
+        <div className="bg-[var(--color-surface-inset)] border border-[var(--color-border-subtle)] rounded-[6px] p-[10px_12px] max-h-[200px] overflow-y-auto">
           <MarkdownContent text={task.description} />
         </div>
       ) : (
         <p className="text-xs text-[var(--color-text-disabled)] italic">No description provided.</p>
       )}
 
+      {/* Depends on section */}
+      {dependsOnTasks.length > 0 && (
+        <div className="mt-3">
+          <span className="text-[10px] font-medium text-[var(--color-text-disabled)] uppercase tracking-[0.06em] mb-1.5 block">
+            Depends on
+          </span>
+          <div className="flex flex-col gap-1">
+            {dependsOnTasks.map((dep) => {
+              const depStatusColors = STATUS_BADGE_COLOR[dep.status] ?? STATUS_BADGE_COLOR.todo;
+              return (
+                <button
+                  key={dep.id}
+                  type="button"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] text-left cursor-pointer hover:border-[var(--color-border-default)] transition-[border-color] duration-100"
+                  onClick={() => onSelectTask?.(dep)}
+                >
+                  <span
+                    className="text-[9px] font-mono font-medium px-[5px] py-[1px] rounded-full uppercase tracking-[0.05em] shrink-0"
+                    style={{
+                      background: depStatusColors.bg,
+                      color: depStatusColors.text,
+                      border: `1px solid ${depStatusColors.border}`,
+                    }}
+                  >
+                    {dep.status.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)] overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                    {dep.title}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Derived tasks section */}
+      {derivedTasks.length > 0 && (
+        <div className="mt-3">
+          <span className="text-[10px] font-medium text-[var(--color-text-disabled)] uppercase tracking-[0.06em] mb-1.5 block">
+            Derived tasks
+          </span>
+          <div className="flex flex-col gap-1">
+            {derivedTasks.map((child) => {
+              const childStatusColors = STATUS_BADGE_COLOR[child.status] ?? STATUS_BADGE_COLOR.todo;
+              return (
+                <button
+                  key={child.id}
+                  type="button"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-[var(--color-surface-overlay)] border border-[var(--color-border-subtle)] text-left cursor-pointer hover:border-[var(--color-border-default)] transition-[border-color] duration-100"
+                  onClick={() => onSelectTask?.(child)}
+                >
+                  <span
+                    className="text-[9px] font-mono font-medium px-[5px] py-[1px] rounded-full uppercase tracking-[0.05em] shrink-0"
+                    style={{
+                      background: childStatusColors.bg,
+                      color: childStatusColors.text,
+                      border: `1px solid ${childStatusColors.border}`,
+                    }}
+                  >
+                    {child.status.replace(/_/g, " ")}
+                  </span>
+                  <span className="text-[11px] text-[var(--color-text-secondary)] overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                    {child.title}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Timestamps */}
       {(task.created_at || task.updated_at) && (
-        <div className="mt-[10px] flex gap-3 flex-wrap">
+        <div className="mt-3 flex gap-3 flex-wrap">
           {task.created_at && (
             <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
               created {new Date(task.created_at * 1000).toLocaleString()}

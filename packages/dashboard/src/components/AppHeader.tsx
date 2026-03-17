@@ -9,6 +9,7 @@ import { useSession } from "../context/SessionContext";
 import { useTheme } from "../hooks/useTheme";
 import { cn } from "../lib/cn";
 import { ServerSwitcher } from "./ServerSwitcher";
+import { SessionProgress } from "./SessionProgress";
 import { SessionSelector } from "./SessionSelector";
 import { SessionTeamBadge } from "./SessionTeamBadge";
 
@@ -69,22 +70,25 @@ export function AppHeader() {
         </span>
       </div>
 
-      {/* Center: Focus Mode badge */}
-      {selectedAgent && (
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-glow)] border border-[var(--color-accent)]">
-          <span className="text-[11px] font-medium font-mono text-[var(--color-accent)] tracking-[0.02em]">
-            focus: {selectedAgent}
-          </span>
-          <button
-            type="button"
-            onClick={() => onSelectAgent(null)}
-            className="text-sm text-[var(--color-text-tertiary)] bg-none border-none cursor-pointer px-[2px] leading-none"
-            aria-label="Exit Focus Mode"
-          >
-            ×
-          </button>
-        </div>
-      )}
+      {/* Center: session progress + focus mode */}
+      <div className="flex items-center gap-3">
+        <SessionProgress />
+        {selectedAgent && (
+          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--color-accent-glow)] border border-[var(--color-accent)]">
+            <span className="text-[11px] font-medium font-mono text-[var(--color-accent)] tracking-[0.02em]">
+              focus: {selectedAgent}
+            </span>
+            <button
+              type="button"
+              onClick={() => onSelectAgent(null)}
+              className="text-sm text-[var(--color-text-tertiary)] bg-none border-none cursor-pointer px-[2px] leading-none"
+              aria-label="Exit Focus Mode"
+            >
+              ×
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Right: session selector + session team badge + agent count + theme toggle + connection status */}
       <div className="flex items-center gap-4">

@@ -12,7 +12,7 @@ export function taskToPayload(task: TaskRow) {
     status: task.status,
     priority: task.priority,
     description: task.description,
-    depends_on: task.depends_on,
+    depends_on: task.depends_on ?? [],
     parent_task_id: task.parent_task_id ?? null,
     depth: task.depth ?? 0,
     derived_reason: task.derived_reason ?? null,

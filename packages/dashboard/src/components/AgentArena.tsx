@@ -32,6 +32,8 @@ export function AgentArena({
   // Pre-compute per-agent task counts and last activity — avoids repeated iteration on each render
   const agentData = useMemo(() => {
     const inProgressByAgent: Record<string, number> = {};
+    const taskDoneByAgent: Record<string, number> = {};
+    const taskTotalByAgent: Record<string, number> = {};
     const lastActivityRaw: Record<string, { label: string; ts: number }> = {};
 
     const updateActivity = (agentId: string, label: string, ts: number) => {
@@ -42,6 +44,10 @@ export function AgentArena({
 
     for (const t of tasks) {
       if (t.assignee) {
+        taskTotalByAgent[t.assignee] = (taskTotalByAgent[t.assignee] ?? 0) + 1;
+        if (t.status === "done") {
+          taskDoneByAgent[t.assignee] = (taskDoneByAgent[t.assignee] ?? 0) + 1;
+        }
         if (t.status === "in_progress" || t.status === "in_review") {
           inProgressByAgent[t.assignee] = (inProgressByAgent[t.assignee] ?? 0) + 1;
         }
@@ -63,7 +69,13 @@ export function AgentArena({
       lastActivityTsByAgent[agentId] = ts;
     }
 
-    return { inProgressByAgent, lastActivityByAgent, lastActivityTsByAgent };
+    return {
+      inProgressByAgent,
+      taskDoneByAgent,
+      taskTotalByAgent,
+      lastActivityByAgent,
+      lastActivityTsByAgent,
+    };
   }, [tasks, messages]);
 
   // Lookup joinedAt from sessionTeam for newly-joined agent highlight
@@ -139,6 +151,8 @@ export function AgentArena({
             lastMessage={agentData.lastActivityByAgent[agent.id] ?? null}
             lastActivityTs={agentData.lastActivityTsByAgent[agent.id] ?? null}
             inProgressCount={agentData.inProgressByAgent[agent.id] ?? 0}
+            taskDoneCount={agentData.taskDoneByAgent[agent.id] ?? 0}
+            taskTotalCount={agentData.taskTotalByAgent[agent.id] ?? 0}
             isSelected={selectedAgent === agent.id}
             onSelectAgent={onSelectAgent}
             joinedAt={joinedAtByAgent[agent.id] ?? null}

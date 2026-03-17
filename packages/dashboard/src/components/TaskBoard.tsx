@@ -4,6 +4,7 @@ import { getAgentAccent } from "../constants/agents";
 import { cn } from "../lib/cn";
 import type { Task } from "../types";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { TaskProgressBar } from "./TaskProgressBar";
 
 const COLUMNS = ["todo", "in_progress", "in_review", "done"] as const;
 const COLUMN_LABELS: Record<string, string> = {
@@ -35,9 +36,18 @@ interface TaskCardProps {
   task: Task;
   isSelected: boolean;
   onClick: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
+  blockedByCount: number;
+  blocksCount: number;
 }
 
-const TaskCard = memo(function TaskCard({ task, isSelected, onClick }: TaskCardProps) {
+const TaskCard = memo(function TaskCard({
+  task,
+  isSelected,
+  onClick,
+  blockedByCount,
+  blocksCount,
+}: TaskCardProps) {
+  const isBlocked = blockedByCount > 0;
   const isDone = task.status === "done";
   const priorityBarColor = PRIORITY_BAR_COLOR[task.priority] ?? "transparent";
   const accentHex = task.assignee ? getAgentAccent(task.assignee) : null;
@@ -50,6 +60,7 @@ const TaskCard = memo(function TaskCard({ task, isSelected, onClick }: TaskCardP
         "task-card relative overflow-hidden w-full text-left shrink-0 rounded-[6px] cursor-pointer transition-[background,border-color,box-shadow] duration-100",
         "pl-[14px] pr-[10px] py-2 font-[inherit] text-inherit",
         isDone && "opacity-[0.45]",
+        isBlocked && !isDone && "opacity-60 border-dashed",
         isSelected
           ? "bg-[var(--color-surface-overlay)] border border-[var(--color-border-default)] shadow-[var(--shadow-card-hover)]"
           : "bg-[var(--color-surface-raised)] border border-[var(--color-border-subtle)] shadow-[var(--shadow-card)]"
@@ -113,6 +124,22 @@ const TaskCard = memo(function TaskCard({ task, isSelected, onClick }: TaskCardP
           )}
         </div>
       )}
+
+      {/* Dependency indicators */}
+      {(blockedByCount > 0 || blocksCount > 0) && (
+        <div className="mt-1.5 flex flex-col gap-0.5">
+          {blockedByCount > 0 && (
+            <span className="text-[10px] font-mono font-medium px-1.5 py-[1px] rounded-[3px] text-[var(--color-end-waiting)] bg-[var(--color-status-in-review-bg)]">
+              Blocked by {blockedByCount}
+            </span>
+          )}
+          {blocksCount > 0 && (
+            <span className="text-[10px] font-mono text-[var(--color-text-disabled)]">
+              Blocks {blocksCount} {blocksCount === 1 ? "task" : "tasks"}
+            </span>
+          )}
+        </div>
+      )}
     </button>
   );
 });
@@ -124,6 +151,8 @@ interface TaskColumnProps {
   tasks: Task[];
   onCardClick: (task: Task, e: React.MouseEvent<HTMLButtonElement>) => void;
   selectedTaskId: string | null;
+  blockedByMap: Record<string, number>;
+  blocksMap: Record<string, number>;
 }
 
 const TaskColumn = memo(function TaskColumn({
@@ -131,6 +160,8 @@ const TaskColumn = memo(function TaskColumn({
   tasks,
   onCardClick,
   selectedTaskId,
+  blockedByMap,
+  blocksMap,
 }: TaskColumnProps) {
   const accentColor = COLUMN_ACCENT[col];
 
@@ -185,6 +216,8 @@ const TaskColumn = memo(function TaskColumn({
               task={task}
               isSelected={selectedTaskId === task.id}
               onClick={onCardClick}
+              blockedByCount={blockedByMap[task.id] ?? 0}
+              blocksCount={blocksMap[task.id] ?? 0}
             />
           ))
         )}
@@ -210,6 +243,36 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
     return grouped;
   }, [tasks]);
 
+  // Dependency lookup maps — memoized for performance
+  const { blockedByMap, blocksMap } = useMemo(() => {
+    const taskStatusById: Record<string, string> = {};
+    for (const t of tasks) {
+      taskStatusById[t.id] = t.status;
+    }
+
+    const blocked: Record<string, number> = {};
+    const blocks: Record<string, number> = {};
+
+    for (const t of tasks) {
+      if (t.depends_on && t.depends_on.length > 0) {
+        // Count how many of this task's dependencies are NOT done
+        const unresolved = t.depends_on.filter(
+          (depId) => taskStatusById[depId] !== undefined && taskStatusById[depId] !== "done"
+        ).length;
+        if (unresolved > 0) blocked[t.id] = unresolved;
+
+        // Reverse: each dependency task blocks this task
+        for (const depId of t.depends_on) {
+          if (taskStatusById[depId] !== undefined && taskStatusById[depId] !== "done") {
+            blocks[depId] = (blocks[depId] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    return { blockedByMap: blocked, blocksMap: blocks };
+  }, [tasks]);
+
   // Task detail popover state
   const [detailTask, setDetailTask] = useState<Task | null>(null);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
@@ -227,6 +290,7 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
 
   return (
     <>
+      <TaskProgressBar tasks={tasks} />
       <div className="flex h-full">
         {COLUMNS.map((col) => (
           <TaskColumn
@@ -235,13 +299,24 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
             tasks={tasksByStatus[col] ?? []}
             onCardClick={handleCardClick}
             selectedTaskId={detailTask?.id ?? null}
+            blockedByMap={blockedByMap}
+            blocksMap={blocksMap}
           />
         ))}
       </div>
 
       {/* Task detail popover — rendered outside the board to avoid overflow clipping */}
       {detailTask && (
-        <TaskDetailModal task={detailTask} onClose={handleCloseDetail} anchorRect={anchorRect} />
+        <TaskDetailModal
+          task={detailTask}
+          onClose={handleCloseDetail}
+          anchorRect={anchorRect}
+          allTasks={tasks}
+          onSelectTask={(t) => {
+            setDetailTask(t);
+            setAnchorRect(null);
+          }}
+        />
       )}
     </>
   );

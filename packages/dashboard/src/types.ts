@@ -11,6 +11,10 @@ export interface Task {
   status: TaskStatus;
   priority: TaskPriority;
   description?: string | null;
+  // Dependency metadata — task IDs this task depends on
+  depends_on?: string[];
+  // Parent task ID — set when this task was derived from another task
+  parent_task_id?: string | null;
   // Unix seconds — present in snapshot responses from the server
   created_at?: number;
   updated_at?: number;

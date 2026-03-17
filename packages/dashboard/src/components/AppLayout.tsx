@@ -3,9 +3,13 @@
 // Desktop: 3 panels side-by-side with resize dividers.
 // Mobile (<768px): panels stack vertically, no drag-to-resize.
 
+import { useCallback, useMemo, useState } from "react";
 import { usePanelLayout } from "../context/PanelResizeContext";
+import { useSession } from "../context/SessionContext";
 import { cn } from "../lib/cn";
 import { AppHeader } from "./AppHeader";
+import type { MobileTab } from "./MobileTabBar";
+import { MobileTabBar } from "./MobileTabBar";
 import { OfflineBanner } from "./OfflineBanner";
 import { ActivityPanel } from "./panels/ActivityPanel";
 import { AgentArenaPanel } from "./panels/AgentArenaPanel";
@@ -76,18 +80,43 @@ export function AppLayout() {
         </div>
       </div>
 
-      {/* Mobile layout: vertical stack */}
-      <div className="flex md:hidden flex-col flex-1 overflow-y-auto">
-        <div className="shrink-0">
-          <AgentArenaPanel />
-        </div>
-        <div className="flex-1 min-h-0">
-          <ActivityPanel />
-        </div>
-        <div className="shrink-0">
-          <BottomPanel />
-        </div>
+      {/* Mobile layout: single panel + bottom tab bar */}
+      <MobileLayout />
+    </div>
+  );
+}
+
+// Mobile-only layout — single active panel + bottom tab navigation
+function MobileLayout() {
+  const { tasks, agentStatuses } = useSession();
+  const [activeTab, setActiveTab] = useState<MobileTab>("activity");
+
+  const handleTabChange = useCallback((tab: MobileTab) => {
+    setActiveTab(tab);
+  }, []);
+
+  // Compute badges for each tab
+  const badges = useMemo(() => {
+    const workingCount = Object.values(agentStatuses).filter((s) => s === "working").length;
+    const inProgressCount = tasks.filter((t) => t.status === "in_progress").length;
+    return {
+      agents: workingCount > 0 ? workingCount : undefined,
+      activity: undefined, // Could track unread, but keep simple for now
+      tasks: inProgressCount > 0 ? inProgressCount : undefined,
+    } as Partial<Record<MobileTab, number>>;
+  }, [agentStatuses, tasks]);
+
+  return (
+    <div className="flex md:hidden flex-col flex-1 overflow-hidden">
+      {/* Active panel — only one rendered at a time */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        {activeTab === "agents" && <AgentArenaPanel />}
+        {activeTab === "activity" && <ActivityPanel />}
+        {activeTab === "tasks" && <BottomPanel />}
       </div>
+
+      {/* Bottom tab bar */}
+      <MobileTabBar activeTab={activeTab} onTabChange={handleTabChange} badges={badges} />
     </div>
   );
 }

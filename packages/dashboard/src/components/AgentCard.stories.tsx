@@ -22,6 +22,8 @@ const meta = {
     lastMessage: null,
     lastActivityTs: null,
     inProgressCount: 0,
+    taskDoneCount: 0,
+    taskTotalCount: 0,
     isSelected: false,
     onSelectAgent: () => {},
     joinedAt: null,
@@ -120,6 +122,8 @@ export const AllAgents: Story = {
           lastMessage={null}
           lastActivityTs={null}
           inProgressCount={0}
+          taskDoneCount={0}
+          taskTotalCount={0}
           isSelected={false}
           onSelectAgent={() => {}}
           joinedAt={null}

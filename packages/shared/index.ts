@@ -47,14 +47,18 @@ export type RelayEvent =
         status: TaskStatus;
         priority: TaskPriority;
         description: string | null;
-        /** IDs of tasks that must be done before this task can start */
-        depends_on?: string[];
-        parent_task_id?: string | null;
-        depth?: number;
-        derived_reason?: string | null;
-        // Unix seconds — present in DB snapshot responses
-        created_at?: number;
-        updated_at?: number;
+        /** IDs of tasks that must be done before this task can start (empty array if none) */
+        depends_on: string[];
+        /** Parent task ID for derived tasks, null for root tasks */
+        parent_task_id: string | null;
+        /** Nesting depth: 0 = root task, 1 = derived from root */
+        depth: number;
+        /** Human-readable reason why this task was derived from its parent, null for root tasks */
+        derived_reason: string | null;
+        /** Unix seconds — task creation timestamp */
+        created_at: number;
+        /** Unix seconds — last update timestamp */
+        updated_at: number;
       };
       timestamp: number;
     }
@@ -94,13 +98,18 @@ export type RelayEvent =
         status: TaskStatus;
         priority: TaskPriority;
         description: string | null;
-        // Unix seconds — present in DB snapshot responses
-        created_at?: number;
-        updated_at?: number;
-        depends_on?: string[];
-        parent_task_id?: string | null;
-        depth?: number;
-        derived_reason?: string | null;
+        /** IDs of tasks that must be done before this task can start (empty array if none) */
+        depends_on: string[];
+        /** Parent task ID for derived tasks, null for root tasks */
+        parent_task_id: string | null;
+        /** Nesting depth: 0 = root task, 1 = derived from root */
+        depth: number;
+        /** Human-readable reason why this task was derived from its parent, null for root tasks */
+        derived_reason: string | null;
+        /** Unix seconds — task creation timestamp */
+        created_at: number;
+        /** Unix seconds — last update timestamp */
+        updated_at: number;
       }>;
       messages: Array<{
         id: string;

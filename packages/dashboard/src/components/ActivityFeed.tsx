@@ -387,31 +387,84 @@ const SystemEntry = memo(function SystemEntry({ entry }: { entry: TimelineEntry 
 });
 
 // Route an entry to the correct renderer
-function EntryRenderer({ entry }: { entry: TimelineEntry }) {
+function EntryRenderer({
+  entry,
+  isFocused,
+  entryId,
+  isExpanded,
+}: {
+  entry: TimelineEntry;
+  isFocused: boolean;
+  entryId: string;
+  isExpanded: boolean;
+}) {
+  const focusStyle = isFocused
+    ? "ring-1 ring-inset ring-[var(--color-accent)] bg-[color-mix(in_srgb,var(--color-accent)_4%,transparent)]"
+    : "";
   switch (entry.type) {
     case "message:new": {
       const isBroadcast =
         entry.description === "Broadcast message" || !entry.description.startsWith("→");
-      if (isBroadcast) return <MessageBroadcastEntry entry={entry} />;
+      if (isBroadcast)
+        return (
+          <div id={entryId} className={focusStyle}>
+            <MessageBroadcastEntry entry={entry} />
+          </div>
+        );
       const toAgent = entry.description.slice(2).trim();
-      return <MessageDirectEntry entry={entry} toAgent={toAgent} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <MessageDirectEntry entry={entry} toAgent={toAgent} />
+        </div>
+      );
     }
     case "task:updated":
-      return <TaskInlineEntry entry={entry} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <TaskInlineEntry entry={entry} />
+        </div>
+      );
     case "artifact:posted":
-      return <ArtifactEntry entry={entry} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <ArtifactEntry entry={entry} />
+        </div>
+      );
     case "review:requested":
-      return <ReviewEntry entry={entry} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <ReviewEntry entry={entry} />
+        </div>
+      );
     case "review:updated":
-      return <ReviewUpdatedEntry entry={entry} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <ReviewUpdatedEntry entry={entry} />
+        </div>
+      );
     case "agent:status":
     case "memory:updated":
     case "agent:joined":
-      return <SystemEntry entry={entry} />;
+      return (
+        <div id={entryId} className={focusStyle}>
+          <SystemEntry entry={entry} />
+        </div>
+      );
     case "agent:thinking":
       // Thinking entries in the timeline are stale (replaced by thinkingChunks in real-time)
-      // Render as a system entry to preserve history
-      return <SystemEntry entry={entry} />;
+      // When expanded via Enter key, show full detail; otherwise render as system entry
+      if (isExpanded && entry.detail) {
+        return (
+          <div id={entryId} className={focusStyle}>
+            <ThinkingEntry agentId={entry.agentId ?? ""} chunk={entry.detail} isLive={false} />
+          </div>
+        );
+      }
+      return (
+        <div id={entryId} className={focusStyle}>
+          <SystemEntry entry={entry} />
+        </div>
+      );
     default:
       return null;
   }
@@ -423,6 +476,11 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   const filterBarRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  // Keyboard navigation state — -1 means no entry focused
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  // Track expanded entries (for Enter toggle)
+  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
 
   // Filter state — persisted to localStorage
   const [activeFilters, setActiveFilters] = useState<Set<FilterableType>>(buildDefaultFilters);
@@ -549,6 +607,68 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
     return counts;
   }, [entries]);
 
+  // Total navigable items: filtered entries + live thinking cards
+  const navigableCount = filtered.length + thinkingAgents.length;
+
+  // Reset focused index when filtered list changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on list change
+  useEffect(() => {
+    setFocusedIndex(-1);
+  }, [filtered.length, thinkingAgents.length]);
+
+  // Auto-scroll focused entry into view
+  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on focus change
+  useEffect(() => {
+    if (focusedIndex < 0) return;
+    const entryId =
+      focusedIndex < filtered.length
+        ? `activity-entry-${filtered[focusedIndex].id}`
+        : `activity-entry-thinking-${thinkingAgents[focusedIndex - filtered.length]?.agentId}`;
+    const el = document.getElementById(entryId);
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [focusedIndex]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Skip if a filter input or button inside the filter bar is focused
+      const active = document.activeElement;
+      if (active && filterBarRef.current?.contains(active)) return;
+
+      switch (e.key) {
+        case "j":
+        case "ArrowDown":
+          e.preventDefault();
+          setFocusedIndex((prev) => (prev < navigableCount - 1 ? prev + 1 : prev));
+          break;
+        case "k":
+        case "ArrowUp":
+          e.preventDefault();
+          setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+          break;
+        case "Enter": {
+          e.preventDefault();
+          if (focusedIndex >= 0 && focusedIndex < filtered.length) {
+            const entry = filtered[focusedIndex];
+            setExpandedEntries((prev) => {
+              const next = new Set(prev);
+              if (next.has(entry.id)) next.delete(entry.id);
+              else next.add(entry.id);
+              return next;
+            });
+          }
+          break;
+        }
+        case "Escape":
+          e.preventDefault();
+          setFocusedIndex(-1);
+          // Blur the container so keyboard nav stops
+          (e.target as HTMLElement).blur?.();
+          break;
+      }
+    },
+    [navigableCount, focusedIndex, filtered]
+  );
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Filter bar */}
@@ -655,8 +775,19 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
       ) : (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto pt-1 pb-1 relative"
+          className="flex-1 overflow-y-auto pt-1 pb-1 relative outline-none"
           onScroll={handleScroll}
+          onKeyDown={handleKeyDown}
+          tabIndex={0}
+          role="listbox"
+          aria-label="Activity feed entries"
+          aria-activedescendant={
+            focusedIndex >= 0 && focusedIndex < filtered.length
+              ? `activity-entry-${filtered[focusedIndex].id}`
+              : focusedIndex >= filtered.length
+                ? `activity-entry-thinking-${thinkingAgents[focusedIndex - filtered.length]?.agentId}`
+                : undefined
+          }
         >
           {entries.length >= 200 && (
             <div className="text-center px-4 py-1.5 text-[10px] text-[var(--color-text-disabled)] font-mono">
@@ -664,8 +795,14 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
             </div>
           )}
 
-          {filtered.map((entry) => (
-            <EntryRenderer key={entry.id} entry={entry} />
+          {filtered.map((entry, idx) => (
+            <EntryRenderer
+              key={entry.id}
+              entry={entry}
+              isFocused={focusedIndex === idx}
+              entryId={`activity-entry-${entry.id}`}
+              isExpanded={expandedEntries.has(entry.id)}
+            />
           ))}
 
           {/* Live thinking cards — one per agent, at the bottom */}

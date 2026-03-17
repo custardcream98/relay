@@ -1,12 +1,46 @@
 {
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/relay-edit-guard.sh\""
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
-        "matcher": "mcp__relay__(send_message|create_task|update_task|post_artifact|request_review|submit_review)",
+        "matcher": "mcp__relay__(send_message|create_task|update_task|claim_task|post_artifact|request_review|submit_review)",
         "hooks": [
           {
             "type": "command",
             "command": "curl -s -X POST \"http://localhost:${DASHBOARD_PORT:-3456}/api/hook/tool-use\" -H 'Content-Type: application/json' -d @-",
+            "async": true
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/relay-orchestrator-stop.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/relay-session-cleanup.sh\"",
             "async": true
           }
         ]

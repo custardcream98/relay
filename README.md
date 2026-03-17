@@ -110,13 +110,11 @@ The MCP server starts a live dashboard at session start (default `http://localho
 
 **Agent Arena** (left) — all session agents with live status and current thinking. Each card includes a task completion mini-bar. Click any agent to focus the Activity Feed.
 
-**Activity Feed** (top right) — real-time timeline of every event: messages, task updates, artifacts, reviews, and agent thinking streams. Filter by event type or agent. Navigate with keyboard shortcuts (`j`/`k`/`Enter`/`Escape`).
+**Activity Feed** (top right) — real-time timeline of every event: messages, task updates, artifacts, reviews, and agent thinking streams. Filter by event type or agent. Navigate with keyboard shortcuts (`j`/`k`/`Enter`/`Escape`). Click any artifact card to view its full content.
 
 **Task Board** (bottom, collapsible) — Kanban with a color-coded progress bar at the top. Task cards show dependency indicators ("Blocked by N" / "Blocks N tasks"). Click any task for the detail modal with dependency visualization.
 
 **Mobile** — on narrow screens, a bottom tab bar replaces the three-panel layout with Agents / Activity / Tasks tabs.
-
-Session data lives in-memory for the duration of the server process. The session switcher in the header lets you navigate between sessions from the current run.
 
 <br />
 

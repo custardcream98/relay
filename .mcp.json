@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "relay": {
-      "command": "npx",
-      "args": ["-y", "--package", "@custardcream/relay@latest", "relay"]
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js"]
     }
   }
 }

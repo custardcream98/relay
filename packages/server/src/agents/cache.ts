@@ -115,9 +115,8 @@ export function _invalidateCache(): void {
 }
 
 /**
- * Read the raw pool AgentsFile from disk for workflow extraction.
+ * Read the raw pool AgentsFile from disk.
  * Returns an empty AgentsFile on any read or parse error.
- * Used by get_workflow handler — returns the raw AgentsFile (not the processed AgentPersona map).
  * Always reads from disk; call getPool() instead if you only need the processed agent map with TTL caching.
  */
 export function loadPoolFile(relayDir: string, projectRoot: string): AgentsFile {

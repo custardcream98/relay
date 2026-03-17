@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { markAsAgentId } from "@custardcream/relay-shared";
-import { buildSystemPromptWithMemory, getWorkflow, loadAgents, loadPool } from "./loader";
+import { buildSystemPromptWithMemory, loadAgents, loadPool } from "./loader";
 import type { AgentsFile } from "./types";
 
 describe("loadAgents", () => {
@@ -13,7 +13,7 @@ describe("loadAgents", () => {
         researcher: {
           name: "Researcher",
           emoji: "🔬",
-          tools: ["send_message", "get_messages", "get_team_status"],
+          tools: ["send_message", "get_messages", "get_all_tasks"],
           systemPrompt: "You are a researcher.",
         },
       },
@@ -549,30 +549,6 @@ describe("loadPool", () => {
     expect(pool.senior_researcher.emoji).toBe("🔬"); // inherited
     expect(pool.senior_researcher.name).toBe("Senior Researcher"); // overridden
     expect(pool.senior_researcher.tags).toEqual(["research", "senior"]); // overridden
-  });
-});
-
-describe("workflow loader", () => {
-  test("returns empty jobs when no custom workflow is defined", () => {
-    const workflow = getWorkflow({ agents: {} });
-    expect(workflow.jobs).toBeDefined();
-  });
-
-  test("can override workflow jobs", () => {
-    const custom: AgentsFile = {
-      agents: {},
-      workflow: {
-        jobs: {
-          research: {
-            description: "Research phase",
-            end: { review: "When research is complete" },
-          },
-        },
-      },
-    };
-    const workflow = getWorkflow(custom);
-    expect(workflow.jobs.research).toBeDefined();
-    expect(workflow.jobs.research.description).toBe("Research phase");
   });
 });
 

@@ -37,6 +37,12 @@ export interface TaskRow {
    * to call create_task again without producing duplicate tasks on the board.
    */
   external_id?: string | null;
+  /** Parent task ID for derived tasks. Null for root tasks. */
+  parent_task_id?: string | null;
+  /** Nesting depth: 0 = root task, 1 = derived from root. Max depth enforced by handleCreateTask. */
+  depth?: number;
+  /** Human-readable reason why this task was derived from its parent. */
+  derived_reason?: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -73,14 +79,6 @@ export interface EventRow {
   created_at: number;
 }
 
-export interface TeamStatusRow {
-  todo: number;
-  in_progress: number;
-  in_review: number;
-  done: number;
-  total: number;
-}
-
 export interface SessionRow {
   id: string;
   created_at: number;
@@ -95,6 +93,10 @@ export const MAX_ARTIFACTS_PER_SESSION = 500;
 export const MAX_REVIEWS_PER_SESSION = 500;
 // Events are written on every MCP tool call — allow a higher cap than other collections.
 export const MAX_EVENTS_PER_SESSION = 100_000;
+/** Maximum derived task nesting depth. 0 = root only; 1 = one level of derived tasks allowed. */
+export const MAX_TASK_DEPTH = 1;
+/** Maximum number of derived tasks per parent task (circuit breaker against unbounded cascades). */
+export const MAX_DERIVED_SIBLINGS = 3;
 
 // --- Collections ---
 
@@ -169,7 +171,15 @@ export function insertTask(task: Omit<TaskRow, "created_at" | "updated_at">): vo
     throw new Error(`session task limit reached (max ${MAX_TASKS_PER_SESSION} per session)`);
   }
   const ts = nowSeconds();
-  tasks.push({ ...task, depends_on: task.depends_on ?? [], created_at: ts, updated_at: ts });
+  tasks.push({
+    ...task,
+    depends_on: task.depends_on ?? [],
+    depth: task.depth ?? 0,
+    parent_task_id: task.parent_task_id ?? null,
+    derived_reason: task.derived_reason ?? null,
+    created_at: ts,
+    updated_at: ts,
+  });
   taskCountBySession.set(task.session_id, sessionCount + 1);
 }
 
@@ -200,13 +210,12 @@ export function getTaskByExternalId(sessionId: string, externalId: string): Task
   return tasks.find((t) => t.session_id === sessionId && t.external_id === externalId) ?? null;
 }
 
-export function getTasksByAssignee(sessionId: string, assignee: string): TaskRow[] {
-  return tasks.filter((t) => t.session_id === sessionId && t.assignee === assignee);
-}
-
-export function getAllTasks(sessionId: string, status?: string): TaskRow[] {
+export function getAllTasks(sessionId: string, status?: string, assignee?: string): TaskRow[] {
   return tasks.filter(
-    (t) => t.session_id === sessionId && (status === undefined || t.status === status)
+    (t) =>
+      t.session_id === sessionId &&
+      (status === undefined || t.status === status) &&
+      (assignee === undefined || t.assignee === assignee)
   );
 }
 
@@ -220,21 +229,15 @@ export function claimTask(taskId: string, agentId: string, sessionId: string): b
   );
   if (!task) return false;
   task.status = "in_progress";
+  if (task.assignee === null) task.assignee = agentId;
   task.updated_at = nowSeconds();
   return true;
 }
 
-export function getTeamStatus(sessionId: string): TeamStatusRow {
-  const counts = { todo: 0, in_progress: 0, in_review: 0, done: 0, total: 0 };
-  for (const t of tasks) {
-    if (t.session_id !== sessionId) continue;
-    counts.total++;
-    if (t.status === "todo") counts.todo++;
-    else if (t.status === "in_progress") counts.in_progress++;
-    else if (t.status === "in_review") counts.in_review++;
-    else if (t.status === "done") counts.done++;
-  }
-  return counts;
+/** Count how many tasks in a session have the given parent. Used for circuit breaker enforcement. */
+export function countDerivedSiblings(sessionId: string, parentTaskId: string): number {
+  return tasks.filter((t) => t.session_id === sessionId && t.parent_task_id === parentTaskId)
+    .length;
 }
 
 // --- Artifacts ---
@@ -356,6 +359,18 @@ export function getAllSessions(limit = 20): SessionRow[] {
     .slice(0, limit);
 }
 
+// --- Orchestrator State ---
+
+const orchestratorStates = new Map<string, string>();
+
+export function saveOrchestratorState(sessionId: string, state: string): void {
+  orchestratorStates.set(sessionId, state);
+}
+
+export function getOrchestratorState(sessionId: string): string | null {
+  return orchestratorStates.get(sessionId) ?? null;
+}
+
 // --- Reset (test isolation) ---
 
 /** Clear all in-memory collections. Called by runMigrations() so existing test patterns work. */
@@ -371,4 +386,5 @@ export function _resetStore(): void {
   reviewCountBySession.clear();
   events = [];
   eventCountBySession.clear();
+  orchestratorStates.clear();
 }

@@ -17,6 +17,7 @@ import {
   getEventsBySession,
 } from "../store";
 import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
+import { taskToPayload } from "../utils/broadcast";
 import { isLocalhostOrigin } from "./utils";
 import { broadcast } from "./websocket";
 
@@ -100,10 +101,17 @@ app.get("/api/session", (c) => {
     const allMessages = getAllMessages(sessionId);
     const allArtifacts = getAllArtifacts(sessionId);
 
+    // Use taskToPayload for consistent field normalization across WS/REST
+    const taskPayloads = allTasks.slice(offset, offset + limit).map(taskToPayload);
+
     return c.json({
-      tasks: allTasks.slice(offset, offset + limit),
-      messages: allMessages.slice(offset, offset + limit),
-      artifacts: allArtifacts,
+      tasks: taskPayloads,
+      messages: allMessages
+        .slice(offset, offset + limit)
+        .map(({ session_id: _s, seq: _q, ...m }) => ({ ...m, metadata: m.metadata ?? null })),
+      artifacts: allArtifacts.map(
+        ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
+      ),
       // Pagination metadata — lets the dashboard detect truncation
       total: {
         tasks: allTasks.length,
@@ -147,6 +155,35 @@ app.get("/api/sessions/:id/replay", (c) => {
   try {
     const events = getEventsBySession(sessionId).map((payload) => JSON.parse(payload));
     return c.json({ success: true, sessionId, events });
+  } catch (err) {
+    console.error("[relay] internal error:", err);
+    return c.json({ success: false, error: "Internal server error" }, 500);
+  }
+});
+
+// Completion check for the orchestrator Stop hook.
+// Returns task completion status so the hook can decide whether to block the stop.
+// Registered before /api/sessions/:id to prevent Hono matching "completion-check" as a session ID.
+app.get("/api/sessions/:id/completion-check", (c) => {
+  const sessionId = c.req.param("id");
+  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return c.json({ error: "Invalid session ID" }, 400);
+  }
+  try {
+    const allTasks = getAllTasks(sessionId);
+    const totalCount = allTasks.length;
+    const doneCount = allTasks.filter((t) => t.status === "done").length;
+    const allDone = totalCount > 0 && doneCount === totalCount;
+    const pendingTasks = allTasks
+      .filter((t) => t.status !== "done")
+      .map(({ id, title, status, assignee }) => ({ id, title, status, assignee }));
+    return c.json({
+      success: true,
+      all_done: allDone,
+      done_count: doneCount,
+      total_count: totalCount,
+      pending_tasks: pendingTasks,
+    });
   } catch (err) {
     console.error("[relay] internal error:", err);
     return c.json({ success: false, error: "Internal server error" }, 500);

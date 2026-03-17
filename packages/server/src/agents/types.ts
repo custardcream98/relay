@@ -34,22 +34,13 @@ export interface AgentConfig {
   extends?: string; // inherit another agent's config and override
   tags?: string[]; // taxonomy tags for pool-based team selection (e.g. ["frontend", "web"])
   hooks?: AgentHooks | false; // false = explicit opt-out of inherited hooks
-}
-
-export interface WorkflowJob {
-  agents?: string[]; // agents to run in this job (executed in parallel)
-  description: string; // natural-language job description, injected into agent system prompts
-  end?: Record<string, string>; // { nextJobId: natural-language condition } — _done means session end
-  reviewers?: Record<string, string[]>; // { workingAgent: [reviewer list] }
-}
-
-export interface WorkflowConfig {
-  jobs: Record<string, WorkflowJob>;
+  /** Optional validation criteria injected into the agent's system prompt before task completion.
+   *  Agents should verify all listed criteria before calling update_task(status: "done"). */
+  validate_prompt?: string;
 }
 
 export interface AgentsFile {
   agents: Record<string, Partial<AgentConfig>>;
-  workflow?: WorkflowConfig;
   language?: string; // Default language for all agents (can be overridden per agent)
 }
 

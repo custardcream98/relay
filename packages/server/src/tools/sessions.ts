@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getOrchestratorState, saveOrchestratorState } from "../store.js";
 import { isValidId } from "../utils/validate.js";
 
 /**
@@ -74,4 +75,25 @@ export async function handleGetSessionSummary(
   } catch (err) {
     return { success: false, error: String(err) };
   }
+}
+
+/**
+ * Save the orchestrator's event loop state to memory.
+ * Purely in-memory — survives context compaction within a process but not process restarts.
+ */
+export function handleSaveOrchestratorState(
+  sessionId: string,
+  input: { agent_id: string; state: string }
+) {
+  saveOrchestratorState(sessionId, input.state);
+  return { success: true };
+}
+
+/**
+ * Retrieve the orchestrator's event loop state.
+ * Returns { success: true, state: null } when no state has been saved for this session.
+ */
+export function handleGetOrchestratorState(sessionId: string, _input: { agent_id: string }) {
+  const state = getOrchestratorState(sessionId);
+  return { success: true, state };
 }

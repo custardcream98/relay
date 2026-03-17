@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { _resetStore, getTaskById, getTasksByAssignee, insertTask, updateTask } from "../../store";
+import { _resetStore, getAllTasks, getTaskById, insertTask, updateTask } from "../../store";
 
 describe("task queries", () => {
   beforeEach(() => {
@@ -62,7 +62,7 @@ describe("task queries", () => {
       created_by: "pm",
     });
 
-    const feTasks = getTasksByAssignee("s1", "fe");
+    const feTasks = getAllTasks("s1", undefined, "fe");
     expect(feTasks).toHaveLength(1);
     expect(feTasks[0].title).toBe("FE task");
   });

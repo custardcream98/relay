@@ -1,11 +1,9 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { _resetStore } from "../store";
+import { _resetStore, getTaskById } from "../store";
 import {
   handleClaimTask,
   handleCreateTask,
   handleGetAllTasks,
-  handleGetMyTasks,
-  handleGetTeamStatus,
   handleUpdateTask,
 } from "./tasks";
 
@@ -14,8 +12,8 @@ describe("tasks tool", () => {
     _resetStore();
   });
 
-  test("create_task: creates a task", async () => {
-    const result = await handleCreateTask("sess-1", {
+  test("create_task: creates a task", () => {
+    const result = handleCreateTask("sess-1", {
       agent_id: "pm",
       title: "Design shopping cart API",
       description: "Write REST API endpoint specification",
@@ -27,7 +25,7 @@ describe("tasks tool", () => {
   });
 
   test("update_task: updates status", async () => {
-    const { task_id } = await handleCreateTask("sess-1", {
+    const { task_id } = handleCreateTask("sess-1", {
       agent_id: "pm",
       title: "test task",
       assignee: "fe",
@@ -41,28 +39,9 @@ describe("tasks tool", () => {
     expect(result.success).toBe(true);
   });
 
-  test("get_my_tasks: returns only own tasks", async () => {
-    await handleCreateTask("sess-1", {
-      agent_id: "pm",
-      title: "FE task",
-      assignee: "fe",
-      priority: "low",
-    });
-    await handleCreateTask("sess-1", {
-      agent_id: "pm",
-      title: "BE task",
-      assignee: "be",
-      priority: "low",
-    });
-
-    const result = await handleGetMyTasks("sess-1", { agent_id: "fe" });
-    expect(result.tasks).toHaveLength(1);
-    expect(result.tasks[0].title).toBe("FE task");
-  });
-
   describe("claim_task", () => {
     test("succeeds when claiming own todo task", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "FE implementation",
         assignee: "fe",
@@ -77,7 +56,7 @@ describe("tasks tool", () => {
     });
 
     test("fails when re-claiming an already in_progress task", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "FE implementation",
         assignee: "fe",
@@ -93,7 +72,7 @@ describe("tasks tool", () => {
     });
 
     test("fails when claiming another agent's task", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "BE implementation",
         assignee: "be",
@@ -108,7 +87,7 @@ describe("tasks tool", () => {
     });
 
     test("any agent can claim an unassigned task", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "shared task",
         priority: "low",
@@ -122,7 +101,7 @@ describe("tasks tool", () => {
     });
 
     test("can claim task with no depends_on (regression)", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "independent task",
         assignee: "fe",
@@ -137,7 +116,7 @@ describe("tasks tool", () => {
     });
 
     test("can claim task when all depends_on are done", async () => {
-      const { task_id: depId } = await handleCreateTask("sess-1", {
+      const { task_id: depId } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "prerequisite task",
         assignee: "be",
@@ -148,7 +127,7 @@ describe("tasks tool", () => {
         task_id: depId as string,
         status: "done",
       });
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "dependent task",
         assignee: "fe",
@@ -164,13 +143,13 @@ describe("tasks tool", () => {
     });
 
     test("cannot claim task when a depends_on is still 'todo'", async () => {
-      const { task_id: depId } = await handleCreateTask("sess-1", {
+      const { task_id: depId } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "unfinished prerequisite",
         assignee: "be",
         priority: "high",
       });
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "blocked task",
         assignee: "fe",
@@ -187,7 +166,7 @@ describe("tasks tool", () => {
     });
 
     test("before_task hook failure blocks claiming (task stays todo)", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "hook-guarded task",
         assignee: "fe",
@@ -202,12 +181,12 @@ describe("tasks tool", () => {
       expect(result.claimed).toBe(false);
       expect(result.reason).toContain("before_task hook failed");
       // Task must remain todo — no phantom in_progress
-      const { tasks } = await handleGetAllTasks("sess-1", { agent_id: "fe" });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "fe" });
       expect(tasks[0].status).toBe("todo");
     });
 
     test("before_task hook success allows claiming", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "hook-guarded task",
         assignee: "fe",
@@ -223,7 +202,7 @@ describe("tasks tool", () => {
     });
 
     test("cannot claim task when a depends_on is still 'in_progress'", async () => {
-      const { task_id: depId } = await handleCreateTask("sess-1", {
+      const { task_id: depId } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "in-progress prerequisite",
         assignee: "be",
@@ -234,7 +213,7 @@ describe("tasks tool", () => {
         task_id: depId as string,
         status: "in_progress",
       });
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "blocked task",
         assignee: "fe",
@@ -253,7 +232,7 @@ describe("tasks tool", () => {
 
   describe("update_task hooks", () => {
     test("after_task hook failure reverts status to in_review", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "task with after hook",
         assignee: "fe",
@@ -272,12 +251,12 @@ describe("tasks tool", () => {
       expect((result as Record<string, unknown>).hook_failed).toBe(true);
       expect(result.error).toContain("after_task hook failed");
       // Status must be reverted to in_review
-      const { tasks } = await handleGetAllTasks("sess-1", { agent_id: "fe" });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "fe" });
       expect(tasks[0].status).toBe("in_review");
     });
 
     test("after_task hook failure → retry with passing hook succeeds", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "task with retryable after hook",
         assignee: "fe",
@@ -297,12 +276,12 @@ describe("tasks tool", () => {
         { before_task: [], after_task: ["echo ok"] }
       );
       expect(retry.success).toBe(true);
-      const { tasks } = await handleGetAllTasks("sess-1", { agent_id: "fe" });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "fe" });
       expect(tasks[0].status).toBe("done");
     });
 
     test("after_task hook success keeps status as done", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "task with passing after hook",
         assignee: "fe",
@@ -315,12 +294,12 @@ describe("tasks tool", () => {
         { before_task: [], after_task: ["echo ok"] }
       );
       expect(result.success).toBe(true);
-      const { tasks } = await handleGetAllTasks("sess-1", { agent_id: "fe" });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "fe" });
       expect(tasks[0].status).toBe("done");
     });
 
     test("after_task hook is NOT triggered for non-done status updates", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "task",
         assignee: "fe",
@@ -336,115 +315,43 @@ describe("tasks tool", () => {
     });
   });
 
-  describe("get_team_status", () => {
-    test("empty session → all zeros, has_pending_work false", async () => {
-      const result = await handleGetTeamStatus("sess-1", { agent_id: "pm" });
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.todo).toBe(0);
-      expect(result.in_progress).toBe(0);
-      expect(result.in_review).toBe(0);
-      expect(result.done).toBe(0);
-      expect(result.total).toBe(0);
-      expect(result.has_pending_work).toBe(false);
-    });
-
-    test("mix of todo + done → has_pending_work true", async () => {
-      await handleCreateTask("sess-1", {
-        agent_id: "pm",
-        title: "task 1",
-        assignee: "fe",
-        priority: "high",
-      });
-      const { task_id: t2 } = await handleCreateTask("sess-1", {
-        agent_id: "pm",
-        title: "task 2",
-        assignee: "be",
-        priority: "medium",
-      });
-      await handleUpdateTask("sess-1", {
-        agent_id: "be",
-        task_id: t2 as string,
-        status: "done",
-      });
-      const result = await handleGetTeamStatus("sess-1", { agent_id: "qa" });
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.todo).toBe(1);
-      expect(result.done).toBe(1);
-      expect(result.total).toBe(2);
-      expect(result.has_pending_work).toBe(true);
-    });
-
-    test("all done → has_pending_work false", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
-        agent_id: "pm",
-        title: "task",
-        assignee: "fe",
-        priority: "low",
-      });
-      await handleUpdateTask("sess-1", {
-        agent_id: "fe",
-        task_id: task_id as string,
-        status: "done",
-      });
-      const result = await handleGetTeamStatus("sess-1", { agent_id: "deployer" });
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.todo).toBe(0);
-      expect(result.has_pending_work).toBe(false);
-    });
-
-    test("session isolation — tasks from other sessions are not counted", async () => {
-      await handleCreateTask("sess-other", {
-        agent_id: "pm",
-        title: "other session task",
-        priority: "high",
-      });
-      const result = await handleGetTeamStatus("sess-1", { agent_id: "pm" });
-      expect(result.success).toBe(true);
-      if (!result.success) return;
-      expect(result.total).toBe(0);
-    });
-  });
-
   describe("get_all_tasks", () => {
-    test("returns all tasks in session regardless of assignee", async () => {
-      await handleCreateTask("sess-1", {
+    test("returns all tasks in session regardless of assignee", () => {
+      handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "FE task",
         assignee: "fe",
         priority: "high",
       });
-      await handleCreateTask("sess-1", {
+      handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "BE task",
         assignee: "be",
         priority: "medium",
       });
-      const result = await handleGetAllTasks("sess-1", { agent_id: "qa" });
+      const result = handleGetAllTasks("sess-1", { agent_id: "qa" });
       expect(result.success).toBe(true);
       expect(result.tasks).toHaveLength(2);
     });
 
-    test("tasks from other sessions are not included", async () => {
-      await handleCreateTask("sess-1", {
+    test("tasks from other sessions are not included", () => {
+      handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "session 1 task",
         priority: "low",
       });
-      await handleCreateTask("sess-other", {
+      handleCreateTask("sess-other", {
         agent_id: "pm",
         title: "session 2 task",
         priority: "low",
       });
-      const result = await handleGetAllTasks("sess-1", { agent_id: "pm" });
+      const result = handleGetAllTasks("sess-1", { agent_id: "pm" });
       expect(result.tasks).toHaveLength(1);
     });
 
     test("status filter returns only tasks with matching status", async () => {
-      await handleCreateTask("sess-1", { agent_id: "pm", title: "todo task", priority: "low" });
-      const { task_id } = await handleCreateTask("sess-1", {
+      handleCreateTask("sess-1", { agent_id: "pm", title: "todo task", priority: "low" });
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "done task",
         priority: "low",
@@ -454,15 +361,77 @@ describe("tasks tool", () => {
         task_id: task_id as string,
         status: "done",
       });
-      const result = await handleGetAllTasks("sess-1", { agent_id: "qa", status: "done" });
+      const result = handleGetAllTasks("sess-1", { agent_id: "qa", status: "done" });
       expect(result.tasks).toHaveLength(1);
       expect(result.tasks[0].title).toBe("done task");
+    });
+
+    test("assignee filter returns only tasks assigned to specific agent", () => {
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "FE task",
+        assignee: "fe",
+        priority: "low",
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "BE task",
+        assignee: "be",
+        priority: "low",
+      });
+      const result = handleGetAllTasks("sess-1", { agent_id: "fe", assignee: "fe" });
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].title).toBe("FE task");
+    });
+
+    test("assignee filter combined with status filter works", async () => {
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "FE todo",
+        assignee: "fe",
+        priority: "low",
+      });
+      const { task_id } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "FE done",
+        assignee: "fe",
+        priority: "medium",
+      });
+      await handleUpdateTask("sess-1", {
+        agent_id: "fe",
+        task_id: task_id as string,
+        status: "done",
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "BE todo",
+        assignee: "be",
+        priority: "low",
+      });
+      const result = handleGetAllTasks("sess-1", {
+        agent_id: "fe",
+        assignee: "fe",
+        status: "done",
+      });
+      expect(result.tasks).toHaveLength(1);
+      expect(result.tasks[0].title).toBe("FE done");
+    });
+
+    test("assignee filter with no matches returns empty array", () => {
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "FE task",
+        assignee: "fe",
+        priority: "low",
+      });
+      const result = handleGetAllTasks("sess-1", { agent_id: "qa", assignee: "qa" });
+      expect(result.tasks).toHaveLength(0);
     });
   });
 
   describe("update_task no valid fields guard", () => {
     test("returns error when no valid fields are provided", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "task",
         priority: "low",
@@ -479,7 +448,7 @@ describe("tasks tool", () => {
   describe("update_task ownership checks", () => {
     test("non-assignee non-creator is denied permission", async () => {
       // pm creates task assigned to fe; qa attempts to update
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "assigned task",
         assignee: "fe",
@@ -496,7 +465,7 @@ describe("tasks tool", () => {
 
     test("creator can update a task assigned to someone else", async () => {
       // pm creates task assigned to fe; pm (creator) updates it
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "assigned task",
         assignee: "fe",
@@ -512,7 +481,7 @@ describe("tasks tool", () => {
 
     test("unassigned task can be updated by any agent", async () => {
       // pm creates unassigned task; qa updates it
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "unassigned task",
         priority: "low",
@@ -526,7 +495,7 @@ describe("tasks tool", () => {
     });
 
     test("assignee can update their own task", async () => {
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "fe task",
         assignee: "fe",
@@ -552,7 +521,7 @@ describe("tasks tool", () => {
     // safety net that prevents the hook from running when deps are unmet.
     test("claim is blocked when dependency is not done before hook runs", async () => {
       // Create a dependency task and mark it done
-      const { task_id: depId } = await handleCreateTask("sess-1", {
+      const { task_id: depId } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "dep task",
         assignee: "be",
@@ -564,7 +533,7 @@ describe("tasks tool", () => {
         status: "done",
       });
       // Create the dependent task
-      const { task_id } = await handleCreateTask("sess-1", {
+      const { task_id } = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "dependent task",
         assignee: "fe",
@@ -591,7 +560,7 @@ describe("tasks tool", () => {
   });
 
   describe("create_task idempotency_key", () => {
-    test("same key returns existing task_id without creating a duplicate", async () => {
+    test("same key returns existing task_id without creating a duplicate", () => {
       const first = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "Task A",
@@ -612,7 +581,7 @@ describe("tasks tool", () => {
       expect(tasks.length).toBe(1);
     });
 
-    test("same key in different sessions creates independent tasks", async () => {
+    test("same key in different sessions creates independent tasks", () => {
       const r1 = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "Task A",
@@ -630,7 +599,7 @@ describe("tasks tool", () => {
       expect(r1.task_id).not.toBe(r2.task_id);
     });
 
-    test("omitting idempotency_key always creates a new task", async () => {
+    test("omitting idempotency_key always creates a new task", () => {
       const r1 = handleCreateTask("sess-1", {
         agent_id: "pm",
         title: "Task B",
@@ -664,4 +633,269 @@ describe("tasks tool", () => {
       expect(retry.task_id).toBe(task_id);
     });
   });
+
+  describe("derived task circuit breaker", () => {
+    test("idempotency_key bypasses sibling cap on re-spawn", () => {
+      // Regression: idempotency check must run BEFORE sibling validation.
+      // Re-spawned agents calling create_task again must get back the existing task_id
+      // even if the parent's sibling cap has since been reached by other derived tasks.
+      const { task_id: parentId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "parent",
+        priority: "high",
+      });
+      // Agent creates the first derived child (sibling 1) with an idempotency key
+      const { task_id: child1Id } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 1",
+        priority: "low",
+        parent_task_id: parentId as string,
+        idempotency_key: "child-1-key",
+      });
+      // Other agents fill the remaining sibling slots (2 and 3 → cap reached)
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 2",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 3",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      // Agent re-spawns and calls create_task again with the same idempotency_key.
+      // Without the idempotency-first fix, sibling validation would run first and
+      // return "max derived siblings exceeded" (3 siblings already exist).
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 1",
+        priority: "low",
+        parent_task_id: parentId as string,
+        idempotency_key: "child-1-key",
+      });
+      expect(result.success).toBe(true);
+      expect(result.task_id).toBe(child1Id);
+    });
+
+    test("root task has depth 0 and no parent_task_id", () => {
+      const { task_id } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "root task",
+        priority: "medium",
+      });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "pm" });
+      const task = tasks.find((t) => t.id === task_id);
+      expect(task?.depth).toBe(0);
+      expect(task?.parent_task_id).toBeNull();
+    });
+
+    test("derived task has depth 1 and parent_task_id set", () => {
+      const { task_id: parentId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "parent",
+        priority: "high",
+      });
+      const { task_id: childId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child",
+        priority: "medium",
+        parent_task_id: parentId as string,
+        derived_reason: "follow-up work",
+      });
+      const { tasks } = handleGetAllTasks("sess-1", { agent_id: "pm", include_description: true });
+      const child = tasks.find((t) => t.id === childId);
+      expect(child?.depth).toBe(1);
+      expect(child?.parent_task_id).toBe(parentId);
+      expect(child?.derived_reason).toBe("follow-up work");
+    });
+
+    test("grandchild (depth > 1) is rejected", () => {
+      const { task_id: parentId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "parent",
+        priority: "high",
+      });
+      const { task_id: childId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child",
+        priority: "medium",
+        parent_task_id: parentId as string,
+      });
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "grandchild",
+        priority: "low",
+        parent_task_id: childId as string,
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("max derived task depth exceeded");
+    });
+
+    test("4th sibling per parent is rejected", () => {
+      const { task_id: parentId } = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "parent",
+        priority: "high",
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 1",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 2",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 3",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "child 4",
+        priority: "low",
+        parent_task_id: parentId as string,
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("max derived siblings exceeded");
+    });
+
+    test("parent_task_id pointing to non-existent task returns error", () => {
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "orphan",
+        priority: "low",
+        parent_task_id: "nonexistent-id",
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("parent task not found");
+    });
+
+    test("parent_task_id from a different session returns error", () => {
+      // Create a parent task in sess-2
+      const parentResult = handleCreateTask("sess-2", {
+        agent_id: "pm",
+        title: "parent in other session",
+        priority: "medium",
+      });
+      expect(parentResult.success).toBe(true);
+      const parentId = (parentResult as { task_id: string }).task_id;
+
+      // Attempt to create a child in sess-1 pointing to sess-2's parent
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "cross-session child",
+        priority: "low",
+        parent_task_id: parentId,
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("parent task not found");
+    });
+
+    test("depends_on with valid task IDs in same session succeeds and stores the dependency", () => {
+      const dep = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "prerequisite task",
+        priority: "medium",
+      });
+      expect(dep.success).toBe(true);
+      const depId = (dep as { task_id: string }).task_id;
+
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "dependent task",
+        priority: "low",
+        depends_on: [depId],
+      });
+      expect(result.success).toBe(true);
+      const taskId = (result as { task_id: string }).task_id;
+
+      // Verify depends_on is actually persisted in the store
+      const stored = getTaskById(taskId, "sess-1");
+      expect(stored).not.toBeNull();
+      expect(stored!.depends_on).toEqual([depId]);
+    });
+
+    test("idempotency key bypasses depends_on validation on re-spawn", () => {
+      // First call: valid dep exists — task is created
+      const dep = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "dep task",
+        priority: "medium",
+      });
+      const depId = (dep as { task_id: string }).task_id;
+
+      const first = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "idempotent task",
+        priority: "low",
+        depends_on: [depId],
+        idempotency_key: "idem-key-1",
+      });
+      expect(first.success).toBe(true);
+      const originalId = (first as { task_id: string }).task_id;
+
+      // Second call: dep ID would be unknown in a fresh session, but idempotency
+      // short-circuits before depends_on validation — returns existing task_id
+      const second = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "idempotent task",
+        priority: "low",
+        depends_on: ["nonexistent-dep"],
+        idempotency_key: "idem-key-1",
+      });
+      expect(second.success).toBe(true);
+      expect((second as { task_id: string }).task_id).toBe(originalId);
+    });
+
+    test("depends_on with unknown task ID returns error", () => {
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "task with bad dep",
+        priority: "low",
+        depends_on: ["nonexistent-dep-id"],
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("depends_on contains unknown task IDs");
+    });
+
+    test("depends_on with cross-session task ID returns error", () => {
+      const depResult = handleCreateTask("sess-other", {
+        agent_id: "pm",
+        title: "dep in other session",
+        priority: "low",
+      });
+      expect(depResult.success).toBe(true);
+      const depId = (depResult as { task_id: string }).task_id;
+
+      const result = handleCreateTask("sess-1", {
+        agent_id: "pm",
+        title: "task depending on other session",
+        priority: "low",
+        depends_on: [depId],
+      });
+      expect(result.success).toBe(false);
+      expect((result as { error: string }).error).toContain("depends_on contains unknown task IDs");
+    });
+
+    test("root task (no parent) unaffected by circuit breakers", () => {
+      // Create many root tasks — no limit applies
+      for (let i = 0; i < 5; i++) {
+        const r = handleCreateTask("sess-1", {
+          agent_id: "pm",
+          title: `root ${i}`,
+          priority: "low",
+        });
+        expect(r.success).toBe(true);
+      }
+    });
+  });
+
 });

@@ -1,15 +1,17 @@
 // packages/server/src/tools/register-sessions.ts
-// Registers save_session_summary, list_sessions, get_session_summary, and start_session
-// MCP tools on the server.
+// Registers save_session_summary, list_sessions, get_session_summary, start_session,
+// save_orchestrator_state, and get_orchestrator_state MCP tools on the server.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getRelayDir, setSessionId } from "../config.js";
+import { getRelayDir, getSessionId, setSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
 import {
+  handleGetOrchestratorState,
   handleGetSessionSummary,
   handleListSessions,
+  handleSaveOrchestratorState,
   handleSaveSessionSummary,
 } from "./sessions.js";
 
@@ -87,6 +89,36 @@ export function registerSessionTools(server: McpServer): void {
       const result = await handleGetSessionSummary(getRelayDir(), {
         session_id: input.session_id,
       });
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+  );
+
+  // Save the orchestrator's event loop state (survives context compaction within a process)
+  server.tool(
+    "save_orchestrator_state",
+    {
+      agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (typically the orchestrator)"),
+      state: z
+        .string()
+        .max(65536)
+        .describe(
+          "JSON-stringified event loop state. The server stores this opaque string and returns it via get_orchestrator_state. The orchestrator defines its own schema — see SKILL.md for the recommended shape."
+        ),
+    },
+    async (input) => {
+      const result = handleSaveOrchestratorState(getSessionId(), input);
+      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    }
+  );
+
+  // Retrieve the orchestrator's previously saved event loop state
+  server.tool(
+    "get_orchestrator_state",
+    {
+      agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (typically the orchestrator)"),
+    },
+    async (input) => {
+      const result = handleGetOrchestratorState(getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );

@@ -10,7 +10,7 @@ export const markAsAgentId = (id: string): AgentId => id as AgentId;
 
 // Timestamp unit conventions:
 // - outer envelope timestamp field: milliseconds (Date.now())
-// - message payload created_at sub-field: seconds (Unix epoch, matching SQLite unixepoch())
+// - message payload created_at sub-field: seconds (Unix epoch)
 export type RelayEvent =
   | {
       type: "agent:thinking";
@@ -49,6 +49,9 @@ export type RelayEvent =
         description: string | null;
         /** IDs of tasks that must be done before this task can start */
         depends_on?: string[];
+        parent_task_id?: string | null;
+        depth?: number;
+        derived_reason?: string | null;
         // Unix seconds — present in DB snapshot responses
         created_at?: number;
         updated_at?: number;
@@ -94,6 +97,10 @@ export type RelayEvent =
         // Unix seconds — present in DB snapshot responses
         created_at?: number;
         updated_at?: number;
+        depends_on?: string[];
+        parent_task_id?: string | null;
+        depth?: number;
+        derived_reason?: string | null;
       }>;
       messages: Array<{
         id: string;

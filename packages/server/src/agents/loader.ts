@@ -6,13 +6,7 @@ import { markAsAgentId } from "@custardcream/relay-shared";
 import yaml from "js-yaml";
 import { getProjectRoot, getRelayDir } from "../config";
 import { isValidId } from "../utils/validate";
-import type {
-  AgentHooks,
-  AgentPersona,
-  AgentsFile,
-  ResolvedAgentHooks,
-  WorkflowConfig,
-} from "./types";
+import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from "./types";
 
 // Complete list of MCP tool names registered by createMcpServer() in mcp.ts.
 // Validated against agent config tools[] to catch typos before runtime.
@@ -23,9 +17,7 @@ export const REGISTERED_MCP_TOOLS = new Set([
   "get_messages",
   "create_task",
   "update_task",
-  "get_my_tasks",
   "claim_task",
-  "get_team_status",
   "get_all_tasks",
   "post_artifact",
   "get_artifact",
@@ -40,7 +32,8 @@ export const REGISTERED_MCP_TOOLS = new Set([
   "broadcast_thinking",
   "list_agents",
   "list_pool_agents",
-  "get_workflow",
+  "save_orchestrator_state",
+  "get_orchestrator_state",
 ]);
 
 /**
@@ -76,7 +69,7 @@ function resolveHooks(hooks: AgentHooks): ResolvedAgentHooks {
 
 /**
  * Read a YAML file and parse it as AgentsFile.
- * Returns null if the file does not exist or cannot be parsed.
+ * Returns null if the file does not exist.
  * Throws on YAML parse errors so callers can surface a clear error message.
  */
 function readYml(path: string): AgentsFile | null {
@@ -283,11 +276,3 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
   return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}${languageInstruction}`;
 }
 
-/**
- * Load workflow configuration from an explicit AgentsFile.
- * If a custom workflow.jobs override exists, merge it with the defaults at the job level.
- */
-export function getWorkflow(override: AgentsFile): WorkflowConfig {
-  const jobs = override.workflow?.jobs ?? {};
-  return { jobs };
-}

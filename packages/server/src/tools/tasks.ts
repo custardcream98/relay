@@ -2,12 +2,13 @@ import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
 import type { ResolvedAgentHooks } from "../agents/types";
 import {
   claimTask,
+  countDerivedSiblings,
   getAllTasks,
   getTaskByExternalId,
   getTaskById,
-  getTasksByAssignee,
-  getTeamStatus,
   insertTask,
+  MAX_DERIVED_SIBLINGS,
+  MAX_TASK_DEPTH,
   type TaskRow,
   updateTask,
 } from "../store";
@@ -36,12 +37,44 @@ export function handleCreateTask(
     priority: TaskPriority;
     depends_on?: string[];
     idempotency_key?: string;
+    parent_task_id?: string;
+    derived_reason?: string;
   }
 ) {
   try {
+    // Idempotency check runs first — a re-spawned agent must get back the existing task_id
+    // even if the parent's sibling cap has since been reached by other derived tasks.
     if (input.idempotency_key) {
       const existing = getTaskByExternalId(sessionId, input.idempotency_key);
       if (existing) return { success: true, task_id: existing.id };
+    }
+
+    // Validate depends_on IDs — all must exist in the current session
+    if (input.depends_on && input.depends_on.length > 0) {
+      const missing = input.depends_on.filter((depId) => !getTaskById(depId, sessionId));
+      if (missing.length > 0) {
+        return {
+          success: false,
+          error: `depends_on contains unknown task IDs: ${missing.join(", ")}`,
+        };
+      }
+    }
+
+    // Derived task validation (only for genuinely new tasks)
+    let taskDepth = 0;
+    if (input.parent_task_id) {
+      const parent = getTaskById(input.parent_task_id, sessionId);
+      if (!parent) {
+        return { success: false, error: "parent task not found" };
+      }
+      taskDepth = (parent.depth ?? 0) + 1;
+      if (taskDepth > MAX_TASK_DEPTH) {
+        return { success: false, error: `max derived task depth exceeded (${MAX_TASK_DEPTH})` };
+      }
+      const siblingCount = countDerivedSiblings(sessionId, input.parent_task_id);
+      if (siblingCount >= MAX_DERIVED_SIBLINGS) {
+        return { success: false, error: `max derived siblings exceeded (${MAX_DERIVED_SIBLINGS})` };
+      }
     }
     const id = crypto.randomUUID();
     insertTask({
@@ -55,6 +88,9 @@ export function handleCreateTask(
       created_by: input.agent_id,
       depends_on: input.depends_on ?? [],
       external_id: input.idempotency_key ?? null,
+      parent_task_id: input.parent_task_id ?? null,
+      depth: taskDepth,
+      derived_reason: input.derived_reason ?? null,
     });
     return { success: true, task_id: id };
   } catch (err) {
@@ -74,7 +110,7 @@ export async function handleUpdateTask(
   projectRoot?: string
 ) {
   try {
-    const updates: Partial<Pick<TaskRow, "status" | "assignee" | "description">> = {};
+    const updates: Partial<Pick<TaskRow, "status" | "assignee">> = {};
     if (input.status !== undefined) updates.status = input.status;
     if (input.assignee !== undefined) updates.assignee = input.assignee;
     // Guard against empty updates before hitting the store
@@ -125,20 +161,6 @@ export async function handleUpdateTask(
     return { success: true };
   } catch (err) {
     return { success: false, error: String(err) };
-  }
-}
-
-// Fetch all tasks assigned to an agent
-export function handleGetMyTasks(
-  sessionId: string,
-  input: { agent_id: string; include_description?: boolean }
-) {
-  try {
-    const tasks = getTasksByAssignee(sessionId, input.agent_id);
-    const result = input.include_description ? tasks : tasks.map(({ description: _d, ...t }) => t);
-    return { success: true, tasks: result };
-  } catch (err) {
-    return { success: false, tasks: [], error: String(err) };
   }
 }
 
@@ -224,31 +246,20 @@ export async function handleClaimTask(
   }
 }
 
-// Returns aggregated task counts for the session.
-// Agents use has_pending_work to decide when to broadcast end:waiting or end:done.
-export function handleGetTeamStatus(sessionId: string, _input: { agent_id: string }) {
-  try {
-    const status = getTeamStatus(sessionId);
-    const has_pending_work = status.todo + status.in_progress + status.in_review > 0;
-    return { success: true as const, ...status, has_pending_work };
-  } catch (err) {
-    return { success: false as const, error: String(err) };
-  }
-}
-
 // Returns all tasks in the session regardless of assignee.
 // Used by agents to get an overview of the entire team's work status.
 // Optional status filter avoids client-side filtering for common queries.
 // Descriptions are omitted by default to reduce token consumption — pass include_description: true when needed.
 export function handleGetAllTasks(
   sessionId: string,
-  input: { agent_id: string; status?: string; include_description?: boolean }
+  input: { agent_id: string; status?: string; assignee?: string; include_description?: boolean }
 ) {
   try {
-    const tasks = getAllTasks(sessionId, input.status);
+    const tasks = getAllTasks(sessionId, input.status, input.assignee);
     const result = input.include_description ? tasks : tasks.map(({ description: _d, ...t }) => t);
     return { success: true, tasks: result };
   } catch (err) {
     return { success: false, tasks: [], error: String(err) };
   }
 }
+

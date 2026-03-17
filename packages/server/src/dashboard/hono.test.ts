@@ -2,7 +2,7 @@
 // Tests for Hono REST API routes using in-process app.request()
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config";
-import { _resetStore } from "../store";
+import { _resetStore, insertTask } from "../store";
 import { app } from "./hono";
 
 describe("GET /api/session", () => {
@@ -258,6 +258,157 @@ describe("GET /api/session with pagination", () => {
     expect(typeof body.total.tasks).toBe("number");
     expect(typeof body.total.messages).toBe("number");
     expect(typeof body.total.artifacts).toBe("number");
+  });
+});
+
+describe("GET /api/sessions/:id/completion-check", () => {
+  beforeEach(() => {
+    _resetStore();
+    setSessionId("cc-session");
+  });
+
+  afterEach(() => {
+    _resetSessionId();
+  });
+
+  test("returns all_done:false and total:0 for empty task board", async () => {
+    const res = await app.request("/api/sessions/cc-session/completion-check");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      all_done: boolean;
+      done_count: number;
+      total_count: number;
+      pending_tasks: unknown[];
+    };
+    expect(body.success).toBe(true);
+    expect(body.all_done).toBe(false);
+    expect(body.done_count).toBe(0);
+    expect(body.total_count).toBe(0);
+    expect(body.pending_tasks).toHaveLength(0);
+  });
+
+  test("returns all_done:true when all tasks are done", async () => {
+    insertTask({
+      id: "t1",
+      session_id: "cc-session",
+      title: "Task 1",
+      description: null,
+      status: "done",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "be",
+      depends_on: [],
+      depth: 0,
+    });
+    insertTask({
+      id: "t2",
+      session_id: "cc-session",
+      title: "Task 2",
+      description: null,
+      status: "done",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "fe",
+      depends_on: [],
+      depth: 0,
+    });
+    const res = await app.request("/api/sessions/cc-session/completion-check");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      all_done: boolean;
+      done_count: number;
+      total_count: number;
+      pending_tasks: unknown[];
+    };
+    expect(body.success).toBe(true);
+    expect(body.all_done).toBe(true);
+    expect(body.done_count).toBe(2);
+    expect(body.total_count).toBe(2);
+    expect(body.pending_tasks).toHaveLength(0);
+  });
+
+  test("returns all_done:false with pending_tasks when some tasks are not done", async () => {
+    insertTask({
+      id: "t3",
+      session_id: "cc-session",
+      title: "Done Task",
+      description: null,
+      status: "done",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "be",
+      depends_on: [],
+      depth: 0,
+    });
+    insertTask({
+      id: "t4",
+      session_id: "cc-session",
+      title: "Pending Task",
+      description: null,
+      status: "in_progress",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "fe",
+      depends_on: [],
+      depth: 0,
+    });
+    const res = await app.request("/api/sessions/cc-session/completion-check");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      success: boolean;
+      all_done: boolean;
+      done_count: number;
+      total_count: number;
+      pending_tasks: { id: string; title: string; status: string; assignee: string }[];
+    };
+    expect(body.success).toBe(true);
+    expect(body.all_done).toBe(false);
+    expect(body.done_count).toBe(1);
+    expect(body.total_count).toBe(2);
+    expect(body.pending_tasks).toHaveLength(1);
+    expect(body.pending_tasks[0].id).toBe("t4");
+    expect(body.pending_tasks[0].status).toBe("in_progress");
+  });
+
+  test("returns 400 for invalid session ID", async () => {
+    const res = await app.request("/api/sessions/..%2Fetc%2Fpasswd/completion-check");
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toContain("Invalid");
+  });
+
+  test("only counts tasks for the requested session", async () => {
+    insertTask({
+      id: "t5",
+      session_id: "cc-session",
+      title: "My Task",
+      description: null,
+      status: "todo",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "be",
+      depends_on: [],
+      depth: 0,
+    });
+    insertTask({
+      id: "t6",
+      session_id: "other-session",
+      title: "Other Task",
+      description: null,
+      status: "done",
+      priority: "medium",
+      created_by: "pm",
+      assignee: "be",
+      depends_on: [],
+      depth: 0,
+    });
+    const res = await app.request("/api/sessions/cc-session/completion-check");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { total_count: number; done_count: number };
+    expect(body.total_count).toBe(1);
+    expect(body.done_count).toBe(0);
   });
 });
 

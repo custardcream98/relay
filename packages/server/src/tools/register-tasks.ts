@@ -1,6 +1,5 @@
 // packages/server/src/tools/register-tasks.ts
-// Registers create_task, update_task, claim_task, get_my_tasks, get_all_tasks,
-// and get_team_status MCP tools on the server.
+// Registers create_task, update_task, claim_task, and get_all_tasks MCP tools on the server.
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
@@ -14,8 +13,6 @@ import {
   handleClaimTask,
   handleCreateTask,
   handleGetAllTasks,
-  handleGetMyTasks,
-  handleGetTeamStatus,
   handleUpdateTask,
 } from "./tasks.js";
 
@@ -66,6 +63,19 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Optional idempotency key. If a task with this key already exists in the session, returns the existing task_id without creating a duplicate. Use to make create_task safe to call again after agent re-spawn."
         ),
+      parent_task_id: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(128)
+        .optional()
+        .describe(
+          "Parent task ID for derived tasks. Max depth 1 (no grandchild tasks). Max 3 siblings per parent."
+        ),
+      derived_reason: z
+        .string()
+        .max(512)
+        .optional()
+        .describe("Why this task was derived from its parent task."),
     },
     async (input) => {
       // handleCreateTask is synchronous; no await needed but the handler must be async
@@ -110,30 +120,14 @@ export function registerTaskTools(server: McpServer): void {
     async (input) => {
       const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
       const result = await handleUpdateTask(getSessionId(), input, agentHooks, getProjectRoot());
-      if (result.success) {
+      // Broadcast on success OR hook failure revert (status changed to in_review).
+      // Without this, the dashboard shows stale "done" when a hook reverts the status.
+      if (result.success || (result as { hook_failed?: boolean }).hook_failed) {
         const task = getTaskById(input.task_id, getSessionId());
         if (task) {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-  );
-
-  // Fetch tasks assigned to the calling agent. Use get_all_tasks for the full board view.
-  server.tool(
-    "get_my_tasks",
-    {
-      agent_id: AGENT_ID_SCHEMA.describe("ID of the agent whose assigned tasks to fetch."),
-      include_description: z
-        .boolean()
-        .optional()
-        .describe(
-          "Whether to include full task descriptions in the response. Defaults to false to reduce token consumption. Set to true only when you need the full description to begin work."
-        ),
-    },
-    async (input) => {
-      const result = await handleGetMyTasks(getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );
@@ -159,7 +153,7 @@ export function registerTaskTools(server: McpServer): void {
     async (input) => {
       const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
       const result = await handleClaimTask(getSessionId(), input, agentHooks, getProjectRoot());
-      if (result.claimed) {
+      if (result.success && result.claimed) {
         const task = getTaskById(input.task_id, getSessionId());
         if (task) {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
@@ -169,21 +163,8 @@ export function registerTaskTools(server: McpServer): void {
     }
   );
 
-  // Returns aggregated task counts (todo/in_progress/in_review/done) for the session.
-  // Also returns has_pending_work: boolean — agents use this to decide between end:waiting and end:_done.
-  server.tool(
-    "get_team_status",
-    {
-      agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent."),
-    },
-    async (input) => {
-      const result = await handleGetTeamStatus(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
-    }
-  );
-
   // Returns all tasks in the session regardless of assignee.
-  // Use the optional status filter to narrow results without client-side filtering.
+  // Use the optional status and assignee filters to narrow results without client-side filtering.
   server.tool(
     "get_all_tasks",
     {
@@ -194,6 +175,14 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Optional status filter. When provided, only tasks with this status are returned. Omit to return all tasks."
         ),
+      assignee: z
+        .string()
+        .regex(/^[a-zA-Z0-9_-]+$/)
+        .max(64)
+        .optional()
+        .describe(
+          "Optional assignee filter. When provided, only tasks assigned to this agent are returned."
+        ),
       include_description: z
         .boolean()
         .optional()
@@ -202,7 +191,7 @@ export function registerTaskTools(server: McpServer): void {
         ),
     },
     async (input) => {
-      const result = await handleGetAllTasks(getSessionId(), input);
+      const result = handleGetAllTasks(getSessionId(), input);
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }
   );

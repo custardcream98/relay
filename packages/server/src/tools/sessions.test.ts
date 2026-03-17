@@ -1,7 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
-import { handleGetSessionSummary, handleListSessions, handleSaveSessionSummary } from "./sessions";
+import { _resetStore } from "../store";
+import {
+  handleGetOrchestratorState,
+  handleGetSessionSummary,
+  handleListSessions,
+  handleSaveOrchestratorState,
+  handleSaveSessionSummary,
+} from "./sessions";
 
 const TEST_DIR = join(import.meta.dir, "../../.relay-test");
 
@@ -91,5 +98,40 @@ describe("session tool", () => {
     const result = await handleListSessions(TEST_DIR);
     expect(result.sessions[0]).toBe("2026-03-13-002");
     expect(result.sessions[1]).toBe("2026-03-13-001");
+  });
+});
+
+describe("orchestrator state", () => {
+  beforeEach(() => {
+    _resetStore();
+  });
+
+  test("save then get returns same state string", () => {
+    handleSaveOrchestratorState("sess-1", { agent_id: "orchestrator", state: '{"foo":"bar"}' });
+    const result = handleGetOrchestratorState("sess-1", { agent_id: "orchestrator" });
+    expect(result.success).toBe(true);
+    expect(result.state).toBe('{"foo":"bar"}');
+  });
+
+  test("get on non-existent session returns null state", () => {
+    const result = handleGetOrchestratorState("nonexistent", { agent_id: "orchestrator" });
+    expect(result.success).toBe(true);
+    expect(result.state).toBeNull();
+  });
+
+  test("save overwrites previous state", () => {
+    handleSaveOrchestratorState("sess-1", { agent_id: "orchestrator", state: '{"v":1}' });
+    handleSaveOrchestratorState("sess-1", { agent_id: "orchestrator", state: '{"v":2}' });
+    const result = handleGetOrchestratorState("sess-1", { agent_id: "orchestrator" });
+    expect(result.success).toBe(true);
+    expect(result.state).toBe('{"v":2}');
+  });
+
+  test("_resetStore clears orchestrator states", () => {
+    handleSaveOrchestratorState("sess-1", { agent_id: "orchestrator", state: '{"x":1}' });
+    _resetStore();
+    const result = handleGetOrchestratorState("sess-1", { agent_id: "orchestrator" });
+    expect(result.success).toBe(true);
+    expect(result.state).toBeNull();
   });
 });

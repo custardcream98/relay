@@ -1,12 +1,11 @@
 // packages/server/src/tools/register-agents.ts
-// Registers list_agents, list_pool_agents, get_server_info, broadcast_thinking, and get_workflow
+// Registers list_agents, list_pool_agents, get_server_info, and broadcast_thinking
 // MCP tools on the server.
 
 import { markAsAgentId } from "@custardcream/relay-shared";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { getAgents, getPool, loadPoolFile } from "../agents/cache.js";
-import { getWorkflow } from "../agents/loader.js";
+import { getAgents, getPool } from "../agents/cache.js";
 import { getInstanceId, getPort, getProjectRoot, getRelayDir, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
@@ -117,6 +116,7 @@ export function registerAgentTools(server: McpServer): void {
                 // Return the raw systemPrompt here to avoid duplicating the directive.
                 systemPrompt: a.systemPrompt,
                 basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
+                validate_prompt: a.validate_prompt,
               })),
             }),
           },
@@ -158,6 +158,7 @@ export function registerAgentTools(server: McpServer): void {
                 description: a.description,
                 tags: a.tags,
                 tools: a.tools,
+                validate_prompt: a.validate_prompt,
                 // systemPrompt intentionally omitted — pool metadata only
               })),
             }),
@@ -167,31 +168,4 @@ export function registerAgentTools(server: McpServer): void {
     }
   );
 
-  // Retrieve workflow configuration from the active pool file
-  server.tool(
-    "get_workflow",
-    {
-      agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
-    },
-    async () => {
-      try {
-        const poolFile = loadPoolFile(getRelayDir(), getProjectRoot());
-        // loadPoolFile() uses yaml.load() which returns null for an empty file.
-        // Guard against null so getWorkflow() does not throw TypeError.
-        const workflow = getWorkflow(poolFile ?? { agents: {} });
-        return {
-          content: [{ type: "text", text: JSON.stringify({ success: true, workflow }) }],
-        };
-      } catch (err) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({ success: false, error: (err as Error).message }),
-            },
-          ],
-        };
-      }
-    }
-  );
 }

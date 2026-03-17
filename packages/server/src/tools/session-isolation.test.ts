@@ -10,8 +10,6 @@ import {
   handleClaimTask,
   handleCreateTask,
   handleGetAllTasks,
-  handleGetMyTasks,
-  handleGetTeamStatus,
   handleUpdateTask,
 } from "./tasks";
 
@@ -72,7 +70,7 @@ describe("session isolation — cross-session data leakage", () => {
   // ─── Tasks ──────────────────────────────────────────────────────────────────
 
   describe("tasks", () => {
-    test("get_my_tasks does not return tasks from other sessions", async () => {
+    test("get_all_tasks with assignee filter does not return tasks from other sessions", async () => {
       await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "Session A task",
@@ -80,7 +78,7 @@ describe("session isolation — cross-session data leakage", () => {
         priority: "high",
       });
 
-      const result = await handleGetMyTasks("session-B", { agent_id: "fe" });
+      const result = await handleGetAllTasks("session-B", { agent_id: "fe", assignee: "fe" });
       expect(result.tasks).toHaveLength(0);
     });
 
@@ -106,8 +104,7 @@ describe("session isolation — cross-session data leakage", () => {
       expect(resultB.tasks[0].title).toBe("Task in B");
     });
 
-    test("team status counts only tasks from the queried session", async () => {
-      // Add tasks to session-A only
+    test("get_all_tasks counts only tasks from the queried session", async () => {
       await handleCreateTask("session-A", {
         agent_id: "pm",
         title: "A task 1",
@@ -121,19 +118,11 @@ describe("session isolation — cross-session data leakage", () => {
         priority: "medium",
       });
 
-      // session-B should see zero tasks
-      const statusB = await handleGetTeamStatus("session-B", { agent_id: "pm" });
-      expect(statusB.success).toBe(true);
-      if (!statusB.success) return;
-      expect(statusB.total).toBe(0);
-      expect(statusB.has_pending_work).toBe(false);
+      const resultB = await handleGetAllTasks("session-B", { agent_id: "pm" });
+      expect(resultB.tasks).toHaveLength(0);
 
-      // session-A should see its own tasks
-      const statusA = await handleGetTeamStatus("session-A", { agent_id: "pm" });
-      expect(statusA.success).toBe(true);
-      if (!statusA.success) return;
-      expect(statusA.total).toBe(2);
-      expect(statusA.has_pending_work).toBe(true);
+      const resultA = await handleGetAllTasks("session-A", { agent_id: "pm" });
+      expect(resultA.tasks).toHaveLength(2);
     });
 
     test("update_task cannot modify a task that belongs to a different session", async () => {

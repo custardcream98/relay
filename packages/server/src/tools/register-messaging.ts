@@ -43,7 +43,14 @@ export function registerMessagingTools(server: McpServer): void {
     async (input) => {
       const result = await handleSendMessage(getSessionId(), input);
       if (result.success) {
-        broadcast({ type: "message:new", message: result.message, timestamp: Date.now() });
+        // Strip internal fields (session_id, seq) — they are not part of the public message:new event contract
+        const { id, from_agent, to_agent, content, thread_id, metadata, created_at } =
+          result.message;
+        broadcast({
+          type: "message:new",
+          message: { id, from_agent, to_agent, content, thread_id, metadata, created_at },
+          timestamp: Date.now(),
+        });
       }
       return { content: [{ type: "text", text: JSON.stringify(result) }] };
     }

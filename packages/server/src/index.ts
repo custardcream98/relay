@@ -11,13 +11,17 @@ import { isLocalhostOrigin } from "./dashboard/utils";
 import { addClient, markClientAlive, removeClient, startHeartbeat } from "./dashboard/websocket";
 import { createMcpServer, startMcpServer } from "./mcp";
 import { getAllArtifacts, getAllMessages, getAllTasks } from "./store";
+import { taskToPayload } from "./utils/broadcast";
 
 // MCP connects via piped stdin — if stdin is a TTY, this is a manual invocation; exit with guidance
 if (process.stdin.isTTY) {
   console.error(
     "[relay] relay must be started via Claude Code MCP, not directly.\n" +
-      "  Register it with: claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay\n" +
-      "  Or for local dev:  claude mcp add relay bun -- run src/index.ts"
+      "  Install the plugin inside Claude Code:\n" +
+      "    /plugin marketplace add custardcream98/relay\n" +
+      "    /plugin install relay@relay\n" +
+      "  Or for local dev:\n" +
+      "    claude mcp add relay bun -- run src/index.ts"
   );
   process.exit(1);
 }
@@ -133,9 +137,14 @@ function buildSessionSnapshot(port: number): string {
   const snapshot: Extract<RelayEvent, { type: "session:snapshot" }> = {
     type: "session:snapshot",
     sessionId,
-    tasks: getAllTasks(sessionId),
-    messages: getAllMessages(sessionId).map((m) => ({ ...m, metadata: m.metadata ?? null })),
-    artifacts: getAllArtifacts(sessionId),
+    tasks: getAllTasks(sessionId).map(taskToPayload),
+    messages: getAllMessages(sessionId).map(({ session_id: _s, seq: _q, ...m }) => ({
+      ...m,
+      metadata: m.metadata ?? null,
+    })),
+    artifacts: getAllArtifacts(sessionId).map(
+      ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
+    ),
     instanceId: process.env.RELAY_INSTANCE,
     port,
     agents: agentMeta,

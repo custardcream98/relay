@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config.ts";
 import { broadcast } from "../dashboard/websocket.ts";
-import { _resetStore, getEventsBySession, insertArtifact } from "../store.ts";
+import { _resetStore, insertArtifact } from "../store.ts";
 import { handleRequestReview, handleSubmitReview } from "./review";
 
 /** Helper: insert a minimal artifact so handleRequestReview can find it. */
@@ -234,25 +234,10 @@ describe("submit_review — review:updated broadcast", () => {
       });
     }
 
-    // Verify the event was persisted with the correct shape (broadcast writes to events store)
-    type ReviewUpdatedEvent = {
-      type: "review:updated";
-      review: { id: string; status: string; reviewer: string; comments: string | null };
-    };
-    const payloads = getEventsBySession("broadcast-test-session");
-    const events = payloads.map((p) => JSON.parse(p) as { type: string });
-    const reviewUpdatedEvents = events.filter(
-      (e) => e.type === "review:updated"
-    ) as ReviewUpdatedEvent[];
-    expect(reviewUpdatedEvents).toHaveLength(1);
-
-    const event = reviewUpdatedEvents[0];
-    expect(event.type).toBe("review:updated");
-
-    // Assert the review payload contains the required fields
-    expect(event.review.id).toBe(review_id as string);
-    expect(event.review.status).toBe("approved");
-    expect(event.review.reviewer).toBe("qa");
-    expect(event.review.comments).toBe("All checks pass.");
+    // Verify the review payload contains the required fields
+    expect(result.review?.id).toBe(review_id as string);
+    expect(result.review?.status).toBe("approved");
+    expect(result.review?.reviewer).toBe("qa");
+    expect(result.review?.comments).toBe("All checks pass.");
   });
 });

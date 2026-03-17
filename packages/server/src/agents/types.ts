@@ -1,9 +1,7 @@
 // packages/server/src/agents/types.ts
 // Agent persona type definitions
 
-// AgentId is defined once in @custardcream/relay-shared — re-exported here for convenience
 import type { AgentId } from "@custardcream/relay-shared";
-export type { AgentId };
 
 /**
  * Git-hook style task lifecycle hooks. Shell commands are run by the MCP server
@@ -23,7 +21,7 @@ export interface ResolvedAgentHooks {
   after_task: string[];
 }
 
-export interface AgentConfig {
+interface AgentConfig {
   name: string;
   emoji: string;
   description?: string;

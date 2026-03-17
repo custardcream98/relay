@@ -38,22 +38,6 @@ export function getInstanceId(): string | undefined {
   return process.env.RELAY_INSTANCE;
 }
 
-/**
- * Returns the DB file path for this instance.
- * Not called by the production server (which uses the in-memory store), but exposed
- * as a utility for external tooling that needs to locate a DB file path.
- * Priority:
- * 1. RELAY_DB_PATH env var (explicit override)
- * 2. .relay/relay-{instance}.db when RELAY_INSTANCE is set
- * 3. .relay/relay.db (default)
- */
-export function getDbPath(): string {
-  if (process.env.RELAY_DB_PATH) return resolve(process.env.RELAY_DB_PATH);
-  const instance = getInstanceId();
-  if (instance) return join(getRelayDir(), `relay-${instance}.db`);
-  return join(getRelayDir(), "relay.db");
-}
-
 // Actual dashboard port — set by index.ts after port resolution.
 // Set to null when the dashboard failed to bind (e.g. EADDRINUSE).
 let _port: number | null = null;

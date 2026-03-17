@@ -6,7 +6,7 @@
 
 import type { TaskPriority, TaskStatus } from "@custardcream/relay-shared";
 
-export interface MessageRow {
+interface MessageRow {
   id: string;
   session_id: string;
   from_agent: string;
@@ -47,7 +47,7 @@ export interface TaskRow {
   updated_at: number;
 }
 
-export interface ArtifactRow {
+interface ArtifactRow {
   id: string;
   session_id: string;
   name: string;
@@ -58,7 +58,7 @@ export interface ArtifactRow {
   created_at: number;
 }
 
-export interface ReviewRow {
+interface ReviewRow {
   id: string;
   session_id: string;
   artifact_id: string;
@@ -70,7 +70,7 @@ export interface ReviewRow {
   updated_at: number;
 }
 
-export interface EventRow {
+interface EventRow {
   id: string;
   session_id: string;
   type: string;
@@ -79,7 +79,7 @@ export interface EventRow {
   created_at: number;
 }
 
-export interface SessionRow {
+interface SessionRow {
   id: string;
   created_at: number;
   event_count: number;
@@ -92,7 +92,7 @@ export const MAX_TASKS_PER_SESSION = 1_000;
 export const MAX_ARTIFACTS_PER_SESSION = 500;
 export const MAX_REVIEWS_PER_SESSION = 500;
 // Events are written on every MCP tool call — allow a higher cap than other collections.
-export const MAX_EVENTS_PER_SESSION = 100_000;
+const MAX_EVENTS_PER_SESSION = 100_000;
 /** Maximum derived task nesting depth. 0 = root only; 1 = one level of derived tasks allowed. */
 export const MAX_TASK_DEPTH = 1;
 /** Maximum number of derived tasks per parent task (circuit breaker against unbounded cascades). */
@@ -303,10 +303,6 @@ export function getReviewById(id: string, sessionId: string): ReviewRow | null {
   return reviews.find((r) => r.id === id && r.session_id === sessionId) ?? null;
 }
 
-export function getReviewsByReviewer(sessionId: string, reviewer: string): ReviewRow[] {
-  return reviews.filter((r) => r.session_id === sessionId && r.reviewer === reviewer);
-}
-
 // --- Events ---
 
 export function insertEvent(
@@ -331,13 +327,6 @@ export function insertEvent(
     created_at: Math.floor(timestampMs / 1000),
   });
   eventCountBySession.set(sessionId, sessionCount + 1);
-}
-
-export function getEventsBySession(sessionId: string): string[] {
-  return events
-    .filter((e) => e.session_id === sessionId)
-    .sort((a, b) => a.created_at - b.created_at || a.id.localeCompare(b.id))
-    .map((e) => e.payload);
 }
 
 // --- Sessions ---

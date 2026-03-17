@@ -15,7 +15,6 @@ import {
   getAllSessions,
   getAllTasks,
   getArtifactById,
-  getEventsBySession,
 } from "../store";
 import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
 import { taskToPayload } from "../utils/broadcast";
@@ -158,23 +157,6 @@ app.get("/api/sessions/live", (c) => {
 app.get("/api/sessions", async (c) => {
   const result = await handleListSessions(getRelayDir());
   return c.json(result);
-});
-
-// API: replay all persisted events for a session in chronological order.
-// Registered before /api/sessions/:id so Hono matches the literal "replay" segment first.
-app.get("/api/sessions/:id/replay", (c) => {
-  const sessionId = c.req.param("id");
-  // Validate session_id to prevent path traversal
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-    return c.json({ error: "Invalid session ID" }, 400);
-  }
-  try {
-    const events = getEventsBySession(sessionId).map((payload) => JSON.parse(payload));
-    return c.json({ success: true, sessionId, events });
-  } catch (err) {
-    console.error("[relay] internal error:", err);
-    return c.json({ success: false, error: "Internal server error" }, 500);
-  }
 });
 
 // Completion check for the orchestrator Stop hook.

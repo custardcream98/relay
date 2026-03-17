@@ -266,33 +266,6 @@ describe("GET /api/sessions/live", () => {
   });
 });
 
-describe("GET /api/sessions/:id/replay", () => {
-  beforeEach(() => {
-    _resetStore();
-    setSessionId("replay-session");
-  });
-
-  afterEach(() => {
-    _resetSessionId();
-  });
-
-  test("returns events array for valid session", async () => {
-    const res = await app.request("/api/sessions/replay-session/replay");
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as { success: boolean; sessionId: string; events: unknown[] };
-    expect(body.success).toBe(true);
-    expect(body.sessionId).toBe("replay-session");
-    expect(Array.isArray(body.events)).toBe(true);
-  });
-
-  test("returns 400 for invalid session ID (path traversal attempt)", async () => {
-    const res = await app.request("/api/sessions/..%2Fetc/replay");
-    expect(res.status).toBe(400);
-    const body = (await res.json()) as { error: string };
-    expect(body.error).toContain("Invalid");
-  });
-});
-
 describe("GET /api/session with pagination", () => {
   beforeEach(() => {
     _resetStore();

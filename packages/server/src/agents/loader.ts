@@ -10,7 +10,7 @@ import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from ".
 
 // Complete list of MCP tool names registered by createMcpServer() in mcp.ts.
 // Validated against agent config tools[] to catch typos before runtime.
-export const REGISTERED_MCP_TOOLS = new Set([
+const REGISTERED_MCP_TOOLS = new Set([
   "get_server_info",
   "start_session",
   "send_message",
@@ -84,7 +84,7 @@ function readYml(path: string): AgentsFile | null {
  * Also substitutes {agent_id} within each block with the actual agent ID.
  * Throws if a referenced block is not defined in shared_blocks.
  */
-export function resolveSharedBlocks(
+function resolveSharedBlocks(
   systemPrompt: string,
   sharedBlocks: Record<string, string>,
   agentId: string
@@ -338,4 +338,3 @@ export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
     "No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml) or run /relay:relay to auto-generate one."
   );
 }
-

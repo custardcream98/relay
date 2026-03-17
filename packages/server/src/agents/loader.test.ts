@@ -329,7 +329,6 @@ describe("language setting", () => {
     expect(agents.writer.language).toBe("Korean");
     expect(agents.analyst.language).toBe("English");
   });
-
 });
 
 describe("loadPool", () => {

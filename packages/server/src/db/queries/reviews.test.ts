@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
-import { _resetStore, getReviewsByReviewer, insertReview, updateReviewStatus } from "../../store";
+import { _resetStore, getReviewById, insertReview, updateReviewStatus } from "../../store";
 
 describe("review queries", () => {
   beforeEach(() => {
@@ -16,8 +16,9 @@ describe("review queries", () => {
       status: "pending",
       comments: null,
     });
-    const reviews = getReviewsByReviewer("sess-1", "be");
-    expect(reviews).toHaveLength(1);
+    const review = getReviewById("rev-1", "sess-1");
+    expect(review).not.toBeNull();
+    expect(review?.reviewer).toBe("be");
   });
 
   test("update review status", () => {
@@ -31,9 +32,9 @@ describe("review queries", () => {
       comments: null,
     });
     updateReviewStatus("rev-2", "sess-1", "approved", "LGTM!");
-    const reviews = getReviewsByReviewer("sess-1", "be2");
-    expect(reviews).toHaveLength(1); // guard against accidental duplicate rows
-    expect(reviews[0].status).toBe("approved");
-    expect(reviews[0].comments).toBe("LGTM!");
+    const review = getReviewById("rev-2", "sess-1");
+    expect(review).not.toBeNull();
+    expect(review?.status).toBe("approved");
+    expect(review?.comments).toBe("LGTM!");
   });
 });

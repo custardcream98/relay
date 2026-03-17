@@ -6,11 +6,11 @@ import { join } from "node:path";
 import yaml from "js-yaml";
 import { getRelayDir } from "../config.js";
 import { loadAgents, loadPool } from "./loader.js";
-import type { AgentPersona, AgentsFile } from "./types.js";
+import type { AgentPersona } from "./types.js";
 
 // Pool cache TTL — pool file can change between sessions (e.g. during development).
 // Stale-after-5-minutes ensures users see the updated pool without restarting the server.
-export const POOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const POOL_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // Lazy agent cache — populated on first getAgents() call.
 // Key: session_id string, or "__default__" for the no-session-id case.
@@ -112,25 +112,4 @@ export function _invalidateCache(): void {
   agentsCache.clear();
   pool = null;
   poolCachedAt = 0;
-}
-
-/**
- * Read the raw pool AgentsFile from disk.
- * Returns an empty AgentsFile on any read or parse error.
- * Always reads from disk; call getPool() instead if you only need the processed agent map with TTL caching.
- */
-export function loadPoolFile(relayDir: string, projectRoot: string): AgentsFile {
-  try {
-    const relayPoolPath = join(relayDir, "agents.pool.yml");
-    const rootPoolPath = join(projectRoot, "agents.pool.yml");
-    if (existsSync(relayPoolPath)) {
-      return yaml.load(readFileSync(relayPoolPath, "utf-8")) as AgentsFile;
-    }
-    if (existsSync(rootPoolPath)) {
-      return yaml.load(readFileSync(rootPoolPath, "utf-8")) as AgentsFile;
-    }
-  } catch {
-    // Pool file read failure — return empty structure
-  }
-  return { agents: {} };
 }

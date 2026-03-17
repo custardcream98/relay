@@ -1,59 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import {
   _resetProjectRoot,
   _resetSessionId,
-  getDbPath,
   getInstanceId,
   getRelayDir,
   getSessionId,
   setSessionId,
   uriToPath,
 } from "./config";
-
-describe("getDbPath", () => {
-  beforeEach(() => {
-    delete process.env.RELAY_DB_PATH;
-    delete process.env.RELAY_INSTANCE;
-    delete process.env.RELAY_DIR;
-    delete process.env.RELAY_PROJECT_ROOT;
-  });
-
-  afterEach(() => {
-    delete process.env.RELAY_DB_PATH;
-    delete process.env.RELAY_INSTANCE;
-    delete process.env.RELAY_DIR;
-    delete process.env.RELAY_PROJECT_ROOT;
-  });
-
-  test("returns RELAY_DB_PATH when set", () => {
-    process.env.RELAY_DB_PATH = "/custom/path/relay.db";
-    expect(getDbPath()).toBe("/custom/path/relay.db");
-  });
-
-  test("returns instance-scoped DB path when RELAY_INSTANCE is set", () => {
-    process.env.RELAY_INSTANCE = "project-a";
-    process.env.RELAY_DIR = "/tmp/relay-config-test";
-    const path = getDbPath();
-    expect(path).toContain("relay-project-a.db");
-  });
-
-  test("returns default relay.db when no env vars are set", () => {
-    // RELAY_DIR must be set to get a deterministic path; otherwise it uses cwd()
-    process.env.RELAY_DIR = "/tmp/relay-default-db-test";
-    const path = getDbPath();
-    // Should end with the plain relay.db filename (not an instance-scoped one)
-    expect(path).toMatch(/relay\.db$/);
-    expect(path).not.toMatch(/relay-\w+\.db$/);
-  });
-
-  test("resolves relative RELAY_DB_PATH to an absolute path", () => {
-    process.env.RELAY_DB_PATH = "data/relay.db";
-    const path = getDbPath();
-    // resolve() must produce an absolute path
-    expect(path.startsWith("/")).toBe(true);
-    expect(path.endsWith("relay.db")).toBe(true);
-  });
-});
 
 describe("getRelayDir", () => {
   afterEach(() => {

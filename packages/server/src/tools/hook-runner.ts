@@ -23,7 +23,7 @@ const MAX_OUTPUT_CHARS = 2000;
 export const DEFAULT_BEFORE_TIMEOUT_MS = 30_000;
 export const DEFAULT_AFTER_TIMEOUT_MS = 120_000;
 
-export interface HookResult {
+interface HookResult {
   success: boolean;
   exitCode: number | null;
   /** Combined stdout + stderr, capped at MAX_OUTPUT_CHARS. */
@@ -37,6 +37,7 @@ export interface HookResult {
  * - Combined stdout + stderr is capped at MAX_OUTPUT_CHARS.
  * - Env vars from `env` are merged on top of the current process environment.
  */
+/** @internal Exported for unit testing — production code should use runHooks(). */
 export function runHook(
   command: string,
   env: Record<string, string>,

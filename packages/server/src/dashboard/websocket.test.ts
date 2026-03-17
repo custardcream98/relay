@@ -3,7 +3,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { markAsAgentId } from "@custardcream/relay-shared";
 import { _resetSessionId } from "../config.ts";
-import { _resetStore, getEventsBySession } from "../store.ts";
+import { _resetStore } from "../store.ts";
 import { addClient, broadcast, removeClient } from "./websocket";
 
 // Minimal WebSocket stub — tracks sent messages and can simulate a broken connection.
@@ -62,70 +62,6 @@ describe("websocket broadcast", () => {
 
     removeClient(client1 as never);
     removeClient(client2 as never);
-  });
-
-  test("persists regular events to DB", () => {
-    const client = makeWsStub();
-    addClient(client as never);
-
-    broadcast({
-      type: "message:new",
-      message: {
-        id: "msg-1",
-        from_agent: "pm",
-        to_agent: null,
-        content: "hello",
-        thread_id: null,
-        metadata: null,
-        created_at: 1000,
-      },
-      timestamp: Date.now(),
-    });
-
-    const payloads = getEventsBySession("ws-test-session");
-    const events = payloads.map((p) => JSON.parse(p) as { type: string });
-    expect(events.some((e) => e.type === "message:new")).toBe(true);
-
-    removeClient(client as never);
-  });
-
-  test("does NOT persist agent:thinking events to DB", () => {
-    const client = makeWsStub();
-    addClient(client as never);
-
-    broadcast({
-      type: "agent:thinking",
-      agentId: markAsAgentId("be"),
-      chunk: "Thinking about implementation...",
-      timestamp: Date.now(),
-    });
-
-    const payloads = getEventsBySession("ws-test-session");
-    const events = payloads.map((p) => JSON.parse(p) as { type: string });
-    expect(events.every((e) => e.type !== "agent:thinking")).toBe(true);
-    // But the event is still sent to the client
-    expect(client.sent).toHaveLength(1);
-
-    removeClient(client as never);
-  });
-
-  test("does NOT persist session:started events to DB", () => {
-    const client = makeWsStub();
-    addClient(client as never);
-
-    broadcast({
-      type: "session:started",
-      sessionId: "ws-test-session",
-      timestamp: Date.now(),
-    });
-
-    const payloads = getEventsBySession("ws-test-session");
-    const events = payloads.map((p) => JSON.parse(p) as { type: string });
-    expect(events.every((e) => e.type !== "session:started")).toBe(true);
-    // Still forwarded to client
-    expect(client.sent).toHaveLength(1);
-
-    removeClient(client as never);
   });
 
   test("removes a broken client and continues broadcasting to healthy clients", () => {

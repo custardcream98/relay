@@ -17,7 +17,7 @@ The MCP server handles all inter-agent communication infrastructure.
 - **Realtime**: `ws` WebSocket
 - **Frontend**: React + Vite (`packages/dashboard/`)
 - **Styling**: Tailwind CSS
-- **DB**: In-memory store (`store.ts`) — ephemeral, no native bindings required. `bun:sqlite` is used only in tests via `_setDb()` for isolation.
+- **DB**: In-memory store (`store.ts`) — ephemeral, no native bindings required. Tests call `_resetStore()` in `beforeEach` for isolation.
 - **Memory**: Markdown files (`.relay/memory/`)
 - **Persona config**: YAML (`.relay/agents.pool.yml` / `agents.pool.yml`)
 - **Package manager**: bun (do not use npm/yarn/pnpm)
@@ -36,25 +36,26 @@ The MCP server handles all inter-agent communication infrastructure.
 - Peer-to-peer — no orchestrator
 
 ### Dual memory structure
-- **Session memory**: SQLite (messages, tasks, artifacts) — ephemeral within a session
+- **Session memory**: in-memory store (messages, tasks, artifacts) — ephemeral within a process
 - **Project memory**: `.relay/memory/` Markdown files — persisted across sessions
 - Memory is injected into each agent's system prompt at session start
 - Agents update memory at session end via `write_memory` / `append_memory`
+- **Orchestrator state** (`save_orchestrator_state` / `get_orchestrator_state`): also in-memory — survives context compaction within the same process but is lost on MCP server restart. If the server restarts mid-session, orchestrator state cannot be recovered; agents should start a fresh session.
 
 ### Personas are configured in YAML (pool-only)
 - Team composition happens per-session from the pool. Every `/relay:relay` invocation selects a task-optimised team.
 - `agents.pool.example.yml`: 12+ diverse agent personas across web-dev, research, and marketing domains. Reference for building your own pool.
 - `.relay/agents.pool.yml`: project-level pool (takes priority). Copy from `agents.pool.example.yml` and customise.
 - `agents.pool.yml` (project root): fallback pool location.
-- Pool agents have an optional `tags: string[]` field used by `/relay:relay` for smart team suggestions.
+- Pool agents have optional fields: `tags: string[]` (smart team suggestions), `validate_prompt?: string` (declarative validation criteria injected before task completion — agents check all criteria before marking done).
 - `list_pool_agents` MCP tool returns pool metadata (no `systemPrompt`) for team selection.
 - `session-agents-{sessionId}.yml`: ephemeral per-session team file written by `/relay:relay` Team Composition step. Gitignored. Filename includes session ID to avoid concurrent-session collisions.
 - `loadPool()` in `loader.ts`: reads pool file; throws a clear error when no pool is configured (no silent fallback).
 - **Multi-instance same agent**: Use `extends` in pool YAML — `fe2: { extends: fe }` inherits fe's full persona with a different agent ID. Supports parallel fe/fe2/fe3 teams.
 
 ### Install modes (global / local)
-- Global: install skills to `~/.claude/skills/` + `claude mcp add --scope user`
-- Local: install skills to `.claude/skills/` + `claude mcp add --scope local`
+- Global (user scope): `/plugin install relay@relay`
+- Local (project scope): `/plugin install relay@relay --scope project`
 - Local overrides global
 
 ### Multi-server support
@@ -62,8 +63,7 @@ Run multiple relay instances simultaneously without port or session data conflic
 
 Environment variables:
 - `DASHBOARD_PORT`: HTTP/WebSocket port (default: auto-selected from 3456–3465)
-- `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the session ID is prefixed (`project-a-2026-03-14-007-a3f7`) and the DB file becomes `.relay/relay-{instance}.db`.
-- `RELAY_DB_PATH`: explicit DB file path override (overrides RELAY_INSTANCE default).
+- `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the DB file becomes `.relay/relay-{instance}.db`. The SKILL.md orchestrator prefixes session IDs with the instance name (`project-a-2026-03-14-007-a3f7`).
 - `RELAY_SESSION_ID`: session identifier (default: auto-generated `YYYY-MM-DD-HHmmss-XXXX` in UTC on first call, where `XXXX` is 4 random hex digits).
 
 CLI args (alternative to env vars):
@@ -99,23 +99,35 @@ packages/
 │       ├── index.ts      # entry point: starts MCP + Hono servers together
 │       ├── mcp.ts        # MCP server instance and tool registration
 │       ├── tools/        # MCP tool implementations
-│       │   ├── messaging.ts   # send_message, get_messages
-│       │   ├── tasks.ts       # create_task, update_task, get_my_tasks, claim_task, get_all_tasks, get_team_status
-│       │   ├── artifacts.ts   # post_artifact, get_artifact
-│       │   ├── review.ts      # request_review, submit_review
-│       │   ├── memory.ts      # read_memory, write_memory, append_memory
-│       │   └── sessions.ts    # save_session_summary, list_sessions, get_session_summary
+│       │   ├── messaging.ts        # send_message, get_messages (handlers)
+│       │   ├── tasks.ts            # create_task, update_task, claim_task, get_all_tasks (handlers)
+│       │   ├── artifacts.ts        # post_artifact, get_artifact (handlers)
+│       │   ├── review.ts           # request_review, submit_review (handlers)
+│       │   ├── memory.ts           # read_memory, write_memory, append_memory (handlers)
+│       │   ├── sessions.ts         # save_session_summary, list_sessions, get_session_summary, save_orchestrator_state, get_orchestrator_state (handlers)
+│       │   ├── register-messaging.ts   # MCP tool registration for messaging tools
+│       │   ├── register-tasks.ts       # MCP tool registration for task tools
+│       │   ├── register-artifacts.ts   # MCP tool registration for artifact tools
+│       │   ├── register-review.ts      # MCP tool registration for review tools
+│       │   ├── register-memory.ts      # MCP tool registration for memory tools
+│       │   ├── register-sessions.ts    # MCP tool registration for session tools
+│       │   ├── register-agents.ts      # MCP tool registration for get_server_info, list_agents, list_pool_agents, broadcast_thinking
+│       │   └── hook-runner.ts          # runHook / runHooks — executes per-agent before_task / after_task shell hooks
+│       ├── store.ts         # in-memory data store (tasks, messages, artifacts, reviews, events, orchestrator state)
+│       ├── config.ts        # project root, session ID, port, instance ID singletons
+│       ├── schemas.ts       # shared Zod schemas (AGENT_ID_SCHEMA)
 │       ├── agents/
 │       │   ├── types.ts       # AgentId, AgentPersona, AgentConfig types
-│       │   └── loader.ts      # load pool + session-agents file + inject memory
-│       ├── db/
-│       │   ├── client.ts      # DB singleton
-│       │   ├── schema.ts      # table DDL
-│       │   └── queries/       # per-table CRUD
+│       │   ├── loader.ts      # load pool + session-agents file + inject memory
+│       │   └── cache.ts       # centralized agent/pool cache
+│       ├── utils/
+│       │   ├── broadcast.ts   # taskToPayload — strips internal fields for WS/REST
+│       │   └── validate.ts    # isValidId — alphanumeric ID validation
 │       └── dashboard/
-│           ├── hono.ts        # Hono REST API
+│           ├── hono.ts        # Hono REST API + completion-check endpoint
 │           ├── websocket.ts   # WebSocket broadcaster
-│           └── events.ts      # RelayEvent union type
+│           ├── events.ts      # RelayEvent union type (server-side)
+│           └── utils.ts       # isLocalhostOrigin helper
 ├── shared/               # @custardcream/relay-shared — shared types
 │   └── index.ts          # AgentId, RelayEvent discriminated union
 ├── dashboard/            # @custardcream/relay-dashboard — React + Vite realtime UI
@@ -127,10 +139,14 @@ skills/                   # Claude Code Plugin skill files
 └── agent/SKILL.md        # /relay:agent - single agent invocation
 
 hooks/
-└── hooks.json            # PostToolUse hook: MCP tool call → dashboard state update
+└── hooks.json            # Plugin-level hooks: PostToolUse (MCP tool call → dashboard state update),
+                          #   PreToolUse (Edit|Write|MultiEdit → relay-edit-guard.sh),
+                          #   Stop → relay-orchestrator-stop.sh,
+                          #   SessionEnd (async) → relay-session-cleanup.sh
 
 .claude-plugin/
-└── plugin.json           # plugin manifest
+├── plugin.json           # plugin manifest
+└── marketplace.json      # marketplace metadata
 
 .mcp.json                 # MCP server config (uses ${CLAUDE_PLUGIN_ROOT})
 
@@ -163,7 +179,7 @@ hooks:
 - Timeouts: 30 s for `before_task`, 120 s for `after_task`.
 - Env vars injected into hooks: `RELAY_AGENT_ID`, `RELAY_TASK_ID`, `RELAY_SESSION_ID`.
 - `hooks: false` in an `extends`-based agent explicitly opts out of inherited hooks.
-- Implementation: `tools/hook-runner.ts` (runHook / runHooks), wired in `tools/tasks.ts` wrapper functions, called from `mcp.ts` claim_task / update_task handlers.
+- Implementation: `tools/hook-runner.ts` (runHook / runHooks), wired in `tools/tasks.ts` wrapper functions, called from `tools/register-tasks.ts` claim_task / update_task handlers.
 
 ## Workflow
 
@@ -201,7 +217,7 @@ type RelayEvent =
 ```
 
 ### History replay
-- All events are stored in SQLite with timestamps
+- All events are stored in-memory with timestamps during the session
 - The dashboard supports selecting a session and replaying the entire process
 
 ## Dev Commands
@@ -244,8 +260,7 @@ bun run version-packages
 
 - Never add code that calls the Claude API directly (incurs extra billing)
 - Use `node:` built-ins for production code; Bun APIs are only for dev tooling (test runner, build)
-  - `tsconfig.json` includes `"bun"` in `types` to support `bun:test` / `bun:sqlite` in test files — do NOT use Bun APIs in `src/` production code
-  - `tsconfig.json` includes `"bun"` in `types` for `bun:test` / `bun:sqlite` support in both src/ and test files
+  - `tsconfig.json` includes `"bun"` in `types` for `bun:test` support in test files — do NOT use Bun APIs in `src/` production code
   - Use `node:` built-ins where they provide cleaner APIs (fs, path, etc.) — Bun implements them
 - All code comments must be in English
 - Agent persona system prompts may be Korean or English, but keep them consistent

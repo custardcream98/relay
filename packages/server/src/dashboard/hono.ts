@@ -14,6 +14,7 @@ import {
   getAllMessages,
   getAllSessions,
   getAllTasks,
+  getArtifactById,
   getEventsBySession,
 } from "../store";
 import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
@@ -123,6 +124,21 @@ app.get("/api/session", (c) => {
     console.error("[relay] internal error:", err);
     return c.json({ success: false, error: "Internal server error" }, 500);
   }
+});
+
+// API: fetch a single artifact with full content by ID
+app.get("/api/artifacts/:id", (c) => {
+  const artifactId = c.req.param("id");
+  if (!/^[a-zA-Z0-9_-]+$/.test(artifactId)) {
+    return c.json({ success: false, error: "Invalid artifact ID" }, 400);
+  }
+  const sessionId = getSessionId();
+  const artifact = getArtifactById(artifactId, sessionId);
+  if (!artifact) {
+    return c.json({ success: false, error: "Artifact not found" }, 404);
+  }
+  const { session_id: _, ...rest } = artifact;
+  return c.json({ success: true, artifact: rest });
 });
 
 // API: in-memory session list derived from stored events (most-recent first)

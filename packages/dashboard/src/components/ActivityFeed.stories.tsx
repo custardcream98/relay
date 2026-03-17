@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { ServerContext } from "../context/ServerContext";
 import type { AgentId, TimelineEntry } from "../types";
 import { ActivityFeed } from "./ActivityFeed";
 
@@ -79,6 +80,7 @@ const ENTRIES: TimelineEntry[] = [
     type: "artifact:posted",
     agentId: "fe",
     description: "Artifact: login-design-spec",
+    detail: "a1b2c3d4-mock-artifact-id",
     timestamp: ago(200),
   },
   {
@@ -136,14 +138,61 @@ const ENTRIES: TimelineEntry[] = [
   },
 ];
 
+// Mock artifact content returned by /api/artifacts/:id
+const MOCK_ARTIFACT_RESPONSE = JSON.stringify({
+  success: true,
+  artifact: {
+    id: "a1b2c3d4-mock-artifact-id",
+    name: "login-design-spec",
+    type: "figma_spec",
+    content:
+      "# Login Page Design Spec\n\n## Screens\n1. **Login form** — email + password\n2. **Loading state** — spinner overlay\n3. **Error state** — inline validation\n\n## Components\n- `LoginForm` — Zod validation\n- `PasswordInput` — toggleable visibility\n- `SocialLoginButtons` — Google, GitHub\n\n## Edge Cases\n- Empty state: submit disabled\n- Rate limit: countdown after 5 attempts",
+    created_by: "fe",
+    task_id: null,
+    created_at: Math.floor(Date.now() / 1000) - 200,
+  },
+});
+
 const meta = {
   component: ActivityFeed,
   parameters: { layout: "fullscreen" },
   decorators: [
+    // Mock fetch for artifact detail API
+    (Story) => {
+      const origFetch = window.fetch;
+      window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/api/artifacts/")) {
+          return new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve(
+                  new Response(MOCK_ARTIFACT_RESPONSE, {
+                    headers: { "Content-Type": "application/json" },
+                  })
+                ),
+              150
+            )
+          );
+        }
+        return origFetch(input, init);
+      };
+      return <Story />;
+    },
+    // ServerContext required by useServer() in ActivityFeed
     (Story) => (
-      <div style={{ height: 600, display: "flex", flexDirection: "column" }}>
-        <Story />
-      </div>
+      <ServerContext.Provider
+        value={{
+          servers: [{ url: "", label: "local", status: "live", isActive: true }],
+          activeServer: "",
+          onSwitchServer: () => {},
+          onAddServer: () => {},
+        }}
+      >
+        <div style={{ height: 600, display: "flex", flexDirection: "column" }}>
+          <Story />
+        </div>
+      </ServerContext.Provider>
     ),
   ],
   args: {

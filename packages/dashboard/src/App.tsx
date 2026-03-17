@@ -77,6 +77,7 @@ function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry 
         type: event.type,
         agentId: event.artifact.created_by,
         description: `Artifact: ${event.artifact.name}`,
+        detail: event.artifact.id,
         timestamp: event.timestamp,
       };
     case "agent:thinking":

@@ -135,6 +135,7 @@ const TIMELINE: TimelineEntry[] = [
     type: "artifact:posted",
     agentId: "fe",
     description: "Artifact: login-design-spec",
+    detail: "mock-artifact-login-design",
     timestamp: ago(200),
   },
   {
@@ -266,15 +267,51 @@ function MockProviders({
   );
 }
 
+// Mock artifact content returned when clicking an artifact card in the activity feed
+const MOCK_ARTIFACT_RESPONSE = JSON.stringify({
+  success: true,
+  artifact: {
+    id: "mock-artifact-login-design",
+    name: "login-design-spec",
+    type: "figma_spec",
+    content:
+      "# Login Page Design Spec\n\n## Screens\n1. **Login form** — email + password fields, submit button\n2. **Loading state** — spinner overlay on submit\n3. **Error state** — inline validation, toast for server errors\n\n## Components\n- `LoginForm` — controlled form with Zod validation\n- `PasswordInput` — toggleable visibility\n- `SocialLoginButtons` — Google, GitHub OAuth\n\n## Edge Cases\n- Empty state: submit disabled\n- Rate limit: countdown after 5 failed attempts",
+    created_by: "fe",
+    task_id: null,
+    created_at: Math.floor(ago(200) / 1000),
+  },
+});
+
 const meta = {
   component: AppLayout,
   parameters: { layout: "fullscreen" },
   decorators: [
-    (Story: () => ReactNode) => (
-      <MockProviders>
-        <Story />
-      </MockProviders>
-    ),
+    // Mock fetch for /api/artifacts/:id so artifact detail modal works in stories
+    (Story: () => ReactNode) => {
+      const origFetch = window.fetch;
+      window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input.toString();
+        if (url.includes("/api/artifacts/")) {
+          return new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve(
+                  new Response(MOCK_ARTIFACT_RESPONSE, {
+                    headers: { "Content-Type": "application/json" },
+                  })
+                ),
+              150
+            )
+          );
+        }
+        return origFetch(input, init);
+      };
+      return (
+        <MockProviders>
+          <Story />
+        </MockProviders>
+      );
+    },
   ],
 } satisfies Meta<typeof AppLayout>;
 

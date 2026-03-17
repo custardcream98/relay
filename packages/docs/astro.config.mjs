@@ -19,6 +19,11 @@ export default defineConfig({
         defaultProps: { frame: "none" },
       },
       title: "relay",
+      logo: {
+        light: "./src/assets/logo-light.svg",
+        dark: "./src/assets/logo-dark.svg",
+        replacesTitle: false,
+      },
       description:
         "relay is a multi-agent collaboration framework for Claude Code. Assemble any team from your agent pool — web dev, research, marketing — and agents collaborate peer-to-peer via MCP. No extra API costs.",
       social: [

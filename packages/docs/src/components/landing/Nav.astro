@@ -18,6 +18,7 @@ const langHref = `${base}${t("nav.langHref.suffix")}`;
   <div class="nav__inner">
     <!-- Logo: monospace + blinking cursor -->
     <a href={homeHref} class="nav__logo" aria-label="relay home">
+      <img src={`${base}/favicon.svg`} class="nav__logo-icon" width="18" height="18" alt="" />
       <span class="nav__logo-text">relay</span><span class="nav__cursor" aria-hidden="true">_</span>
     </a>
 
@@ -81,7 +82,7 @@ const langHref = `${base}${t("nav.langHref.suffix")}`;
   .nav__logo {
     display: inline-flex;
     align-items: baseline;
-    gap: 0;
+    gap: 6px;
     text-decoration: none;
     font-family: var(--font-mono);
     font-size: 1.0625rem;
@@ -89,6 +90,13 @@ const langHref = `${base}${t("nav.langHref.suffix")}`;
     letter-spacing: -0.02em;
     color: var(--color-text-primary);
     transition: opacity 0.15s;
+  }
+
+  .nav__logo-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    align-self: center;
   }
 
   .nav__logo:hover {

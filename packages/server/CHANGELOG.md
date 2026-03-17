@@ -1,5 +1,11 @@
 # @custardcream/relay
 
+## 0.16.0
+
+### Minor Changes
+
+- f3ab43d: Dashboard UX improvements: session progress widget, task progress bar, dependency indicators, agent task mini-bar, keyboard navigation, mobile tab layout, enhanced task detail modal. Language preference support in auto-pool generation skill.
+
 ## 0.15.0
 
 ### Minor Changes

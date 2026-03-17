@@ -15,7 +15,7 @@ const snippets = [
   {
     step: "01",
     label: t("qs.step1.label"),
-    code: `claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay`,
+    code: `/plugin marketplace add custardcream98/relay\n/plugin install relay@relay`,
     comment: t("qs.step1.comment"),
   },
   {
@@ -58,7 +58,7 @@ const snippets = [
               <span class="qs__block-title">{s.label}</span>
             </div>
             <div class="qs__block-terminal">
-              <span class="qs__prompt" aria-hidden="true">$</span>
+              <span class="qs__prompt" aria-hidden="true">&gt;</span>
               <div class="qs__code-wrap">
                 <code class="qs__code">{s.code}</code>
                 <span class="qs__comment" aria-hidden="true">{s.comment}</span>
@@ -219,6 +219,7 @@ const snippets = [
     color: var(--color-text-primary);
     letter-spacing: 0.01em;
     word-break: break-all;
+    white-space: pre-wrap;
   }
 
   .qs__comment {

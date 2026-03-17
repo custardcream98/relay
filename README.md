@@ -130,7 +130,7 @@ agents:
     name: Project Manager
     emoji: "📋"
     tags: [planning, coordination]
-    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
+    tools: [create_task, get_all_tasks, send_message, get_messages]
     systemPrompt: |
       You are the project manager. Break down requirements into tasks...
 
@@ -152,7 +152,11 @@ Copy `agents.pool.example.yml` — 12 pre-built personas spanning web-dev, resea
 
 `/relay:relay` reads the pool each time and assembles a task-optimized team from it. Set a top-level `language: "Korean"` to default all agents to a specific language.
 
-Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`.
+Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`.
+
+**`validate_prompt`** — declarative validation criteria injected into the agent's system prompt. Agents check all listed criteria before calling `update_task(status: "done")`.
+
+**Derived tasks** — `create_task` supports `parent_task_id` (max depth 1) and `derived_reason` to track where sub-tasks came from. A circuit breaker limits depth to 1 level and max 3 siblings per parent.
 
 **`hooks`** — git-hook style shell commands run by the MCP server before/after task lifecycle events:
 - `before_task`: runs before `claim_task`; non-zero exit blocks claiming (no phantom `in_progress`)
@@ -167,13 +171,15 @@ Every agent communicates exclusively through MCP tools. Each tool returns `{ suc
 
 ```
 Messaging    send_message · get_messages  (supports optional metadata)
-Tasks        create_task · update_task · claim_task · get_my_tasks · get_all_tasks · get_team_status
+Tasks        create_task · update_task · claim_task · get_all_tasks
+             └── get_all_tasks supports optional assignee filter
              └── Tasks support depends_on — claim_task blocks until all dependencies are done
+             └── Derived tasks: parent_task_id (max depth 1, max 3 siblings) tracks task ancestry
 Artifacts    post_artifact · get_artifact
 Reviews      request_review · submit_review
 Memory       read_memory · write_memory · append_memory
-Sessions     save_session_summary · list_sessions · get_session_summary
-Agents       list_agents · list_pool_agents · get_workflow
+Sessions     save_session_summary · list_sessions · get_session_summary · save_orchestrator_state · get_orchestrator_state
+Agents       list_agents · list_pool_agents
 Visibility   broadcast_thinking  (fire-and-forget; pushes agent intent to the dashboard)
 Server       get_server_info · start_session
 ```

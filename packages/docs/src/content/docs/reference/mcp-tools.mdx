@@ -1,6 +1,6 @@
 ---
 title: MCP tools reference
-description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 24 tools: messaging, tasks, artifacts, reviews, memory, sessions, agents, and visibility."
+description: "Complete MCP tool reference for relay — parameters, return values, and usage for all 23 tools: messaging, tasks, artifacts, reviews, memory, sessions, agents, and visibility."
 ---
 
 All tools respond with a flat object: `{ success: boolean, ...fields }` on success, or `{ success: false, error: string }` on failure — there is no nested `data` field.
@@ -124,6 +124,10 @@ Create a new issue/task.
   description?: string;    // detailed description with clear acceptance criteria
   assignee?: string;       // assigned agent ID (optional)
   priority: "critical" | "high" | "medium" | "low";
+  depends_on?: string[];   // task IDs that must be done before this can start
+  idempotency_key?: string; // if a task with this key exists, returns existing task_id (safe re-spawn)
+  parent_task_id?: string; // parent task ID for derived tasks (max depth 1, max 3 siblings per parent)
+  derived_reason?: string; // why this task was derived from its parent
 }
 ```
 
@@ -134,6 +138,11 @@ Create a new issue/task.
   task_id: string;
 }
 ```
+
+Returns `{ success: false, error: string }` in these cases:
+- Circuit breaker triggered (depth > 1 or > 3 siblings per parent)
+- `depends_on` contains unknown task IDs (IDs must exist in the current session at creation time)
+- `parent_task_id` does not exist in the current session
 
 ---
 
@@ -155,35 +164,6 @@ Change a task's status or assignee.
 ```typescript
 {
   success: true;
-}
-```
-
----
-
-### get_my_tasks
-
-Fetch tasks assigned to the calling agent.
-
-**Parameters:**
-```typescript
-{
-  agent_id: string; // agent ID to fetch tasks for
-}
-```
-
-**Returns:**
-```typescript
-{
-  success: true;
-  tasks: Array<{
-    id: string;
-    title: string;
-    description: string | null;
-    status: string;
-    priority: string;
-    assignee: string | null;
-    created_at: string;
-  }>;
 }
 ```
 
@@ -215,12 +195,13 @@ Prevents race conditions where two agents try to pick up the same task simultane
 
 ### get_all_tasks
 
-Returns all tasks in the session regardless of assignee.
+Returns all tasks in the session. When `assignee` is provided, only tasks assigned to that agent are returned.
 
 **Parameters:**
 ```typescript
 {
-  agent_id: string; // calling agent ID
+  agent_id: string;   // calling agent ID
+  assignee?: string;  // Optional assignee filter. When provided, only tasks assigned to this agent are returned.
 }
 ```
 
@@ -229,32 +210,6 @@ Returns all tasks in the session regardless of assignee.
 {
   success: true;
   tasks: Array<{ id: string; title: string; status: string; assignee: string | null; priority: string; }>;
-}
-```
-
----
-
-### get_team_status
-
-Aggregates task counts by status for the entire session.
-Agents use `has_pending_work` to decide when to broadcast `end:waiting` or `end:_done`.
-
-**Parameters:**
-```typescript
-{
-  agent_id: string; // calling agent ID
-}
-```
-
-**Returns:**
-```typescript
-{
-  success: true;
-  todo: number;
-  in_progress: number;
-  in_review: number;
-  done: number;
-  has_pending_work: boolean; // todo + in_progress + in_review > 0
 }
 ```
 
@@ -501,6 +456,51 @@ Retrieve the summary for a specific session.
 
 ---
 
+### save_orchestrator_state
+
+Save the orchestrator's event loop state. Stored in-memory, scoped to the current session.
+Use this to persist state across context compaction — call `get_orchestrator_state` on the next spawn to resume.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string; // calling agent ID (typically the orchestrator)
+  state: string;    // JSON-stringified event loop state
+                    // Shape: { base_agents, dormant_agents, done_agents, last_seen_msg_id, agent_last_seen, iteration, spawned_reviewers }
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+}
+```
+
+---
+
+### get_orchestrator_state
+
+Retrieve the orchestrator's previously saved event loop state for the current session.
+Returns `{ success: true, state: null }` if no state has been saved yet.
+
+**Parameters:**
+```typescript
+{
+  agent_id: string; // calling agent ID (typically the orchestrator)
+}
+```
+
+**Returns:**
+```typescript
+{
+  success: true;
+  state: string | null; // JSON-stringified state, or null if not set
+}
+```
+
+---
+
 ## Agents
 
 ### list_agents
@@ -557,34 +557,6 @@ Retrieve all available pool agents for team selection. Returns metadata only —
     tags: string[] | undefined;
     tools: string[];
   }>;
-}
-```
-
----
-
-### get_workflow
-
-Retrieve the `workflow` configuration from the active pool file.
-
-**Parameters:**
-```typescript
-{
-  agent_id: string; // calling agent ID
-}
-```
-
-**Returns:**
-```typescript
-{
-  success: true;
-  workflow: {
-    jobs: Record<string, {
-      agents?: string[];         // agents to run in this job (executed in parallel)
-      description: string;
-      reviewers?: Record<string, string[]>;
-      end?: Record<string, string>; // { nextJobId: condition } — _done means session end
-    }>;
-  };
 }
 ```
 

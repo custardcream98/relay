@@ -52,7 +52,7 @@ agents:
     name: Researcher
     emoji: "🔬"
     tags: [research, analysis]
-    tools: [claim_task, get_my_tasks, post_artifact, send_message]
+    tools: [claim_task, post_artifact, send_message]
     systemPrompt: |
       당신은 리서처입니다. 주제를 조사하고 결과를 아티팩트로 게시하세요.
 
@@ -66,13 +66,15 @@ agents:
 
 ## 구조
 
-relay는 세 가지 레이어로 이루어진 Claude Code 플러그인입니다:
+relay는 **Claude Code 플러그인**입니다. [Claude Code](https://claude.ai/download) v1.0.33 이상이 필요하며, Claude Code 안에서 `/plugin marketplace add`와 `/plugin install`로 설치합니다. 자세한 내용은 [설치 가이드](/relay/ko-kr/getting-started/installation/)를 참고하세요.
+
+relay는 세 가지 레이어로 구성됩니다:
 
 | 레이어 | 역할 |
 |---|---|
 | **MCP server** | 메시지 버스, 태스크 보드, 아티팩트 저장소, 메모리 레이어. Claude API 호출 없음 — 순수 인프라. |
 | **Skills** | Claude Code에게 에이전트를 어떻게 오케스트레이션할지 알려주는 `.md` 파일. 텍스트 편집으로 동작을 변경합니다. |
-| **Hooks** | MCP 도구 호출마다 실시간 대시보드에 에이전트 상태를 푸시하는 `PostToolUse` 훅. |
+| **Hooks** | `PostToolUse` (대시보드 푸시), `PreToolUse` (편집 가드), `Stop` (오케스트레이터 정리), `SessionEnd` (비동기 세션 정리). |
 
 <Aside type="tip">
 relay는 Claude Code의 내장 Agent 도구만 사용합니다. Claude API를 직접 호출하지 않으므로 기존 Claude Code 구독 외에 추가 비용이 발생하지 않습니다.

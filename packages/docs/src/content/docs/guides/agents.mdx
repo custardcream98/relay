@@ -26,7 +26,6 @@ agents:
     tags: [frontend, react, typescript]
     tools:
       - get_messages
-      - get_my_tasks
       - claim_task
       - update_task
       - post_artifact
@@ -51,6 +50,7 @@ agents:
 | `language` | No | Force response language (e.g. `"Korean"`, `"English"`) |
 | `disabled` | No | When `true`, excludes this agent from the registry |
 | `extends` | No | Inherit all fields from another pool agent; override only what differs |
+| `validate_prompt` | No | Declarative validation criteria injected into the system prompt before task completion — agents verify all criteria before calling `update_task(status: "done")` |
 
 Agent IDs must use only alphanumeric characters, hyphens, and underscores (`[a-zA-Z0-9_-]`).
 
@@ -81,7 +81,7 @@ agents:
     name: "Frontend Engineer"
     emoji: "💻"
     tags: [frontend]
-    tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
+    tools: [claim_task, update_task, post_artifact, send_message]
     systemPrompt: |
       You are a Frontend Engineer specialising in React and TypeScript.
       ...
@@ -107,7 +107,6 @@ agents:
     description: "Security vulnerability analysis and remediation"
     tools:
       - get_messages
-      - get_my_tasks
       - update_task
       - get_artifact
       - post_artifact
@@ -130,10 +129,8 @@ tools:
   # Tasks
   - create_task
   - update_task
-  - get_my_tasks
   - claim_task
-  - get_all_tasks
-  - get_team_status
+  - get_all_tasks      # supports optional assignee filter
   # Artifacts
   - post_artifact
   - get_artifact
@@ -146,6 +143,9 @@ tools:
   - append_memory
   # Visibility
   - broadcast_thinking
+  # Orchestrator state (for context compaction resilience)
+  - save_orchestrator_state
+  - get_orchestrator_state
 ```
 
 An agent cannot call any MCP tool not listed in its `tools` array.

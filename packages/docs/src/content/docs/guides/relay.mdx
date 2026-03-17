@@ -28,6 +28,10 @@ Before any agents spawn, relay asks what kind of task this is and suggests a tea
 
 Once confirmed, the session starts.
 
+### 1b. Planning Phase (optional)
+
+If the task is complex, you can ask relay to run a lightweight PM-only pre-spawn phase before the full team spawns. The PM breaks down requirements into tasks, so every agent starts with a clear task board instead of an empty one. This is optional — the full team can also do planning collaboratively at session start.
+
 ### 2. All agents spawn simultaneously
 
 Every agent on the team starts at the same time. The coordinator receives your original request and begins breaking it down. All other agents check for messages and tasks immediately — no waiting in line.
@@ -51,6 +55,12 @@ When an agent needs a review, it signals the reviewer by name. The reviewer spaw
 ### 4. Session end
 
 When all agents finish their work, the session is archived and results are reported to you.
+
+## Reliability features
+
+### Orchestrator state persistence
+
+The orchestrator saves its event loop state after each iteration using `save_orchestrator_state`. On re-spawn (e.g. after context compaction), it calls `get_orchestrator_state` to restore the full loop state — `dormant_agents`, `done_agents`, `last_seen_msg_id`, and more — and resumes exactly where it left off without replaying all messages from scratch.
 
 <Aside type="tip">
 Watch it happen in real time at the dashboard URL printed at session start. See [Dashboard](/relay/guides/dashboard) for details.

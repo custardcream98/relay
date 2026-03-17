@@ -19,12 +19,12 @@ const ui = {
 
     // HowItWorks
     "how.label": "// how it works",
-    "how.title1": "Three commands.",
+    "how.title1": "Four commands.",
     "how.title2": "From install to running.",
     "how.subtitle": "No orchestrator. No extra billing. Just Claude Code's built-in Agent tool.",
     "how.step1.title": "Install",
     "how.step1.desc":
-      "Register the relay MCP server with one command. Pick agents from the pool — any role, any domain.",
+      "Install the relay plugin inside Claude Code. Pick agents from the pool — any role, any domain.",
     "how.step2.title": "Init",
     "how.step2.desc":
       "Run /relay:init once per project. Every agent scans the codebase in parallel and writes shared context to .relay/memory/. Commit it to git.",
@@ -74,10 +74,10 @@ const ui = {
     "qs.title1": "Up and running",
     "qs.title2": "in two minutes.",
     "qs.desc":
-      "Three commands take you from installation to a running multi-agent team working through your feature collaboratively.",
+      "Four commands take you from installation to a running multi-agent team working through your feature collaboratively.",
     "qs.link": "Full installation guide",
-    "qs.step1.label": "Install the MCP server",
-    "qs.step1.comment": "# registers relay MCP server globally",
+    "qs.step1.label": "Install the plugin",
+    "qs.step1.comment": "# inside Claude Code",
     "qs.step2.label": "Initialise project memory",
     "qs.step2.comment": "# agents scan the codebase in parallel",
     "qs.step3.label": "Ship a feature",
@@ -119,13 +119,13 @@ const ui = {
 
     // HowItWorks
     "how.label": "// 작동 방식",
-    "how.title1": "세 가지 명령어.",
+    "how.title1": "네 가지 명령어.",
     "how.title2": "설치부터 실행까지.",
     "how.subtitle":
       "오케스트레이터도, 추가 요금도 없습니다. Claude Code 내장 Agent 툴만 사용합니다.",
     "how.step1.title": "설치",
     "how.step1.desc":
-      "명령어 한 줄로 relay MCP 서버를 등록합니다. 풀에서 에이전트를 선택하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
+      "Claude Code 안에서 relay 플러그인을 설치합니다. 풀에서 에이전트를 선택하세요 — 어떤 역할, 어떤 도메인이든 가능합니다.",
     "how.step2.title": "초기화",
     "how.step2.desc":
       "프로젝트당 한 번 /relay:init을 실행합니다. 모든 에이전트가 병렬로 코드베이스를 스캔하고 .relay/memory/에 공유 컨텍스트를 기록합니다. git에 커밋하세요.",
@@ -175,10 +175,10 @@ const ui = {
     "qs.title1": "2분이면",
     "qs.title2": "시작할 수 있습니다.",
     "qs.desc":
-      "명령어 세 줄로 설치부터 멀티 에이전트 팀이 함께 기능을 구현하는 단계까지 바로 진입할 수 있습니다.",
+      "명령어 네 줄로 설치부터 멀티 에이전트 팀이 함께 기능을 구현하는 단계까지 바로 진입할 수 있습니다.",
     "qs.link": "전체 설치 가이드",
-    "qs.step1.label": "MCP 서버 설치",
-    "qs.step1.comment": "# relay MCP 서버를 전역으로 등록합니다",
+    "qs.step1.label": "플러그인 설치",
+    "qs.step1.comment": "# Claude Code 안에서 실행",
     "qs.step2.label": "프로젝트 메모리 초기화",
     "qs.step2.comment": "# 에이전트들이 코드베이스를 병렬로 스캔합니다",
     "qs.step3.label": "기능 출시",

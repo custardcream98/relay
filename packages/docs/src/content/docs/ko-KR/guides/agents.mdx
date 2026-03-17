@@ -26,7 +26,6 @@ agents:
     tags: [frontend, react, typescript]
     tools:
       - get_messages
-      - get_my_tasks
       - claim_task
       - update_task
       - post_artifact
@@ -51,6 +50,7 @@ agents:
 | `language` | 아니오 | 응답 언어 강제 설정 (예: `"Korean"`, `"English"`) |
 | `disabled` | 아니오 | `true`이면 이 에이전트를 레지스트리에서 제외 |
 | `extends` | 아니오 | 다른 풀 에이전트의 모든 필드를 상속; 다른 점만 오버라이드 |
+| `validate_prompt` | 아니오 | 태스크 완료 전 시스템 프롬프트에 주입되는 선언형 검증 기준 — 에이전트가 `update_task(status: "done")` 호출 전에 모든 기준을 확인합니다 |
 
 에이전트 ID는 영문자, 숫자, 하이픈, 언더스코어(`[a-zA-Z0-9_-]`)만 사용할 수 있습니다.
 
@@ -81,7 +81,7 @@ agents:
     name: "Frontend Engineer"
     emoji: "💻"
     tags: [frontend]
-    tools: [claim_task, get_my_tasks, update_task, post_artifact, send_message]
+    tools: [claim_task, update_task, post_artifact, send_message]
     systemPrompt: |
       You are a Frontend Engineer specialising in React and TypeScript.
       ...
@@ -107,7 +107,6 @@ agents:
     description: "Security vulnerability analysis and remediation"
     tools:
       - get_messages
-      - get_my_tasks
       - update_task
       - get_artifact
       - post_artifact
@@ -130,10 +129,8 @@ tools:
   # 태스크
   - create_task
   - update_task
-  - get_my_tasks
   - claim_task
-  - get_all_tasks
-  - get_team_status
+  - get_all_tasks      # optional assignee 필터 지원
   # 아티팩트
   - post_artifact
   - get_artifact
@@ -146,6 +143,9 @@ tools:
   - append_memory
   # 가시성
   - broadcast_thinking
+  # 오케스트레이터 상태 (컨텍스트 압축 후 복구)
+  - save_orchestrator_state
+  - get_orchestrator_state
 ```
 
 `tools` 배열에 없는 MCP 도구는 에이전트가 호출할 수 없습니다.

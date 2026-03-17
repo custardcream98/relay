@@ -130,7 +130,7 @@ agents:
     name: Project Manager
     emoji: "📋"
     tags: [planning, coordination]
-    tools: [create_task, get_all_tasks, get_team_status, send_message, get_messages]
+    tools: [create_task, get_all_tasks, send_message, get_messages]
     systemPrompt: |
       You are the project manager. Break down requirements into tasks...
 
@@ -152,7 +152,11 @@ agents:
 
 `/relay:relay`는 매번 풀을 읽고 태스크에 최적화된 팀을 선택해요. 최상단에 `language: "Korean"`을 설정하면 모든 에이전트의 기본 언어를 지정할 수 있어요.
 
-필수 필드: `name`, `emoji`, `tools`, `systemPrompt`. 선택 필드: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`.
+필수 필드: `name`, `emoji`, `tools`, `systemPrompt`. 선택 필드: `description`, `tags`, `language`, `disabled`, `extends`, `hooks`, `validate_prompt`.
+
+**`validate_prompt`** — 에이전트 시스템 프롬프트에 주입되는 선언형 검증 기준이에요. 에이전트가 `update_task(status: "done")` 호출 전에 모든 기준을 확인해요.
+
+**파생 태스크** — `create_task`는 `parent_task_id`(최대 깊이 1)와 `derived_reason`을 지원해서 서브태스크의 출처를 추적할 수 있어요. 서킷 브레이커가 깊이를 1단계, 부모당 최대 3개 형제로 제한해요.
 
 **`hooks`** — MCP 서버가 태스크 라이프사이클 이벤트 전후에 실행하는 git-hook 방식의 셸 명령어:
 - `before_task`: `claim_task` 전에 실행. 0이 아닌 종료 코드는 클레임 차단 (유령 `in_progress` 없음)
@@ -167,13 +171,15 @@ agents:
 
 ```
 메시징      send_message · get_messages  (optional metadata 지원)
-태스크      create_task · update_task · claim_task · get_my_tasks · get_all_tasks · get_team_status
+태스크      create_task · update_task · claim_task · get_all_tasks
+            └── get_all_tasks는 optional assignee 필터 지원
             └── depends_on 지원 — claim_task가 모든 의존 태스크 완료 전까지 클레임을 차단해요
+            └── 파생 태스크: parent_task_id (최대 깊이 1, 최대 3개 형제)로 태스크 계보 추적
 아티팩트    post_artifact · get_artifact
 리뷰        request_review · submit_review
 메모리      read_memory · write_memory · append_memory
-세션        save_session_summary · list_sessions · get_session_summary
-에이전트    list_agents · list_pool_agents · get_workflow
+세션        save_session_summary · list_sessions · get_session_summary · save_orchestrator_state · get_orchestrator_state
+에이전트    list_agents · list_pool_agents
 가시성      broadcast_thinking  (fire-and-forget; 에이전트 의도를 대시보드에 push)
 서버        get_server_info · start_session
 ```

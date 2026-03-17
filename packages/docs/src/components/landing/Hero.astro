@@ -10,6 +10,8 @@ const t = useTranslations(lang);
 // biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const docsSlug =
   lang === "ko-KR" ? "ko-kr/getting-started/introduction" : "getting-started/introduction";
+
+const installCmd = "/plugin marketplace add custardcream98/relay\n/plugin install relay@relay";
 ---
 
 <section class="hero">
@@ -62,15 +64,15 @@ const docsSlug =
         <span class="hero__terminal-dot" style="background:#FF5F56"></span>
         <span class="hero__terminal-dot" style="background:#FFBD2E"></span>
         <span class="hero__terminal-dot" style="background:#27C93F"></span>
-        <span class="hero__terminal-title">terminal</span>
+        <span class="hero__terminal-title">Claude Code</span>
       </div>
       <div class="hero__terminal-body">
-        <span class="hero__terminal-prompt" aria-hidden="true">$</span>
-        <code class="hero__terminal-code" id="hero-install-cmd">claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay</code>
+        <span class="hero__terminal-prompt" aria-hidden="true">&gt;</span>
+        <code class="hero__terminal-code" id="hero-install-cmd">{installCmd}</code>
         <button
           class="hero__copy-btn"
           aria-label="Copy install command"
-          data-copy="claude mcp add --scope user relay -- npx -y --package @custardcream/relay relay"
+          data-copy={installCmd}
         >
           <svg class="hero__copy-icon hero__copy-icon--default" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
@@ -295,7 +297,7 @@ const docsSlug =
 
   .hero__terminal-body {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.625rem;
     padding: 0.875rem 1.125rem;
     padding-right: 0.625rem;
@@ -315,6 +317,7 @@ const docsSlug =
     color: var(--color-text-primary);
     letter-spacing: 0.01em;
     word-break: break-all;
+    white-space: pre-wrap;
     flex: 1;
   }
 

@@ -16,7 +16,7 @@ The MCP server handles all inter-agent communication infrastructure.
 - **API server**: Hono (runs in the same process as the MCP server)
 - **Realtime**: `ws` WebSocket
 - **Frontend**: React + Vite (`packages/dashboard/`)
-- **Styling**: Tailwind CSS v4 — always use canonical class forms (e.g. `text-(--color-text-primary)` not `text-[var(--color-text-primary)]`, `py-px` not `py-[1px]`). Run `npx @tailwindcss/upgrade --force` to auto-fix.
+- **Styling**: Tailwind CSS v4 — always use canonical class forms (e.g. `text-(--color-text-primary)` not `text-[var(--color-text-primary)]`, `py-px` not `py-[1px]`). Run `bunx @tailwindcss/upgrade --force` to auto-fix.
 - **DB**: In-memory store (`store.ts`) — ephemeral, no native bindings required. Tests call `_resetStore()` in `beforeEach` for isolation.
 - **Memory**: Markdown files (`.relay/memory/`)
 - **Persona config**: YAML (`.relay/agents.pool.yml` / `agents.pool.yml`)
@@ -74,18 +74,18 @@ CLI args (alternative to env vars):
 
 Auto port selection: if `DASHBOARD_PORT` is not set and 3456 is occupied, the server tries 3457–3465 before falling back.
 
-Example `.mcp.json` for two instances:
+Example `.mcp.json` for two instances (plugin sets this automatically via `${CLAUDE_PLUGIN_ROOT}`):
 ```json
 {
   "mcpServers": {
     "relay": {
-      "command": "npx",
-      "args": ["-y", "--package", "relay-server", "relay"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js"],
       "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
     },
     "relay-b": {
-      "command": "npx",
-      "args": ["-y", "--package", "relay-server", "relay"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js"],
       "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
     }
   }
@@ -225,7 +225,7 @@ type RelayEvent =
 ```bash
 bun run dev              # dev server (hot reload)
 bun run build:server     # build server package
-bun run build:release    # build dashboard + server (pre-publish)
+bun run build:release    # build dashboard + server → dist/
 bun test                 # run tests
 bun run dashboard:dev    # frontend dev server
 bun run dashboard:build  # frontend build
@@ -233,27 +233,12 @@ bun run dashboard:build  # frontend build
 
 ## Release
 
-**Use the changeset workflow. Do not run `bun run publish:server` directly.**
+Distributed as a Claude Code plugin via git — no npm publishing.
+CI automatically rebuilds `packages/server/dist/` on push to main and commits the result if changed.
 
 ```bash
-# 1. Create a changeset file (select patch/minor/major)
-bunx changeset
-
-# 2. Commit & push → CI auto-creates a "Version Packages" PR
-git add .changeset/
-git commit -m "chore: add changeset"
-git push
-
-# 3. Merge the "Version Packages" PR → CI publishes to npm automatically
-```
-
-**Local version bump** (when not using CI):
-
-```bash
-# Runs changeset version + syncs plugin.json/marketplace.json in one step.
-# Do NOT run `bunx changeset version` directly — the version hook is not
-# reliably triggered in bun workspaces and plugin files will fall out of sync.
-bun run version-packages
+# Local build (for testing)
+bun run build:release
 ```
 
 ## Notes
@@ -266,6 +251,5 @@ bun run version-packages
 - Agent persona system prompts may be Korean or English, but keep them consistent
 - Commit `.relay/memory/` files to git so the team shares memory
 - Define your pool in `.relay/agents.pool.yml` (use `agents.pool.example.yml` as reference)
-- The bin name in `.mcp.json` must be specified explicitly with `--package`:
-  - Correct: `["npx", "-y", "--package", "relay-server", "relay"]`
-  - This ensures npx finds the `relay` binary even when the package name differs from the bin name
+- The MCP server runs from the bundled dist: `node ${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js`
+  - All dependencies are inlined in the bundle — no `node_modules` required at runtime

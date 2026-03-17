@@ -999,13 +999,13 @@ Example `.mcp.json` for two instances:
 {
   "mcpServers": {
     "relay": {
-      "command": "npx",
-      "args": ["-y", "--package", "relay-server", "relay"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js"],
       "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" }
     },
     "relay-b": {
-      "command": "npx",
-      "args": ["-y", "--package", "relay-server", "relay"],
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/packages/server/dist/index.js"],
       "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" }
     }
   }

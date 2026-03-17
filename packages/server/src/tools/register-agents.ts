@@ -6,7 +6,7 @@ import { markAsAgentId } from "@custardcream/relay-shared";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getAgents, getPool } from "../agents/cache.js";
-import { getInstanceId, getPort, getProjectRoot, getRelayDir, getSessionId } from "../config.js";
+import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
 
@@ -167,5 +167,4 @@ export function registerAgentTools(server: McpServer): void {
       };
     }
   );
-
 }

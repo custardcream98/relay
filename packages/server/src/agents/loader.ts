@@ -275,4 +275,3 @@ export function buildSystemPromptWithMemory(persona: AgentPersona, relayDir: str
 
   return `${parts.join("\n\n---\n\n")}\n\n---\n\n${persona.systemPrompt}${languageInstruction}`;
 }
-

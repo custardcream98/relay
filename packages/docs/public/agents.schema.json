@@ -16,9 +16,6 @@
       "additionalProperties": {
         "$ref": "#/$defs/AgentConfig"
       }
-    },
-    "workflow": {
-      "$ref": "#/$defs/WorkflowConfig"
     }
   },
   "required": ["agents"],
@@ -50,7 +47,8 @@
               "get_messages",
               "create_task",
               "update_task",
-              "get_my_tasks",
+              "claim_task",
+              "get_all_tasks",
               "post_artifact",
               "get_artifact",
               "request_review",
@@ -61,8 +59,13 @@
               "save_session_summary",
               "list_sessions",
               "get_session_summary",
+              "save_orchestrator_state",
+              "get_orchestrator_state",
               "list_agents",
-              "get_workflow"
+              "list_pool_agents",
+              "get_server_info",
+              "broadcast_thinking",
+              "start_session"
             ]
           }
         },
@@ -81,50 +84,33 @@
         "extends": {
           "type": "string",
           "description": "Inherit all fields from another agent ID, then apply overrides"
+        },
+        "tags": {
+          "type": "array",
+          "description": "Taxonomy tags for pool-based team selection (e.g. ['frontend', 'web'])",
+          "items": { "type": "string" }
+        },
+        "hooks": {
+          "oneOf": [{ "type": "boolean", "const": false }, { "$ref": "#/$defs/AgentHooks" }],
+          "description": "Task lifecycle hooks. Set to false to opt out of inherited hooks."
+        },
+        "validate_prompt": {
+          "type": "string",
+          "description": "Validation criteria injected before task completion. Agent checks all criteria before marking done."
         }
       }
     },
-    "WorkflowConfig": {
+    "AgentHooks": {
       "type": "object",
-      "description": "Workflow job graph override. Merged at the job level with the default workflow.",
       "additionalProperties": false,
       "properties": {
-        "jobs": {
-          "type": "object",
-          "description": "Job definitions keyed by job ID. Use '_done' as a terminal target in end maps.",
-          "additionalProperties": {
-            "$ref": "#/$defs/WorkflowJob"
-          }
-        }
-      },
-      "required": ["jobs"]
-    },
-    "WorkflowJob": {
-      "type": "object",
-      "description": "A single step in the workflow DAG",
-      "additionalProperties": false,
-      "properties": {
-        "agents": {
-          "type": "array",
-          "description": "Agent IDs to run in parallel for this job",
-          "items": { "type": "string" }
+        "before_task": {
+          "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+          "description": "Shell command(s) run before claim_task. Non-zero exit blocks claiming."
         },
-        "description": {
-          "type": "string",
-          "description": "Natural-language job description injected into each agent's system prompt"
-        },
-        "end": {
-          "type": "object",
-          "description": "Map of next-job-id → condition string. Use '_done' to end the session.",
-          "additionalProperties": { "type": "string" }
-        },
-        "reviewers": {
-          "type": "object",
-          "description": "Map of working-agent-id → list of reviewer agent IDs",
-          "additionalProperties": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
+        "after_task": {
+          "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }],
+          "description": "Shell command(s) run after update_task(status: 'done'). Non-zero exit reverts status."
         }
       }
     }

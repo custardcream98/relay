@@ -9,12 +9,7 @@ import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
 import { getTaskById } from "../store.js";
 import { taskToPayload } from "../utils/broadcast.js";
-import {
-  handleClaimTask,
-  handleCreateTask,
-  handleGetAllTasks,
-  handleUpdateTask,
-} from "./tasks.js";
+import { handleClaimTask, handleCreateTask, handleGetAllTasks, handleUpdateTask } from "./tasks.js";
 
 export function registerTaskTools(server: McpServer): void {
   // Create a new task on the session task board

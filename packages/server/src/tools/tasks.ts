@@ -262,4 +262,3 @@ export function handleGetAllTasks(
     return { success: false, tasks: [], error: String(err) };
   }
 }
-

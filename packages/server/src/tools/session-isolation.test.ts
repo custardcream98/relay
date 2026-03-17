@@ -6,12 +6,7 @@ import { _resetStore } from "../store";
 import { handleGetArtifact, handlePostArtifact } from "./artifacts";
 import { handleGetMessages, handleSendMessage } from "./messaging";
 import { handleRequestReview, handleSubmitReview } from "./review";
-import {
-  handleClaimTask,
-  handleCreateTask,
-  handleGetAllTasks,
-  handleUpdateTask,
-} from "./tasks";
+import { handleClaimTask, handleCreateTask, handleGetAllTasks, handleUpdateTask } from "./tasks";
 
 describe("session isolation — cross-session data leakage", () => {
   beforeEach(() => {

@@ -70,10 +70,12 @@ Derive:
 
 ### Step 1b: Language Preference
 
-Ask the user before generating the pool:
+Ask the user using the **AskUserQuestion** tool before generating the pool:
 
 > "What language should agents use? (e.g. English, Korean, Japanese, Chinese…)
 > This sets the default for all agents — you can override per-agent later."
+
+You MUST use the AskUserQuestion tool (not plain text output) so the user gets a proper input prompt.
 
 - If the user answers (e.g. "Korean") → set `chosen_language` to that value.
 - If the user says "skip", "default", or similar → set `chosen_language` to `null` (no language directive).
@@ -467,7 +469,7 @@ Go directly to pool selection below.
 1. Call `list_pool_agents` to fetch all available pool entries.
    - If it returns 0 entries and auto-pool was not just generated, this is an error — stop.
 
-2. Ask the user:
+2. Ask the user using the **AskUserQuestion** tool:
    > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
    > 'write a legal contract review')"
 

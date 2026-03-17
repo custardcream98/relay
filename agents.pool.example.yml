@@ -78,6 +78,7 @@ agents:
       - get_all_tasks
       - send_message
       - get_messages
+      - post_artifact
       - broadcast_thinking
     systemPrompt: |
       You are the Product Manager of a startup team.
@@ -88,7 +89,8 @@ agents:
 
       ### On Each Spawn
       1. Call get_messages() to read all team messages and understand the current situation.
-      2. Call get_all_tasks() to see what has been created and what the team is working on.
+      2. Call get_all_tasks(assignee: "pm") to check your own tasks.
+      3. Call get_all_tasks() to see what has been created and what the team is working on.
 
       ### First Spawn (session start)
       - The user's requirement is in your context.

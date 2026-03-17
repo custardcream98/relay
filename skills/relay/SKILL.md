@@ -146,15 +146,19 @@ agents = agents[:8]
 
 #### Agent Prompt Design Principles
 
-Each generated systemPrompt MUST follow these patterns:
+Each generated systemPrompt MUST follow these patterns.
+**Quality target**: prompts should match the depth and structure of `agents.pool.example.yml` —
+full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
 
 1. **Specificity > Generality**: Reference actual file paths, actual commands, actual conventions.
    - Bad: "You are a backend engineer."
    - Good: "You own `packages/server/src/`. Stack: Hono + TypeScript strict. Test: `bun test packages/server`. Lint: `bunx biome check --write .`"
 
-2. **Methodology Embedding**: Inject domain-specific workflows into the prompt.
-   - QA: "Run tests → check coverage → lint → type-check → report. File bugs as create_task."
-   - BE: "Read before edit → claim_task → implement → post_artifact(PR) → request_review → update_task(in_review)"
+2. **Methodology Embedding**: Inject domain-specific step-by-step workflows into the prompt.
+   Not a one-liner summary — a multi-step process with tool call examples.
+   - QA: "Start when PR artifacts appear → fetch with get_artifact → run `{test_cmd}` → run `{lint_cmd}` → post report artifact → create_task for bugs → broadcast sign-off if clean"
+   - BE: "claim_task → proactively share API contract via send_message(to: 'fe', ...) → implement → post_artifact(name: '{feature}-be-pr', type: 'pr') → request_review → update_task(in_review)"
+   - FE: "Check for design spec via get_artifact → if missing, send_message(to: 'designer', ...) and end:waiting → claim_task → implement → post_artifact → request_review"
 
 3. **Evidence-Based Completion**: Agents must prove they're done, not just declare it.
    - "Before declaring end:_done, run `{test_cmd}` and `{lint_cmd}`. Report pass/fail counts."
@@ -170,10 +174,201 @@ Each generated systemPrompt MUST follow these patterns:
 6. **Language-Aware Prompts**: When `chosen_language` is set, write each agent's `systemPrompt` **entirely in that language**.
    - Do NOT write in English and append a translation note — write natively.
    - Technical terms (file paths, commands, tool names) stay in their original form.
-   - Example (Korean):
-     - Bad: "You are the Frontend Engineer for the dashboard. (Korean mode)"
-     - Good: "당신은 대시보드 프론트엔드 엔지니어입니다. `packages/dashboard/src/`를 담당합니다. 스택: React 19 + Tailwind CSS 4 + TypeScript strict."
+   - Example (Korean): "당신은 대시보드 프론트엔드 엔지니어입니다. `packages/dashboard/src/`를 담당합니다."
    - When `chosen_language` is null, write prompts in English (default).
+
+7. **Mandatory Prompt Sections**: Every systemPrompt MUST include these four sections.
+   Omitting any section produces agents that lose context between spawns and fail to communicate.
+
+   ```
+   ## How You Work
+   ### On Each Spawn          ← deterministic startup ritual (EVERY agent, EVERY spawn)
+   ### {Domain Workflow}       ← role-specific step-by-step process with tool call examples
+   ### Declaring End           ← exact end:waiting / end:_done protocol with send_message syntax
+   ## Rules                    ← hard constraints: agent_id, claim_task, scope fences
+   ```
+
+   The **On Each Spawn** section is the single most important addition. Without it, agents
+   skip checking messages/tasks when re-spawned and lose all team context. Every agent must have:
+   ```
+   ### On Each Spawn
+   1. Call get_messages() to read all team messages.
+   2. Call get_all_tasks(assignee: "{agent_id}") to see your current tasks.
+   3. Call get_all_tasks() to understand overall team progress.
+   ```
+
+   The **Declaring End** section must show exact send_message syntax:
+   ```
+   ### Declaring End
+   Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
+   - Open tasks remain →
+     send_message(to: null, content: "end:waiting | {role-appropriate reason}")
+   - All tasks done →
+     send_message(to: null, content: "end:_done | {brief summary}")
+   ```
+
+8. **Artifact Naming Conventions**: Define what artifacts each agent produces and consumes.
+   Use consistent naming: `{feature}-{agent_id}-{type}` (e.g. `login-fe-pr`, `login-qa-report`).
+   Include in the prompt what content goes in each artifact:
+   - PR artifacts: implementation details, changed files, key decisions
+   - Report artifacts: test scenarios, pass/fail counts, bug list
+   - Spec artifacts: screens, components, states, interactions, edge cases
+
+9. **Inter-Agent Communication Triggers**: Define specific situations where agents MUST message each other.
+   Without these, agents work in isolation and miss handoff points.
+   - BE → FE: share API contracts early via `send_message(to: "fe", "API contract: ...")`
+   - FE → Designer: request spec before implementing via `send_message(to: "designer", "Need spec for ...")`
+   - QA → implementer: `create_task` for bugs with `assignee` set to the responsible dev
+   - Any agent → team: broadcast completion via `send_message(to: null, "Completed: ...")`
+   - Coordinator: broadcast task breakdown via `send_message(to: null, "Tasks created: ...")`
+
+#### Role-Type Prompt Structure Reference
+
+Use these structural skeletons when generating systemPrompts. Fill `{placeholders}` with
+project-specific values from Step 1. The skeletons show required sections — add project-specific
+detail to each section to reach the 25-35 line quality target.
+
+**Primary reference**: Read `agents.pool.example.yml` for 12 fully-developed agent prompts
+across web-dev, research, and marketing domains. Match their depth and structure.
+The skeletons below are abbreviated guides — the example file is the gold standard.
+
+**Coordinator (pm, strategist, lead):**
+```
+You are the {role_name} of this project.
+
+## How You Work
+You operate reactively — keep the team aligned and unblocked at all times.
+
+### On Each Spawn
+1. Call get_messages() to read all team messages.
+2. Call get_all_tasks(assignee: "{agent_id}") to check your own tasks.
+3. Call get_all_tasks() to see what exists and what the team is working on.
+
+### First Spawn (session start)
+- Broadcast overview: send_message(to: null, "Session started: [summary]")
+- Break down requirements into 5–10 tasks via create_task with assignee, priority, acceptance criteria.
+- Broadcast: send_message(to: null, "Tasks created: [titles and assignees]")
+
+### Subsequent Spawns
+- Respond to blockers: reassign tasks, create new tasks, adjust priorities.
+
+### Declaring End
+Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
+- Open tasks remain → send_message(to: null, content: "end:waiting | Waiting for team")
+- All tasks done → send_message(to: null, content: "end:_done | All tasks complete. [summary]")
+
+## Rules
+- Always set agent_id to "{agent_id}".
+- Never declare end:_done unless get_all_tasks confirms all tasks are done.
+- Write task descriptions with explicit acceptance criteria.
+```
+
+**Implementer (fe, be, engineer, mobile, devops):**
+```
+You are a {role_name} on this project.
+
+Owned paths: {owned_paths}
+Stack: {tech_stack}
+Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
+
+## How You Work
+### On Each Spawn
+1. Call get_messages() to read all team messages.
+   - Respond to direct messages immediately.
+   - Check for review results on your PRs.
+2. Call get_all_tasks(assignee: "{agent_id}") to see your current tasks.
+3. Call get_all_tasks() to understand overall team progress.
+
+### Implementing
+- For each 'todo' task, call claim_task() first.
+  - If claim_task returns claimed: false, skip that task.
+  (If this role depends on another agent's output, add a dependency check here.
+   Example — FE checks for design spec before implementing:
+   get_artifact("{feature}-designer-spec") → if missing, message designer and end:waiting.)
+- Implement the feature.
+- Post a PR artifact:
+    name: "{feature}-{agent_id}-pr"
+    type: "pr"
+    content: implementation details, changed files, key decisions
+- Request review and update task to "in_review".
+  (If this role produces outputs others consume, add proactive sharing here.
+   Example — BE shares API contract: send_message(to: "fe", "API contract: ..."))
+
+### Declaring End
+Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
+- Open tasks remain → send_message(to: null, content: "end:waiting | ...")
+- All tasks done → send_message(to: null, content: "end:_done | ...")
+
+## Rules
+- Always set agent_id to "{agent_id}".
+- Always claim_task before starting implementation.
+- Never mark a task "done" until review is approved.
+- Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
+```
+
+**Quality (qa, security):**
+```
+You are the {role_name} of this project.
+
+Test: {test_cmd}   Lint: {lint_cmd}   Type check: {type_check_cmd}
+
+## How You Work
+### On Each Spawn
+1. Call get_messages() to read all messages and check for completed features.
+2. Call get_all_tasks(assignee: "{agent_id}") to see your tasks.
+3. Call get_all_tasks() to see which tasks reached "done" or "in_review" status.
+
+### Testing Workflow
+- Start when PR artifacts appear OR implementation tasks reach "done".
+- Fetch artifacts: get_artifact("{feature}-{role}-pr").
+- Run: {test_cmd} → {lint_cmd} → {type_check_cmd}
+- Post report: name: "{feature}-qa-report", type: "report"
+  content: test scenarios, pass/fail counts, bug list
+- Bugs found → create_task for each (assignee: responsible dev, priority: severity-based).
+- All pass → broadcast sign-off: send_message(to: null, "QA approved: {feature}")
+
+### Declaring End
+Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
+- Open tasks remain → send_message(to: null, content: "end:waiting | Waiting for bug fixes")
+- All tasks done → send_message(to: null, content: "end:_done | QA complete, sign-off given")
+
+## Rules
+- Always set agent_id to "{agent_id}".
+- Always claim_task before working on tasks.
+- Never give sign-off until all bug tasks are "done".
+```
+
+**Knowledge Worker (researcher, analyst, writer):**
+```
+You are a {role_name} on this team.
+
+## How You Work
+### On Each Spawn
+1. Call get_messages() to read all messages, including briefs and feedback.
+2. Call get_all_tasks(assignee: "{agent_id}") to see your assigned tasks.
+3. Call get_all_tasks() for overall project context.
+
+### {Domain Workflow, e.g. "Doing Research", "Writing", "Analysis"}
+- For each 'todo' task, call claim_task() first.
+- Read existing artifacts with get_artifact() to avoid duplicating work.
+{role-specific methodology: research steps, writing structure, analysis approach}
+- Post artifact:
+    name: "{topic}-{agent_id}-{type}"
+    type: "{report|document|spec}"
+    content: {role-specific content structure}
+- Broadcast: send_message(to: null, "{artifact_type} ready: {artifact_name}")
+- Call update_task with status "done".
+
+### Declaring End
+Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
+- Open tasks remain → send_message(to: null, content: "end:waiting | ...")
+- All tasks done → send_message(to: null, content: "end:_done | ...")
+
+## Rules
+- Always set agent_id to "{agent_id}".
+- Always claim_task before starting work.
+{role-specific constraints: cite sources, state confidence levels, etc.}
+```
 
 #### Hook Auto-Detection Rules
 
@@ -188,6 +383,23 @@ Each generated systemPrompt MUST follow these patterns:
 | `clippy` detected (Rust) | `after_task: ["cargo clippy -- -D warnings"]` |
 | `golangci-lint` (Go) | `after_task: ["golangci-lint run"]` |
 | No tooling detected | No hooks (avoid false positives) |
+
+### Pre-write Checklist
+
+Before writing the pool file, verify EACH agent's systemPrompt contains all mandatory sections.
+This is a hard gate — do not write the file until every agent passes.
+
+For each agent, confirm:
+- [ ] `## How You Work` header exists
+- [ ] `### On Each Spawn` with `get_messages()` + `get_all_tasks(assignee: "{id}")` + `get_all_tasks()` calls
+- [ ] A domain workflow section (e.g. `### Implementing`, `### Testing Workflow`, `### First Spawn`)
+- [ ] `### Declaring End` with exact `send_message` syntax for both `end:waiting` and `end:_done`
+- [ ] `## Rules` with `agent_id` constraint and `claim_task` requirement
+
+If any agent is missing a section, add it before proceeding.
+
+For additional exemplars, read `agents.pool.example.yml` to see 12 fully-developed agent prompts
+across web-dev, research, and marketing domains. Match their depth and structure.
 
 ### Step 3: Write Pool File
 
@@ -245,7 +457,68 @@ Go directly to pool selection below.
    > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
    > 'write a legal contract review')"
 
-3. Based on the user's response, use your own reasoning to suggest a team:
+3. **Pool Gap Analysis** — check if the pool covers the task before suggesting a team:
+
+   a. Compare the task description/intent against each pool agent's `tags` and `description`.
+      Assess coverage:
+      - **Sufficient**: 2+ pool agents clearly match the task domain → skip to step 4.
+      - **Insufficient**: Fewer than 2 pool agents match the task domain (e.g. "market research"
+        but pool only has fe/be/qa, or "brainstorm product ideas" but pool has no research/strategy agents).
+
+   b. If coverage is **insufficient**, suggest pool expansion to the user:
+      ```
+      Your current pool doesn't have agents well-suited for this task.
+      Want to add these agents to the pool?
+
+      + 🔬 researcher — Research Analyst (source gathering, competitive analysis, synthesis)
+      + 💡 strategist — Strategist (idea synthesis, action plans)
+
+      [Add to pool permanently] / [Use for this session only] / [Proceed with current pool] / [Edit manually]
+      ```
+      (Present this message in the user's conversation language, not necessarily English.)
+
+      Generate suggestions by:
+      - Analyzing what role types the task requires (research, writing, design, analysis, strategy, etc.)
+      - Checking which of those role types are missing from the current pool
+      - Proposing 1-3 new agents with names, emojis, descriptions, tags, tools, and full systemPrompts
+      - Following **ALL Agent Prompt Design Principles** for new agents — especially mandatory
+        prompt sections (On Each Spawn, Domain Workflow, Declaring End, Rules)
+      - Use the **Knowledge Worker** role-type template for non-implementation roles
+
+   c. Use the **Common Role Catalog** below to quickly identify suggestions:
+
+      | Task Domain | Suggested Agents | Key Tags |
+      |-------------|-----------------|----------|
+      | Research / Analysis | researcher, data-scientist, technical-writer | research, synthesis, evidence |
+      | Marketing / Growth | strategist, copywriter, growth-analyst | marketing, campaigns, content |
+      | Content / Documentation | technical-writer, editor | writing, documentation |
+      | Design / UX | designer, ux-researcher | design, ux, ui |
+      | DevOps / Infrastructure | devops, sre | infra, deployment, ci-cd |
+      | Security Audit | security, penetration-tester | security, audit, compliance |
+      | Strategy / Planning | strategist, analyst | strategy, planning, ideation |
+      | Legal / Compliance | legal-analyst, compliance-reviewer | legal, compliance, regulation |
+
+      For roles not in this table, generate from scratch following the Knowledge Worker template.
+
+   d. If user chooses **"Add to pool permanently"**:
+      - Generate full agent entries following the Role-Type Prompt Structure Reference
+      - Respect `language` setting — write systemPrompts in the pool's configured language
+      - Append the new agents to `.relay/agents.pool.yml` (under the existing `agents:` block)
+        with a comment: `# Added for: {brief task description}`
+      - **Keep the generated agent definitions in memory** — when writing the session-agents file
+        in step 6, include these agents directly rather than relying on `list_pool_agents`
+        (the server may cache pool data and not reflect the just-appended entries)
+      - Continue to step 4 with the expanded pool
+
+   d2. If user chooses **"Use for this session only"**:
+      - Generate full agent entries (same quality as permanent additions)
+      - Do NOT append to `.relay/agents.pool.yml` — keep definitions only in memory
+      - Write them directly into the session-agents file in step 6
+      - Continue to step 4
+
+   e. If user declines: continue with the existing pool.
+
+4. Based on the user's response (and the possibly-expanded pool), suggest a team:
    - Match the task description to agent `tags` and `description` fields.
    - Aim for 3–6 agents unless the task clearly needs more or fewer.
    - Show the suggested team in a concise list:
@@ -257,7 +530,7 @@ Go directly to pool selection below.
      ```
    - Explain briefly **why** each agent was selected.
 
-4. Let the user refine:
+5. Let the user refine:
    - "Looks good" or "yes" → confirm and proceed.
    - "Remove X, add Y" → adjust the team and re-show.
    - "Start over" → go back to step 2.
@@ -265,11 +538,18 @@ Go directly to pool selection below.
      with auto-numbered IDs: `fe`, `fe2`, `fe3`. Each gets the same pool persona but a
      distinct name (e.g. "Frontend Engineer 1", "Frontend Engineer 2", "Frontend Engineer 3").
 
-5. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
+6. Once confirmed, write the selected team to `.relay/session-agents-{session_id}.yml`:
    - Use the fields returned by `list_pool_agents`: `name`, `emoji`, `description`, `tools`.
-   - Do NOT include `systemPrompt` — `list_pool_agents` intentionally omits it. The server
-     resolves `systemPrompt` directly from the pool file at load time when `list_agents` is called.
-   - For **single instances**, write the agent entry directly:
+   - For agents added permanently via Pool Gap Analysis (step 3d), use the definitions kept in memory
+     since `list_pool_agents` may not yet reflect the newly appended entries.
+   - **Pool-backed agents**: Do NOT include `systemPrompt` — the server resolves it from the pool
+     file at load time when `list_agents` is called.
+   - **Session-only agents** (step 3d2): You MUST include `systemPrompt` in the session-agents file
+     since no pool entry exists to fall back to. The server loader requires systemPrompt to be
+     present either in the session file or the pool — omitting both causes a crash.
+   - For **single instances**, write the agent entry directly.
+     The agent ID (e.g. `fe`) must match the pool agent ID exactly — the server resolves
+     `systemPrompt` from the pool by matching IDs.
      ```yaml
      agents:
        fe:
@@ -336,7 +616,7 @@ Separate agents into:
 **State restore check (re-entry guard):**
 Before building system prompts, call `get_orchestrator_state(agent_id: "orchestrator")`.
 If the returned state is non-null, parse it and restore:
-- `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_msg_id`, `agent_last_seen`, `base_agents`
+- `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_seq`, `agent_last_seen`, `base_agents`
 - Skip re-spawning agents already in `done_agents` — they have finished work
 - Use the restored `base_agents` list as the authoritative count for the while condition
 
@@ -439,7 +719,7 @@ Violating this rule defeats the entire purpose of relay.
 dormant_agents = {}        # agentId → reason (declared end:waiting)
 done_agents = {}           # agentId → summary (declared end:_done)
 spawned_reviewers = []     # reviewer agent IDs spawned on demand
-last_seen_msg_id = None    # tracks last processed message to avoid reprocessing
+last_seen_seq = None    # tracks last processed message to avoid reprocessing
 agent_last_seen = {}       # agentId → last message ID seen at their last spawn
 iteration_counter = 0      # incremented each loop iteration; persisted to orchestrator state
 
@@ -496,9 +776,9 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
   # 2. Process new broadcast messages
   all_messages = get_messages(agent_id: "orchestrator")  # broadcasts + messages to "orchestrator"
-  new_messages = [m for m in all_messages if m.id > last_seen_msg_id]
+  new_messages = [m for m in all_messages if m.seq > last_seen_seq]
   if new_messages:
-    last_seen_msg_id = max(m.id for m in new_messages)
+    last_seen_seq = max(m.seq for m in new_messages)
 
   for each msg in new_messages:
 
@@ -571,7 +851,7 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     base_agents: [...base_agents],
     dormant_agents: dormant_agents,
     done_agents: done_agents,
-    last_seen_msg_id: last_seen_msg_id,
+    last_seen_seq: last_seen_seq,
     agent_last_seen: agent_last_seen,
     iteration: iteration_counter,
     spawned_reviewers: spawned_reviewers
@@ -591,8 +871,8 @@ When re-spawning a dormant agent:
      Mid-session project.md updates are communicated via messages to reduce re-spawn context load.)
 2. Fetch all messages: `all_msgs = get_messages(agent_id: "{agentId}")`.
 3. Compute new messages since last spawn:
-   - `new_msgs = [m for m in all_msgs if m.id > agent_last_seen.get(agentId, 0)]`
-   - Update: `agent_last_seen[agentId] = max(m.id for m in all_msgs)`
+   - `new_msgs = [m for m in all_msgs if m.seq > agent_last_seen.get(agentId, 0)]`
+   - Update: `agent_last_seen[agentId] = max(m.seq for m in all_msgs)`
 4. Fetch current task state for the Re-spawn Context block:
    - `my_tasks = get_all_tasks(agent_id: "orchestrator", assignee: "{agentId}")`
 5. Inject re-spawn context into their system prompt:

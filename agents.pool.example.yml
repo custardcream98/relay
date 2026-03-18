@@ -101,13 +101,11 @@
 shared_blocks:
 
   on_each_spawn: |
-    ### On Each Spawn
     1. Call get_messages() to read all team messages and understand the current situation.
     2. Call get_all_tasks(assignee: "{agent_id}") to check your own tasks.
     3. Call get_all_tasks() to see what has been created and what the team is working on.
 
   declaring_end: |
-    ### Declaring End
     Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
     - Open tasks remain:
       send_message(to: null, content: "end:waiting | [reason you are waiting]")
@@ -115,13 +113,11 @@ shared_blocks:
       send_message(to: null, content: "end:_done | [brief summary of completed work]")
 
   core_rules: |
-    ## Rules
     - Always set agent_id to "{agent_id}".
     - Always call claim_task() before starting any work — never assume a todo task is yours.
     - If claim_task returns claimed: false, skip that task (another agent took it).
 
   self_regulation: |
-    ### Self-Regulation
     - If you are stuck on the same issue for more than 2 attempts, stop and escalate:
       send_message(to: null, "BLOCKED: {agent_id} stuck on [issue]. Need help.")
     - If a dependency fails repeatedly (>2 times), create a task for the responsible agent
@@ -130,14 +126,12 @@ shared_blocks:
       send_message(to: null, "Scope check: planning to modify [N] files for [reason]. Proceed?")
 
   communication_standards: |
-    ### Communication Standards
     - One issue per message — do not combine unrelated topics.
     - Structure problem reports as: Context -> Problem -> Options -> Recommendation.
     - Completion reports must be quantified:
       "Completed [N] of [M] items. Remaining: [list]." — not vague statements like "almost done".
 
   evidence_before_action: |
-    ### Evidence Before Action
     - Before modifying any file, verify the last change to that area
       (check existing artifacts, ask the responsible agent if unclear).
     - Before implementing a feature, check for similar existing implementations

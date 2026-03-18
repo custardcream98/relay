@@ -59,11 +59,19 @@ console.log(`v${next}`);
 console.log("Building...");
 execSync("bun run build:release", { cwd: root, stdio: "inherit" });
 
-// Commit
+// Commit + tag
 execSync(
   `git add .claude-plugin/plugin.json .claude-plugin/marketplace.json packages/server/dist/`,
   { cwd: root }
 );
 execSync(`git commit -m "chore: version up"`, { cwd: root, stdio: "inherit" });
+execSync(`git tag v${next}`, { cwd: root });
 
-console.log(`Done — v${next}. Push when ready.`);
+// Push + GitHub Release
+execSync(`git push && git push --tags`, { cwd: root, stdio: "inherit" });
+execSync(`gh release create v${next} --generate-notes`, {
+  cwd: root,
+  stdio: "inherit",
+});
+
+console.log(`Done — v${next} released.`);

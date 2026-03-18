@@ -4,9 +4,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
 import { markAsAgentId } from "relay-shared";
-import { getProjectRoot, getRelayDir } from "../config";
-import { isValidId } from "../utils/validate";
-import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from "./types";
+import { getProjectRoot, getRelayDir } from "../config.js";
+import { isValidId } from "../utils/validate.js";
+import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from "./types.js";
 
 // Complete list of MCP tool names registered by createMcpServer() in mcp.ts.
 // Validated against agent config tools[] to catch typos before runtime.
@@ -100,6 +100,21 @@ function resolveSharedBlocks(
     // Substitute {agent_id} within the block content
     return block.replace(/\{agent_id\}/g, agentId);
   });
+}
+
+/**
+ * Prepend a language directive to the systemPrompt when a language is set.
+ * This ensures agents always receive the language instruction regardless of
+ * how the skill constructs the spawn prompt.
+ */
+export function injectLanguageDirective(
+  systemPrompt: string,
+  language: string | undefined
+): string {
+  if (!language?.trim()) return systemPrompt;
+  // Guard: skip if the prompt already contains a language directive (e.g. manually written)
+  if (systemPrompt.startsWith("## Language")) return systemPrompt;
+  return `## Language\n\nYou MUST respond in ${language} at all times. All messages, artifacts, and communications must be in ${language}. Technical terms (file paths, commands, tool names) may remain in their original form.\n\n${systemPrompt}`;
 }
 
 /**

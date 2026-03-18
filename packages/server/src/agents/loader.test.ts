@@ -1,6 +1,6 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
-import { loadAgents, loadPool, validatePromptSections } from "./loader";
+import { injectLanguageDirective, loadAgents, loadPool, validatePromptSections } from "./loader";
 import type { AgentsFile } from "./types";
 
 /** Wraps a short description with required block references for pool validation. */
@@ -849,5 +849,39 @@ describe("review_checklist", () => {
     const result = loadAgents(custom);
     expect(result.base.review_checklist).toBe("Base checklist");
     expect(result.derived.review_checklist).toBe("Derived checklist");
+  });
+});
+
+describe("injectLanguageDirective", () => {
+  test("prepends directive to systemPrompt", () => {
+    const prompt = "You are an engineer.";
+    const result = injectLanguageDirective(prompt, "Korean");
+    expect(result.startsWith("## Language")).toBe(true);
+    expect(result).toContain("You MUST respond in Korean at all times.");
+    expect(result).toContain("You are an engineer.");
+  });
+
+  test("returns original prompt when language is undefined", () => {
+    const prompt = "You are an engineer.";
+    const result = injectLanguageDirective(prompt, undefined);
+    expect(result).toBe(prompt);
+  });
+
+  test("returns original prompt when language is empty string", () => {
+    const prompt = "You are an engineer.";
+    const result = injectLanguageDirective(prompt, "");
+    expect(result).toBe(prompt);
+  });
+
+  test("returns original prompt when language is whitespace only", () => {
+    const prompt = "You are an engineer.";
+    const result = injectLanguageDirective(prompt, "  ");
+    expect(result).toBe(prompt);
+  });
+
+  test("skips injection when prompt already has ## Language section", () => {
+    const prompt = "## Language\n\nYou MUST respond in Korean.\n\nYou are an engineer.";
+    const result = injectLanguageDirective(prompt, "Korean");
+    expect(result).toBe(prompt);
   });
 });

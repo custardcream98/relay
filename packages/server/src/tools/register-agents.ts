@@ -6,9 +6,11 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { markAsAgentId } from "relay-shared";
 import { z } from "zod";
 import { getAgents, getPool } from "../agents/cache.js";
+import { injectLanguageDirective } from "../agents/loader.js";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
-import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { AGENT_ID_SCHEMA, SESSION_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 
 export function registerAgentTools(server: McpServer): void {
   // Returns the actual dashboard URL and server metadata.
@@ -22,21 +24,14 @@ export function registerAgentTools(server: McpServer): void {
       const port = getPort();
       // When port is null the dashboard failed to bind (EADDRINUSE) — do not fabricate a URL
       const dashboardUrl = port != null ? `http://localhost:${port}` : null;
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              dashboardUrl,
-              dashboardAvailable: port != null,
-              port,
-              sessionId: getSessionId(),
-              instanceId: getInstanceId() ?? null,
-            }),
-          },
-        ],
-      };
+      return jsonResponse({
+        success: true,
+        dashboardUrl,
+        dashboardAvailable: port != null,
+        port,
+        sessionId: getSessionId(),
+        instanceId: getInstanceId() ?? null,
+      });
     }
   );
 
@@ -62,7 +57,7 @@ export function registerAgentTools(server: McpServer): void {
       // Emit agent:status=working so the dashboard marks the agent as active immediately
       broadcast({ type: "agent:status", agentId, status: "working", timestamp });
       broadcast({ type: "agent:thinking", agentId, chunk: input.content, timestamp });
-      return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
+      return jsonResponse({ success: true });
     }
   );
 
@@ -73,14 +68,9 @@ export function registerAgentTools(server: McpServer): void {
     "list_agents",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
-      session_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(128)
-        .optional()
-        .describe(
-          "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml (written by /relay:relay Team Composition)."
-        ),
+      session_id: SESSION_ID_SCHEMA.optional().describe(
+        "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml (written by /relay:relay Team Composition)."
+      ),
     },
     async (input) => {
       const agents = getAgents(input.session_id);
@@ -88,41 +78,27 @@ export function registerAgentTools(server: McpServer): void {
       // This lets the orchestrator distinguish "0 agents" from "file not yet written".
       if (agents === null) {
         const relayDir = getRelayDir();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: false,
-                error: `Session agents file not found: ${relayDir}/session-agents-${input.session_id}.yml — run team composition first`,
-              }),
-            },
-          ],
-        };
+        return jsonResponse({
+          success: false,
+          error: `Session agents file not found: ${relayDir}/session-agents-${input.session_id}.yml — run team composition first`,
+        });
       }
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              agents: Object.values(agents).map((a) => ({
-                id: a.id,
-                name: a.name,
-                emoji: a.emoji,
-                description: a.description,
-                tools: a.tools,
-                // Language directive is already injected by buildSystemPromptWithMemory() in loader.ts.
-                // Return the raw systemPrompt here to avoid duplicating the directive.
-                systemPrompt: a.systemPrompt,
-                basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
-                validate_prompt: a.validate_prompt,
-                review_checklist: a.review_checklist,
-              })),
-            }),
-          },
-        ],
-      };
+      return jsonResponse({
+        success: true,
+        agents: Object.values(agents).map((a) => ({
+          id: a.id,
+          name: a.name,
+          emoji: a.emoji,
+          description: a.description,
+          tools: a.tools,
+          // Language directive is injected by injectLanguageDirective() at response time.
+          systemPrompt: injectLanguageDirective(a.systemPrompt, a.language),
+          basePersonaId: a.basePersonaId, // expose for dashboard agent disambiguation
+          validate_prompt: a.validate_prompt,
+          review_checklist: a.review_checklist,
+          language: a.language,
+        })),
+      });
     }
   );
 
@@ -137,36 +113,23 @@ export function registerAgentTools(server: McpServer): void {
       try {
         agents = getPool();
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({ success: false, error: (err as Error).message }),
-            },
-          ],
-        };
+        return jsonResponse({ success: false, error: (err as Error).message });
       }
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              agents: Object.values(agents).map((a) => ({
-                id: a.id,
-                name: a.name,
-                emoji: a.emoji,
-                description: a.description,
-                tags: a.tags,
-                tools: a.tools,
-                validate_prompt: a.validate_prompt,
-                review_checklist: a.review_checklist,
-                // systemPrompt intentionally omitted — pool metadata only
-              })),
-            }),
-          },
-        ],
-      };
+      return jsonResponse({
+        success: true,
+        agents: Object.values(agents).map((a) => ({
+          id: a.id,
+          name: a.name,
+          emoji: a.emoji,
+          description: a.description,
+          tags: a.tags,
+          tools: a.tools,
+          validate_prompt: a.validate_prompt,
+          review_checklist: a.review_checklist,
+          language: a.language,
+          // systemPrompt intentionally omitted — pool metadata only
+        })),
+      });
     }
   );
 }

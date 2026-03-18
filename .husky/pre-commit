@@ -1,4 +1,5 @@
 #!/usr/bin/env sh
-# Pre-commit: lint + format check, then TypeScript type check
+# Pre-commit: lint + format, type check, tests
 bun run check
 bunx tsc --noEmit -p packages/server/tsconfig.json
+bun test

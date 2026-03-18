@@ -1,6 +1,6 @@
 {
   "name": "relay-server",
-  "version": "0.18.0",
+  "version": "0.1.0",
   "description": "MCP server for the relay multi-agent framework",
   "type": "module",
   "bin": {
@@ -17,8 +17,7 @@
     "dev": "RELAY_DASHBOARD_DIR=$(pwd)/../dashboard/dist bun run --watch src/index.ts",
     "start": "node dist/index.js",
     "build": "bun run build.ts",
-    "test": "bun test",
-    "version": "node ../../scripts/sync-plugin-version.js"
+    "test": "bun test"
   },
   "dependencies": {
     "@hono/node-server": "^1.14.4",

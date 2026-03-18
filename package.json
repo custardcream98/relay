@@ -26,7 +26,7 @@
     "docs:build": "bun run --filter relay-docs build",
     "build:server": "bun run --filter relay-server build",
     "build:release": "bun run dashboard:build && bun run build:server",
-    "version": "node scripts/sync-plugin-version.js",
+    "bump": "node scripts/sync-plugin-version.js",
     "prepare": "husky"
   },
   "devDependencies": {

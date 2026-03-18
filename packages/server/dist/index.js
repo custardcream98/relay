@@ -11099,10 +11099,10 @@ var import_sender = __toESM(require_sender(), 1);
 var import_websocket = __toESM(require_websocket(), 1);
 var import_websocket_server = __toESM(require_websocket_server(), 1);
 
-// src/agents/loader.ts
+// src/agents/cache.ts
 init_esm_shims();
-import { existsSync, readFileSync } from "fs";
-import { join as join2 } from "path";
+import { existsSync as existsSync2, readFileSync as readFileSync2 } from "fs";
+import { join as join3 } from "path";
 
 // ../../node_modules/.bun/js-yaml@4.1.1/node_modules/js-yaml/dist/js-yaml.mjs
 init_esm_shims();
@@ -13729,10 +13729,6 @@ var jsYaml = {
   safeDump
 };
 
-// ../shared/index.ts
-init_esm_shims();
-var markAsAgentId = (id) => id;
-
 // src/config.ts
 init_esm_shims();
 import { isAbsolute, join, resolve } from "path";
@@ -13796,6 +13792,15 @@ function setSessionId(id) {
   }
   _sessionId = id;
 }
+
+// src/agents/loader.ts
+init_esm_shims();
+import { existsSync, readFileSync } from "fs";
+import { join as join2 } from "path";
+
+// ../shared/index.ts
+init_esm_shims();
+var markAsAgentId = (id) => id;
 
 // src/utils/validate.ts
 init_esm_shims();
@@ -13865,16 +13870,16 @@ function resolveSharedBlocks(systemPrompt, sharedBlocks, agentId) {
     return block.replace(/\{agent_id\}/g, agentId);
   });
 }
-function validatePromptSections(agentId, systemPrompt) {
-  const requiredSections = [
-    { header: "### On Each Spawn", label: "On Each Spawn" },
-    { header: "### Declaring End", label: "Declaring End" },
-    { header: "## Rules", label: "Rules" }
+function validatePromptSections(agentId, rawSystemPrompt) {
+  const requiredRefs = [
+    { ref: "{{on_each_spawn}}", label: "on_each_spawn" },
+    { ref: "{{declaring_end}}", label: "declaring_end" },
+    { ref: "{{core_rules}}", label: "core_rules" }
   ];
-  const missing = requiredSections.filter(({ header }) => !systemPrompt.includes(header));
+  const missing = requiredRefs.filter(({ ref }) => !rawSystemPrompt.includes(ref));
   if (missing.length > 0) {
     throw new Error(
-      `agent "${agentId}" systemPrompt is missing required sections: ${missing.map((s) => `"${s.label}"`).join(", ")}. Every agent must include "### On Each Spawn", "### Declaring End", and "## Rules".`
+      `agent "${agentId}" systemPrompt is missing required block references: ${missing.map((s) => s.ref).join(", ")}. Every pool agent must reference {{on_each_spawn}}, {{declaring_end}}, and {{core_rules}}.`
     );
   }
 }
@@ -13984,11 +13989,13 @@ function loadAgents(override, poolAgents) {
 }
 function loadPool(override) {
   if (override) {
-    const agents = loadAgents(override);
-    for (const [id, persona] of Object.entries(agents)) {
-      validatePromptSections(id, persona.systemPrompt);
+    for (const [id, config2] of Object.entries(override.agents)) {
+      if (config2.disabled || config2.extends) continue;
+      if (config2.systemPrompt) {
+        validatePromptSections(id, config2.systemPrompt);
+      }
     }
-    return agents;
+    return loadAgents(override);
   }
   const poolFile = readYml(join2(getRelayDir(), "agents.pool.yml")) ?? readYml(join2(getProjectRoot(), "agents.pool.yml"));
   if (poolFile) {
@@ -13997,6 +14004,60 @@ function loadPool(override) {
   throw new Error(
     "No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml) or run /relay:relay to auto-generate one."
   );
+}
+
+// src/agents/cache.ts
+var POOL_CACHE_TTL_MS = 5 * 60 * 1e3;
+var agentsCache = /* @__PURE__ */ new Map();
+var pool = null;
+var poolCachedAt = 0;
+function getAgents(sessionId) {
+  if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+    return null;
+  }
+  const cacheKey2 = sessionId ?? "__default__";
+  if (agentsCache.has(cacheKey2)) return agentsCache.get(cacheKey2);
+  let result;
+  try {
+    if (sessionId) {
+      const sessionFile = join3(getRelayDir(), `session-agents-${sessionId}.yml`);
+      if (existsSync2(sessionFile)) {
+        const parsed = jsYaml.load(readFileSync2(sessionFile, "utf-8"));
+        if (!parsed) {
+          console.error(`[relay] session file is empty or malformed: ${sessionFile}`);
+        }
+        let poolAgents;
+        try {
+          poolAgents = getPool();
+        } catch {
+          poolAgents = void 0;
+        }
+        result = loadAgents(parsed ?? { agents: {} }, poolAgents);
+      } else {
+        console.error(`[relay] session file not found: ${sessionFile}`);
+        return null;
+      }
+    } else {
+      result = {};
+    }
+  } catch (err) {
+    console.error(
+      `[relay] failed to load agents for session "${sessionId ?? "__default__"}":`,
+      err.message
+    );
+    return null;
+  }
+  agentsCache.set(cacheKey2, result);
+  return result;
+}
+function getPool() {
+  const now = Date.now();
+  if (pool !== null && now - poolCachedAt < POOL_CACHE_TTL_MS) {
+    return pool;
+  }
+  pool = loadPool();
+  poolCachedAt = now;
+  return pool;
 }
 
 // src/dashboard/hono.ts
@@ -14083,8 +14144,8 @@ var _baseMimes = {
 var baseMimes = _baseMimes;
 
 // ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/serve-static.mjs
-import { createReadStream, statSync, existsSync as existsSync2 } from "fs";
-import { join as join3 } from "path";
+import { createReadStream, statSync, existsSync as existsSync3 } from "fs";
+import { join as join4 } from "path";
 import { versions } from "process";
 import { Readable as Readable2 } from "stream";
 var COMPRESSIBLE_CONTENT_TYPE_REGEX = /^\s*(?:text\/[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript|x-ns-proxy-autoconfig|x-sh|x-tar|x-virtualbox-hdd|x-virtualbox-ova|x-virtualbox-ovf|x-virtualbox-vbox|x-virtualbox-vdi|x-virtualbox-vhd|x-virtualbox-vmdk|x-www-form-urlencoded)|font\/(?:otf|ttf)|image\/(?:bmp|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i;
@@ -14146,7 +14207,7 @@ var tryDecodeURI = (str2) => tryDecode(str2, decodeURI);
 var serveStatic = (options = { root: "" }) => {
   const root = options.root || "";
   const optionPath = options.path;
-  if (root !== "" && !existsSync2(root)) {
+  if (root !== "" && !existsSync3(root)) {
     console.error(`serveStatic: root path '${root}' is not found, are you sure it's correct?`);
   }
   return async (c, next) => {
@@ -14167,14 +14228,14 @@ var serveStatic = (options = { root: "" }) => {
         return next();
       }
     }
-    let path2 = join3(
+    let path2 = join4(
       root,
       !optionPath && options.rewriteRequestPath ? options.rewriteRequestPath(filename, c) : filename
     );
     let stats = getStats(path2);
     if (stats && stats.isDirectory()) {
       const indexFile = options.index ?? "index.html";
-      path2 = join3(path2, indexFile);
+      path2 = join4(path2, indexFile);
       stats = getStats(path2);
     }
     if (!stats) {
@@ -16418,63 +16479,6 @@ var cors = (options) => {
   };
 };
 
-// src/agents/cache.ts
-init_esm_shims();
-import { existsSync as existsSync3, readFileSync as readFileSync2 } from "fs";
-import { join as join4 } from "path";
-var POOL_CACHE_TTL_MS = 5 * 60 * 1e3;
-var agentsCache = /* @__PURE__ */ new Map();
-var pool = null;
-var poolCachedAt = 0;
-function getAgents(sessionId) {
-  if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
-    return null;
-  }
-  const cacheKey2 = sessionId ?? "__default__";
-  if (agentsCache.has(cacheKey2)) return agentsCache.get(cacheKey2);
-  let result;
-  try {
-    if (sessionId) {
-      const sessionFile = join4(getRelayDir(), `session-agents-${sessionId}.yml`);
-      if (existsSync3(sessionFile)) {
-        const parsed = jsYaml.load(readFileSync2(sessionFile, "utf-8"));
-        if (!parsed) {
-          console.error(`[relay] session file is empty or malformed: ${sessionFile}`);
-        }
-        let poolAgents;
-        try {
-          poolAgents = getPool();
-        } catch {
-          poolAgents = void 0;
-        }
-        result = loadAgents(parsed ?? { agents: {} }, poolAgents);
-      } else {
-        console.error(`[relay] session file not found: ${sessionFile}`);
-        return null;
-      }
-    } else {
-      result = {};
-    }
-  } catch (err) {
-    console.error(
-      `[relay] failed to load agents for session "${sessionId ?? "__default__"}":`,
-      err.message
-    );
-    return null;
-  }
-  agentsCache.set(cacheKey2, result);
-  return result;
-}
-function getPool() {
-  const now = Date.now();
-  if (pool !== null && now - poolCachedAt < POOL_CACHE_TTL_MS) {
-    return pool;
-  }
-  pool = loadPool();
-  poolCachedAt = now;
-  return pool;
-}
-
 // src/store.ts
 init_esm_shims();
 var MAX_MESSAGES_PER_SESSION = 1e4;
@@ -16950,9 +16954,22 @@ app.post("/api/hook/tool-use", async (c) => {
     }
     if (!seenInSession.has(agentId)) {
       seenInSession.add(agentId);
+      let agentName = agentId;
+      let agentEmoji = "\u{1F916}";
+      try {
+        const sessionAgents = getAgents(getSessionId());
+        const match2 = sessionAgents?.[agentId];
+        if (match2) {
+          agentName = match2.name;
+          agentEmoji = match2.emoji;
+        }
+      } catch {
+      }
       broadcast({
         type: "agent:joined",
         agentId: markAsAgentId(agentId),
+        name: agentName,
+        emoji: agentEmoji,
         sessionId: currentSessionId,
         timestamp: now
       });
@@ -16966,6 +16983,7 @@ app.post("/api/hook/tool-use", async (c) => {
   });
   return c.json({ ok: true });
 });
+app.use("/favicon.svg", serveStatic({ root: DASHBOARD_DIST }));
 app.get("*", async (_c) => {
   const indexPath = join6(DASHBOARD_DIST, "index.html");
   try {
@@ -41633,12 +41651,21 @@ function buildSessionSnapshot(port) {
   const sessionId = getSessionId();
   let agentMeta = [];
   try {
-    const agents = loadPool();
-    agentMeta = Object.values(agents).map((a) => ({
-      id: a.id,
-      name: a.name,
-      emoji: a.emoji
-    }));
+    const sessionAgents = getAgents(getSessionId());
+    if (sessionAgents && Object.keys(sessionAgents).length > 0) {
+      agentMeta = Object.values(sessionAgents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji
+      }));
+    } else {
+      const agents = loadPool();
+      agentMeta = Object.values(agents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji
+      }));
+    }
   } catch {
   }
   const snapshot = {

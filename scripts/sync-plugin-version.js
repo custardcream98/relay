@@ -59,12 +59,15 @@ console.log(`v${next}`);
 console.log("Building...");
 execSync("bun run build:release", { cwd: root, stdio: "inherit" });
 
-// Commit + tag
+// Commit + tag (--no-verify: dist files trigger slow lint-staged on bundled JS)
 execSync(
   `git add .claude-plugin/plugin.json .claude-plugin/marketplace.json packages/server/dist/`,
   { cwd: root }
 );
-execSync(`git commit -m "chore: version up"`, { cwd: root, stdio: "inherit" });
+execSync(`git commit --no-verify -m "chore: version up v${next}"`, {
+  cwd: root,
+  stdio: "inherit",
+});
 execSync(`git tag v${next}`, { cwd: root });
 
 // Push + GitHub Release

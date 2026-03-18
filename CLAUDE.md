@@ -249,7 +249,7 @@ Distributed as a Claude Code plugin via git — no npm publishing.
 Version source of truth: `.claude-plugin/plugin.json`.
 
 ```bash
-bun run bump patch   # bumps version, builds release, commits — push when ready
+bun run bump patch   # bumps version → builds release → commits → tags → pushes → creates GitHub Release
 ```
 
 Pre-commit hook runs `biome check` + `tsc --noEmit` + `bun test` on every commit.

@@ -1,14 +1,22 @@
 // packages/dashboard/src/state/dashboardReducer.ts
 // Extracted from App.tsx — pure state management for the dashboard.
+// Large helpers (applySnapshot, insertSorted, eventToTimelineEntry) live in
+// sibling modules; this file re-exports them for backward compatibility.
 
 import type { AgentId } from "relay-shared";
 import { getEndDeclarationType } from "../components/activity/helpers";
-import type { AgentMeta, DashboardEvent, Message, Task, TimelineEntry } from "../types";
+import type { AgentMeta, DashboardEvent, Task, TimelineEntry } from "../types";
+import { applySnapshot } from "./snapshotHandler";
+import { eventToTimelineEntry, insertSorted } from "./timelineUtils";
+
+// Re-export extracted helpers so existing imports keep working
+export { applySnapshot } from "./snapshotHandler";
+export { eventToTimelineEntry, insertSorted } from "./timelineUtils";
 
 // Global dashboard state
 export interface DashboardState {
   tasks: Task[];
-  messages: Message[];
+  messages: import("../types").Message[];
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting" | "done">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;
@@ -22,6 +30,8 @@ export interface DashboardState {
   liveSessionId: string | null;
   // Incremented on session:started — triggers agent list re-fetch so newly created pool is picked up
   sessionStartCount: number;
+  // Total events received (never decremented) — used for truncation banner
+  totalEventCount: number;
   // Monotonic counter for stable timeline entry IDs — prevents returning the same state reference from reducer
   _seq: number;
 }
@@ -43,151 +53,9 @@ export const initialState: DashboardState = {
   sessionTeam: [],
   liveSessionId: null,
   sessionStartCount: 0,
+  totalEventCount: 0,
   _seq: 0,
 };
-
-// Convert RelayEvent to TimelineEntry
-export function eventToTimelineEntry(event: DashboardEvent, id: string): TimelineEntry | null {
-  switch (event.type) {
-    case "message:new":
-      return {
-        id,
-        type: event.type,
-        agentId: event.message.from_agent,
-        description: event.message.to_agent ? `→ ${event.message.to_agent}` : "Broadcast message",
-        detail: event.message.content,
-        timestamp: event.timestamp,
-      };
-    case "task:updated":
-      return {
-        id,
-        type: event.type,
-        agentId: event.task.assignee,
-        description: `Task ${event.task.status.replaceAll("_", " ")}: ${event.task.title}`,
-        timestamp: event.timestamp,
-      };
-    case "artifact:posted":
-      return {
-        id,
-        type: event.type,
-        agentId: event.artifact.created_by,
-        description: `Artifact: ${event.artifact.name}`,
-        detail: event.artifact.id,
-        timestamp: event.timestamp,
-      };
-    case "agent:thinking":
-      return {
-        id,
-        type: event.type,
-        agentId: event.agentId,
-        description: "Thinking…",
-        detail: event.chunk,
-        timestamp: event.timestamp,
-      };
-    case "review:requested":
-      return {
-        id,
-        type: event.type,
-        agentId: event.review.requester,
-        description: `Review requested from ${event.review.reviewer}`,
-        timestamp: event.timestamp,
-      };
-    case "review:updated":
-      return {
-        id,
-        type: event.type,
-        agentId: event.review.reviewer,
-        description: `Review ${event.review.status.replaceAll("_", " ")}: ${event.review.reviewer}`,
-        detail: event.review.comments ?? undefined,
-        timestamp: event.timestamp,
-      };
-    case "agent:status":
-      return {
-        id,
-        type: event.type,
-        agentId: event.agentId,
-        description: `Status → ${event.status}`,
-        timestamp: event.timestamp,
-      };
-    case "memory:updated":
-      return {
-        id,
-        type: event.type,
-        agentId: event.agentId,
-        description: "Memory updated",
-        timestamp: event.timestamp,
-      };
-    case "agent:joined":
-      return {
-        id,
-        type: event.type,
-        agentId: event.agentId,
-        description: "joined session",
-        timestamp: event.timestamp,
-      };
-    default:
-      return null;
-  }
-}
-
-// Extract session:snapshot handling to a pure helper for readability and testability
-export function applySnapshot(
-  state: DashboardState,
-  event: Extract<DashboardEvent, { type: "session:snapshot" }>,
-  baseUpdates: Pick<DashboardState, "_seq" | "timeline">
-): DashboardState {
-  // Snapshot payload is now fully typed — no casting needed
-  const snapshotMessages: Message[] = event.messages;
-  const snapshotTasks: Task[] = event.tasks as Task[];
-
-  // Rebuild session team from snapshot if present
-  const teamFromSnapshot: AgentMeta[] =
-    event.agents && event.agents.length > 0
-      ? event.agents.map((a) => ({ ...a, id: a.id as AgentId }))
-      : state.sessionTeam;
-
-  const snapshotEntries: TimelineEntry[] = [
-    ...snapshotMessages.map((m) => ({
-      id: `snap-msg-${m.id}`,
-      type: "message:new" as const,
-      agentId: m.from_agent,
-      description: m.to_agent ? `→ ${m.to_agent}` : "Broadcast message",
-      detail: m.content,
-      timestamp: m.created_at * 1000, // SQLite unixepoch → ms
-    })),
-    ...snapshotTasks.map((t) => ({
-      id: `snap-task-${t.id}`,
-      type: "task:updated" as const,
-      agentId: t.assignee,
-      description: `Task ${t.status.replaceAll("_", " ")}: ${t.title}`,
-      // Use task's actual timestamp for correct chronological ordering
-      timestamp: (t.updated_at ?? t.created_at ?? 0) * 1000,
-    })),
-  ].sort((a, b) => a.timestamp - b.timestamp);
-
-  // Reconstruct agent statuses from the last end: declaration in snapshot messages
-  const restoredStatuses: DashboardState["agentStatuses"] = {};
-  for (const m of snapshotMessages) {
-    if (!m.from_agent) continue;
-    const endType = getEndDeclarationType(m.content ?? "");
-    if (endType === "waiting") restoredStatuses[m.from_agent as AgentId] = "waiting";
-    else if (endType === "done" || endType === "failed")
-      restoredStatuses[m.from_agent as AgentId] = "done";
-  }
-
-  return {
-    ...state,
-    ...baseUpdates, // _seq updated; timeline intentionally overridden below
-    tasks: snapshotTasks,
-    messages: snapshotMessages,
-    timeline: snapshotEntries,
-    agentStatuses: { ...state.agentStatuses, ...restoredStatuses },
-    instanceId: event.instanceId ?? state.instanceId,
-    instancePort: event.port ?? state.instancePort,
-    sessionTeam: teamFromSnapshot,
-    liveSessionId: event.sessionId,
-  };
-}
 
 export function reducer(state: DashboardState, action: Action): DashboardState {
   switch (action.type) {
@@ -200,7 +68,11 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
       const entry = eventToTimelineEntry(event, entryId);
 
       // Base updates shared across all EVENT cases
-      const baseUpdates = { _seq: state._seq + 1, timeline: newTimeline };
+      const baseUpdates = {
+        _seq: state._seq + 1,
+        timeline: newTimeline,
+        totalEventCount: state.totalEventCount,
+      };
 
       if (entry) {
         if (event.type === "agent:thinking") {
@@ -208,15 +80,16 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
           const withoutPrev = state.timeline.filter(
             (e) => !(e.type === "agent:thinking" && e.agentId === event.agentId)
           );
-          newTimeline = [...withoutPrev, entry];
+          newTimeline = insertSorted(withoutPrev, entry);
         } else {
-          newTimeline = [...state.timeline, entry];
+          newTimeline = insertSorted(state.timeline, entry);
         }
-        // Keep at most 200 entries
+        // Keep at most 200 entries (trim oldest after sorted insertion)
         if (newTimeline.length > 200) {
-          newTimeline = newTimeline.slice(newTimeline.length - 200);
+          newTimeline = newTimeline.slice(-200);
         }
         baseUpdates.timeline = newTimeline;
+        baseUpdates.totalEventCount = state.totalEventCount + 1;
       }
 
       switch (event.type) {
@@ -307,6 +180,7 @@ export function reducer(state: DashboardState, action: Action): DashboardState {
             sessionTeam: [],
             liveSessionId: event.sessionId,
             sessionStartCount: state.sessionStartCount + 1,
+            totalEventCount: 0,
             _seq: 0,
           };
         default:

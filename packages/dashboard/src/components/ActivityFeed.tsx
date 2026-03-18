@@ -3,19 +3,21 @@
 // Renders all relay events in chronological order (latest at bottom),
 // with event-type-specific visual treatment per designer spec.
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useServer } from "../context/ServerContext";
-import { usePopover } from "../hooks/usePopover";
-import { cn } from "../lib/cn";
 import type { AgentId, TimelineEntry } from "../types";
 import { ArtifactDetailModal } from "./ArtifactDetailModal";
 import type { FilterableType } from "./activity";
 import {
   buildDefaultFilters,
+  CollapsedGroup,
   EntryRenderer,
   FILTER_DEFS,
   FILTER_STORAGE_KEY,
+  FilterBar,
+  groupConsecutive,
   ThinkingEntry,
+  TimeSeparator,
 } from "./activity";
 
 interface Props {
@@ -24,12 +26,18 @@ interface Props {
   // Live thinking chunks — keyed by agentId, shown as streaming cards
   thinkingChunks: Partial<Record<AgentId, string>>;
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting" | "done">>;
+  totalEventCount: number;
 }
 
-export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuses }: Props) {
+export function ActivityFeed({
+  entries,
+  focusAgent,
+  thinkingChunks,
+  agentStatuses,
+  totalEventCount,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const filterBarRef = useRef<HTMLDivElement>(null);
   const isUserScrollingRef = useRef(false);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
 
@@ -50,10 +58,6 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
 
   // Filter state — persisted to localStorage
   const [activeFilters, setActiveFilters] = useState<Set<FilterableType>>(buildDefaultFilters);
-  const [filterOpen, setFilterOpen] = useState(false);
-
-  // Close filter panel on Escape or outside click
-  usePopover(filterBarRef, () => setFilterOpen(false), { enabled: filterOpen });
 
   // Refresh relative timestamps every 30 seconds
   const [, setTick] = useState(0);
@@ -76,13 +80,26 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
     () =>
       entries.filter((e) => {
         if (focusAgent && e.agentId !== focusAgent) return false;
-        // agent:thinking historical entries are only shown when the filter is explicitly ON.
-        // Live thinking is always rendered via thinkingChunks below (not from entries),
-        // so the toggle consistently controls both historical and live display.
+        // Historical thinking entries are filtered by the toggle.
+        // Live thinking is always rendered via thinkingChunks below (filter-independent).
         return activeFilters.has(e.type);
       }),
     [entries, focusAgent, activeFilters]
   );
+
+  // Group consecutive same-type entries for collapse
+  const groups = useMemo(() => groupConsecutive(filtered), [filtered]);
+
+  // Precompute per-group offsets for keyboard navigation indexing
+  const groupOffsets = useMemo(() => {
+    const offsets: number[] = [];
+    let offset = 0;
+    for (const group of groups) {
+      offsets.push(offset);
+      offset += group.entries.length;
+    }
+    return offsets;
+  }, [groups]);
 
   // Live thinking agents — only show when working and chunk is non-empty
   const thinkingAgents = useMemo(
@@ -91,7 +108,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
         .filter(([agentId, chunk]) => {
           if (!chunk) return false;
           if (focusAgent && agentId !== focusAgent) return false;
-          if (!activeFilters.has("agent:thinking")) return false;
+          // Live thinking is always visible regardless of filter state
           return true;
         })
         .map(([agentId, chunk]) => ({
@@ -99,7 +116,7 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
           chunk: chunk ?? "",
           isLive: agentStatuses[agentId as AgentId] === "working",
         })),
-    [thinkingChunks, focusAgent, activeFilters, agentStatuses]
+    [thinkingChunks, focusAgent, agentStatuses]
   );
 
   // Auto-scroll to bottom on new entries, unless user has scrolled up
@@ -141,7 +158,6 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
     setActiveFilters(allOn ? new Set() : new Set(FILTER_DEFS.map((f) => f.type)));
   }, [allOn]);
 
-  const isFiltered = activeFilters.size < FILTER_DEFS.length;
   // True empty = no entries at all (not just filtered)
   const hasNoEntries = entries.length === 0 && thinkingAgents.length === 0;
   const isEmpty = filtered.length === 0 && thinkingAgents.length === 0;
@@ -178,10 +194,6 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Skip if a filter input or button inside the filter bar is focused
-      const active = document.activeElement;
-      if (active && filterBarRef.current?.contains(active)) return;
-
       switch (e.key) {
         case "j":
         case "ArrowDown":
@@ -220,86 +232,12 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Filter bar */}
-      <div
-        ref={filterBarRef}
-        className="flex items-center gap-1 px-3 py-[5px] border-b border-(--color-border-subtle) bg-(--color-surface-base) shrink-0 flex-nowrap overflow-x-auto"
-      >
-        {/* Filter toggle button */}
-        <button
-          type="button"
-          onClick={() => setFilterOpen((v) => !v)}
-          title="Toggle filter panel"
-          className={cn(
-            "flex items-center gap-1 px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
-            isFiltered
-              ? "text-(--color-accent-fe)"
-              : "border border-(--color-border-subtle) bg-transparent text-(--color-text-tertiary)"
-          )}
-          style={
-            isFiltered
-              ? {
-                  border: "1px solid color-mix(in srgb, var(--color-accent-fe) 31%, transparent)",
-                  background: "color-mix(in srgb, var(--color-accent-fe) 8%, transparent)",
-                }
-              : undefined
-          }
-        >
-          <span className="text-[11px]">⚙</span>
-          Filter
-          {isFiltered && (
-            <span className="text-[9px] bg-(--color-accent-fe) text-white rounded-full px-1 font-semibold">
-              {FILTER_DEFS.length - activeFilters.size} off
-            </span>
-          )}
-        </button>
-
-        {/* Filter pills — shown when open */}
-        {filterOpen && (
-          <>
-            <button
-              type="button"
-              onClick={toggleAll}
-              className="px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer border border-(--color-border-default) bg-transparent text-(--color-text-tertiary) shrink-0"
-            >
-              {allOn ? "All off" : "All on"}
-            </button>
-
-            {FILTER_DEFS.map((def) => {
-              const isActive = activeFilters.has(def.type);
-              const count = countByType[def.type] ?? 0;
-              return (
-                <button
-                  key={def.type}
-                  type="button"
-                  onClick={() => toggleFilter(def.type)}
-                  title={`${def.label}${count > 0 ? ` (${count})` : ""}`}
-                  className={cn(
-                    "flex items-center gap-[3px] px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
-                    isActive
-                      ? "border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) opacity-100"
-                      : "border border-(--color-border-subtle) bg-transparent text-(--color-text-disabled) opacity-50"
-                  )}
-                >
-                  <span className="text-[11px]">{def.icon}</span>
-                  {def.label}
-                  {count > 0 && (
-                    <span
-                      className={cn(
-                        "font-mono text-[9px] px-[3px] rounded-[3px]",
-                        isActive
-                          ? "bg-(--color-surface-raised) text-(--color-text-tertiary)"
-                          : "bg-transparent text-(--color-text-disabled)"
-                      )}
-                    >
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </>
-        )}
-      </div>
+      <FilterBar
+        activeFilters={activeFilters}
+        onToggleFilter={toggleFilter}
+        onToggleAll={toggleAll}
+        countByType={countByType}
+      />
 
       {/* Entry list */}
       {isEmpty ? (
@@ -337,22 +275,45 @@ export function ActivityFeed({ entries, focusAgent, thinkingChunks, agentStatuse
                 : undefined
           }
         >
-          {entries.length >= 200 && (
-            <div className="text-center px-4 py-1.5 text-[10px] text-(--color-text-disabled) font-mono">
-              Showing last 200 events
+          {totalEventCount > entries.length && (
+            <div className="text-center px-4 py-1.5 text-[10px] text-(--color-text-tertiary) font-mono border-b border-(--color-border-secondary)">
+              {totalEventCount - entries.length} earlier events omitted
             </div>
           )}
 
-          {filtered.map((entry, idx) => (
-            <EntryRenderer
-              key={entry.id}
-              entry={entry}
-              isFocused={focusedIndex === idx}
-              entryId={`activity-entry-${entry.id}`}
-              isExpanded={expandedEntries.has(entry.id)}
-              onClickArtifact={handleClickArtifact}
-            />
-          ))}
+          {groups.map((group, gi) => {
+            const prevGroup = groups[gi - 1];
+            const prevLast = prevGroup?.entries[prevGroup.entries.length - 1];
+            const curFirst = group.entries[0];
+            const showSeparator = prevLast && curFirst.timestamp - prevLast.timestamp > 60_000;
+            const groupOffset = groupOffsets[gi];
+
+            return (
+              <Fragment key={curFirst.id}>
+                {showSeparator && <TimeSeparator timestamp={curFirst.timestamp} />}
+                {group.collapsed ? (
+                  <CollapsedGroup
+                    group={group}
+                    focusedIndex={focusedIndex}
+                    globalOffset={groupOffset}
+                    expandedEntries={expandedEntries}
+                    onClickArtifact={handleClickArtifact}
+                  />
+                ) : (
+                  group.entries.map((entry, i) => (
+                    <EntryRenderer
+                      key={entry.id}
+                      entry={entry}
+                      isFocused={focusedIndex === groupOffset + i}
+                      entryId={`activity-entry-${entry.id}`}
+                      isExpanded={expandedEntries.has(entry.id)}
+                      onClickArtifact={handleClickArtifact}
+                    />
+                  ))
+                )}
+              </Fragment>
+            );
+          })}
 
           {/* Live thinking cards — one per agent, at the bottom */}
           {thinkingAgents.map(({ agentId, chunk, isLive }) => (

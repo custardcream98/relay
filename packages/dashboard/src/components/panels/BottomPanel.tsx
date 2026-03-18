@@ -1,6 +1,6 @@
 // packages/dashboard/src/components/panels/BottomPanel.tsx
 // Bottom-right panel — shows AgentDetailPanel in focus mode, TaskBoard otherwise.
-// TaskBoard collapse uses grid-template-rows animation (0fr ↔ 1fr).
+// TaskBoard collapse uses a single flex animation — no grid transition.
 
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
@@ -92,17 +92,9 @@ export function BottomPanel() {
             </button>
           </div>
 
-          {/* Grid-animated content — 0fr collapsed, 1fr expanded */}
-          <div
-            className="flex-[1_1_0] transition-[grid-template-rows] duration-200 ease-[ease]"
-            style={{
-              display: "grid",
-              gridTemplateRows: taskBoardCollapsed ? "0fr" : "1fr",
-            }}
-          >
-            <div className="overflow-hidden min-h-0">
-              <TaskBoard tasks={tasks} />
-            </div>
+          {/* Content — clipped naturally by flex parent's collapse */}
+          <div className="flex-1 overflow-hidden min-h-0">
+            <TaskBoard tasks={tasks} />
           </div>
         </>
       )}

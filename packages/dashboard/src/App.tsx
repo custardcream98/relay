@@ -40,6 +40,7 @@ export default function App() {
     instancePort,
     sessionTeam,
     liveSessionId,
+    totalEventCount,
     sessionStartCount,
   } = state;
 
@@ -134,6 +135,7 @@ export default function App() {
       instanceId,
       instancePort,
       sessionTeam,
+      totalEventCount,
       liveSessionId,
       onSelectAgent: handleSelectAgent,
     }),
@@ -147,6 +149,7 @@ export default function App() {
       instanceId,
       instancePort,
       sessionTeam,
+      totalEventCount,
       liveSessionId,
       handleSelectAgent,
     ]

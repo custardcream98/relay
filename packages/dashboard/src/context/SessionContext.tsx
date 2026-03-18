@@ -17,6 +17,7 @@ export interface SessionContextValue {
   instanceId: string | undefined;
   instancePort: number | undefined;
   sessionTeam: AgentMeta[];
+  totalEventCount: number;
   liveSessionId: string | null;
   onSelectAgent: (id: AgentId | null) => void;
 }

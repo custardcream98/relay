@@ -13,7 +13,8 @@ type PanelTab = "activity" | "messages";
 
 export function ActivityPanel() {
   const { timelinePct, taskBoardCollapsed, isDraggingTimeline } = usePanelLayout();
-  const { timeline, messages, selectedAgent, thinkingChunks, agentStatuses } = useSession();
+  const { timeline, messages, selectedAgent, thinkingChunks, agentStatuses, totalEventCount } =
+    useSession();
   const [activeTab, setActiveTab] = useState<PanelTab>("activity");
 
   const handleTabClick = useCallback((id: PanelTab) => setActiveTab(id), []);
@@ -69,6 +70,7 @@ export function ActivityPanel() {
             focusAgent={selectedAgent}
             thinkingChunks={thinkingChunks}
             agentStatuses={agentStatuses}
+            totalEventCount={totalEventCount}
           />
         ) : (
           <MessageFeed messages={messages} />

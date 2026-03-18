@@ -2,6 +2,8 @@
 // Barrel export for activity sub-components
 
 export { ArtifactEntry } from "./ArtifactEntry";
+export type { EntryGroup } from "./CollapsedGroup";
+export { CollapsedGroup, groupConsecutive } from "./CollapsedGroup";
 export type { FilterableType, FilterDef } from "./constants";
 export {
   FILTER_DEFS,
@@ -12,6 +14,7 @@ export {
 } from "./constants";
 export { EndDeclarationEntry } from "./EndDeclarationEntry";
 export { EntryRenderer } from "./EntryRenderer";
+export { FilterBar } from "./FilterBar";
 export { buildDefaultFilters, getEndDeclarationType } from "./helpers";
 export { MessageBroadcastEntry } from "./MessageBroadcastEntry";
 export { MessageDirectEntry } from "./MessageDirectEntry";
@@ -20,3 +23,4 @@ export { ReviewUpdatedEntry } from "./ReviewUpdatedEntry";
 export { SystemEntry } from "./SystemEntry";
 export { TaskInlineEntry } from "./TaskInlineEntry";
 export { ThinkingEntry } from "./ThinkingEntry";
+export { TimeSeparator } from "./TimeSeparator";

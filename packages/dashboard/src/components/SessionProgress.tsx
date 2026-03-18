@@ -28,17 +28,45 @@ export function SessionProgress() {
     return timeline[0].timestamp;
   }, [timeline]);
 
-  // Auto-update elapsed time every second
+  // Determine if session is finished:
+  // All agents are done/waiting AND all tasks are done.
+  // Requires at least one agent status to exist (empty = not yet started).
+  const sessionFinished = useMemo(() => {
+    const statuses = Object.values(agentStatuses);
+    if (statuses.length === 0) return false;
+    const allAgentsDone = statuses.every((s) => s === "done" || s === "waiting");
+    const allTasksDone = tasks.length === 0 || tasks.every((t) => t.status === "done");
+    return allAgentsDone && allTasksDone;
+  }, [agentStatuses, tasks]);
+
+  // Freeze the elapsed time when session finishes
+  const [frozenNow, setFrozenNow] = useState<number | null>(null);
+  useEffect(() => {
+    if (sessionFinished) {
+      // Capture the current time once when session finishes
+      setFrozenNow((prev) => prev ?? Date.now());
+    } else {
+      // Session resumed (re-spawn) — clear frozen time
+      setFrozenNow(null);
+    }
+  }, [sessionFinished]);
+
+  // Auto-update elapsed time every second (only when session is active)
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    if (!firstTimestamp) return;
+    if (!firstTimestamp || sessionFinished) return;
+    // Ensure `now` is fresh when interval starts (e.g. after resume)
+    setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [firstTimestamp]);
+  }, [firstTimestamp, sessionFinished]);
+
+  // Use frozen time when session is finished, otherwise use live `now`
+  const displayNow = frozenNow ?? now;
 
   const elapsedLabel = useMemo(() => {
     if (!firstTimestamp) return null;
-    const diffMs = now - firstTimestamp;
+    const diffMs = displayNow - firstTimestamp;
     if (diffMs < 0) return "0s";
     const totalSec = Math.floor(diffMs / 1000);
     if (totalSec < 60) return `${totalSec}s`;
@@ -48,7 +76,7 @@ export function SessionProgress() {
     const hr = Math.floor(min / 60);
     const remMin = min % 60;
     return remMin > 0 ? `${hr}h ${remMin}m` : `${hr}h`;
-  }, [firstTimestamp, now]);
+  }, [firstTimestamp, displayNow]);
 
   // Hide when no session data exists
   const hasData =

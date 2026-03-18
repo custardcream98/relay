@@ -199,6 +199,7 @@ const meta = {
     entries: ENTRIES,
     focusAgent: null,
     thinkingChunks: {},
+    totalEventCount: 0,
     agentStatuses: {
       pm: "idle",
       fe: "waiting",

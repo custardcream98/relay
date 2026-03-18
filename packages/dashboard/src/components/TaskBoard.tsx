@@ -272,9 +272,9 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
   }, []);
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <TaskProgressBar tasks={tasks} />
-      <div className="flex h-full">
+      <div className="flex flex-1 min-h-0">
         {COLUMNS.map((col) => (
           <TaskColumn
             key={col}
@@ -301,6 +301,6 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
           }}
         />
       )}
-    </>
+    </div>
   );
 });

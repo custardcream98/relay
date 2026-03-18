@@ -10517,7 +10517,121 @@ var require_dist = __commonJS({
 
 // src/index.ts
 init_esm_shims();
-import { createServer } from "net";
+
+// ../../node_modules/.bun/ws@8.19.0/node_modules/ws/wrapper.mjs
+init_esm_shims();
+var import_stream = __toESM(require_stream(), 1);
+var import_receiver = __toESM(require_receiver(), 1);
+var import_sender = __toESM(require_sender(), 1);
+var import_websocket = __toESM(require_websocket(), 1);
+var import_websocket_server = __toESM(require_websocket_server(), 1);
+
+// src/cli.ts
+init_esm_shims();
+
+// src/utils/validate.ts
+init_esm_shims();
+function isValidId(id) {
+  return /^[a-zA-Z0-9_-]+$/.test(id);
+}
+
+// src/cli.ts
+function parseArgs(argv) {
+  const result = {};
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--port" && argv[i + 1]) {
+      const p = Number(argv[i + 1]);
+      if (!Number.isNaN(p)) result.port = p;
+      i++;
+    } else if (argv[i] === "--instance" && argv[i + 1]) {
+      result.instance = argv[i + 1];
+      i++;
+    }
+  }
+  return result;
+}
+function applyCliArgs(args) {
+  if (args.instance && !isValidId(args.instance)) {
+    console.error("[relay] invalid --instance value; use alphanumeric, hyphen, underscore only");
+    process.exit(1);
+  }
+  if (args.instance) {
+    process.env.RELAY_INSTANCE = args.instance;
+  }
+  if (process.env.RELAY_INSTANCE && !isValidId(process.env.RELAY_INSTANCE)) {
+    console.error(
+      "[relay] invalid RELAY_INSTANCE value; use alphanumeric, hyphen, underscore only"
+    );
+    process.exit(1);
+  }
+}
+
+// src/config.ts
+init_esm_shims();
+import { isAbsolute, join, resolve } from "path";
+import { fileURLToPath as fileURLToPath2 } from "url";
+var _projectRoot = null;
+function setProjectRoot(root) {
+  _projectRoot = root;
+}
+function getProjectRoot() {
+  return _projectRoot ?? process.env.RELAY_PROJECT_ROOT ?? process.cwd();
+}
+function getRelayDir() {
+  if (process.env.RELAY_DIR) {
+    const dir = resolve(process.env.RELAY_DIR);
+    if (!isAbsolute(dir)) throw new Error(`RELAY_DIR resolved to non-absolute path: ${dir}`);
+    return dir;
+  }
+  return join(getProjectRoot(), ".relay");
+}
+function getInstanceId() {
+  return process.env.RELAY_INSTANCE;
+}
+var _port = null;
+function setPort(port) {
+  _port = port;
+}
+function getPort() {
+  return _port;
+}
+function uriToPath(uri) {
+  if (uri.startsWith("file://")) {
+    return fileURLToPath2(uri);
+  }
+  return uri;
+}
+var _sessionId = null;
+function getSessionId() {
+  if (_sessionId !== null) return _sessionId;
+  if (process.env.RELAY_SESSION_ID) {
+    if (!isValidId(process.env.RELAY_SESSION_ID)) {
+      console.error(
+        "[relay] invalid RELAY_SESSION_ID value; use alphanumeric, hyphen, underscore only"
+      );
+      process.exit(1);
+    }
+    _sessionId = process.env.RELAY_SESSION_ID;
+    return _sessionId;
+  }
+  const now = /* @__PURE__ */ new Date();
+  const date5 = now.toISOString().slice(0, 10);
+  const hh = String(now.getUTCHours()).padStart(2, "0");
+  const mm = String(now.getUTCMinutes()).padStart(2, "0");
+  const ss = String(now.getUTCSeconds()).padStart(2, "0");
+  const rand = Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
+  _sessionId = `${date5}-${hh}${mm}${ss}-${rand}`;
+  return _sessionId;
+}
+function setSessionId(id) {
+  if (!isValidId(id)) {
+    throw new Error(`setSessionId: invalid session ID format: "${id}"`);
+  }
+  _sessionId = id;
+}
+
+// src/dashboard/serve.ts
+init_esm_shims();
 
 // ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/index.mjs
 init_esm_shims();
@@ -11091,18 +11205,2469 @@ var serve = (options, listeningListener) => {
   return server2;
 };
 
-// ../../node_modules/.bun/ws@8.19.0/node_modules/ws/wrapper.mjs
+// src/port.ts
 init_esm_shims();
-var import_stream2 = __toESM(require_stream(), 1);
-var import_receiver = __toESM(require_receiver(), 1);
-var import_sender = __toESM(require_sender(), 1);
-var import_websocket = __toESM(require_websocket(), 1);
-var import_websocket_server = __toESM(require_websocket_server(), 1);
+import { createServer } from "net";
+var PORT_AUTO_START = 3456;
+var PORT_AUTO_END = 3465;
+function isPortAvailable(port) {
+  return new Promise((resolve2) => {
+    const server2 = createServer();
+    server2.once("error", () => resolve2(false));
+    server2.once("listening", () => {
+      server2.close(() => resolve2(true));
+    });
+    server2.listen(port);
+  });
+}
+async function findAvailablePort(start, end) {
+  for (let port = start; port <= end; port++) {
+    if (await isPortAvailable(port)) return port;
+  }
+  return null;
+}
+async function resolvePort(cliArgs2) {
+  if (cliArgs2.port) return cliArgs2.port;
+  if (process.env.DASHBOARD_PORT) {
+    const p = Number(process.env.DASHBOARD_PORT);
+    if (!Number.isNaN(p) && p > 0 && p <= 65535) return p;
+    console.error(
+      `[relay] invalid DASHBOARD_PORT "${process.env.DASHBOARD_PORT}" \u2014 falling back to auto-select`
+    );
+  }
+  const found = await findAvailablePort(PORT_AUTO_START, PORT_AUTO_END);
+  if (found === null) {
+    console.error(
+      `[relay] no available port found in range ${PORT_AUTO_START}-${PORT_AUTO_END} \u2014 falling back to ${PORT_AUTO_START}`
+    );
+    return PORT_AUTO_START;
+  }
+  return found;
+}
+
+// src/dashboard/hono.ts
+init_esm_shims();
+import { access, readFile as readFile2 } from "fs/promises";
+import { dirname, join as join6 } from "path";
+import { fileURLToPath as fileURLToPath3 } from "url";
+
+// ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/serve-static.mjs
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/mime.js
+init_esm_shims();
+var getMimeType = (filename, mimes = baseMimes) => {
+  const regexp = /\.([a-zA-Z0-9]+?)$/;
+  const match2 = filename.match(regexp);
+  if (!match2) {
+    return;
+  }
+  let mimeType = mimes[match2[1]];
+  if (mimeType && mimeType.startsWith("text")) {
+    mimeType += "; charset=utf-8";
+  }
+  return mimeType;
+};
+var _baseMimes = {
+  aac: "audio/aac",
+  avi: "video/x-msvideo",
+  avif: "image/avif",
+  av1: "video/av1",
+  bin: "application/octet-stream",
+  bmp: "image/bmp",
+  css: "text/css",
+  csv: "text/csv",
+  eot: "application/vnd.ms-fontobject",
+  epub: "application/epub+zip",
+  gif: "image/gif",
+  gz: "application/gzip",
+  htm: "text/html",
+  html: "text/html",
+  ico: "image/x-icon",
+  ics: "text/calendar",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  js: "text/javascript",
+  json: "application/json",
+  jsonld: "application/ld+json",
+  map: "application/json",
+  mid: "audio/x-midi",
+  midi: "audio/x-midi",
+  mjs: "text/javascript",
+  mp3: "audio/mpeg",
+  mp4: "video/mp4",
+  mpeg: "video/mpeg",
+  oga: "audio/ogg",
+  ogv: "video/ogg",
+  ogx: "application/ogg",
+  opus: "audio/opus",
+  otf: "font/otf",
+  pdf: "application/pdf",
+  png: "image/png",
+  rtf: "application/rtf",
+  svg: "image/svg+xml",
+  tif: "image/tiff",
+  tiff: "image/tiff",
+  ts: "video/mp2t",
+  ttf: "font/ttf",
+  txt: "text/plain",
+  wasm: "application/wasm",
+  webm: "video/webm",
+  weba: "audio/webm",
+  webmanifest: "application/manifest+json",
+  webp: "image/webp",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  xhtml: "application/xhtml+xml",
+  xml: "application/xml",
+  zip: "application/zip",
+  "3gp": "video/3gpp",
+  "3g2": "video/3gpp2",
+  gltf: "model/gltf+json",
+  glb: "model/gltf-binary"
+};
+var baseMimes = _baseMimes;
+
+// ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/serve-static.mjs
+import { createReadStream, statSync, existsSync } from "fs";
+import { join as join2 } from "path";
+import { versions } from "process";
+import { Readable as Readable2 } from "stream";
+var COMPRESSIBLE_CONTENT_TYPE_REGEX = /^\s*(?:text\/[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript|x-ns-proxy-autoconfig|x-sh|x-tar|x-virtualbox-hdd|x-virtualbox-ova|x-virtualbox-ovf|x-virtualbox-vbox|x-virtualbox-vdi|x-virtualbox-vhd|x-virtualbox-vmdk|x-www-form-urlencoded)|font\/(?:otf|ttf)|image\/(?:bmp|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i;
+var ENCODINGS = {
+  br: ".br",
+  zstd: ".zst",
+  gzip: ".gz"
+};
+var ENCODINGS_ORDERED_KEYS = Object.keys(ENCODINGS);
+var pr54206Applied = () => {
+  const [major, minor] = versions.node.split(".").map((component) => parseInt(component));
+  return major >= 23 || major === 22 && minor >= 7 || major === 20 && minor >= 18;
+};
+var useReadableToWeb = pr54206Applied();
+var createStreamBody = (stream) => {
+  if (useReadableToWeb) {
+    return Readable2.toWeb(stream);
+  }
+  const body = new ReadableStream({
+    start(controller) {
+      stream.on("data", (chunk) => {
+        controller.enqueue(chunk);
+      });
+      stream.on("error", (err) => {
+        controller.error(err);
+      });
+      stream.on("end", () => {
+        controller.close();
+      });
+    },
+    cancel() {
+      stream.destroy();
+    }
+  });
+  return body;
+};
+var getStats = (path2) => {
+  let stats;
+  try {
+    stats = statSync(path2);
+  } catch {
+  }
+  return stats;
+};
+var tryDecode = (str2, decoder) => {
+  try {
+    return decoder(str2);
+  } catch {
+    return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
+      try {
+        return decoder(match2);
+      } catch {
+        return match2;
+      }
+    });
+  }
+};
+var tryDecodeURI = (str2) => tryDecode(str2, decodeURI);
+var serveStatic = (options = { root: "" }) => {
+  const root = options.root || "";
+  const optionPath = options.path;
+  if (root !== "" && !existsSync(root)) {
+    console.error(`serveStatic: root path '${root}' is not found, are you sure it's correct?`);
+  }
+  return async (c, next) => {
+    if (c.finalized) {
+      return next();
+    }
+    let filename;
+    if (optionPath) {
+      filename = optionPath;
+    } else {
+      try {
+        filename = tryDecodeURI(c.req.path);
+        if (/(?:^|[\/\\])\.\.(?:$|[\/\\])/.test(filename)) {
+          throw new Error();
+        }
+      } catch {
+        await options.onNotFound?.(c.req.path, c);
+        return next();
+      }
+    }
+    let path2 = join2(
+      root,
+      !optionPath && options.rewriteRequestPath ? options.rewriteRequestPath(filename, c) : filename
+    );
+    let stats = getStats(path2);
+    if (stats && stats.isDirectory()) {
+      const indexFile = options.index ?? "index.html";
+      path2 = join2(path2, indexFile);
+      stats = getStats(path2);
+    }
+    if (!stats) {
+      await options.onNotFound?.(path2, c);
+      return next();
+    }
+    const mimeType = getMimeType(path2);
+    c.header("Content-Type", mimeType || "application/octet-stream");
+    if (options.precompressed && (!mimeType || COMPRESSIBLE_CONTENT_TYPE_REGEX.test(mimeType))) {
+      const acceptEncodingSet = new Set(
+        c.req.header("Accept-Encoding")?.split(",").map((encoding) => encoding.trim())
+      );
+      for (const encoding of ENCODINGS_ORDERED_KEYS) {
+        if (!acceptEncodingSet.has(encoding)) {
+          continue;
+        }
+        const precompressedStats = getStats(path2 + ENCODINGS[encoding]);
+        if (precompressedStats) {
+          c.header("Content-Encoding", encoding);
+          c.header("Vary", "Accept-Encoding", { append: true });
+          stats = precompressedStats;
+          path2 = path2 + ENCODINGS[encoding];
+          break;
+        }
+      }
+    }
+    let result;
+    const size = stats.size;
+    const range = c.req.header("range") || "";
+    if (c.req.method == "HEAD" || c.req.method == "OPTIONS") {
+      c.header("Content-Length", size.toString());
+      c.status(200);
+      result = c.body(null);
+    } else if (!range) {
+      c.header("Content-Length", size.toString());
+      result = c.body(createStreamBody(createReadStream(path2)), 200);
+    } else {
+      c.header("Accept-Ranges", "bytes");
+      c.header("Date", stats.birthtime.toUTCString());
+      const parts = range.replace(/bytes=/, "").split("-", 2);
+      const start = parseInt(parts[0], 10) || 0;
+      let end = parseInt(parts[1], 10) || size - 1;
+      if (size < end - start + 1) {
+        end = size - 1;
+      }
+      const chunksize = end - start + 1;
+      const stream = createReadStream(path2, { start, end });
+      c.header("Content-Length", chunksize.toString());
+      c.header("Content-Range", `bytes ${start}-${end}/${stats.size}`);
+      result = c.body(createStreamBody(stream), 206);
+    }
+    await options.onFound?.(path2, c);
+    return result;
+  };
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/index.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono-base.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/compose.js
+init_esm_shims();
+var compose = (middleware, onError, onNotFound) => {
+  return (context, next) => {
+    let index = -1;
+    return dispatch(0);
+    async function dispatch(i) {
+      if (i <= index) {
+        throw new Error("next() called multiple times");
+      }
+      index = i;
+      let res;
+      let isError = false;
+      let handler;
+      if (middleware[i]) {
+        handler = middleware[i][0][0];
+        context.req.routeIndex = i;
+      } else {
+        handler = i === middleware.length && next || void 0;
+      }
+      if (handler) {
+        try {
+          res = await handler(context, () => dispatch(i + 1));
+        } catch (err) {
+          if (err instanceof Error && onError) {
+            context.error = err;
+            res = await onError(err, context);
+            isError = true;
+          } else {
+            throw err;
+          }
+        }
+      } else {
+        if (context.finalized === false && onNotFound) {
+          res = await onNotFound(context);
+        }
+      }
+      if (res && (context.finalized === false || isError)) {
+        context.res = res;
+      }
+      return context;
+    }
+  };
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/context.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/http-exception.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request/constants.js
+init_esm_shims();
+var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/body.js
+init_esm_shims();
+var parseBody = async (request, options = /* @__PURE__ */ Object.create(null)) => {
+  const { all = false, dot = false } = options;
+  const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
+  const contentType = headers.get("Content-Type");
+  if (contentType?.startsWith("multipart/form-data") || contentType?.startsWith("application/x-www-form-urlencoded")) {
+    return parseFormData(request, { all, dot });
+  }
+  return {};
+};
+async function parseFormData(request, options) {
+  const formData = await request.formData();
+  if (formData) {
+    return convertFormDataToBodyData(formData, options);
+  }
+  return {};
+}
+function convertFormDataToBodyData(formData, options) {
+  const form = /* @__PURE__ */ Object.create(null);
+  formData.forEach((value, key) => {
+    const shouldParseAllValues = options.all || key.endsWith("[]");
+    if (!shouldParseAllValues) {
+      form[key] = value;
+    } else {
+      handleParsingAllValues(form, key, value);
+    }
+  });
+  if (options.dot) {
+    Object.entries(form).forEach(([key, value]) => {
+      const shouldParseDotValues = key.includes(".");
+      if (shouldParseDotValues) {
+        handleParsingNestedValues(form, key, value);
+        delete form[key];
+      }
+    });
+  }
+  return form;
+}
+var handleParsingAllValues = (form, key, value) => {
+  if (form[key] !== void 0) {
+    if (Array.isArray(form[key])) {
+      ;
+      form[key].push(value);
+    } else {
+      form[key] = [form[key], value];
+    }
+  } else {
+    if (!key.endsWith("[]")) {
+      form[key] = value;
+    } else {
+      form[key] = [value];
+    }
+  }
+};
+var handleParsingNestedValues = (form, key, value) => {
+  if (/(?:^|\.)__proto__\./.test(key)) {
+    return;
+  }
+  let nestedForm = form;
+  const keys = key.split(".");
+  keys.forEach((key2, index) => {
+    if (index === keys.length - 1) {
+      nestedForm[key2] = value;
+    } else {
+      if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
+        nestedForm[key2] = /* @__PURE__ */ Object.create(null);
+      }
+      nestedForm = nestedForm[key2];
+    }
+  });
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/url.js
+init_esm_shims();
+var splitPath = (path2) => {
+  const paths = path2.split("/");
+  if (paths[0] === "") {
+    paths.shift();
+  }
+  return paths;
+};
+var splitRoutingPath = (routePath) => {
+  const { groups, path: path2 } = extractGroupsFromPath(routePath);
+  const paths = splitPath(path2);
+  return replaceGroupMarks(paths, groups);
+};
+var extractGroupsFromPath = (path2) => {
+  const groups = [];
+  path2 = path2.replace(/\{[^}]+\}/g, (match2, index) => {
+    const mark = `@${index}`;
+    groups.push([mark, match2]);
+    return mark;
+  });
+  return { groups, path: path2 };
+};
+var replaceGroupMarks = (paths, groups) => {
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const [mark] = groups[i];
+    for (let j = paths.length - 1; j >= 0; j--) {
+      if (paths[j].includes(mark)) {
+        paths[j] = paths[j].replace(mark, groups[i][1]);
+        break;
+      }
+    }
+  }
+  return paths;
+};
+var patternCache = {};
+var getPattern = (label, next) => {
+  if (label === "*") {
+    return "*";
+  }
+  const match2 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+  if (match2) {
+    const cacheKey2 = `${label}#${next}`;
+    if (!patternCache[cacheKey2]) {
+      if (match2[2]) {
+        patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
+      } else {
+        patternCache[cacheKey2] = [label, match2[1], true];
+      }
+    }
+    return patternCache[cacheKey2];
+  }
+  return null;
+};
+var tryDecode2 = (str2, decoder) => {
+  try {
+    return decoder(str2);
+  } catch {
+    return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
+      try {
+        return decoder(match2);
+      } catch {
+        return match2;
+      }
+    });
+  }
+};
+var tryDecodeURI2 = (str2) => tryDecode2(str2, decodeURI);
+var getPath = (request) => {
+  const url2 = request.url;
+  const start = url2.indexOf("/", url2.indexOf(":") + 4);
+  let i = start;
+  for (; i < url2.length; i++) {
+    const charCode = url2.charCodeAt(i);
+    if (charCode === 37) {
+      const queryIndex = url2.indexOf("?", i);
+      const hashIndex = url2.indexOf("#", i);
+      const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
+      const path2 = url2.slice(start, end);
+      return tryDecodeURI2(path2.includes("%25") ? path2.replace(/%25/g, "%2525") : path2);
+    } else if (charCode === 63 || charCode === 35) {
+      break;
+    }
+  }
+  return url2.slice(start, i);
+};
+var getPathNoStrict = (request) => {
+  const result = getPath(request);
+  return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
+};
+var mergePath = (base, sub, ...rest) => {
+  if (rest.length) {
+    sub = mergePath(sub, ...rest);
+  }
+  return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
+};
+var checkOptionalParameter = (path2) => {
+  if (path2.charCodeAt(path2.length - 1) !== 63 || !path2.includes(":")) {
+    return null;
+  }
+  const segments = path2.split("/");
+  const results = [];
+  let basePath = "";
+  segments.forEach((segment) => {
+    if (segment !== "" && !/\:/.test(segment)) {
+      basePath += "/" + segment;
+    } else if (/\:/.test(segment)) {
+      if (/\?/.test(segment)) {
+        if (results.length === 0 && basePath === "") {
+          results.push("/");
+        } else {
+          results.push(basePath);
+        }
+        const optionalSegment = segment.replace("?", "");
+        basePath += "/" + optionalSegment;
+        results.push(basePath);
+      } else {
+        basePath += "/" + segment;
+      }
+    }
+  });
+  return results.filter((v, i, a) => a.indexOf(v) === i);
+};
+var _decodeURI = (value) => {
+  if (!/[%+]/.test(value)) {
+    return value;
+  }
+  if (value.indexOf("+") !== -1) {
+    value = value.replace(/\+/g, " ");
+  }
+  return value.indexOf("%") !== -1 ? tryDecode2(value, decodeURIComponent_) : value;
+};
+var _getQueryParam = (url2, key, multiple) => {
+  let encoded;
+  if (!multiple && key && !/[%+]/.test(key)) {
+    let keyIndex2 = url2.indexOf("?", 8);
+    if (keyIndex2 === -1) {
+      return void 0;
+    }
+    if (!url2.startsWith(key, keyIndex2 + 1)) {
+      keyIndex2 = url2.indexOf(`&${key}`, keyIndex2 + 1);
+    }
+    while (keyIndex2 !== -1) {
+      const trailingKeyCode = url2.charCodeAt(keyIndex2 + key.length + 1);
+      if (trailingKeyCode === 61) {
+        const valueIndex = keyIndex2 + key.length + 2;
+        const endIndex = url2.indexOf("&", valueIndex);
+        return _decodeURI(url2.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
+      } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
+        return "";
+      }
+      keyIndex2 = url2.indexOf(`&${key}`, keyIndex2 + 1);
+    }
+    encoded = /[%+]/.test(url2);
+    if (!encoded) {
+      return void 0;
+    }
+  }
+  const results = {};
+  encoded ??= /[%+]/.test(url2);
+  let keyIndex = url2.indexOf("?", 8);
+  while (keyIndex !== -1) {
+    const nextKeyIndex = url2.indexOf("&", keyIndex + 1);
+    let valueIndex = url2.indexOf("=", keyIndex);
+    if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
+      valueIndex = -1;
+    }
+    let name = url2.slice(
+      keyIndex + 1,
+      valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
+    );
+    if (encoded) {
+      name = _decodeURI(name);
+    }
+    keyIndex = nextKeyIndex;
+    if (name === "") {
+      continue;
+    }
+    let value;
+    if (valueIndex === -1) {
+      value = "";
+    } else {
+      value = url2.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
+      if (encoded) {
+        value = _decodeURI(value);
+      }
+    }
+    if (multiple) {
+      if (!(results[name] && Array.isArray(results[name]))) {
+        results[name] = [];
+      }
+      ;
+      results[name].push(value);
+    } else {
+      results[name] ??= value;
+    }
+  }
+  return key ? results[key] : results;
+};
+var getQueryParam = _getQueryParam;
+var getQueryParams = (url2, key) => {
+  return _getQueryParam(url2, key, true);
+};
+var decodeURIComponent_ = decodeURIComponent;
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request.js
+var tryDecodeURIComponent = (str2) => tryDecode2(str2, decodeURIComponent_);
+var HonoRequest = class {
+  /**
+   * `.raw` can get the raw Request object.
+   *
+   * @see {@link https://hono.dev/docs/api/request#raw}
+   *
+   * @example
+   * ```ts
+   * // For Cloudflare Workers
+   * app.post('/', async (c) => {
+   *   const metadata = c.req.raw.cf?.hostMetadata?
+   *   ...
+   * })
+   * ```
+   */
+  raw;
+  #validatedData;
+  // Short name of validatedData
+  #matchResult;
+  routeIndex = 0;
+  /**
+   * `.path` can get the pathname of the request.
+   *
+   * @see {@link https://hono.dev/docs/api/request#path}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const pathname = c.req.path // `/about/me`
+   * })
+   * ```
+   */
+  path;
+  bodyCache = {};
+  constructor(request, path2 = "/", matchResult = [[]]) {
+    this.raw = request;
+    this.path = path2;
+    this.#matchResult = matchResult;
+    this.#validatedData = {};
+  }
+  param(key) {
+    return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
+  }
+  #getDecodedParam(key) {
+    const paramKey = this.#matchResult[0][this.routeIndex][1][key];
+    const param = this.#getParamValue(paramKey);
+    return param && /\%/.test(param) ? tryDecodeURIComponent(param) : param;
+  }
+  #getAllDecodedParams() {
+    const decoded = {};
+    const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
+    for (const key of keys) {
+      const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
+      if (value !== void 0) {
+        decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
+      }
+    }
+    return decoded;
+  }
+  #getParamValue(paramKey) {
+    return this.#matchResult[1] ? this.#matchResult[1][paramKey] : paramKey;
+  }
+  query(key) {
+    return getQueryParam(this.url, key);
+  }
+  queries(key) {
+    return getQueryParams(this.url, key);
+  }
+  header(name) {
+    if (name) {
+      return this.raw.headers.get(name) ?? void 0;
+    }
+    const headerData = {};
+    this.raw.headers.forEach((value, key) => {
+      headerData[key] = value;
+    });
+    return headerData;
+  }
+  async parseBody(options) {
+    return this.bodyCache.parsedBody ??= await parseBody(this, options);
+  }
+  #cachedBody = (key) => {
+    const { bodyCache, raw: raw2 } = this;
+    const cachedBody = bodyCache[key];
+    if (cachedBody) {
+      return cachedBody;
+    }
+    const anyCachedKey = Object.keys(bodyCache)[0];
+    if (anyCachedKey) {
+      return bodyCache[anyCachedKey].then((body) => {
+        if (anyCachedKey === "json") {
+          body = JSON.stringify(body);
+        }
+        return new Response(body)[key]();
+      });
+    }
+    return bodyCache[key] = raw2[key]();
+  };
+  /**
+   * `.json()` can parse Request body of type `application/json`
+   *
+   * @see {@link https://hono.dev/docs/api/request#json}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.json()
+   * })
+   * ```
+   */
+  json() {
+    return this.#cachedBody("text").then((text) => JSON.parse(text));
+  }
+  /**
+   * `.text()` can parse Request body of type `text/plain`
+   *
+   * @see {@link https://hono.dev/docs/api/request#text}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.text()
+   * })
+   * ```
+   */
+  text() {
+    return this.#cachedBody("text");
+  }
+  /**
+   * `.arrayBuffer()` parse Request body as an `ArrayBuffer`
+   *
+   * @see {@link https://hono.dev/docs/api/request#arraybuffer}
+   *
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.arrayBuffer()
+   * })
+   * ```
+   */
+  arrayBuffer() {
+    return this.#cachedBody("arrayBuffer");
+  }
+  /**
+   * Parses the request body as a `Blob`.
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.blob();
+   * });
+   * ```
+   * @see https://hono.dev/docs/api/request#blob
+   */
+  blob() {
+    return this.#cachedBody("blob");
+  }
+  /**
+   * Parses the request body as `FormData`.
+   * @example
+   * ```ts
+   * app.post('/entry', async (c) => {
+   *   const body = await c.req.formData();
+   * });
+   * ```
+   * @see https://hono.dev/docs/api/request#formdata
+   */
+  formData() {
+    return this.#cachedBody("formData");
+  }
+  /**
+   * Adds validated data to the request.
+   *
+   * @param target - The target of the validation.
+   * @param data - The validated data to add.
+   */
+  addValidatedData(target, data) {
+    this.#validatedData[target] = data;
+  }
+  valid(target) {
+    return this.#validatedData[target];
+  }
+  /**
+   * `.url()` can get the request url strings.
+   *
+   * @see {@link https://hono.dev/docs/api/request#url}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const url = c.req.url // `http://localhost:8787/about/me`
+   *   ...
+   * })
+   * ```
+   */
+  get url() {
+    return this.raw.url;
+  }
+  /**
+   * `.method()` can get the method name of the request.
+   *
+   * @see {@link https://hono.dev/docs/api/request#method}
+   *
+   * @example
+   * ```ts
+   * app.get('/about/me', (c) => {
+   *   const method = c.req.method // `GET`
+   * })
+   * ```
+   */
+  get method() {
+    return this.raw.method;
+  }
+  get [GET_MATCH_RESULT]() {
+    return this.#matchResult;
+  }
+  /**
+   * `.matchedRoutes()` can return a matched route in the handler
+   *
+   * @deprecated
+   *
+   * Use matchedRoutes helper defined in "hono/route" instead.
+   *
+   * @see {@link https://hono.dev/docs/api/request#matchedroutes}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async function logger(c, next) {
+   *   await next()
+   *   c.req.matchedRoutes.forEach(({ handler, method, path }, i) => {
+   *     const name = handler.name || (handler.length < 2 ? '[handler]' : '[middleware]')
+   *     console.log(
+   *       method,
+   *       ' ',
+   *       path,
+   *       ' '.repeat(Math.max(10 - path.length, 0)),
+   *       name,
+   *       i === c.req.routeIndex ? '<- respond from here' : ''
+   *     )
+   *   })
+   * })
+   * ```
+   */
+  get matchedRoutes() {
+    return this.#matchResult[0].map(([[, route]]) => route);
+  }
+  /**
+   * `routePath()` can retrieve the path registered within the handler
+   *
+   * @deprecated
+   *
+   * Use routePath helper defined in "hono/route" instead.
+   *
+   * @see {@link https://hono.dev/docs/api/request#routepath}
+   *
+   * @example
+   * ```ts
+   * app.get('/posts/:id', (c) => {
+   *   return c.json({ path: c.req.routePath })
+   * })
+   * ```
+   */
+  get routePath() {
+    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/html.js
+init_esm_shims();
+var HtmlEscapedCallbackPhase = {
+  Stringify: 1,
+  BeforeStream: 2,
+  Stream: 3
+};
+var raw = (value, callbacks) => {
+  const escapedString = new String(value);
+  escapedString.isEscaped = true;
+  escapedString.callbacks = callbacks;
+  return escapedString;
+};
+var resolveCallback = async (str2, phase, preserveCallbacks, context, buffer) => {
+  if (typeof str2 === "object" && !(str2 instanceof String)) {
+    if (!(str2 instanceof Promise)) {
+      str2 = str2.toString();
+    }
+    if (str2 instanceof Promise) {
+      str2 = await str2;
+    }
+  }
+  const callbacks = str2.callbacks;
+  if (!callbacks?.length) {
+    return Promise.resolve(str2);
+  }
+  if (buffer) {
+    buffer[0] += str2;
+  } else {
+    buffer = [str2];
+  }
+  const resStr = Promise.all(callbacks.map((c) => c({ phase, buffer, context }))).then(
+    (res) => Promise.all(
+      res.filter(Boolean).map((str22) => resolveCallback(str22, phase, false, context, buffer))
+    ).then(() => buffer[0])
+  );
+  if (preserveCallbacks) {
+    return raw(await resStr, callbacks);
+  } else {
+    return resStr;
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/context.js
+var TEXT_PLAIN = "text/plain; charset=UTF-8";
+var setDefaultContentType = (contentType, headers) => {
+  return {
+    "Content-Type": contentType,
+    ...headers
+  };
+};
+var createResponseInstance = (body, init) => new Response(body, init);
+var Context = class {
+  #rawRequest;
+  #req;
+  /**
+   * `.env` can get bindings (environment variables, secrets, KV namespaces, D1 database, R2 bucket etc.) in Cloudflare Workers.
+   *
+   * @see {@link https://hono.dev/docs/api/context#env}
+   *
+   * @example
+   * ```ts
+   * // Environment object for Cloudflare Workers
+   * app.get('*', async c => {
+   *   const counter = c.env.COUNTER
+   * })
+   * ```
+   */
+  env = {};
+  #var;
+  finalized = false;
+  /**
+   * `.error` can get the error object from the middleware if the Handler throws an error.
+   *
+   * @see {@link https://hono.dev/docs/api/context#error}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async (c, next) => {
+   *   await next()
+   *   if (c.error) {
+   *     // do something...
+   *   }
+   * })
+   * ```
+   */
+  error;
+  #status;
+  #executionCtx;
+  #res;
+  #layout;
+  #renderer;
+  #notFoundHandler;
+  #preparedHeaders;
+  #matchResult;
+  #path;
+  /**
+   * Creates an instance of the Context class.
+   *
+   * @param req - The Request object.
+   * @param options - Optional configuration options for the context.
+   */
+  constructor(req, options) {
+    this.#rawRequest = req;
+    if (options) {
+      this.#executionCtx = options.executionCtx;
+      this.env = options.env;
+      this.#notFoundHandler = options.notFoundHandler;
+      this.#path = options.path;
+      this.#matchResult = options.matchResult;
+    }
+  }
+  /**
+   * `.req` is the instance of {@link HonoRequest}.
+   */
+  get req() {
+    this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
+    return this.#req;
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#event}
+   * The FetchEvent associated with the current request.
+   *
+   * @throws Will throw an error if the context does not have a FetchEvent.
+   */
+  get event() {
+    if (this.#executionCtx && "respondWith" in this.#executionCtx) {
+      return this.#executionCtx;
+    } else {
+      throw Error("This context has no FetchEvent");
+    }
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#executionctx}
+   * The ExecutionContext associated with the current request.
+   *
+   * @throws Will throw an error if the context does not have an ExecutionContext.
+   */
+  get executionCtx() {
+    if (this.#executionCtx) {
+      return this.#executionCtx;
+    } else {
+      throw Error("This context has no ExecutionContext");
+    }
+  }
+  /**
+   * @see {@link https://hono.dev/docs/api/context#res}
+   * The Response object for the current request.
+   */
+  get res() {
+    return this.#res ||= createResponseInstance(null, {
+      headers: this.#preparedHeaders ??= new Headers()
+    });
+  }
+  /**
+   * Sets the Response object for the current request.
+   *
+   * @param _res - The Response object to set.
+   */
+  set res(_res) {
+    if (this.#res && _res) {
+      _res = createResponseInstance(_res.body, _res);
+      for (const [k, v] of this.#res.headers.entries()) {
+        if (k === "content-type") {
+          continue;
+        }
+        if (k === "set-cookie") {
+          const cookies = this.#res.headers.getSetCookie();
+          _res.headers.delete("set-cookie");
+          for (const cookie of cookies) {
+            _res.headers.append("set-cookie", cookie);
+          }
+        } else {
+          _res.headers.set(k, v);
+        }
+      }
+    }
+    this.#res = _res;
+    this.finalized = true;
+  }
+  /**
+   * `.render()` can create a response within a layout.
+   *
+   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+   *
+   * @example
+   * ```ts
+   * app.get('/', (c) => {
+   *   return c.render('Hello!')
+   * })
+   * ```
+   */
+  render = (...args) => {
+    this.#renderer ??= (content) => this.html(content);
+    return this.#renderer(...args);
+  };
+  /**
+   * Sets the layout for the response.
+   *
+   * @param layout - The layout to set.
+   * @returns The layout function.
+   */
+  setLayout = (layout) => this.#layout = layout;
+  /**
+   * Gets the current layout for the response.
+   *
+   * @returns The current layout function.
+   */
+  getLayout = () => this.#layout;
+  /**
+   * `.setRenderer()` can set the layout in the custom middleware.
+   *
+   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
+   *
+   * @example
+   * ```tsx
+   * app.use('*', async (c, next) => {
+   *   c.setRenderer((content) => {
+   *     return c.html(
+   *       <html>
+   *         <body>
+   *           <p>{content}</p>
+   *         </body>
+   *       </html>
+   *     )
+   *   })
+   *   await next()
+   * })
+   * ```
+   */
+  setRenderer = (renderer) => {
+    this.#renderer = renderer;
+  };
+  /**
+   * `.header()` can set headers.
+   *
+   * @see {@link https://hono.dev/docs/api/context#header}
+   *
+   * @example
+   * ```ts
+   * app.get('/welcome', (c) => {
+   *   // Set headers
+   *   c.header('X-Message', 'Hello!')
+   *   c.header('Content-Type', 'text/plain')
+   *
+   *   return c.body('Thank you for coming')
+   * })
+   * ```
+   */
+  header = (name, value, options) => {
+    if (this.finalized) {
+      this.#res = createResponseInstance(this.#res.body, this.#res);
+    }
+    const headers = this.#res ? this.#res.headers : this.#preparedHeaders ??= new Headers();
+    if (value === void 0) {
+      headers.delete(name);
+    } else if (options?.append) {
+      headers.append(name, value);
+    } else {
+      headers.set(name, value);
+    }
+  };
+  status = (status) => {
+    this.#status = status;
+  };
+  /**
+   * `.set()` can set the value specified by the key.
+   *
+   * @see {@link https://hono.dev/docs/api/context#set-get}
+   *
+   * @example
+   * ```ts
+   * app.use('*', async (c, next) => {
+   *   c.set('message', 'Hono is hot!!')
+   *   await next()
+   * })
+   * ```
+   */
+  set = (key, value) => {
+    this.#var ??= /* @__PURE__ */ new Map();
+    this.#var.set(key, value);
+  };
+  /**
+   * `.get()` can use the value specified by the key.
+   *
+   * @see {@link https://hono.dev/docs/api/context#set-get}
+   *
+   * @example
+   * ```ts
+   * app.get('/', (c) => {
+   *   const message = c.get('message')
+   *   return c.text(`The message is "${message}"`)
+   * })
+   * ```
+   */
+  get = (key) => {
+    return this.#var ? this.#var.get(key) : void 0;
+  };
+  /**
+   * `.var` can access the value of a variable.
+   *
+   * @see {@link https://hono.dev/docs/api/context#var}
+   *
+   * @example
+   * ```ts
+   * const result = c.var.client.oneMethod()
+   * ```
+   */
+  // c.var.propName is a read-only
+  get var() {
+    if (!this.#var) {
+      return {};
+    }
+    return Object.fromEntries(this.#var);
+  }
+  #newResponse(data, arg, headers) {
+    const responseHeaders = this.#res ? new Headers(this.#res.headers) : this.#preparedHeaders ?? new Headers();
+    if (typeof arg === "object" && "headers" in arg) {
+      const argHeaders = arg.headers instanceof Headers ? arg.headers : new Headers(arg.headers);
+      for (const [key, value] of argHeaders) {
+        if (key.toLowerCase() === "set-cookie") {
+          responseHeaders.append(key, value);
+        } else {
+          responseHeaders.set(key, value);
+        }
+      }
+    }
+    if (headers) {
+      for (const [k, v] of Object.entries(headers)) {
+        if (typeof v === "string") {
+          responseHeaders.set(k, v);
+        } else {
+          responseHeaders.delete(k);
+          for (const v2 of v) {
+            responseHeaders.append(k, v2);
+          }
+        }
+      }
+    }
+    const status = typeof arg === "number" ? arg : arg?.status ?? this.#status;
+    return createResponseInstance(data, { status, headers: responseHeaders });
+  }
+  newResponse = (...args) => this.#newResponse(...args);
+  /**
+   * `.body()` can return the HTTP response.
+   * You can set headers with `.header()` and set HTTP status code with `.status`.
+   * This can also be set in `.text()`, `.json()` and so on.
+   *
+   * @see {@link https://hono.dev/docs/api/context#body}
+   *
+   * @example
+   * ```ts
+   * app.get('/welcome', (c) => {
+   *   // Set headers
+   *   c.header('X-Message', 'Hello!')
+   *   c.header('Content-Type', 'text/plain')
+   *   // Set HTTP status code
+   *   c.status(201)
+   *
+   *   // Return the response body
+   *   return c.body('Thank you for coming')
+   * })
+   * ```
+   */
+  body = (data, arg, headers) => this.#newResponse(data, arg, headers);
+  /**
+   * `.text()` can render text as `Content-Type:text/plain`.
+   *
+   * @see {@link https://hono.dev/docs/api/context#text}
+   *
+   * @example
+   * ```ts
+   * app.get('/say', (c) => {
+   *   return c.text('Hello!')
+   * })
+   * ```
+   */
+  text = (text, arg, headers) => {
+    return !this.#preparedHeaders && !this.#status && !arg && !headers && !this.finalized ? new Response(text) : this.#newResponse(
+      text,
+      arg,
+      setDefaultContentType(TEXT_PLAIN, headers)
+    );
+  };
+  /**
+   * `.json()` can render JSON as `Content-Type:application/json`.
+   *
+   * @see {@link https://hono.dev/docs/api/context#json}
+   *
+   * @example
+   * ```ts
+   * app.get('/api', (c) => {
+   *   return c.json({ message: 'Hello!' })
+   * })
+   * ```
+   */
+  json = (object3, arg, headers) => {
+    return this.#newResponse(
+      JSON.stringify(object3),
+      arg,
+      setDefaultContentType("application/json", headers)
+    );
+  };
+  html = (html, arg, headers) => {
+    const res = (html2) => this.#newResponse(html2, arg, setDefaultContentType("text/html; charset=UTF-8", headers));
+    return typeof html === "object" ? resolveCallback(html, HtmlEscapedCallbackPhase.Stringify, false, {}).then(res) : res(html);
+  };
+  /**
+   * `.redirect()` can Redirect, default status code is 302.
+   *
+   * @see {@link https://hono.dev/docs/api/context#redirect}
+   *
+   * @example
+   * ```ts
+   * app.get('/redirect', (c) => {
+   *   return c.redirect('/')
+   * })
+   * app.get('/redirect-permanently', (c) => {
+   *   return c.redirect('/', 301)
+   * })
+   * ```
+   */
+  redirect = (location, status) => {
+    const locationString = String(location);
+    this.header(
+      "Location",
+      // Multibyes should be encoded
+      // eslint-disable-next-line no-control-regex
+      !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
+    );
+    return this.newResponse(null, status ?? 302);
+  };
+  /**
+   * `.notFound()` can return the Not Found Response.
+   *
+   * @see {@link https://hono.dev/docs/api/context#notfound}
+   *
+   * @example
+   * ```ts
+   * app.get('/notfound', (c) => {
+   *   return c.notFound()
+   * })
+   * ```
+   */
+  notFound = () => {
+    this.#notFoundHandler ??= () => createResponseInstance();
+    return this.#notFoundHandler(this);
+  };
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router.js
+init_esm_shims();
+var METHOD_NAME_ALL = "ALL";
+var METHOD_NAME_ALL_LOWERCASE = "all";
+var METHODS = ["get", "post", "put", "delete", "options", "patch"];
+var MESSAGE_MATCHER_IS_ALREADY_BUILT = "Can not add a route since the matcher is already built.";
+var UnsupportedPathError = class extends Error {
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/constants.js
+init_esm_shims();
+var COMPOSED_HANDLER = "__COMPOSED_HANDLER";
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono-base.js
+var notFoundHandler = (c) => {
+  return c.text("404 Not Found", 404);
+};
+var errorHandler = (err, c) => {
+  if ("getResponse" in err) {
+    const res = err.getResponse();
+    return c.newResponse(res.body, res);
+  }
+  console.error(err);
+  return c.text("Internal Server Error", 500);
+};
+var Hono = class _Hono {
+  get;
+  post;
+  put;
+  delete;
+  options;
+  patch;
+  all;
+  on;
+  use;
+  /*
+    This class is like an abstract class and does not have a router.
+    To use it, inherit the class and implement router in the constructor.
+  */
+  router;
+  getPath;
+  // Cannot use `#` because it requires visibility at JavaScript runtime.
+  _basePath = "/";
+  #path = "/";
+  routes = [];
+  constructor(options = {}) {
+    const allMethods = [...METHODS, METHOD_NAME_ALL_LOWERCASE];
+    allMethods.forEach((method) => {
+      this[method] = (args1, ...args) => {
+        if (typeof args1 === "string") {
+          this.#path = args1;
+        } else {
+          this.#addRoute(method, this.#path, args1);
+        }
+        args.forEach((handler) => {
+          this.#addRoute(method, this.#path, handler);
+        });
+        return this;
+      };
+    });
+    this.on = (method, path2, ...handlers) => {
+      for (const p of [path2].flat()) {
+        this.#path = p;
+        for (const m of [method].flat()) {
+          handlers.map((handler) => {
+            this.#addRoute(m.toUpperCase(), this.#path, handler);
+          });
+        }
+      }
+      return this;
+    };
+    this.use = (arg1, ...handlers) => {
+      if (typeof arg1 === "string") {
+        this.#path = arg1;
+      } else {
+        this.#path = "*";
+        handlers.unshift(arg1);
+      }
+      handlers.forEach((handler) => {
+        this.#addRoute(METHOD_NAME_ALL, this.#path, handler);
+      });
+      return this;
+    };
+    const { strict, ...optionsWithoutStrict } = options;
+    Object.assign(this, optionsWithoutStrict);
+    this.getPath = strict ?? true ? options.getPath ?? getPath : getPathNoStrict;
+  }
+  #clone() {
+    const clone2 = new _Hono({
+      router: this.router,
+      getPath: this.getPath
+    });
+    clone2.errorHandler = this.errorHandler;
+    clone2.#notFoundHandler = this.#notFoundHandler;
+    clone2.routes = this.routes;
+    return clone2;
+  }
+  #notFoundHandler = notFoundHandler;
+  // Cannot use `#` because it requires visibility at JavaScript runtime.
+  errorHandler = errorHandler;
+  /**
+   * `.route()` allows grouping other Hono instance in routes.
+   *
+   * @see {@link https://hono.dev/docs/api/routing#grouping}
+   *
+   * @param {string} path - base Path
+   * @param {Hono} app - other Hono instance
+   * @returns {Hono} routed Hono instance
+   *
+   * @example
+   * ```ts
+   * const app = new Hono()
+   * const app2 = new Hono()
+   *
+   * app2.get("/user", (c) => c.text("user"))
+   * app.route("/api", app2) // GET /api/user
+   * ```
+   */
+  route(path2, app2) {
+    const subApp = this.basePath(path2);
+    app2.routes.map((r) => {
+      let handler;
+      if (app2.errorHandler === errorHandler) {
+        handler = r.handler;
+      } else {
+        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res;
+        handler[COMPOSED_HANDLER] = r.handler;
+      }
+      subApp.#addRoute(r.method, r.path, handler);
+    });
+    return this;
+  }
+  /**
+   * `.basePath()` allows base paths to be specified.
+   *
+   * @see {@link https://hono.dev/docs/api/routing#base-path}
+   *
+   * @param {string} path - base Path
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * const api = new Hono().basePath('/api')
+   * ```
+   */
+  basePath(path2) {
+    const subApp = this.#clone();
+    subApp._basePath = mergePath(this._basePath, path2);
+    return subApp;
+  }
+  /**
+   * `.onError()` handles an error and returns a customized Response.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#error-handling}
+   *
+   * @param {ErrorHandler} handler - request Handler for error
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * app.onError((err, c) => {
+   *   console.error(`${err}`)
+   *   return c.text('Custom Error Message', 500)
+   * })
+   * ```
+   */
+  onError = (handler) => {
+    this.errorHandler = handler;
+    return this;
+  };
+  /**
+   * `.notFound()` allows you to customize a Not Found Response.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#not-found}
+   *
+   * @param {NotFoundHandler} handler - request handler for not-found
+   * @returns {Hono} changed Hono instance
+   *
+   * @example
+   * ```ts
+   * app.notFound((c) => {
+   *   return c.text('Custom 404 Message', 404)
+   * })
+   * ```
+   */
+  notFound = (handler) => {
+    this.#notFoundHandler = handler;
+    return this;
+  };
+  /**
+   * `.mount()` allows you to mount applications built with other frameworks into your Hono application.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#mount}
+   *
+   * @param {string} path - base Path
+   * @param {Function} applicationHandler - other Request Handler
+   * @param {MountOptions} [options] - options of `.mount()`
+   * @returns {Hono} mounted Hono instance
+   *
+   * @example
+   * ```ts
+   * import { Router as IttyRouter } from 'itty-router'
+   * import { Hono } from 'hono'
+   * // Create itty-router application
+   * const ittyRouter = IttyRouter()
+   * // GET /itty-router/hello
+   * ittyRouter.get('/hello', () => new Response('Hello from itty-router'))
+   *
+   * const app = new Hono()
+   * app.mount('/itty-router', ittyRouter.handle)
+   * ```
+   *
+   * @example
+   * ```ts
+   * const app = new Hono()
+   * // Send the request to another application without modification.
+   * app.mount('/app', anotherApp, {
+   *   replaceRequest: (req) => req,
+   * })
+   * ```
+   */
+  mount(path2, applicationHandler, options) {
+    let replaceRequest;
+    let optionHandler;
+    if (options) {
+      if (typeof options === "function") {
+        optionHandler = options;
+      } else {
+        optionHandler = options.optionHandler;
+        if (options.replaceRequest === false) {
+          replaceRequest = (request) => request;
+        } else {
+          replaceRequest = options.replaceRequest;
+        }
+      }
+    }
+    const getOptions = optionHandler ? (c) => {
+      const options2 = optionHandler(c);
+      return Array.isArray(options2) ? options2 : [options2];
+    } : (c) => {
+      let executionContext = void 0;
+      try {
+        executionContext = c.executionCtx;
+      } catch {
+      }
+      return [c.env, executionContext];
+    };
+    replaceRequest ||= (() => {
+      const mergedPath = mergePath(this._basePath, path2);
+      const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
+      return (request) => {
+        const url2 = new URL(request.url);
+        url2.pathname = url2.pathname.slice(pathPrefixLength) || "/";
+        return new Request(url2, request);
+      };
+    })();
+    const handler = async (c, next) => {
+      const res = await applicationHandler(replaceRequest(c.req.raw), ...getOptions(c));
+      if (res) {
+        return res;
+      }
+      await next();
+    };
+    this.#addRoute(METHOD_NAME_ALL, mergePath(path2, "*"), handler);
+    return this;
+  }
+  #addRoute(method, path2, handler) {
+    method = method.toUpperCase();
+    path2 = mergePath(this._basePath, path2);
+    const r = { basePath: this._basePath, path: path2, method, handler };
+    this.router.add(method, path2, [handler, r]);
+    this.routes.push(r);
+  }
+  #handleError(err, c) {
+    if (err instanceof Error) {
+      return this.errorHandler(err, c);
+    }
+    throw err;
+  }
+  #dispatch(request, executionCtx, env, method) {
+    if (method === "HEAD") {
+      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env, "GET")))();
+    }
+    const path2 = this.getPath(request, { env });
+    const matchResult = this.router.match(method, path2);
+    const c = new Context(request, {
+      path: path2,
+      matchResult,
+      env,
+      executionCtx,
+      notFoundHandler: this.#notFoundHandler
+    });
+    if (matchResult[0].length === 1) {
+      let res;
+      try {
+        res = matchResult[0][0][0][0](c, async () => {
+          c.res = await this.#notFoundHandler(c);
+        });
+      } catch (err) {
+        return this.#handleError(err, c);
+      }
+      return res instanceof Promise ? res.then(
+        (resolved) => resolved || (c.finalized ? c.res : this.#notFoundHandler(c))
+      ).catch((err) => this.#handleError(err, c)) : res ?? this.#notFoundHandler(c);
+    }
+    const composed = compose(matchResult[0], this.errorHandler, this.#notFoundHandler);
+    return (async () => {
+      try {
+        const context = await composed(c);
+        if (!context.finalized) {
+          throw new Error(
+            "Context is not finalized. Did you forget to return a Response object or `await next()`?"
+          );
+        }
+        return context.res;
+      } catch (err) {
+        return this.#handleError(err, c);
+      }
+    })();
+  }
+  /**
+   * `.fetch()` will be entry point of your app.
+   *
+   * @see {@link https://hono.dev/docs/api/hono#fetch}
+   *
+   * @param {Request} request - request Object of request
+   * @param {Env} Env - env Object
+   * @param {ExecutionContext} - context of execution
+   * @returns {Response | Promise<Response>} response of request
+   *
+   */
+  fetch = (request, ...rest) => {
+    return this.#dispatch(request, rest[1], rest[0], request.method);
+  };
+  /**
+   * `.request()` is a useful method for testing.
+   * You can pass a URL or pathname to send a GET request.
+   * app will return a Response object.
+   * ```ts
+   * test('GET /hello is ok', async () => {
+   *   const res = await app.request('/hello')
+   *   expect(res.status).toBe(200)
+   * })
+   * ```
+   * @see https://hono.dev/docs/api/hono#request
+   */
+  request = (input, requestInit, Env, executionCtx) => {
+    if (input instanceof Request) {
+      return this.fetch(requestInit ? new Request(input, requestInit) : input, Env, executionCtx);
+    }
+    input = input.toString();
+    return this.fetch(
+      new Request(
+        /^https?:\/\//.test(input) ? input : `http://localhost${mergePath("/", input)}`,
+        requestInit
+      ),
+      Env,
+      executionCtx
+    );
+  };
+  /**
+   * `.fire()` automatically adds a global fetch event listener.
+   * This can be useful for environments that adhere to the Service Worker API, such as non-ES module Cloudflare Workers.
+   * @deprecated
+   * Use `fire` from `hono/service-worker` instead.
+   * ```ts
+   * import { Hono } from 'hono'
+   * import { fire } from 'hono/service-worker'
+   *
+   * const app = new Hono()
+   * // ...
+   * fire(app)
+   * ```
+   * @see https://hono.dev/docs/api/hono#fire
+   * @see https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+   * @see https://developers.cloudflare.com/workers/reference/migrate-to-module-workers/
+   */
+  fire = () => {
+    addEventListener("fetch", (event) => {
+      event.respondWith(this.#dispatch(event.request, event, void 0, event.request.method));
+    });
+  };
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/index.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/router.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/matcher.js
+init_esm_shims();
+var emptyParam = [];
+function match(method, path2) {
+  const matchers = this.buildAllMatchers();
+  const match2 = ((method2, path22) => {
+    const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
+    const staticMatch = matcher[2][path22];
+    if (staticMatch) {
+      return staticMatch;
+    }
+    const match3 = path22.match(matcher[0]);
+    if (!match3) {
+      return [[], emptyParam];
+    }
+    const index = match3.indexOf("", 1);
+    return [matcher[1][index], match3];
+  });
+  this.match = match2;
+  return match2(method, path2);
+}
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/node.js
+init_esm_shims();
+var LABEL_REG_EXP_STR = "[^/]+";
+var ONLY_WILDCARD_REG_EXP_STR = ".*";
+var TAIL_WILDCARD_REG_EXP_STR = "(?:|/.*)";
+var PATH_ERROR = /* @__PURE__ */ Symbol();
+var regExpMetaChars = new Set(".\\+*[^]$()");
+function compareKey(a, b) {
+  if (a.length === 1) {
+    return b.length === 1 ? a < b ? -1 : 1 : -1;
+  }
+  if (b.length === 1) {
+    return 1;
+  }
+  if (a === ONLY_WILDCARD_REG_EXP_STR || a === TAIL_WILDCARD_REG_EXP_STR) {
+    return 1;
+  } else if (b === ONLY_WILDCARD_REG_EXP_STR || b === TAIL_WILDCARD_REG_EXP_STR) {
+    return -1;
+  }
+  if (a === LABEL_REG_EXP_STR) {
+    return 1;
+  } else if (b === LABEL_REG_EXP_STR) {
+    return -1;
+  }
+  return a.length === b.length ? a < b ? -1 : 1 : b.length - a.length;
+}
+var Node = class _Node {
+  #index;
+  #varIndex;
+  #children = /* @__PURE__ */ Object.create(null);
+  insert(tokens, index, paramMap, context, pathErrorCheckOnly) {
+    if (tokens.length === 0) {
+      if (this.#index !== void 0) {
+        throw PATH_ERROR;
+      }
+      if (pathErrorCheckOnly) {
+        return;
+      }
+      this.#index = index;
+      return;
+    }
+    const [token, ...restTokens] = tokens;
+    const pattern = token === "*" ? restTokens.length === 0 ? ["", "", ONLY_WILDCARD_REG_EXP_STR] : ["", "", LABEL_REG_EXP_STR] : token === "/*" ? ["", "", TAIL_WILDCARD_REG_EXP_STR] : token.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
+    let node;
+    if (pattern) {
+      const name = pattern[1];
+      let regexpStr = pattern[2] || LABEL_REG_EXP_STR;
+      if (name && pattern[2]) {
+        if (regexpStr === ".*") {
+          throw PATH_ERROR;
+        }
+        regexpStr = regexpStr.replace(/^\((?!\?:)(?=[^)]+\)$)/, "(?:");
+        if (/\((?!\?:)/.test(regexpStr)) {
+          throw PATH_ERROR;
+        }
+      }
+      node = this.#children[regexpStr];
+      if (!node) {
+        if (Object.keys(this.#children).some(
+          (k) => k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
+        )) {
+          throw PATH_ERROR;
+        }
+        if (pathErrorCheckOnly) {
+          return;
+        }
+        node = this.#children[regexpStr] = new _Node();
+        if (name !== "") {
+          node.#varIndex = context.varIndex++;
+        }
+      }
+      if (!pathErrorCheckOnly && name !== "") {
+        paramMap.push([name, node.#varIndex]);
+      }
+    } else {
+      node = this.#children[token];
+      if (!node) {
+        if (Object.keys(this.#children).some(
+          (k) => k.length > 1 && k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
+        )) {
+          throw PATH_ERROR;
+        }
+        if (pathErrorCheckOnly) {
+          return;
+        }
+        node = this.#children[token] = new _Node();
+      }
+    }
+    node.insert(restTokens, index, paramMap, context, pathErrorCheckOnly);
+  }
+  buildRegExpStr() {
+    const childKeys = Object.keys(this.#children).sort(compareKey);
+    const strList = childKeys.map((k) => {
+      const c = this.#children[k];
+      return (typeof c.#varIndex === "number" ? `(${k})@${c.#varIndex}` : regExpMetaChars.has(k) ? `\\${k}` : k) + c.buildRegExpStr();
+    });
+    if (typeof this.#index === "number") {
+      strList.unshift(`#${this.#index}`);
+    }
+    if (strList.length === 0) {
+      return "";
+    }
+    if (strList.length === 1) {
+      return strList[0];
+    }
+    return "(?:" + strList.join("|") + ")";
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/trie.js
+init_esm_shims();
+var Trie = class {
+  #context = { varIndex: 0 };
+  #root = new Node();
+  insert(path2, index, pathErrorCheckOnly) {
+    const paramAssoc = [];
+    const groups = [];
+    for (let i = 0; ; ) {
+      let replaced = false;
+      path2 = path2.replace(/\{[^}]+\}/g, (m) => {
+        const mark = `@\\${i}`;
+        groups[i] = [mark, m];
+        i++;
+        replaced = true;
+        return mark;
+      });
+      if (!replaced) {
+        break;
+      }
+    }
+    const tokens = path2.match(/(?::[^\/]+)|(?:\/\*$)|./g) || [];
+    for (let i = groups.length - 1; i >= 0; i--) {
+      const [mark] = groups[i];
+      for (let j = tokens.length - 1; j >= 0; j--) {
+        if (tokens[j].indexOf(mark) !== -1) {
+          tokens[j] = tokens[j].replace(mark, groups[i][1]);
+          break;
+        }
+      }
+    }
+    this.#root.insert(tokens, index, paramAssoc, this.#context, pathErrorCheckOnly);
+    return paramAssoc;
+  }
+  buildRegExp() {
+    let regexp = this.#root.buildRegExpStr();
+    if (regexp === "") {
+      return [/^$/, [], []];
+    }
+    let captureIndex = 0;
+    const indexReplacementMap = [];
+    const paramReplacementMap = [];
+    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_, handlerIndex, paramIndex) => {
+      if (handlerIndex !== void 0) {
+        indexReplacementMap[++captureIndex] = Number(handlerIndex);
+        return "$()";
+      }
+      if (paramIndex !== void 0) {
+        paramReplacementMap[Number(paramIndex)] = ++captureIndex;
+        return "";
+      }
+      return "";
+    });
+    return [new RegExp(`^${regexp}`), indexReplacementMap, paramReplacementMap];
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/router.js
+var nullMatcher = [/^$/, [], /* @__PURE__ */ Object.create(null)];
+var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
+function buildWildcardRegExp(path2) {
+  return wildcardRegExpCache[path2] ??= new RegExp(
+    path2 === "*" ? "" : `^${path2.replace(
+      /\/\*$|([.\\+*[^\]$()])/g,
+      (_, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
+    )}$`
+  );
+}
+function clearWildcardRegExpCache() {
+  wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
+}
+function buildMatcherFromPreprocessedRoutes(routes) {
+  const trie = new Trie();
+  const handlerData = [];
+  if (routes.length === 0) {
+    return nullMatcher;
+  }
+  const routesWithStaticPathFlag = routes.map(
+    (route) => [!/\*|\/:/.test(route[0]), ...route]
+  ).sort(
+    ([isStaticA, pathA], [isStaticB, pathB]) => isStaticA ? 1 : isStaticB ? -1 : pathA.length - pathB.length
+  );
+  const staticMap = /* @__PURE__ */ Object.create(null);
+  for (let i = 0, j = -1, len = routesWithStaticPathFlag.length; i < len; i++) {
+    const [pathErrorCheckOnly, path2, handlers] = routesWithStaticPathFlag[i];
+    if (pathErrorCheckOnly) {
+      staticMap[path2] = [handlers.map(([h]) => [h, /* @__PURE__ */ Object.create(null)]), emptyParam];
+    } else {
+      j++;
+    }
+    let paramAssoc;
+    try {
+      paramAssoc = trie.insert(path2, j, pathErrorCheckOnly);
+    } catch (e) {
+      throw e === PATH_ERROR ? new UnsupportedPathError(path2) : e;
+    }
+    if (pathErrorCheckOnly) {
+      continue;
+    }
+    handlerData[j] = handlers.map(([h, paramCount]) => {
+      const paramIndexMap = /* @__PURE__ */ Object.create(null);
+      paramCount -= 1;
+      for (; paramCount >= 0; paramCount--) {
+        const [key, value] = paramAssoc[paramCount];
+        paramIndexMap[key] = value;
+      }
+      return [h, paramIndexMap];
+    });
+  }
+  const [regexp, indexReplacementMap, paramReplacementMap] = trie.buildRegExp();
+  for (let i = 0, len = handlerData.length; i < len; i++) {
+    for (let j = 0, len2 = handlerData[i].length; j < len2; j++) {
+      const map3 = handlerData[i][j]?.[1];
+      if (!map3) {
+        continue;
+      }
+      const keys = Object.keys(map3);
+      for (let k = 0, len3 = keys.length; k < len3; k++) {
+        map3[keys[k]] = paramReplacementMap[map3[keys[k]]];
+      }
+    }
+  }
+  const handlerMap = [];
+  for (const i in indexReplacementMap) {
+    handlerMap[i] = handlerData[indexReplacementMap[i]];
+  }
+  return [regexp, handlerMap, staticMap];
+}
+function findMiddleware(middleware, path2) {
+  if (!middleware) {
+    return void 0;
+  }
+  for (const k of Object.keys(middleware).sort((a, b) => b.length - a.length)) {
+    if (buildWildcardRegExp(k).test(path2)) {
+      return [...middleware[k]];
+    }
+  }
+  return void 0;
+}
+var RegExpRouter = class {
+  name = "RegExpRouter";
+  #middleware;
+  #routes;
+  constructor() {
+    this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+    this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
+  }
+  add(method, path2, handler) {
+    const middleware = this.#middleware;
+    const routes = this.#routes;
+    if (!middleware || !routes) {
+      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
+    }
+    if (!middleware[method]) {
+      ;
+      [middleware, routes].forEach((handlerMap) => {
+        handlerMap[method] = /* @__PURE__ */ Object.create(null);
+        Object.keys(handlerMap[METHOD_NAME_ALL]).forEach((p) => {
+          handlerMap[method][p] = [...handlerMap[METHOD_NAME_ALL][p]];
+        });
+      });
+    }
+    if (path2 === "/*") {
+      path2 = "*";
+    }
+    const paramCount = (path2.match(/\/:/g) || []).length;
+    if (/\*$/.test(path2)) {
+      const re = buildWildcardRegExp(path2);
+      if (method === METHOD_NAME_ALL) {
+        Object.keys(middleware).forEach((m) => {
+          middleware[m][path2] ||= findMiddleware(middleware[m], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
+        });
+      } else {
+        middleware[method][path2] ||= findMiddleware(middleware[method], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
+      }
+      Object.keys(middleware).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          Object.keys(middleware[m]).forEach((p) => {
+            re.test(p) && middleware[m][p].push([handler, paramCount]);
+          });
+        }
+      });
+      Object.keys(routes).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          Object.keys(routes[m]).forEach(
+            (p) => re.test(p) && routes[m][p].push([handler, paramCount])
+          );
+        }
+      });
+      return;
+    }
+    const paths = checkOptionalParameter(path2) || [path2];
+    for (let i = 0, len = paths.length; i < len; i++) {
+      const path22 = paths[i];
+      Object.keys(routes).forEach((m) => {
+        if (method === METHOD_NAME_ALL || method === m) {
+          routes[m][path22] ||= [
+            ...findMiddleware(middleware[m], path22) || findMiddleware(middleware[METHOD_NAME_ALL], path22) || []
+          ];
+          routes[m][path22].push([handler, paramCount - len + i + 1]);
+        }
+      });
+    }
+  }
+  match = match;
+  buildAllMatchers() {
+    const matchers = /* @__PURE__ */ Object.create(null);
+    Object.keys(this.#routes).concat(Object.keys(this.#middleware)).forEach((method) => {
+      matchers[method] ||= this.#buildMatcher(method);
+    });
+    this.#middleware = this.#routes = void 0;
+    clearWildcardRegExpCache();
+    return matchers;
+  }
+  #buildMatcher(method) {
+    const routes = [];
+    let hasOwnRoute = method === METHOD_NAME_ALL;
+    [this.#middleware, this.#routes].forEach((r) => {
+      const ownRoute = r[method] ? Object.keys(r[method]).map((path2) => [path2, r[method][path2]]) : [];
+      if (ownRoute.length !== 0) {
+        hasOwnRoute ||= true;
+        routes.push(...ownRoute);
+      } else if (method !== METHOD_NAME_ALL) {
+        routes.push(
+          ...Object.keys(r[METHOD_NAME_ALL]).map((path2) => [path2, r[METHOD_NAME_ALL][path2]])
+        );
+      }
+    });
+    if (!hasOwnRoute) {
+      return null;
+    } else {
+      return buildMatcherFromPreprocessedRoutes(routes);
+    }
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/prepared-router.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/smart-router/index.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/smart-router/router.js
+init_esm_shims();
+var SmartRouter = class {
+  name = "SmartRouter";
+  #routers = [];
+  #routes = [];
+  constructor(init) {
+    this.#routers = init.routers;
+  }
+  add(method, path2, handler) {
+    if (!this.#routes) {
+      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
+    }
+    this.#routes.push([method, path2, handler]);
+  }
+  match(method, path2) {
+    if (!this.#routes) {
+      throw new Error("Fatal error");
+    }
+    const routers = this.#routers;
+    const routes = this.#routes;
+    const len = routers.length;
+    let i = 0;
+    let res;
+    for (; i < len; i++) {
+      const router = routers[i];
+      try {
+        for (let i2 = 0, len2 = routes.length; i2 < len2; i2++) {
+          router.add(...routes[i2]);
+        }
+        res = router.match(method, path2);
+      } catch (e) {
+        if (e instanceof UnsupportedPathError) {
+          continue;
+        }
+        throw e;
+      }
+      this.match = router.match.bind(router);
+      this.#routers = [router];
+      this.#routes = void 0;
+      break;
+    }
+    if (i === len) {
+      throw new Error("Fatal error");
+    }
+    this.name = `SmartRouter + ${this.activeRouter.name}`;
+    return res;
+  }
+  get activeRouter() {
+    if (this.#routes || this.#routers.length !== 1) {
+      throw new Error("No active router has been determined yet.");
+    }
+    return this.#routers[0];
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/index.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/router.js
+init_esm_shims();
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/node.js
+init_esm_shims();
+var emptyParams = /* @__PURE__ */ Object.create(null);
+var hasChildren = (children) => {
+  for (const _ in children) {
+    return true;
+  }
+  return false;
+};
+var Node2 = class _Node2 {
+  #methods;
+  #children;
+  #patterns;
+  #order = 0;
+  #params = emptyParams;
+  constructor(method, handler, children) {
+    this.#children = children || /* @__PURE__ */ Object.create(null);
+    this.#methods = [];
+    if (method && handler) {
+      const m = /* @__PURE__ */ Object.create(null);
+      m[method] = { handler, possibleKeys: [], score: 0 };
+      this.#methods = [m];
+    }
+    this.#patterns = [];
+  }
+  insert(method, path2, handler) {
+    this.#order = ++this.#order;
+    let curNode = this;
+    const parts = splitRoutingPath(path2);
+    const possibleKeys = [];
+    for (let i = 0, len = parts.length; i < len; i++) {
+      const p = parts[i];
+      const nextP = parts[i + 1];
+      const pattern = getPattern(p, nextP);
+      const key = Array.isArray(pattern) ? pattern[0] : p;
+      if (key in curNode.#children) {
+        curNode = curNode.#children[key];
+        if (pattern) {
+          possibleKeys.push(pattern[1]);
+        }
+        continue;
+      }
+      curNode.#children[key] = new _Node2();
+      if (pattern) {
+        curNode.#patterns.push(pattern);
+        possibleKeys.push(pattern[1]);
+      }
+      curNode = curNode.#children[key];
+    }
+    curNode.#methods.push({
+      [method]: {
+        handler,
+        possibleKeys: possibleKeys.filter((v, i, a) => a.indexOf(v) === i),
+        score: this.#order
+      }
+    });
+    return curNode;
+  }
+  #pushHandlerSets(handlerSets, node, method, nodeParams, params) {
+    for (let i = 0, len = node.#methods.length; i < len; i++) {
+      const m = node.#methods[i];
+      const handlerSet = m[method] || m[METHOD_NAME_ALL];
+      const processedSet = {};
+      if (handlerSet !== void 0) {
+        handlerSet.params = /* @__PURE__ */ Object.create(null);
+        handlerSets.push(handlerSet);
+        if (nodeParams !== emptyParams || params && params !== emptyParams) {
+          for (let i2 = 0, len2 = handlerSet.possibleKeys.length; i2 < len2; i2++) {
+            const key = handlerSet.possibleKeys[i2];
+            const processed = processedSet[handlerSet.score];
+            handlerSet.params[key] = params?.[key] && !processed ? params[key] : nodeParams[key] ?? params?.[key];
+            processedSet[handlerSet.score] = true;
+          }
+        }
+      }
+    }
+  }
+  search(method, path2) {
+    const handlerSets = [];
+    this.#params = emptyParams;
+    const curNode = this;
+    let curNodes = [curNode];
+    const parts = splitPath(path2);
+    const curNodesQueue = [];
+    const len = parts.length;
+    let partOffsets = null;
+    for (let i = 0; i < len; i++) {
+      const part = parts[i];
+      const isLast = i === len - 1;
+      const tempNodes = [];
+      for (let j = 0, len2 = curNodes.length; j < len2; j++) {
+        const node = curNodes[j];
+        const nextNode = node.#children[part];
+        if (nextNode) {
+          nextNode.#params = node.#params;
+          if (isLast) {
+            if (nextNode.#children["*"]) {
+              this.#pushHandlerSets(handlerSets, nextNode.#children["*"], method, node.#params);
+            }
+            this.#pushHandlerSets(handlerSets, nextNode, method, node.#params);
+          } else {
+            tempNodes.push(nextNode);
+          }
+        }
+        for (let k = 0, len3 = node.#patterns.length; k < len3; k++) {
+          const pattern = node.#patterns[k];
+          const params = node.#params === emptyParams ? {} : { ...node.#params };
+          if (pattern === "*") {
+            const astNode = node.#children["*"];
+            if (astNode) {
+              this.#pushHandlerSets(handlerSets, astNode, method, node.#params);
+              astNode.#params = params;
+              tempNodes.push(astNode);
+            }
+            continue;
+          }
+          const [key, name, matcher] = pattern;
+          if (!part && !(matcher instanceof RegExp)) {
+            continue;
+          }
+          const child = node.#children[key];
+          if (matcher instanceof RegExp) {
+            if (partOffsets === null) {
+              partOffsets = new Array(len);
+              let offset = path2[0] === "/" ? 1 : 0;
+              for (let p = 0; p < len; p++) {
+                partOffsets[p] = offset;
+                offset += parts[p].length + 1;
+              }
+            }
+            const restPathString = path2.substring(partOffsets[i]);
+            const m = matcher.exec(restPathString);
+            if (m) {
+              params[name] = m[0];
+              this.#pushHandlerSets(handlerSets, child, method, node.#params, params);
+              if (hasChildren(child.#children)) {
+                child.#params = params;
+                const componentCount = m[0].match(/\//)?.length ?? 0;
+                const targetCurNodes = curNodesQueue[componentCount] ||= [];
+                targetCurNodes.push(child);
+              }
+              continue;
+            }
+          }
+          if (matcher === true || matcher.test(part)) {
+            params[name] = part;
+            if (isLast) {
+              this.#pushHandlerSets(handlerSets, child, method, params, node.#params);
+              if (child.#children["*"]) {
+                this.#pushHandlerSets(
+                  handlerSets,
+                  child.#children["*"],
+                  method,
+                  params,
+                  node.#params
+                );
+              }
+            } else {
+              child.#params = params;
+              tempNodes.push(child);
+            }
+          }
+        }
+      }
+      const shifted = curNodesQueue.shift();
+      curNodes = shifted ? tempNodes.concat(shifted) : tempNodes;
+    }
+    if (handlerSets.length > 1) {
+      handlerSets.sort((a, b) => {
+        return a.score - b.score;
+      });
+    }
+    return [handlerSets.map(({ handler, params }) => [handler, params])];
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/router.js
+var TrieRouter = class {
+  name = "TrieRouter";
+  #node;
+  constructor() {
+    this.#node = new Node2();
+  }
+  add(method, path2, handler) {
+    const results = checkOptionalParameter(path2);
+    if (results) {
+      for (let i = 0, len = results.length; i < len; i++) {
+        this.#node.insert(method, results[i], handler);
+      }
+      return;
+    }
+    this.#node.insert(method, path2, handler);
+  }
+  match(method, path2) {
+    return this.#node.search(method, path2);
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono.js
+var Hono2 = class extends Hono {
+  /**
+   * Creates an instance of the Hono class.
+   *
+   * @param options - Optional configuration options for the Hono instance.
+   */
+  constructor(options = {}) {
+    super(options);
+    this.router = options.router ?? new SmartRouter({
+      routers: [new RegExpRouter(), new TrieRouter()]
+    });
+  }
+};
+
+// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/middleware/cors/index.js
+init_esm_shims();
+var cors = (options) => {
+  const defaults = {
+    origin: "*",
+    allowMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "PATCH"],
+    allowHeaders: [],
+    exposeHeaders: []
+  };
+  const opts = {
+    ...defaults,
+    ...options
+  };
+  const findAllowOrigin = ((optsOrigin) => {
+    if (typeof optsOrigin === "string") {
+      if (optsOrigin === "*") {
+        return () => optsOrigin;
+      } else {
+        return (origin) => optsOrigin === origin ? origin : null;
+      }
+    } else if (typeof optsOrigin === "function") {
+      return optsOrigin;
+    } else {
+      return (origin) => optsOrigin.includes(origin) ? origin : null;
+    }
+  })(opts.origin);
+  const findAllowMethods = ((optsAllowMethods) => {
+    if (typeof optsAllowMethods === "function") {
+      return optsAllowMethods;
+    } else if (Array.isArray(optsAllowMethods)) {
+      return () => optsAllowMethods;
+    } else {
+      return () => [];
+    }
+  })(opts.allowMethods);
+  return async function cors2(c, next) {
+    function set3(key, value) {
+      c.res.headers.set(key, value);
+    }
+    const allowOrigin = await findAllowOrigin(c.req.header("origin") || "", c);
+    if (allowOrigin) {
+      set3("Access-Control-Allow-Origin", allowOrigin);
+    }
+    if (opts.credentials) {
+      set3("Access-Control-Allow-Credentials", "true");
+    }
+    if (opts.exposeHeaders?.length) {
+      set3("Access-Control-Expose-Headers", opts.exposeHeaders.join(","));
+    }
+    if (c.req.method === "OPTIONS") {
+      if (opts.origin !== "*") {
+        set3("Vary", "Origin");
+      }
+      if (opts.maxAge != null) {
+        set3("Access-Control-Max-Age", opts.maxAge.toString());
+      }
+      const allowMethods = await findAllowMethods(c.req.header("origin") || "", c);
+      if (allowMethods.length) {
+        set3("Access-Control-Allow-Methods", allowMethods.join(","));
+      }
+      let headers = opts.allowHeaders;
+      if (!headers?.length) {
+        const requestHeaders = c.req.header("Access-Control-Request-Headers");
+        if (requestHeaders) {
+          headers = requestHeaders.split(/\s*,\s*/);
+        }
+      }
+      if (headers?.length) {
+        set3("Access-Control-Allow-Headers", headers.join(","));
+        c.res.headers.append("Vary", "Access-Control-Request-Headers");
+      }
+      c.res.headers.delete("Content-Length");
+      c.res.headers.delete("Content-Type");
+      return new Response(null, {
+        headers: c.res.headers,
+        status: 204,
+        statusText: "No Content"
+      });
+    }
+    await next();
+    if (opts.origin !== "*") {
+      c.header("Vary", "Origin", { append: true });
+    }
+  };
+};
 
 // src/agents/cache.ts
 init_esm_shims();
-import { existsSync as existsSync2, readFileSync as readFileSync2 } from "fs";
-import { join as join3 } from "path";
+import { existsSync as existsSync3, readFileSync as readFileSync2 } from "fs";
+import { join as join4 } from "path";
 
 // ../../node_modules/.bun/js-yaml@4.1.1/node_modules/js-yaml/dist/js-yaml.mjs
 init_esm_shims();
@@ -13729,84 +16294,14 @@ var jsYaml = {
   safeDump
 };
 
-// src/config.ts
-init_esm_shims();
-import { isAbsolute, join, resolve } from "path";
-import { fileURLToPath as fileURLToPath2 } from "url";
-var _projectRoot = null;
-function setProjectRoot(root) {
-  _projectRoot = root;
-}
-function getProjectRoot() {
-  return _projectRoot ?? process.env.RELAY_PROJECT_ROOT ?? process.cwd();
-}
-function getRelayDir() {
-  if (process.env.RELAY_DIR) {
-    const dir = resolve(process.env.RELAY_DIR);
-    if (!isAbsolute(dir)) throw new Error(`RELAY_DIR resolved to non-absolute path: ${dir}`);
-    return dir;
-  }
-  return join(getProjectRoot(), ".relay");
-}
-function getInstanceId() {
-  return process.env.RELAY_INSTANCE;
-}
-var _port = null;
-function setPort(port) {
-  _port = port;
-}
-function getPort() {
-  return _port;
-}
-function uriToPath(uri) {
-  if (uri.startsWith("file://")) {
-    return fileURLToPath2(uri);
-  }
-  return uri;
-}
-var _sessionId = null;
-function getSessionId() {
-  if (_sessionId !== null) return _sessionId;
-  if (process.env.RELAY_SESSION_ID) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_SESSION_ID)) {
-      console.error(
-        "[relay] invalid RELAY_SESSION_ID value; use alphanumeric, hyphen, underscore only"
-      );
-      process.exit(1);
-    }
-    _sessionId = process.env.RELAY_SESSION_ID;
-    return _sessionId;
-  }
-  const now = /* @__PURE__ */ new Date();
-  const date5 = now.toISOString().slice(0, 10);
-  const hh = String(now.getUTCHours()).padStart(2, "0");
-  const mm = String(now.getUTCMinutes()).padStart(2, "0");
-  const ss = String(now.getUTCSeconds()).padStart(2, "0");
-  const rand = Math.floor(Math.random() * 65536).toString(16).padStart(4, "0");
-  _sessionId = `${date5}-${hh}${mm}${ss}-${rand}`;
-  return _sessionId;
-}
-function setSessionId(id) {
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    throw new Error(`setSessionId: invalid session ID format: "${id}"`);
-  }
-  _sessionId = id;
-}
-
 // src/agents/loader.ts
 init_esm_shims();
-import { existsSync, readFileSync } from "fs";
-import { join as join2 } from "path";
+import { existsSync as existsSync2, readFileSync } from "fs";
+import { join as join3 } from "path";
 
 // ../shared/index.ts
 init_esm_shims();
 var markAsAgentId = (id) => id;
-
-// src/utils/validate.ts
-init_esm_shims();
-function isValidId(id) {
-  return /^[a-zA-Z0-9_-]+$/.test(id);
-}
 
 // src/agents/loader.ts
 var REGISTERED_MCP_TOOLS = /* @__PURE__ */ new Set([
@@ -13856,7 +16351,7 @@ function resolveHooks(hooks) {
   };
 }
 function readYml(path2) {
-  if (!existsSync(path2)) return null;
+  if (!existsSync2(path2)) return null;
   return jsYaml.load(readFileSync(path2, "utf-8"));
 }
 function resolveSharedBlocks(systemPrompt, sharedBlocks, agentId) {
@@ -13869,6 +16364,15 @@ function resolveSharedBlocks(systemPrompt, sharedBlocks, agentId) {
     }
     return block.replace(/\{agent_id\}/g, agentId);
   });
+}
+function injectLanguageDirective(systemPrompt, language) {
+  if (!language?.trim()) return systemPrompt;
+  if (systemPrompt.startsWith("## Language")) return systemPrompt;
+  return `## Language
+
+You MUST respond in ${language} at all times. All messages, artifacts, and communications must be in ${language}. Technical terms (file paths, commands, tool names) may remain in their original form.
+
+${systemPrompt}`;
 }
 function validatePromptSections(agentId, rawSystemPrompt) {
   const requiredRefs = [
@@ -13997,7 +16501,7 @@ function loadPool(override) {
     }
     return loadAgents(override);
   }
-  const poolFile = readYml(join2(getRelayDir(), "agents.pool.yml")) ?? readYml(join2(getProjectRoot(), "agents.pool.yml"));
+  const poolFile = readYml(join3(getRelayDir(), "agents.pool.yml")) ?? readYml(join3(getProjectRoot(), "agents.pool.yml"));
   if (poolFile) {
     return loadPool(poolFile);
   }
@@ -14012,7 +16516,7 @@ var agentsCache = /* @__PURE__ */ new Map();
 var pool = null;
 var poolCachedAt = 0;
 function getAgents(sessionId) {
-  if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (sessionId && !isValidId(sessionId)) {
     return null;
   }
   const cacheKey2 = sessionId ?? "__default__";
@@ -14020,8 +16524,8 @@ function getAgents(sessionId) {
   let result;
   try {
     if (sessionId) {
-      const sessionFile = join3(getRelayDir(), `session-agents-${sessionId}.yml`);
-      if (existsSync2(sessionFile)) {
+      const sessionFile = join4(getRelayDir(), `session-agents-${sessionId}.yml`);
+      if (existsSync3(sessionFile)) {
         const parsed = jsYaml.load(readFileSync2(sessionFile, "utf-8"));
         if (!parsed) {
           console.error(`[relay] session file is empty or malformed: ${sessionFile}`);
@@ -14059,2425 +16563,6 @@ function getPool() {
   poolCachedAt = now;
   return pool;
 }
-
-// src/dashboard/hono.ts
-init_esm_shims();
-import { access, readFile as readFile2 } from "fs/promises";
-import { dirname, join as join6 } from "path";
-import { fileURLToPath as fileURLToPath3 } from "url";
-
-// ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/serve-static.mjs
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/mime.js
-init_esm_shims();
-var getMimeType = (filename, mimes = baseMimes) => {
-  const regexp = /\.([a-zA-Z0-9]+?)$/;
-  const match2 = filename.match(regexp);
-  if (!match2) {
-    return;
-  }
-  let mimeType = mimes[match2[1]];
-  if (mimeType && mimeType.startsWith("text")) {
-    mimeType += "; charset=utf-8";
-  }
-  return mimeType;
-};
-var _baseMimes = {
-  aac: "audio/aac",
-  avi: "video/x-msvideo",
-  avif: "image/avif",
-  av1: "video/av1",
-  bin: "application/octet-stream",
-  bmp: "image/bmp",
-  css: "text/css",
-  csv: "text/csv",
-  eot: "application/vnd.ms-fontobject",
-  epub: "application/epub+zip",
-  gif: "image/gif",
-  gz: "application/gzip",
-  htm: "text/html",
-  html: "text/html",
-  ico: "image/x-icon",
-  ics: "text/calendar",
-  jpeg: "image/jpeg",
-  jpg: "image/jpeg",
-  js: "text/javascript",
-  json: "application/json",
-  jsonld: "application/ld+json",
-  map: "application/json",
-  mid: "audio/x-midi",
-  midi: "audio/x-midi",
-  mjs: "text/javascript",
-  mp3: "audio/mpeg",
-  mp4: "video/mp4",
-  mpeg: "video/mpeg",
-  oga: "audio/ogg",
-  ogv: "video/ogg",
-  ogx: "application/ogg",
-  opus: "audio/opus",
-  otf: "font/otf",
-  pdf: "application/pdf",
-  png: "image/png",
-  rtf: "application/rtf",
-  svg: "image/svg+xml",
-  tif: "image/tiff",
-  tiff: "image/tiff",
-  ts: "video/mp2t",
-  ttf: "font/ttf",
-  txt: "text/plain",
-  wasm: "application/wasm",
-  webm: "video/webm",
-  weba: "audio/webm",
-  webmanifest: "application/manifest+json",
-  webp: "image/webp",
-  woff: "font/woff",
-  woff2: "font/woff2",
-  xhtml: "application/xhtml+xml",
-  xml: "application/xml",
-  zip: "application/zip",
-  "3gp": "video/3gpp",
-  "3g2": "video/3gpp2",
-  gltf: "model/gltf+json",
-  glb: "model/gltf-binary"
-};
-var baseMimes = _baseMimes;
-
-// ../../node_modules/.bun/@hono+node-server@1.19.11+88d33b5845f82712/node_modules/@hono/node-server/dist/serve-static.mjs
-import { createReadStream, statSync, existsSync as existsSync3 } from "fs";
-import { join as join4 } from "path";
-import { versions } from "process";
-import { Readable as Readable2 } from "stream";
-var COMPRESSIBLE_CONTENT_TYPE_REGEX = /^\s*(?:text\/[^;\s]+|application\/(?:javascript|json|xml|xml-dtd|ecmascript|dart|postscript|rtf|tar|toml|vnd\.dart|vnd\.ms-fontobject|vnd\.ms-opentype|wasm|x-httpd-php|x-javascript|x-ns-proxy-autoconfig|x-sh|x-tar|x-virtualbox-hdd|x-virtualbox-ova|x-virtualbox-ovf|x-virtualbox-vbox|x-virtualbox-vdi|x-virtualbox-vhd|x-virtualbox-vmdk|x-www-form-urlencoded)|font\/(?:otf|ttf)|image\/(?:bmp|vnd\.adobe\.photoshop|vnd\.microsoft\.icon|vnd\.ms-dds|x-icon|x-ms-bmp)|message\/rfc822|model\/gltf-binary|x-shader\/x-fragment|x-shader\/x-vertex|[^;\s]+?\+(?:json|text|xml|yaml))(?:[;\s]|$)/i;
-var ENCODINGS = {
-  br: ".br",
-  zstd: ".zst",
-  gzip: ".gz"
-};
-var ENCODINGS_ORDERED_KEYS = Object.keys(ENCODINGS);
-var pr54206Applied = () => {
-  const [major, minor] = versions.node.split(".").map((component) => parseInt(component));
-  return major >= 23 || major === 22 && minor >= 7 || major === 20 && minor >= 18;
-};
-var useReadableToWeb = pr54206Applied();
-var createStreamBody = (stream) => {
-  if (useReadableToWeb) {
-    return Readable2.toWeb(stream);
-  }
-  const body = new ReadableStream({
-    start(controller) {
-      stream.on("data", (chunk) => {
-        controller.enqueue(chunk);
-      });
-      stream.on("error", (err) => {
-        controller.error(err);
-      });
-      stream.on("end", () => {
-        controller.close();
-      });
-    },
-    cancel() {
-      stream.destroy();
-    }
-  });
-  return body;
-};
-var getStats = (path2) => {
-  let stats;
-  try {
-    stats = statSync(path2);
-  } catch {
-  }
-  return stats;
-};
-var tryDecode = (str2, decoder) => {
-  try {
-    return decoder(str2);
-  } catch {
-    return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
-      try {
-        return decoder(match2);
-      } catch {
-        return match2;
-      }
-    });
-  }
-};
-var tryDecodeURI = (str2) => tryDecode(str2, decodeURI);
-var serveStatic = (options = { root: "" }) => {
-  const root = options.root || "";
-  const optionPath = options.path;
-  if (root !== "" && !existsSync3(root)) {
-    console.error(`serveStatic: root path '${root}' is not found, are you sure it's correct?`);
-  }
-  return async (c, next) => {
-    if (c.finalized) {
-      return next();
-    }
-    let filename;
-    if (optionPath) {
-      filename = optionPath;
-    } else {
-      try {
-        filename = tryDecodeURI(c.req.path);
-        if (/(?:^|[\/\\])\.\.(?:$|[\/\\])/.test(filename)) {
-          throw new Error();
-        }
-      } catch {
-        await options.onNotFound?.(c.req.path, c);
-        return next();
-      }
-    }
-    let path2 = join4(
-      root,
-      !optionPath && options.rewriteRequestPath ? options.rewriteRequestPath(filename, c) : filename
-    );
-    let stats = getStats(path2);
-    if (stats && stats.isDirectory()) {
-      const indexFile = options.index ?? "index.html";
-      path2 = join4(path2, indexFile);
-      stats = getStats(path2);
-    }
-    if (!stats) {
-      await options.onNotFound?.(path2, c);
-      return next();
-    }
-    const mimeType = getMimeType(path2);
-    c.header("Content-Type", mimeType || "application/octet-stream");
-    if (options.precompressed && (!mimeType || COMPRESSIBLE_CONTENT_TYPE_REGEX.test(mimeType))) {
-      const acceptEncodingSet = new Set(
-        c.req.header("Accept-Encoding")?.split(",").map((encoding) => encoding.trim())
-      );
-      for (const encoding of ENCODINGS_ORDERED_KEYS) {
-        if (!acceptEncodingSet.has(encoding)) {
-          continue;
-        }
-        const precompressedStats = getStats(path2 + ENCODINGS[encoding]);
-        if (precompressedStats) {
-          c.header("Content-Encoding", encoding);
-          c.header("Vary", "Accept-Encoding", { append: true });
-          stats = precompressedStats;
-          path2 = path2 + ENCODINGS[encoding];
-          break;
-        }
-      }
-    }
-    let result;
-    const size = stats.size;
-    const range = c.req.header("range") || "";
-    if (c.req.method == "HEAD" || c.req.method == "OPTIONS") {
-      c.header("Content-Length", size.toString());
-      c.status(200);
-      result = c.body(null);
-    } else if (!range) {
-      c.header("Content-Length", size.toString());
-      result = c.body(createStreamBody(createReadStream(path2)), 200);
-    } else {
-      c.header("Accept-Ranges", "bytes");
-      c.header("Date", stats.birthtime.toUTCString());
-      const parts = range.replace(/bytes=/, "").split("-", 2);
-      const start = parseInt(parts[0], 10) || 0;
-      let end = parseInt(parts[1], 10) || size - 1;
-      if (size < end - start + 1) {
-        end = size - 1;
-      }
-      const chunksize = end - start + 1;
-      const stream = createReadStream(path2, { start, end });
-      c.header("Content-Length", chunksize.toString());
-      c.header("Content-Range", `bytes ${start}-${end}/${stats.size}`);
-      result = c.body(createStreamBody(stream), 206);
-    }
-    await options.onFound?.(path2, c);
-    return result;
-  };
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/index.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono-base.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/compose.js
-init_esm_shims();
-var compose = (middleware, onError, onNotFound) => {
-  return (context, next) => {
-    let index = -1;
-    return dispatch(0);
-    async function dispatch(i) {
-      if (i <= index) {
-        throw new Error("next() called multiple times");
-      }
-      index = i;
-      let res;
-      let isError = false;
-      let handler;
-      if (middleware[i]) {
-        handler = middleware[i][0][0];
-        context.req.routeIndex = i;
-      } else {
-        handler = i === middleware.length && next || void 0;
-      }
-      if (handler) {
-        try {
-          res = await handler(context, () => dispatch(i + 1));
-        } catch (err) {
-          if (err instanceof Error && onError) {
-            context.error = err;
-            res = await onError(err, context);
-            isError = true;
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        if (context.finalized === false && onNotFound) {
-          res = await onNotFound(context);
-        }
-      }
-      if (res && (context.finalized === false || isError)) {
-        context.res = res;
-      }
-      return context;
-    }
-  };
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/context.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/http-exception.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request/constants.js
-init_esm_shims();
-var GET_MATCH_RESULT = /* @__PURE__ */ Symbol();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/body.js
-init_esm_shims();
-var parseBody = async (request, options = /* @__PURE__ */ Object.create(null)) => {
-  const { all = false, dot = false } = options;
-  const headers = request instanceof HonoRequest ? request.raw.headers : request.headers;
-  const contentType = headers.get("Content-Type");
-  if (contentType?.startsWith("multipart/form-data") || contentType?.startsWith("application/x-www-form-urlencoded")) {
-    return parseFormData(request, { all, dot });
-  }
-  return {};
-};
-async function parseFormData(request, options) {
-  const formData = await request.formData();
-  if (formData) {
-    return convertFormDataToBodyData(formData, options);
-  }
-  return {};
-}
-function convertFormDataToBodyData(formData, options) {
-  const form = /* @__PURE__ */ Object.create(null);
-  formData.forEach((value, key) => {
-    const shouldParseAllValues = options.all || key.endsWith("[]");
-    if (!shouldParseAllValues) {
-      form[key] = value;
-    } else {
-      handleParsingAllValues(form, key, value);
-    }
-  });
-  if (options.dot) {
-    Object.entries(form).forEach(([key, value]) => {
-      const shouldParseDotValues = key.includes(".");
-      if (shouldParseDotValues) {
-        handleParsingNestedValues(form, key, value);
-        delete form[key];
-      }
-    });
-  }
-  return form;
-}
-var handleParsingAllValues = (form, key, value) => {
-  if (form[key] !== void 0) {
-    if (Array.isArray(form[key])) {
-      ;
-      form[key].push(value);
-    } else {
-      form[key] = [form[key], value];
-    }
-  } else {
-    if (!key.endsWith("[]")) {
-      form[key] = value;
-    } else {
-      form[key] = [value];
-    }
-  }
-};
-var handleParsingNestedValues = (form, key, value) => {
-  if (/(?:^|\.)__proto__\./.test(key)) {
-    return;
-  }
-  let nestedForm = form;
-  const keys = key.split(".");
-  keys.forEach((key2, index) => {
-    if (index === keys.length - 1) {
-      nestedForm[key2] = value;
-    } else {
-      if (!nestedForm[key2] || typeof nestedForm[key2] !== "object" || Array.isArray(nestedForm[key2]) || nestedForm[key2] instanceof File) {
-        nestedForm[key2] = /* @__PURE__ */ Object.create(null);
-      }
-      nestedForm = nestedForm[key2];
-    }
-  });
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/url.js
-init_esm_shims();
-var splitPath = (path2) => {
-  const paths = path2.split("/");
-  if (paths[0] === "") {
-    paths.shift();
-  }
-  return paths;
-};
-var splitRoutingPath = (routePath) => {
-  const { groups, path: path2 } = extractGroupsFromPath(routePath);
-  const paths = splitPath(path2);
-  return replaceGroupMarks(paths, groups);
-};
-var extractGroupsFromPath = (path2) => {
-  const groups = [];
-  path2 = path2.replace(/\{[^}]+\}/g, (match2, index) => {
-    const mark = `@${index}`;
-    groups.push([mark, match2]);
-    return mark;
-  });
-  return { groups, path: path2 };
-};
-var replaceGroupMarks = (paths, groups) => {
-  for (let i = groups.length - 1; i >= 0; i--) {
-    const [mark] = groups[i];
-    for (let j = paths.length - 1; j >= 0; j--) {
-      if (paths[j].includes(mark)) {
-        paths[j] = paths[j].replace(mark, groups[i][1]);
-        break;
-      }
-    }
-  }
-  return paths;
-};
-var patternCache = {};
-var getPattern = (label, next) => {
-  if (label === "*") {
-    return "*";
-  }
-  const match2 = label.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
-  if (match2) {
-    const cacheKey2 = `${label}#${next}`;
-    if (!patternCache[cacheKey2]) {
-      if (match2[2]) {
-        patternCache[cacheKey2] = next && next[0] !== ":" && next[0] !== "*" ? [cacheKey2, match2[1], new RegExp(`^${match2[2]}(?=/${next})`)] : [label, match2[1], new RegExp(`^${match2[2]}$`)];
-      } else {
-        patternCache[cacheKey2] = [label, match2[1], true];
-      }
-    }
-    return patternCache[cacheKey2];
-  }
-  return null;
-};
-var tryDecode2 = (str2, decoder) => {
-  try {
-    return decoder(str2);
-  } catch {
-    return str2.replace(/(?:%[0-9A-Fa-f]{2})+/g, (match2) => {
-      try {
-        return decoder(match2);
-      } catch {
-        return match2;
-      }
-    });
-  }
-};
-var tryDecodeURI2 = (str2) => tryDecode2(str2, decodeURI);
-var getPath = (request) => {
-  const url2 = request.url;
-  const start = url2.indexOf("/", url2.indexOf(":") + 4);
-  let i = start;
-  for (; i < url2.length; i++) {
-    const charCode = url2.charCodeAt(i);
-    if (charCode === 37) {
-      const queryIndex = url2.indexOf("?", i);
-      const hashIndex = url2.indexOf("#", i);
-      const end = queryIndex === -1 ? hashIndex === -1 ? void 0 : hashIndex : hashIndex === -1 ? queryIndex : Math.min(queryIndex, hashIndex);
-      const path2 = url2.slice(start, end);
-      return tryDecodeURI2(path2.includes("%25") ? path2.replace(/%25/g, "%2525") : path2);
-    } else if (charCode === 63 || charCode === 35) {
-      break;
-    }
-  }
-  return url2.slice(start, i);
-};
-var getPathNoStrict = (request) => {
-  const result = getPath(request);
-  return result.length > 1 && result.at(-1) === "/" ? result.slice(0, -1) : result;
-};
-var mergePath = (base, sub, ...rest) => {
-  if (rest.length) {
-    sub = mergePath(sub, ...rest);
-  }
-  return `${base?.[0] === "/" ? "" : "/"}${base}${sub === "/" ? "" : `${base?.at(-1) === "/" ? "" : "/"}${sub?.[0] === "/" ? sub.slice(1) : sub}`}`;
-};
-var checkOptionalParameter = (path2) => {
-  if (path2.charCodeAt(path2.length - 1) !== 63 || !path2.includes(":")) {
-    return null;
-  }
-  const segments = path2.split("/");
-  const results = [];
-  let basePath = "";
-  segments.forEach((segment) => {
-    if (segment !== "" && !/\:/.test(segment)) {
-      basePath += "/" + segment;
-    } else if (/\:/.test(segment)) {
-      if (/\?/.test(segment)) {
-        if (results.length === 0 && basePath === "") {
-          results.push("/");
-        } else {
-          results.push(basePath);
-        }
-        const optionalSegment = segment.replace("?", "");
-        basePath += "/" + optionalSegment;
-        results.push(basePath);
-      } else {
-        basePath += "/" + segment;
-      }
-    }
-  });
-  return results.filter((v, i, a) => a.indexOf(v) === i);
-};
-var _decodeURI = (value) => {
-  if (!/[%+]/.test(value)) {
-    return value;
-  }
-  if (value.indexOf("+") !== -1) {
-    value = value.replace(/\+/g, " ");
-  }
-  return value.indexOf("%") !== -1 ? tryDecode2(value, decodeURIComponent_) : value;
-};
-var _getQueryParam = (url2, key, multiple) => {
-  let encoded;
-  if (!multiple && key && !/[%+]/.test(key)) {
-    let keyIndex2 = url2.indexOf("?", 8);
-    if (keyIndex2 === -1) {
-      return void 0;
-    }
-    if (!url2.startsWith(key, keyIndex2 + 1)) {
-      keyIndex2 = url2.indexOf(`&${key}`, keyIndex2 + 1);
-    }
-    while (keyIndex2 !== -1) {
-      const trailingKeyCode = url2.charCodeAt(keyIndex2 + key.length + 1);
-      if (trailingKeyCode === 61) {
-        const valueIndex = keyIndex2 + key.length + 2;
-        const endIndex = url2.indexOf("&", valueIndex);
-        return _decodeURI(url2.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
-      } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
-        return "";
-      }
-      keyIndex2 = url2.indexOf(`&${key}`, keyIndex2 + 1);
-    }
-    encoded = /[%+]/.test(url2);
-    if (!encoded) {
-      return void 0;
-    }
-  }
-  const results = {};
-  encoded ??= /[%+]/.test(url2);
-  let keyIndex = url2.indexOf("?", 8);
-  while (keyIndex !== -1) {
-    const nextKeyIndex = url2.indexOf("&", keyIndex + 1);
-    let valueIndex = url2.indexOf("=", keyIndex);
-    if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
-      valueIndex = -1;
-    }
-    let name = url2.slice(
-      keyIndex + 1,
-      valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
-    );
-    if (encoded) {
-      name = _decodeURI(name);
-    }
-    keyIndex = nextKeyIndex;
-    if (name === "") {
-      continue;
-    }
-    let value;
-    if (valueIndex === -1) {
-      value = "";
-    } else {
-      value = url2.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
-      if (encoded) {
-        value = _decodeURI(value);
-      }
-    }
-    if (multiple) {
-      if (!(results[name] && Array.isArray(results[name]))) {
-        results[name] = [];
-      }
-      ;
-      results[name].push(value);
-    } else {
-      results[name] ??= value;
-    }
-  }
-  return key ? results[key] : results;
-};
-var getQueryParam = _getQueryParam;
-var getQueryParams = (url2, key) => {
-  return _getQueryParam(url2, key, true);
-};
-var decodeURIComponent_ = decodeURIComponent;
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/request.js
-var tryDecodeURIComponent = (str2) => tryDecode2(str2, decodeURIComponent_);
-var HonoRequest = class {
-  /**
-   * `.raw` can get the raw Request object.
-   *
-   * @see {@link https://hono.dev/docs/api/request#raw}
-   *
-   * @example
-   * ```ts
-   * // For Cloudflare Workers
-   * app.post('/', async (c) => {
-   *   const metadata = c.req.raw.cf?.hostMetadata?
-   *   ...
-   * })
-   * ```
-   */
-  raw;
-  #validatedData;
-  // Short name of validatedData
-  #matchResult;
-  routeIndex = 0;
-  /**
-   * `.path` can get the pathname of the request.
-   *
-   * @see {@link https://hono.dev/docs/api/request#path}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const pathname = c.req.path // `/about/me`
-   * })
-   * ```
-   */
-  path;
-  bodyCache = {};
-  constructor(request, path2 = "/", matchResult = [[]]) {
-    this.raw = request;
-    this.path = path2;
-    this.#matchResult = matchResult;
-    this.#validatedData = {};
-  }
-  param(key) {
-    return key ? this.#getDecodedParam(key) : this.#getAllDecodedParams();
-  }
-  #getDecodedParam(key) {
-    const paramKey = this.#matchResult[0][this.routeIndex][1][key];
-    const param = this.#getParamValue(paramKey);
-    return param && /\%/.test(param) ? tryDecodeURIComponent(param) : param;
-  }
-  #getAllDecodedParams() {
-    const decoded = {};
-    const keys = Object.keys(this.#matchResult[0][this.routeIndex][1]);
-    for (const key of keys) {
-      const value = this.#getParamValue(this.#matchResult[0][this.routeIndex][1][key]);
-      if (value !== void 0) {
-        decoded[key] = /\%/.test(value) ? tryDecodeURIComponent(value) : value;
-      }
-    }
-    return decoded;
-  }
-  #getParamValue(paramKey) {
-    return this.#matchResult[1] ? this.#matchResult[1][paramKey] : paramKey;
-  }
-  query(key) {
-    return getQueryParam(this.url, key);
-  }
-  queries(key) {
-    return getQueryParams(this.url, key);
-  }
-  header(name) {
-    if (name) {
-      return this.raw.headers.get(name) ?? void 0;
-    }
-    const headerData = {};
-    this.raw.headers.forEach((value, key) => {
-      headerData[key] = value;
-    });
-    return headerData;
-  }
-  async parseBody(options) {
-    return this.bodyCache.parsedBody ??= await parseBody(this, options);
-  }
-  #cachedBody = (key) => {
-    const { bodyCache, raw: raw2 } = this;
-    const cachedBody = bodyCache[key];
-    if (cachedBody) {
-      return cachedBody;
-    }
-    const anyCachedKey = Object.keys(bodyCache)[0];
-    if (anyCachedKey) {
-      return bodyCache[anyCachedKey].then((body) => {
-        if (anyCachedKey === "json") {
-          body = JSON.stringify(body);
-        }
-        return new Response(body)[key]();
-      });
-    }
-    return bodyCache[key] = raw2[key]();
-  };
-  /**
-   * `.json()` can parse Request body of type `application/json`
-   *
-   * @see {@link https://hono.dev/docs/api/request#json}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.json()
-   * })
-   * ```
-   */
-  json() {
-    return this.#cachedBody("text").then((text) => JSON.parse(text));
-  }
-  /**
-   * `.text()` can parse Request body of type `text/plain`
-   *
-   * @see {@link https://hono.dev/docs/api/request#text}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.text()
-   * })
-   * ```
-   */
-  text() {
-    return this.#cachedBody("text");
-  }
-  /**
-   * `.arrayBuffer()` parse Request body as an `ArrayBuffer`
-   *
-   * @see {@link https://hono.dev/docs/api/request#arraybuffer}
-   *
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.arrayBuffer()
-   * })
-   * ```
-   */
-  arrayBuffer() {
-    return this.#cachedBody("arrayBuffer");
-  }
-  /**
-   * Parses the request body as a `Blob`.
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.blob();
-   * });
-   * ```
-   * @see https://hono.dev/docs/api/request#blob
-   */
-  blob() {
-    return this.#cachedBody("blob");
-  }
-  /**
-   * Parses the request body as `FormData`.
-   * @example
-   * ```ts
-   * app.post('/entry', async (c) => {
-   *   const body = await c.req.formData();
-   * });
-   * ```
-   * @see https://hono.dev/docs/api/request#formdata
-   */
-  formData() {
-    return this.#cachedBody("formData");
-  }
-  /**
-   * Adds validated data to the request.
-   *
-   * @param target - The target of the validation.
-   * @param data - The validated data to add.
-   */
-  addValidatedData(target, data) {
-    this.#validatedData[target] = data;
-  }
-  valid(target) {
-    return this.#validatedData[target];
-  }
-  /**
-   * `.url()` can get the request url strings.
-   *
-   * @see {@link https://hono.dev/docs/api/request#url}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const url = c.req.url // `http://localhost:8787/about/me`
-   *   ...
-   * })
-   * ```
-   */
-  get url() {
-    return this.raw.url;
-  }
-  /**
-   * `.method()` can get the method name of the request.
-   *
-   * @see {@link https://hono.dev/docs/api/request#method}
-   *
-   * @example
-   * ```ts
-   * app.get('/about/me', (c) => {
-   *   const method = c.req.method // `GET`
-   * })
-   * ```
-   */
-  get method() {
-    return this.raw.method;
-  }
-  get [GET_MATCH_RESULT]() {
-    return this.#matchResult;
-  }
-  /**
-   * `.matchedRoutes()` can return a matched route in the handler
-   *
-   * @deprecated
-   *
-   * Use matchedRoutes helper defined in "hono/route" instead.
-   *
-   * @see {@link https://hono.dev/docs/api/request#matchedroutes}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async function logger(c, next) {
-   *   await next()
-   *   c.req.matchedRoutes.forEach(({ handler, method, path }, i) => {
-   *     const name = handler.name || (handler.length < 2 ? '[handler]' : '[middleware]')
-   *     console.log(
-   *       method,
-   *       ' ',
-   *       path,
-   *       ' '.repeat(Math.max(10 - path.length, 0)),
-   *       name,
-   *       i === c.req.routeIndex ? '<- respond from here' : ''
-   *     )
-   *   })
-   * })
-   * ```
-   */
-  get matchedRoutes() {
-    return this.#matchResult[0].map(([[, route]]) => route);
-  }
-  /**
-   * `routePath()` can retrieve the path registered within the handler
-   *
-   * @deprecated
-   *
-   * Use routePath helper defined in "hono/route" instead.
-   *
-   * @see {@link https://hono.dev/docs/api/request#routepath}
-   *
-   * @example
-   * ```ts
-   * app.get('/posts/:id', (c) => {
-   *   return c.json({ path: c.req.routePath })
-   * })
-   * ```
-   */
-  get routePath() {
-    return this.#matchResult[0].map(([[, route]]) => route)[this.routeIndex].path;
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/html.js
-init_esm_shims();
-var HtmlEscapedCallbackPhase = {
-  Stringify: 1,
-  BeforeStream: 2,
-  Stream: 3
-};
-var raw = (value, callbacks) => {
-  const escapedString = new String(value);
-  escapedString.isEscaped = true;
-  escapedString.callbacks = callbacks;
-  return escapedString;
-};
-var resolveCallback = async (str2, phase, preserveCallbacks, context, buffer) => {
-  if (typeof str2 === "object" && !(str2 instanceof String)) {
-    if (!(str2 instanceof Promise)) {
-      str2 = str2.toString();
-    }
-    if (str2 instanceof Promise) {
-      str2 = await str2;
-    }
-  }
-  const callbacks = str2.callbacks;
-  if (!callbacks?.length) {
-    return Promise.resolve(str2);
-  }
-  if (buffer) {
-    buffer[0] += str2;
-  } else {
-    buffer = [str2];
-  }
-  const resStr = Promise.all(callbacks.map((c) => c({ phase, buffer, context }))).then(
-    (res) => Promise.all(
-      res.filter(Boolean).map((str22) => resolveCallback(str22, phase, false, context, buffer))
-    ).then(() => buffer[0])
-  );
-  if (preserveCallbacks) {
-    return raw(await resStr, callbacks);
-  } else {
-    return resStr;
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/context.js
-var TEXT_PLAIN = "text/plain; charset=UTF-8";
-var setDefaultContentType = (contentType, headers) => {
-  return {
-    "Content-Type": contentType,
-    ...headers
-  };
-};
-var createResponseInstance = (body, init) => new Response(body, init);
-var Context = class {
-  #rawRequest;
-  #req;
-  /**
-   * `.env` can get bindings (environment variables, secrets, KV namespaces, D1 database, R2 bucket etc.) in Cloudflare Workers.
-   *
-   * @see {@link https://hono.dev/docs/api/context#env}
-   *
-   * @example
-   * ```ts
-   * // Environment object for Cloudflare Workers
-   * app.get('*', async c => {
-   *   const counter = c.env.COUNTER
-   * })
-   * ```
-   */
-  env = {};
-  #var;
-  finalized = false;
-  /**
-   * `.error` can get the error object from the middleware if the Handler throws an error.
-   *
-   * @see {@link https://hono.dev/docs/api/context#error}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async (c, next) => {
-   *   await next()
-   *   if (c.error) {
-   *     // do something...
-   *   }
-   * })
-   * ```
-   */
-  error;
-  #status;
-  #executionCtx;
-  #res;
-  #layout;
-  #renderer;
-  #notFoundHandler;
-  #preparedHeaders;
-  #matchResult;
-  #path;
-  /**
-   * Creates an instance of the Context class.
-   *
-   * @param req - The Request object.
-   * @param options - Optional configuration options for the context.
-   */
-  constructor(req, options) {
-    this.#rawRequest = req;
-    if (options) {
-      this.#executionCtx = options.executionCtx;
-      this.env = options.env;
-      this.#notFoundHandler = options.notFoundHandler;
-      this.#path = options.path;
-      this.#matchResult = options.matchResult;
-    }
-  }
-  /**
-   * `.req` is the instance of {@link HonoRequest}.
-   */
-  get req() {
-    this.#req ??= new HonoRequest(this.#rawRequest, this.#path, this.#matchResult);
-    return this.#req;
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#event}
-   * The FetchEvent associated with the current request.
-   *
-   * @throws Will throw an error if the context does not have a FetchEvent.
-   */
-  get event() {
-    if (this.#executionCtx && "respondWith" in this.#executionCtx) {
-      return this.#executionCtx;
-    } else {
-      throw Error("This context has no FetchEvent");
-    }
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#executionctx}
-   * The ExecutionContext associated with the current request.
-   *
-   * @throws Will throw an error if the context does not have an ExecutionContext.
-   */
-  get executionCtx() {
-    if (this.#executionCtx) {
-      return this.#executionCtx;
-    } else {
-      throw Error("This context has no ExecutionContext");
-    }
-  }
-  /**
-   * @see {@link https://hono.dev/docs/api/context#res}
-   * The Response object for the current request.
-   */
-  get res() {
-    return this.#res ||= createResponseInstance(null, {
-      headers: this.#preparedHeaders ??= new Headers()
-    });
-  }
-  /**
-   * Sets the Response object for the current request.
-   *
-   * @param _res - The Response object to set.
-   */
-  set res(_res) {
-    if (this.#res && _res) {
-      _res = createResponseInstance(_res.body, _res);
-      for (const [k, v] of this.#res.headers.entries()) {
-        if (k === "content-type") {
-          continue;
-        }
-        if (k === "set-cookie") {
-          const cookies = this.#res.headers.getSetCookie();
-          _res.headers.delete("set-cookie");
-          for (const cookie of cookies) {
-            _res.headers.append("set-cookie", cookie);
-          }
-        } else {
-          _res.headers.set(k, v);
-        }
-      }
-    }
-    this.#res = _res;
-    this.finalized = true;
-  }
-  /**
-   * `.render()` can create a response within a layout.
-   *
-   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
-   *
-   * @example
-   * ```ts
-   * app.get('/', (c) => {
-   *   return c.render('Hello!')
-   * })
-   * ```
-   */
-  render = (...args) => {
-    this.#renderer ??= (content) => this.html(content);
-    return this.#renderer(...args);
-  };
-  /**
-   * Sets the layout for the response.
-   *
-   * @param layout - The layout to set.
-   * @returns The layout function.
-   */
-  setLayout = (layout) => this.#layout = layout;
-  /**
-   * Gets the current layout for the response.
-   *
-   * @returns The current layout function.
-   */
-  getLayout = () => this.#layout;
-  /**
-   * `.setRenderer()` can set the layout in the custom middleware.
-   *
-   * @see {@link https://hono.dev/docs/api/context#render-setrenderer}
-   *
-   * @example
-   * ```tsx
-   * app.use('*', async (c, next) => {
-   *   c.setRenderer((content) => {
-   *     return c.html(
-   *       <html>
-   *         <body>
-   *           <p>{content}</p>
-   *         </body>
-   *       </html>
-   *     )
-   *   })
-   *   await next()
-   * })
-   * ```
-   */
-  setRenderer = (renderer) => {
-    this.#renderer = renderer;
-  };
-  /**
-   * `.header()` can set headers.
-   *
-   * @see {@link https://hono.dev/docs/api/context#header}
-   *
-   * @example
-   * ```ts
-   * app.get('/welcome', (c) => {
-   *   // Set headers
-   *   c.header('X-Message', 'Hello!')
-   *   c.header('Content-Type', 'text/plain')
-   *
-   *   return c.body('Thank you for coming')
-   * })
-   * ```
-   */
-  header = (name, value, options) => {
-    if (this.finalized) {
-      this.#res = createResponseInstance(this.#res.body, this.#res);
-    }
-    const headers = this.#res ? this.#res.headers : this.#preparedHeaders ??= new Headers();
-    if (value === void 0) {
-      headers.delete(name);
-    } else if (options?.append) {
-      headers.append(name, value);
-    } else {
-      headers.set(name, value);
-    }
-  };
-  status = (status) => {
-    this.#status = status;
-  };
-  /**
-   * `.set()` can set the value specified by the key.
-   *
-   * @see {@link https://hono.dev/docs/api/context#set-get}
-   *
-   * @example
-   * ```ts
-   * app.use('*', async (c, next) => {
-   *   c.set('message', 'Hono is hot!!')
-   *   await next()
-   * })
-   * ```
-   */
-  set = (key, value) => {
-    this.#var ??= /* @__PURE__ */ new Map();
-    this.#var.set(key, value);
-  };
-  /**
-   * `.get()` can use the value specified by the key.
-   *
-   * @see {@link https://hono.dev/docs/api/context#set-get}
-   *
-   * @example
-   * ```ts
-   * app.get('/', (c) => {
-   *   const message = c.get('message')
-   *   return c.text(`The message is "${message}"`)
-   * })
-   * ```
-   */
-  get = (key) => {
-    return this.#var ? this.#var.get(key) : void 0;
-  };
-  /**
-   * `.var` can access the value of a variable.
-   *
-   * @see {@link https://hono.dev/docs/api/context#var}
-   *
-   * @example
-   * ```ts
-   * const result = c.var.client.oneMethod()
-   * ```
-   */
-  // c.var.propName is a read-only
-  get var() {
-    if (!this.#var) {
-      return {};
-    }
-    return Object.fromEntries(this.#var);
-  }
-  #newResponse(data, arg, headers) {
-    const responseHeaders = this.#res ? new Headers(this.#res.headers) : this.#preparedHeaders ?? new Headers();
-    if (typeof arg === "object" && "headers" in arg) {
-      const argHeaders = arg.headers instanceof Headers ? arg.headers : new Headers(arg.headers);
-      for (const [key, value] of argHeaders) {
-        if (key.toLowerCase() === "set-cookie") {
-          responseHeaders.append(key, value);
-        } else {
-          responseHeaders.set(key, value);
-        }
-      }
-    }
-    if (headers) {
-      for (const [k, v] of Object.entries(headers)) {
-        if (typeof v === "string") {
-          responseHeaders.set(k, v);
-        } else {
-          responseHeaders.delete(k);
-          for (const v2 of v) {
-            responseHeaders.append(k, v2);
-          }
-        }
-      }
-    }
-    const status = typeof arg === "number" ? arg : arg?.status ?? this.#status;
-    return createResponseInstance(data, { status, headers: responseHeaders });
-  }
-  newResponse = (...args) => this.#newResponse(...args);
-  /**
-   * `.body()` can return the HTTP response.
-   * You can set headers with `.header()` and set HTTP status code with `.status`.
-   * This can also be set in `.text()`, `.json()` and so on.
-   *
-   * @see {@link https://hono.dev/docs/api/context#body}
-   *
-   * @example
-   * ```ts
-   * app.get('/welcome', (c) => {
-   *   // Set headers
-   *   c.header('X-Message', 'Hello!')
-   *   c.header('Content-Type', 'text/plain')
-   *   // Set HTTP status code
-   *   c.status(201)
-   *
-   *   // Return the response body
-   *   return c.body('Thank you for coming')
-   * })
-   * ```
-   */
-  body = (data, arg, headers) => this.#newResponse(data, arg, headers);
-  /**
-   * `.text()` can render text as `Content-Type:text/plain`.
-   *
-   * @see {@link https://hono.dev/docs/api/context#text}
-   *
-   * @example
-   * ```ts
-   * app.get('/say', (c) => {
-   *   return c.text('Hello!')
-   * })
-   * ```
-   */
-  text = (text, arg, headers) => {
-    return !this.#preparedHeaders && !this.#status && !arg && !headers && !this.finalized ? new Response(text) : this.#newResponse(
-      text,
-      arg,
-      setDefaultContentType(TEXT_PLAIN, headers)
-    );
-  };
-  /**
-   * `.json()` can render JSON as `Content-Type:application/json`.
-   *
-   * @see {@link https://hono.dev/docs/api/context#json}
-   *
-   * @example
-   * ```ts
-   * app.get('/api', (c) => {
-   *   return c.json({ message: 'Hello!' })
-   * })
-   * ```
-   */
-  json = (object3, arg, headers) => {
-    return this.#newResponse(
-      JSON.stringify(object3),
-      arg,
-      setDefaultContentType("application/json", headers)
-    );
-  };
-  html = (html, arg, headers) => {
-    const res = (html2) => this.#newResponse(html2, arg, setDefaultContentType("text/html; charset=UTF-8", headers));
-    return typeof html === "object" ? resolveCallback(html, HtmlEscapedCallbackPhase.Stringify, false, {}).then(res) : res(html);
-  };
-  /**
-   * `.redirect()` can Redirect, default status code is 302.
-   *
-   * @see {@link https://hono.dev/docs/api/context#redirect}
-   *
-   * @example
-   * ```ts
-   * app.get('/redirect', (c) => {
-   *   return c.redirect('/')
-   * })
-   * app.get('/redirect-permanently', (c) => {
-   *   return c.redirect('/', 301)
-   * })
-   * ```
-   */
-  redirect = (location, status) => {
-    const locationString = String(location);
-    this.header(
-      "Location",
-      // Multibyes should be encoded
-      // eslint-disable-next-line no-control-regex
-      !/[^\x00-\xFF]/.test(locationString) ? locationString : encodeURI(locationString)
-    );
-    return this.newResponse(null, status ?? 302);
-  };
-  /**
-   * `.notFound()` can return the Not Found Response.
-   *
-   * @see {@link https://hono.dev/docs/api/context#notfound}
-   *
-   * @example
-   * ```ts
-   * app.get('/notfound', (c) => {
-   *   return c.notFound()
-   * })
-   * ```
-   */
-  notFound = () => {
-    this.#notFoundHandler ??= () => createResponseInstance();
-    return this.#notFoundHandler(this);
-  };
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router.js
-init_esm_shims();
-var METHOD_NAME_ALL = "ALL";
-var METHOD_NAME_ALL_LOWERCASE = "all";
-var METHODS = ["get", "post", "put", "delete", "options", "patch"];
-var MESSAGE_MATCHER_IS_ALREADY_BUILT = "Can not add a route since the matcher is already built.";
-var UnsupportedPathError = class extends Error {
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/utils/constants.js
-init_esm_shims();
-var COMPOSED_HANDLER = "__COMPOSED_HANDLER";
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono-base.js
-var notFoundHandler = (c) => {
-  return c.text("404 Not Found", 404);
-};
-var errorHandler = (err, c) => {
-  if ("getResponse" in err) {
-    const res = err.getResponse();
-    return c.newResponse(res.body, res);
-  }
-  console.error(err);
-  return c.text("Internal Server Error", 500);
-};
-var Hono = class _Hono {
-  get;
-  post;
-  put;
-  delete;
-  options;
-  patch;
-  all;
-  on;
-  use;
-  /*
-    This class is like an abstract class and does not have a router.
-    To use it, inherit the class and implement router in the constructor.
-  */
-  router;
-  getPath;
-  // Cannot use `#` because it requires visibility at JavaScript runtime.
-  _basePath = "/";
-  #path = "/";
-  routes = [];
-  constructor(options = {}) {
-    const allMethods = [...METHODS, METHOD_NAME_ALL_LOWERCASE];
-    allMethods.forEach((method) => {
-      this[method] = (args1, ...args) => {
-        if (typeof args1 === "string") {
-          this.#path = args1;
-        } else {
-          this.#addRoute(method, this.#path, args1);
-        }
-        args.forEach((handler) => {
-          this.#addRoute(method, this.#path, handler);
-        });
-        return this;
-      };
-    });
-    this.on = (method, path2, ...handlers) => {
-      for (const p of [path2].flat()) {
-        this.#path = p;
-        for (const m of [method].flat()) {
-          handlers.map((handler) => {
-            this.#addRoute(m.toUpperCase(), this.#path, handler);
-          });
-        }
-      }
-      return this;
-    };
-    this.use = (arg1, ...handlers) => {
-      if (typeof arg1 === "string") {
-        this.#path = arg1;
-      } else {
-        this.#path = "*";
-        handlers.unshift(arg1);
-      }
-      handlers.forEach((handler) => {
-        this.#addRoute(METHOD_NAME_ALL, this.#path, handler);
-      });
-      return this;
-    };
-    const { strict, ...optionsWithoutStrict } = options;
-    Object.assign(this, optionsWithoutStrict);
-    this.getPath = strict ?? true ? options.getPath ?? getPath : getPathNoStrict;
-  }
-  #clone() {
-    const clone2 = new _Hono({
-      router: this.router,
-      getPath: this.getPath
-    });
-    clone2.errorHandler = this.errorHandler;
-    clone2.#notFoundHandler = this.#notFoundHandler;
-    clone2.routes = this.routes;
-    return clone2;
-  }
-  #notFoundHandler = notFoundHandler;
-  // Cannot use `#` because it requires visibility at JavaScript runtime.
-  errorHandler = errorHandler;
-  /**
-   * `.route()` allows grouping other Hono instance in routes.
-   *
-   * @see {@link https://hono.dev/docs/api/routing#grouping}
-   *
-   * @param {string} path - base Path
-   * @param {Hono} app - other Hono instance
-   * @returns {Hono} routed Hono instance
-   *
-   * @example
-   * ```ts
-   * const app = new Hono()
-   * const app2 = new Hono()
-   *
-   * app2.get("/user", (c) => c.text("user"))
-   * app.route("/api", app2) // GET /api/user
-   * ```
-   */
-  route(path2, app2) {
-    const subApp = this.basePath(path2);
-    app2.routes.map((r) => {
-      let handler;
-      if (app2.errorHandler === errorHandler) {
-        handler = r.handler;
-      } else {
-        handler = async (c, next) => (await compose([], app2.errorHandler)(c, () => r.handler(c, next))).res;
-        handler[COMPOSED_HANDLER] = r.handler;
-      }
-      subApp.#addRoute(r.method, r.path, handler);
-    });
-    return this;
-  }
-  /**
-   * `.basePath()` allows base paths to be specified.
-   *
-   * @see {@link https://hono.dev/docs/api/routing#base-path}
-   *
-   * @param {string} path - base Path
-   * @returns {Hono} changed Hono instance
-   *
-   * @example
-   * ```ts
-   * const api = new Hono().basePath('/api')
-   * ```
-   */
-  basePath(path2) {
-    const subApp = this.#clone();
-    subApp._basePath = mergePath(this._basePath, path2);
-    return subApp;
-  }
-  /**
-   * `.onError()` handles an error and returns a customized Response.
-   *
-   * @see {@link https://hono.dev/docs/api/hono#error-handling}
-   *
-   * @param {ErrorHandler} handler - request Handler for error
-   * @returns {Hono} changed Hono instance
-   *
-   * @example
-   * ```ts
-   * app.onError((err, c) => {
-   *   console.error(`${err}`)
-   *   return c.text('Custom Error Message', 500)
-   * })
-   * ```
-   */
-  onError = (handler) => {
-    this.errorHandler = handler;
-    return this;
-  };
-  /**
-   * `.notFound()` allows you to customize a Not Found Response.
-   *
-   * @see {@link https://hono.dev/docs/api/hono#not-found}
-   *
-   * @param {NotFoundHandler} handler - request handler for not-found
-   * @returns {Hono} changed Hono instance
-   *
-   * @example
-   * ```ts
-   * app.notFound((c) => {
-   *   return c.text('Custom 404 Message', 404)
-   * })
-   * ```
-   */
-  notFound = (handler) => {
-    this.#notFoundHandler = handler;
-    return this;
-  };
-  /**
-   * `.mount()` allows you to mount applications built with other frameworks into your Hono application.
-   *
-   * @see {@link https://hono.dev/docs/api/hono#mount}
-   *
-   * @param {string} path - base Path
-   * @param {Function} applicationHandler - other Request Handler
-   * @param {MountOptions} [options] - options of `.mount()`
-   * @returns {Hono} mounted Hono instance
-   *
-   * @example
-   * ```ts
-   * import { Router as IttyRouter } from 'itty-router'
-   * import { Hono } from 'hono'
-   * // Create itty-router application
-   * const ittyRouter = IttyRouter()
-   * // GET /itty-router/hello
-   * ittyRouter.get('/hello', () => new Response('Hello from itty-router'))
-   *
-   * const app = new Hono()
-   * app.mount('/itty-router', ittyRouter.handle)
-   * ```
-   *
-   * @example
-   * ```ts
-   * const app = new Hono()
-   * // Send the request to another application without modification.
-   * app.mount('/app', anotherApp, {
-   *   replaceRequest: (req) => req,
-   * })
-   * ```
-   */
-  mount(path2, applicationHandler, options) {
-    let replaceRequest;
-    let optionHandler;
-    if (options) {
-      if (typeof options === "function") {
-        optionHandler = options;
-      } else {
-        optionHandler = options.optionHandler;
-        if (options.replaceRequest === false) {
-          replaceRequest = (request) => request;
-        } else {
-          replaceRequest = options.replaceRequest;
-        }
-      }
-    }
-    const getOptions = optionHandler ? (c) => {
-      const options2 = optionHandler(c);
-      return Array.isArray(options2) ? options2 : [options2];
-    } : (c) => {
-      let executionContext = void 0;
-      try {
-        executionContext = c.executionCtx;
-      } catch {
-      }
-      return [c.env, executionContext];
-    };
-    replaceRequest ||= (() => {
-      const mergedPath = mergePath(this._basePath, path2);
-      const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
-      return (request) => {
-        const url2 = new URL(request.url);
-        url2.pathname = url2.pathname.slice(pathPrefixLength) || "/";
-        return new Request(url2, request);
-      };
-    })();
-    const handler = async (c, next) => {
-      const res = await applicationHandler(replaceRequest(c.req.raw), ...getOptions(c));
-      if (res) {
-        return res;
-      }
-      await next();
-    };
-    this.#addRoute(METHOD_NAME_ALL, mergePath(path2, "*"), handler);
-    return this;
-  }
-  #addRoute(method, path2, handler) {
-    method = method.toUpperCase();
-    path2 = mergePath(this._basePath, path2);
-    const r = { basePath: this._basePath, path: path2, method, handler };
-    this.router.add(method, path2, [handler, r]);
-    this.routes.push(r);
-  }
-  #handleError(err, c) {
-    if (err instanceof Error) {
-      return this.errorHandler(err, c);
-    }
-    throw err;
-  }
-  #dispatch(request, executionCtx, env, method) {
-    if (method === "HEAD") {
-      return (async () => new Response(null, await this.#dispatch(request, executionCtx, env, "GET")))();
-    }
-    const path2 = this.getPath(request, { env });
-    const matchResult = this.router.match(method, path2);
-    const c = new Context(request, {
-      path: path2,
-      matchResult,
-      env,
-      executionCtx,
-      notFoundHandler: this.#notFoundHandler
-    });
-    if (matchResult[0].length === 1) {
-      let res;
-      try {
-        res = matchResult[0][0][0][0](c, async () => {
-          c.res = await this.#notFoundHandler(c);
-        });
-      } catch (err) {
-        return this.#handleError(err, c);
-      }
-      return res instanceof Promise ? res.then(
-        (resolved) => resolved || (c.finalized ? c.res : this.#notFoundHandler(c))
-      ).catch((err) => this.#handleError(err, c)) : res ?? this.#notFoundHandler(c);
-    }
-    const composed = compose(matchResult[0], this.errorHandler, this.#notFoundHandler);
-    return (async () => {
-      try {
-        const context = await composed(c);
-        if (!context.finalized) {
-          throw new Error(
-            "Context is not finalized. Did you forget to return a Response object or `await next()`?"
-          );
-        }
-        return context.res;
-      } catch (err) {
-        return this.#handleError(err, c);
-      }
-    })();
-  }
-  /**
-   * `.fetch()` will be entry point of your app.
-   *
-   * @see {@link https://hono.dev/docs/api/hono#fetch}
-   *
-   * @param {Request} request - request Object of request
-   * @param {Env} Env - env Object
-   * @param {ExecutionContext} - context of execution
-   * @returns {Response | Promise<Response>} response of request
-   *
-   */
-  fetch = (request, ...rest) => {
-    return this.#dispatch(request, rest[1], rest[0], request.method);
-  };
-  /**
-   * `.request()` is a useful method for testing.
-   * You can pass a URL or pathname to send a GET request.
-   * app will return a Response object.
-   * ```ts
-   * test('GET /hello is ok', async () => {
-   *   const res = await app.request('/hello')
-   *   expect(res.status).toBe(200)
-   * })
-   * ```
-   * @see https://hono.dev/docs/api/hono#request
-   */
-  request = (input, requestInit, Env, executionCtx) => {
-    if (input instanceof Request) {
-      return this.fetch(requestInit ? new Request(input, requestInit) : input, Env, executionCtx);
-    }
-    input = input.toString();
-    return this.fetch(
-      new Request(
-        /^https?:\/\//.test(input) ? input : `http://localhost${mergePath("/", input)}`,
-        requestInit
-      ),
-      Env,
-      executionCtx
-    );
-  };
-  /**
-   * `.fire()` automatically adds a global fetch event listener.
-   * This can be useful for environments that adhere to the Service Worker API, such as non-ES module Cloudflare Workers.
-   * @deprecated
-   * Use `fire` from `hono/service-worker` instead.
-   * ```ts
-   * import { Hono } from 'hono'
-   * import { fire } from 'hono/service-worker'
-   *
-   * const app = new Hono()
-   * // ...
-   * fire(app)
-   * ```
-   * @see https://hono.dev/docs/api/hono#fire
-   * @see https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
-   * @see https://developers.cloudflare.com/workers/reference/migrate-to-module-workers/
-   */
-  fire = () => {
-    addEventListener("fetch", (event) => {
-      event.respondWith(this.#dispatch(event.request, event, void 0, event.request.method));
-    });
-  };
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/index.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/router.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/matcher.js
-init_esm_shims();
-var emptyParam = [];
-function match(method, path2) {
-  const matchers = this.buildAllMatchers();
-  const match2 = ((method2, path22) => {
-    const matcher = matchers[method2] || matchers[METHOD_NAME_ALL];
-    const staticMatch = matcher[2][path22];
-    if (staticMatch) {
-      return staticMatch;
-    }
-    const match3 = path22.match(matcher[0]);
-    if (!match3) {
-      return [[], emptyParam];
-    }
-    const index = match3.indexOf("", 1);
-    return [matcher[1][index], match3];
-  });
-  this.match = match2;
-  return match2(method, path2);
-}
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/node.js
-init_esm_shims();
-var LABEL_REG_EXP_STR = "[^/]+";
-var ONLY_WILDCARD_REG_EXP_STR = ".*";
-var TAIL_WILDCARD_REG_EXP_STR = "(?:|/.*)";
-var PATH_ERROR = /* @__PURE__ */ Symbol();
-var regExpMetaChars = new Set(".\\+*[^]$()");
-function compareKey(a, b) {
-  if (a.length === 1) {
-    return b.length === 1 ? a < b ? -1 : 1 : -1;
-  }
-  if (b.length === 1) {
-    return 1;
-  }
-  if (a === ONLY_WILDCARD_REG_EXP_STR || a === TAIL_WILDCARD_REG_EXP_STR) {
-    return 1;
-  } else if (b === ONLY_WILDCARD_REG_EXP_STR || b === TAIL_WILDCARD_REG_EXP_STR) {
-    return -1;
-  }
-  if (a === LABEL_REG_EXP_STR) {
-    return 1;
-  } else if (b === LABEL_REG_EXP_STR) {
-    return -1;
-  }
-  return a.length === b.length ? a < b ? -1 : 1 : b.length - a.length;
-}
-var Node = class _Node {
-  #index;
-  #varIndex;
-  #children = /* @__PURE__ */ Object.create(null);
-  insert(tokens, index, paramMap, context, pathErrorCheckOnly) {
-    if (tokens.length === 0) {
-      if (this.#index !== void 0) {
-        throw PATH_ERROR;
-      }
-      if (pathErrorCheckOnly) {
-        return;
-      }
-      this.#index = index;
-      return;
-    }
-    const [token, ...restTokens] = tokens;
-    const pattern = token === "*" ? restTokens.length === 0 ? ["", "", ONLY_WILDCARD_REG_EXP_STR] : ["", "", LABEL_REG_EXP_STR] : token === "/*" ? ["", "", TAIL_WILDCARD_REG_EXP_STR] : token.match(/^\:([^\{\}]+)(?:\{(.+)\})?$/);
-    let node;
-    if (pattern) {
-      const name = pattern[1];
-      let regexpStr = pattern[2] || LABEL_REG_EXP_STR;
-      if (name && pattern[2]) {
-        if (regexpStr === ".*") {
-          throw PATH_ERROR;
-        }
-        regexpStr = regexpStr.replace(/^\((?!\?:)(?=[^)]+\)$)/, "(?:");
-        if (/\((?!\?:)/.test(regexpStr)) {
-          throw PATH_ERROR;
-        }
-      }
-      node = this.#children[regexpStr];
-      if (!node) {
-        if (Object.keys(this.#children).some(
-          (k) => k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
-        )) {
-          throw PATH_ERROR;
-        }
-        if (pathErrorCheckOnly) {
-          return;
-        }
-        node = this.#children[regexpStr] = new _Node();
-        if (name !== "") {
-          node.#varIndex = context.varIndex++;
-        }
-      }
-      if (!pathErrorCheckOnly && name !== "") {
-        paramMap.push([name, node.#varIndex]);
-      }
-    } else {
-      node = this.#children[token];
-      if (!node) {
-        if (Object.keys(this.#children).some(
-          (k) => k.length > 1 && k !== ONLY_WILDCARD_REG_EXP_STR && k !== TAIL_WILDCARD_REG_EXP_STR
-        )) {
-          throw PATH_ERROR;
-        }
-        if (pathErrorCheckOnly) {
-          return;
-        }
-        node = this.#children[token] = new _Node();
-      }
-    }
-    node.insert(restTokens, index, paramMap, context, pathErrorCheckOnly);
-  }
-  buildRegExpStr() {
-    const childKeys = Object.keys(this.#children).sort(compareKey);
-    const strList = childKeys.map((k) => {
-      const c = this.#children[k];
-      return (typeof c.#varIndex === "number" ? `(${k})@${c.#varIndex}` : regExpMetaChars.has(k) ? `\\${k}` : k) + c.buildRegExpStr();
-    });
-    if (typeof this.#index === "number") {
-      strList.unshift(`#${this.#index}`);
-    }
-    if (strList.length === 0) {
-      return "";
-    }
-    if (strList.length === 1) {
-      return strList[0];
-    }
-    return "(?:" + strList.join("|") + ")";
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/trie.js
-init_esm_shims();
-var Trie = class {
-  #context = { varIndex: 0 };
-  #root = new Node();
-  insert(path2, index, pathErrorCheckOnly) {
-    const paramAssoc = [];
-    const groups = [];
-    for (let i = 0; ; ) {
-      let replaced = false;
-      path2 = path2.replace(/\{[^}]+\}/g, (m) => {
-        const mark = `@\\${i}`;
-        groups[i] = [mark, m];
-        i++;
-        replaced = true;
-        return mark;
-      });
-      if (!replaced) {
-        break;
-      }
-    }
-    const tokens = path2.match(/(?::[^\/]+)|(?:\/\*$)|./g) || [];
-    for (let i = groups.length - 1; i >= 0; i--) {
-      const [mark] = groups[i];
-      for (let j = tokens.length - 1; j >= 0; j--) {
-        if (tokens[j].indexOf(mark) !== -1) {
-          tokens[j] = tokens[j].replace(mark, groups[i][1]);
-          break;
-        }
-      }
-    }
-    this.#root.insert(tokens, index, paramAssoc, this.#context, pathErrorCheckOnly);
-    return paramAssoc;
-  }
-  buildRegExp() {
-    let regexp = this.#root.buildRegExpStr();
-    if (regexp === "") {
-      return [/^$/, [], []];
-    }
-    let captureIndex = 0;
-    const indexReplacementMap = [];
-    const paramReplacementMap = [];
-    regexp = regexp.replace(/#(\d+)|@(\d+)|\.\*\$/g, (_, handlerIndex, paramIndex) => {
-      if (handlerIndex !== void 0) {
-        indexReplacementMap[++captureIndex] = Number(handlerIndex);
-        return "$()";
-      }
-      if (paramIndex !== void 0) {
-        paramReplacementMap[Number(paramIndex)] = ++captureIndex;
-        return "";
-      }
-      return "";
-    });
-    return [new RegExp(`^${regexp}`), indexReplacementMap, paramReplacementMap];
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/router.js
-var nullMatcher = [/^$/, [], /* @__PURE__ */ Object.create(null)];
-var wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
-function buildWildcardRegExp(path2) {
-  return wildcardRegExpCache[path2] ??= new RegExp(
-    path2 === "*" ? "" : `^${path2.replace(
-      /\/\*$|([.\\+*[^\]$()])/g,
-      (_, metaChar) => metaChar ? `\\${metaChar}` : "(?:|/.*)"
-    )}$`
-  );
-}
-function clearWildcardRegExpCache() {
-  wildcardRegExpCache = /* @__PURE__ */ Object.create(null);
-}
-function buildMatcherFromPreprocessedRoutes(routes) {
-  const trie = new Trie();
-  const handlerData = [];
-  if (routes.length === 0) {
-    return nullMatcher;
-  }
-  const routesWithStaticPathFlag = routes.map(
-    (route) => [!/\*|\/:/.test(route[0]), ...route]
-  ).sort(
-    ([isStaticA, pathA], [isStaticB, pathB]) => isStaticA ? 1 : isStaticB ? -1 : pathA.length - pathB.length
-  );
-  const staticMap = /* @__PURE__ */ Object.create(null);
-  for (let i = 0, j = -1, len = routesWithStaticPathFlag.length; i < len; i++) {
-    const [pathErrorCheckOnly, path2, handlers] = routesWithStaticPathFlag[i];
-    if (pathErrorCheckOnly) {
-      staticMap[path2] = [handlers.map(([h]) => [h, /* @__PURE__ */ Object.create(null)]), emptyParam];
-    } else {
-      j++;
-    }
-    let paramAssoc;
-    try {
-      paramAssoc = trie.insert(path2, j, pathErrorCheckOnly);
-    } catch (e) {
-      throw e === PATH_ERROR ? new UnsupportedPathError(path2) : e;
-    }
-    if (pathErrorCheckOnly) {
-      continue;
-    }
-    handlerData[j] = handlers.map(([h, paramCount]) => {
-      const paramIndexMap = /* @__PURE__ */ Object.create(null);
-      paramCount -= 1;
-      for (; paramCount >= 0; paramCount--) {
-        const [key, value] = paramAssoc[paramCount];
-        paramIndexMap[key] = value;
-      }
-      return [h, paramIndexMap];
-    });
-  }
-  const [regexp, indexReplacementMap, paramReplacementMap] = trie.buildRegExp();
-  for (let i = 0, len = handlerData.length; i < len; i++) {
-    for (let j = 0, len2 = handlerData[i].length; j < len2; j++) {
-      const map3 = handlerData[i][j]?.[1];
-      if (!map3) {
-        continue;
-      }
-      const keys = Object.keys(map3);
-      for (let k = 0, len3 = keys.length; k < len3; k++) {
-        map3[keys[k]] = paramReplacementMap[map3[keys[k]]];
-      }
-    }
-  }
-  const handlerMap = [];
-  for (const i in indexReplacementMap) {
-    handlerMap[i] = handlerData[indexReplacementMap[i]];
-  }
-  return [regexp, handlerMap, staticMap];
-}
-function findMiddleware(middleware, path2) {
-  if (!middleware) {
-    return void 0;
-  }
-  for (const k of Object.keys(middleware).sort((a, b) => b.length - a.length)) {
-    if (buildWildcardRegExp(k).test(path2)) {
-      return [...middleware[k]];
-    }
-  }
-  return void 0;
-}
-var RegExpRouter = class {
-  name = "RegExpRouter";
-  #middleware;
-  #routes;
-  constructor() {
-    this.#middleware = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
-    this.#routes = { [METHOD_NAME_ALL]: /* @__PURE__ */ Object.create(null) };
-  }
-  add(method, path2, handler) {
-    const middleware = this.#middleware;
-    const routes = this.#routes;
-    if (!middleware || !routes) {
-      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
-    }
-    if (!middleware[method]) {
-      ;
-      [middleware, routes].forEach((handlerMap) => {
-        handlerMap[method] = /* @__PURE__ */ Object.create(null);
-        Object.keys(handlerMap[METHOD_NAME_ALL]).forEach((p) => {
-          handlerMap[method][p] = [...handlerMap[METHOD_NAME_ALL][p]];
-        });
-      });
-    }
-    if (path2 === "/*") {
-      path2 = "*";
-    }
-    const paramCount = (path2.match(/\/:/g) || []).length;
-    if (/\*$/.test(path2)) {
-      const re = buildWildcardRegExp(path2);
-      if (method === METHOD_NAME_ALL) {
-        Object.keys(middleware).forEach((m) => {
-          middleware[m][path2] ||= findMiddleware(middleware[m], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
-        });
-      } else {
-        middleware[method][path2] ||= findMiddleware(middleware[method], path2) || findMiddleware(middleware[METHOD_NAME_ALL], path2) || [];
-      }
-      Object.keys(middleware).forEach((m) => {
-        if (method === METHOD_NAME_ALL || method === m) {
-          Object.keys(middleware[m]).forEach((p) => {
-            re.test(p) && middleware[m][p].push([handler, paramCount]);
-          });
-        }
-      });
-      Object.keys(routes).forEach((m) => {
-        if (method === METHOD_NAME_ALL || method === m) {
-          Object.keys(routes[m]).forEach(
-            (p) => re.test(p) && routes[m][p].push([handler, paramCount])
-          );
-        }
-      });
-      return;
-    }
-    const paths = checkOptionalParameter(path2) || [path2];
-    for (let i = 0, len = paths.length; i < len; i++) {
-      const path22 = paths[i];
-      Object.keys(routes).forEach((m) => {
-        if (method === METHOD_NAME_ALL || method === m) {
-          routes[m][path22] ||= [
-            ...findMiddleware(middleware[m], path22) || findMiddleware(middleware[METHOD_NAME_ALL], path22) || []
-          ];
-          routes[m][path22].push([handler, paramCount - len + i + 1]);
-        }
-      });
-    }
-  }
-  match = match;
-  buildAllMatchers() {
-    const matchers = /* @__PURE__ */ Object.create(null);
-    Object.keys(this.#routes).concat(Object.keys(this.#middleware)).forEach((method) => {
-      matchers[method] ||= this.#buildMatcher(method);
-    });
-    this.#middleware = this.#routes = void 0;
-    clearWildcardRegExpCache();
-    return matchers;
-  }
-  #buildMatcher(method) {
-    const routes = [];
-    let hasOwnRoute = method === METHOD_NAME_ALL;
-    [this.#middleware, this.#routes].forEach((r) => {
-      const ownRoute = r[method] ? Object.keys(r[method]).map((path2) => [path2, r[method][path2]]) : [];
-      if (ownRoute.length !== 0) {
-        hasOwnRoute ||= true;
-        routes.push(...ownRoute);
-      } else if (method !== METHOD_NAME_ALL) {
-        routes.push(
-          ...Object.keys(r[METHOD_NAME_ALL]).map((path2) => [path2, r[METHOD_NAME_ALL][path2]])
-        );
-      }
-    });
-    if (!hasOwnRoute) {
-      return null;
-    } else {
-      return buildMatcherFromPreprocessedRoutes(routes);
-    }
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/reg-exp-router/prepared-router.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/smart-router/index.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/smart-router/router.js
-init_esm_shims();
-var SmartRouter = class {
-  name = "SmartRouter";
-  #routers = [];
-  #routes = [];
-  constructor(init) {
-    this.#routers = init.routers;
-  }
-  add(method, path2, handler) {
-    if (!this.#routes) {
-      throw new Error(MESSAGE_MATCHER_IS_ALREADY_BUILT);
-    }
-    this.#routes.push([method, path2, handler]);
-  }
-  match(method, path2) {
-    if (!this.#routes) {
-      throw new Error("Fatal error");
-    }
-    const routers = this.#routers;
-    const routes = this.#routes;
-    const len = routers.length;
-    let i = 0;
-    let res;
-    for (; i < len; i++) {
-      const router = routers[i];
-      try {
-        for (let i2 = 0, len2 = routes.length; i2 < len2; i2++) {
-          router.add(...routes[i2]);
-        }
-        res = router.match(method, path2);
-      } catch (e) {
-        if (e instanceof UnsupportedPathError) {
-          continue;
-        }
-        throw e;
-      }
-      this.match = router.match.bind(router);
-      this.#routers = [router];
-      this.#routes = void 0;
-      break;
-    }
-    if (i === len) {
-      throw new Error("Fatal error");
-    }
-    this.name = `SmartRouter + ${this.activeRouter.name}`;
-    return res;
-  }
-  get activeRouter() {
-    if (this.#routes || this.#routers.length !== 1) {
-      throw new Error("No active router has been determined yet.");
-    }
-    return this.#routers[0];
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/index.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/router.js
-init_esm_shims();
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/node.js
-init_esm_shims();
-var emptyParams = /* @__PURE__ */ Object.create(null);
-var hasChildren = (children) => {
-  for (const _ in children) {
-    return true;
-  }
-  return false;
-};
-var Node2 = class _Node2 {
-  #methods;
-  #children;
-  #patterns;
-  #order = 0;
-  #params = emptyParams;
-  constructor(method, handler, children) {
-    this.#children = children || /* @__PURE__ */ Object.create(null);
-    this.#methods = [];
-    if (method && handler) {
-      const m = /* @__PURE__ */ Object.create(null);
-      m[method] = { handler, possibleKeys: [], score: 0 };
-      this.#methods = [m];
-    }
-    this.#patterns = [];
-  }
-  insert(method, path2, handler) {
-    this.#order = ++this.#order;
-    let curNode = this;
-    const parts = splitRoutingPath(path2);
-    const possibleKeys = [];
-    for (let i = 0, len = parts.length; i < len; i++) {
-      const p = parts[i];
-      const nextP = parts[i + 1];
-      const pattern = getPattern(p, nextP);
-      const key = Array.isArray(pattern) ? pattern[0] : p;
-      if (key in curNode.#children) {
-        curNode = curNode.#children[key];
-        if (pattern) {
-          possibleKeys.push(pattern[1]);
-        }
-        continue;
-      }
-      curNode.#children[key] = new _Node2();
-      if (pattern) {
-        curNode.#patterns.push(pattern);
-        possibleKeys.push(pattern[1]);
-      }
-      curNode = curNode.#children[key];
-    }
-    curNode.#methods.push({
-      [method]: {
-        handler,
-        possibleKeys: possibleKeys.filter((v, i, a) => a.indexOf(v) === i),
-        score: this.#order
-      }
-    });
-    return curNode;
-  }
-  #pushHandlerSets(handlerSets, node, method, nodeParams, params) {
-    for (let i = 0, len = node.#methods.length; i < len; i++) {
-      const m = node.#methods[i];
-      const handlerSet = m[method] || m[METHOD_NAME_ALL];
-      const processedSet = {};
-      if (handlerSet !== void 0) {
-        handlerSet.params = /* @__PURE__ */ Object.create(null);
-        handlerSets.push(handlerSet);
-        if (nodeParams !== emptyParams || params && params !== emptyParams) {
-          for (let i2 = 0, len2 = handlerSet.possibleKeys.length; i2 < len2; i2++) {
-            const key = handlerSet.possibleKeys[i2];
-            const processed = processedSet[handlerSet.score];
-            handlerSet.params[key] = params?.[key] && !processed ? params[key] : nodeParams[key] ?? params?.[key];
-            processedSet[handlerSet.score] = true;
-          }
-        }
-      }
-    }
-  }
-  search(method, path2) {
-    const handlerSets = [];
-    this.#params = emptyParams;
-    const curNode = this;
-    let curNodes = [curNode];
-    const parts = splitPath(path2);
-    const curNodesQueue = [];
-    const len = parts.length;
-    let partOffsets = null;
-    for (let i = 0; i < len; i++) {
-      const part = parts[i];
-      const isLast = i === len - 1;
-      const tempNodes = [];
-      for (let j = 0, len2 = curNodes.length; j < len2; j++) {
-        const node = curNodes[j];
-        const nextNode = node.#children[part];
-        if (nextNode) {
-          nextNode.#params = node.#params;
-          if (isLast) {
-            if (nextNode.#children["*"]) {
-              this.#pushHandlerSets(handlerSets, nextNode.#children["*"], method, node.#params);
-            }
-            this.#pushHandlerSets(handlerSets, nextNode, method, node.#params);
-          } else {
-            tempNodes.push(nextNode);
-          }
-        }
-        for (let k = 0, len3 = node.#patterns.length; k < len3; k++) {
-          const pattern = node.#patterns[k];
-          const params = node.#params === emptyParams ? {} : { ...node.#params };
-          if (pattern === "*") {
-            const astNode = node.#children["*"];
-            if (astNode) {
-              this.#pushHandlerSets(handlerSets, astNode, method, node.#params);
-              astNode.#params = params;
-              tempNodes.push(astNode);
-            }
-            continue;
-          }
-          const [key, name, matcher] = pattern;
-          if (!part && !(matcher instanceof RegExp)) {
-            continue;
-          }
-          const child = node.#children[key];
-          if (matcher instanceof RegExp) {
-            if (partOffsets === null) {
-              partOffsets = new Array(len);
-              let offset = path2[0] === "/" ? 1 : 0;
-              for (let p = 0; p < len; p++) {
-                partOffsets[p] = offset;
-                offset += parts[p].length + 1;
-              }
-            }
-            const restPathString = path2.substring(partOffsets[i]);
-            const m = matcher.exec(restPathString);
-            if (m) {
-              params[name] = m[0];
-              this.#pushHandlerSets(handlerSets, child, method, node.#params, params);
-              if (hasChildren(child.#children)) {
-                child.#params = params;
-                const componentCount = m[0].match(/\//)?.length ?? 0;
-                const targetCurNodes = curNodesQueue[componentCount] ||= [];
-                targetCurNodes.push(child);
-              }
-              continue;
-            }
-          }
-          if (matcher === true || matcher.test(part)) {
-            params[name] = part;
-            if (isLast) {
-              this.#pushHandlerSets(handlerSets, child, method, params, node.#params);
-              if (child.#children["*"]) {
-                this.#pushHandlerSets(
-                  handlerSets,
-                  child.#children["*"],
-                  method,
-                  params,
-                  node.#params
-                );
-              }
-            } else {
-              child.#params = params;
-              tempNodes.push(child);
-            }
-          }
-        }
-      }
-      const shifted = curNodesQueue.shift();
-      curNodes = shifted ? tempNodes.concat(shifted) : tempNodes;
-    }
-    if (handlerSets.length > 1) {
-      handlerSets.sort((a, b) => {
-        return a.score - b.score;
-      });
-    }
-    return [handlerSets.map(({ handler, params }) => [handler, params])];
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/router/trie-router/router.js
-var TrieRouter = class {
-  name = "TrieRouter";
-  #node;
-  constructor() {
-    this.#node = new Node2();
-  }
-  add(method, path2, handler) {
-    const results = checkOptionalParameter(path2);
-    if (results) {
-      for (let i = 0, len = results.length; i < len; i++) {
-        this.#node.insert(method, results[i], handler);
-      }
-      return;
-    }
-    this.#node.insert(method, path2, handler);
-  }
-  match(method, path2) {
-    return this.#node.search(method, path2);
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/hono.js
-var Hono2 = class extends Hono {
-  /**
-   * Creates an instance of the Hono class.
-   *
-   * @param options - Optional configuration options for the Hono instance.
-   */
-  constructor(options = {}) {
-    super(options);
-    this.router = options.router ?? new SmartRouter({
-      routers: [new RegExpRouter(), new TrieRouter()]
-    });
-  }
-};
-
-// ../../node_modules/.bun/hono@4.12.7/node_modules/hono/dist/middleware/cors/index.js
-init_esm_shims();
-var cors = (options) => {
-  const defaults = {
-    origin: "*",
-    allowMethods: ["GET", "HEAD", "PUT", "POST", "DELETE", "PATCH"],
-    allowHeaders: [],
-    exposeHeaders: []
-  };
-  const opts = {
-    ...defaults,
-    ...options
-  };
-  const findAllowOrigin = ((optsOrigin) => {
-    if (typeof optsOrigin === "string") {
-      if (optsOrigin === "*") {
-        return () => optsOrigin;
-      } else {
-        return (origin) => optsOrigin === origin ? origin : null;
-      }
-    } else if (typeof optsOrigin === "function") {
-      return optsOrigin;
-    } else {
-      return (origin) => optsOrigin.includes(origin) ? origin : null;
-    }
-  })(opts.origin);
-  const findAllowMethods = ((optsAllowMethods) => {
-    if (typeof optsAllowMethods === "function") {
-      return optsAllowMethods;
-    } else if (Array.isArray(optsAllowMethods)) {
-      return () => optsAllowMethods;
-    } else {
-      return () => [];
-    }
-  })(opts.allowMethods);
-  return async function cors2(c, next) {
-    function set3(key, value) {
-      c.res.headers.set(key, value);
-    }
-    const allowOrigin = await findAllowOrigin(c.req.header("origin") || "", c);
-    if (allowOrigin) {
-      set3("Access-Control-Allow-Origin", allowOrigin);
-    }
-    if (opts.credentials) {
-      set3("Access-Control-Allow-Credentials", "true");
-    }
-    if (opts.exposeHeaders?.length) {
-      set3("Access-Control-Expose-Headers", opts.exposeHeaders.join(","));
-    }
-    if (c.req.method === "OPTIONS") {
-      if (opts.origin !== "*") {
-        set3("Vary", "Origin");
-      }
-      if (opts.maxAge != null) {
-        set3("Access-Control-Max-Age", opts.maxAge.toString());
-      }
-      const allowMethods = await findAllowMethods(c.req.header("origin") || "", c);
-      if (allowMethods.length) {
-        set3("Access-Control-Allow-Methods", allowMethods.join(","));
-      }
-      let headers = opts.allowHeaders;
-      if (!headers?.length) {
-        const requestHeaders = c.req.header("Access-Control-Request-Headers");
-        if (requestHeaders) {
-          headers = requestHeaders.split(/\s*,\s*/);
-        }
-      }
-      if (headers?.length) {
-        set3("Access-Control-Allow-Headers", headers.join(","));
-        c.res.headers.append("Vary", "Access-Control-Request-Headers");
-      }
-      c.res.headers.delete("Content-Length");
-      c.res.headers.delete("Content-Type");
-      return new Response(null, {
-        headers: c.res.headers,
-        status: 204,
-        statusText: "No Content"
-      });
-    }
-    await next();
-    if (opts.origin !== "*") {
-      c.header("Vary", "Origin", { append: true });
-    }
-  };
-};
 
 // src/store.ts
 init_esm_shims();
@@ -16717,6 +16802,9 @@ function taskToPayload(task) {
   };
 }
 
+// src/dashboard/hook-endpoint.ts
+init_esm_shims();
+
 // src/dashboard/utils.ts
 init_esm_shims();
 function isLocalhostOrigin(origin) {
@@ -16787,6 +16875,72 @@ function startHeartbeat() {
       }
     }
   }, PING_INTERVAL_MS);
+}
+
+// src/dashboard/hook-endpoint.ts
+var MAX_SEEN_SESSIONS = 10;
+var seenAgentIdsBySession = /* @__PURE__ */ new Map();
+function registerHookEndpoint(app2) {
+  app2.post("/api/hook/tool-use", async (c) => {
+    const origin = c.req.header("origin");
+    if (origin && !isLocalhostOrigin(origin)) {
+      return c.json({ error: "forbidden" }, 403);
+    }
+    const contentLength = Number(c.req.header("content-length") ?? 0);
+    if (contentLength > 65536) {
+      return c.json({ error: "payload too large" }, 413);
+    }
+    let body;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid JSON payload" }, 400);
+    }
+    const rawAgentId = body?.tool_input?.agent_id;
+    const agentId = typeof rawAgentId === "string" && isValidId(rawAgentId) && rawAgentId.length <= 64 ? rawAgentId : "unknown";
+    const now = Date.now();
+    const currentSessionId = getSessionId();
+    if (agentId !== "unknown") {
+      let seenInSession = seenAgentIdsBySession.get(currentSessionId);
+      if (!seenInSession) {
+        seenInSession = /* @__PURE__ */ new Set();
+        seenAgentIdsBySession.set(currentSessionId, seenInSession);
+        if (seenAgentIdsBySession.size > MAX_SEEN_SESSIONS) {
+          const oldestKey = seenAgentIdsBySession.keys().next().value;
+          if (oldestKey !== void 0) seenAgentIdsBySession.delete(oldestKey);
+        }
+      }
+      if (!seenInSession.has(agentId)) {
+        seenInSession.add(agentId);
+        let agentName = agentId;
+        let agentEmoji = "\u{1F916}";
+        try {
+          const sessionAgents = getAgents(getSessionId());
+          const match2 = sessionAgents?.[agentId];
+          if (match2) {
+            agentName = match2.name;
+            agentEmoji = match2.emoji;
+          }
+        } catch {
+        }
+        broadcast({
+          type: "agent:joined",
+          agentId: markAsAgentId(agentId),
+          name: agentName,
+          emoji: agentEmoji,
+          sessionId: currentSessionId,
+          timestamp: now
+        });
+      }
+    }
+    broadcast({
+      type: "agent:status",
+      agentId: markAsAgentId(agentId),
+      status: "working",
+      timestamp: now
+    });
+    return c.json({ ok: true });
+  });
 }
 
 // src/dashboard/hono.ts
@@ -16865,7 +17019,7 @@ app.get("/api/session", (c) => {
 });
 app.get("/api/artifacts/:id", (c) => {
   const artifactId = c.req.param("id");
-  if (!/^[a-zA-Z0-9_-]+$/.test(artifactId)) {
+  if (!isValidId(artifactId)) {
     return c.json({ success: false, error: "Invalid artifact ID" }, 400);
   }
   const sessionId = getSessionId();
@@ -16891,7 +17045,7 @@ app.get("/api/sessions", async (c) => {
 });
 app.get("/api/sessions/:id/completion-check", (c) => {
   const sessionId = c.req.param("id");
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (!isValidId(sessionId)) {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   try {
@@ -16914,75 +17068,14 @@ app.get("/api/sessions/:id/completion-check", (c) => {
 });
 app.get("/api/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (!isValidId(sessionId)) {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   const result = await handleGetSessionSummary(getRelayDir(), { session_id: sessionId });
   if (!result.success) return c.json({ success: false, error: result.error }, 404);
   return c.json(result);
 });
-var MAX_SEEN_SESSIONS = 10;
-var seenAgentIdsBySession = /* @__PURE__ */ new Map();
-app.post("/api/hook/tool-use", async (c) => {
-  const origin = c.req.header("origin");
-  if (origin && !isLocalhostOrigin(origin)) {
-    return c.json({ error: "forbidden" }, 403);
-  }
-  const contentLength = Number(c.req.header("content-length") ?? 0);
-  if (contentLength > 65536) {
-    return c.json({ error: "payload too large" }, 413);
-  }
-  let body;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "invalid JSON payload" }, 400);
-  }
-  const rawAgentId = body?.tool_input?.agent_id;
-  const agentId = typeof rawAgentId === "string" && /^[a-zA-Z0-9_-]+$/.test(rawAgentId) && rawAgentId.length <= 64 ? rawAgentId : "unknown";
-  const now = Date.now();
-  const currentSessionId = getSessionId();
-  if (agentId !== "unknown") {
-    let seenInSession = seenAgentIdsBySession.get(currentSessionId);
-    if (!seenInSession) {
-      seenInSession = /* @__PURE__ */ new Set();
-      seenAgentIdsBySession.set(currentSessionId, seenInSession);
-      if (seenAgentIdsBySession.size > MAX_SEEN_SESSIONS) {
-        const oldestKey = seenAgentIdsBySession.keys().next().value;
-        if (oldestKey !== void 0) seenAgentIdsBySession.delete(oldestKey);
-      }
-    }
-    if (!seenInSession.has(agentId)) {
-      seenInSession.add(agentId);
-      let agentName = agentId;
-      let agentEmoji = "\u{1F916}";
-      try {
-        const sessionAgents = getAgents(getSessionId());
-        const match2 = sessionAgents?.[agentId];
-        if (match2) {
-          agentName = match2.name;
-          agentEmoji = match2.emoji;
-        }
-      } catch {
-      }
-      broadcast({
-        type: "agent:joined",
-        agentId: markAsAgentId(agentId),
-        name: agentName,
-        emoji: agentEmoji,
-        sessionId: currentSessionId,
-        timestamp: now
-      });
-    }
-  }
-  broadcast({
-    type: "agent:status",
-    agentId: markAsAgentId(agentId),
-    status: "working",
-    timestamp: now
-  });
-  return c.json({ ok: true });
-});
+registerHookEndpoint(app);
 app.use("/favicon.svg", serveStatic({ root: DASHBOARD_DIST }));
 app.get("*", async (_c) => {
   const indexPath = join6(DASHBOARD_DIST, "index.html");
@@ -16997,6 +17090,76 @@ app.get("*", async (_c) => {
   const content = await readFile2(indexPath);
   return new Response(content, { headers: { "Content-Type": "text/html; charset=utf-8" } });
 });
+
+// src/dashboard/serve.ts
+async function tryServe(port) {
+  return new Promise((resolve2) => {
+    const srv = serve({ fetch: app.fetch, port });
+    srv.once("error", async (err) => {
+      srv.close();
+      if (err.code === "EADDRINUSE") {
+        const next = await findAvailablePort(port + 1, PORT_AUTO_END);
+        if (next !== null) {
+          resolve2(await tryServe(next));
+        } else {
+          console.error(
+            `[relay] no available port in ${PORT_AUTO_START}-${PORT_AUTO_END} \u2014 dashboard unavailable, MCP server will still start.`
+          );
+          resolve2(null);
+        }
+      } else {
+        console.error("[relay] dashboard server error:", err);
+        resolve2(null);
+      }
+    });
+    srv.once("listening", () => {
+      console.error(`[relay] dashboard: http://localhost:${port}`);
+      resolve2({ server: srv, port });
+    });
+  });
+}
+
+// src/dashboard/snapshot.ts
+init_esm_shims();
+function buildSessionSnapshot(port) {
+  const sessionId = getSessionId();
+  let agentMeta = [];
+  try {
+    const sessionAgents = getAgents(getSessionId());
+    if (sessionAgents && Object.keys(sessionAgents).length > 0) {
+      agentMeta = Object.values(sessionAgents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji
+      }));
+    } else {
+      const agents = loadPool();
+      agentMeta = Object.values(agents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji
+      }));
+    }
+  } catch {
+  }
+  const snapshot = {
+    type: "session:snapshot",
+    sessionId,
+    tasks: getAllTasks(sessionId).map(taskToPayload),
+    messages: getAllMessages(sessionId).map(({ session_id: _s, seq: _q, ...m }) => ({
+      ...m,
+      metadata: m.metadata ?? null
+    })),
+    artifacts: getAllArtifacts(sessionId).map(
+      ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
+    ),
+    instanceId: process.env.RELAY_INSTANCE,
+    port,
+    agents: agentMeta,
+    timestamp: Date.now()
+  };
+  return JSON.stringify(snapshot);
+}
 
 // src/mcp.ts
 init_esm_shims();
@@ -40522,6 +40685,15 @@ init_esm_shims();
 // src/schemas.ts
 init_esm_shims();
 var AGENT_ID_SCHEMA = external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64);
+var SESSION_ID_SCHEMA = external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128);
+var TASK_ID_SCHEMA = external_exports3.string().max(128);
+var GENERIC_ID_SCHEMA = external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(256);
+
+// src/utils/mcp-response.ts
+init_esm_shims();
+function jsonResponse(result) {
+  return { content: [{ type: "text", text: JSON.stringify(result) }] };
+}
 
 // src/tools/register-agents.ts
 function registerAgentTools(server2) {
@@ -40533,21 +40705,14 @@ function registerAgentTools(server2) {
     async () => {
       const port = getPort();
       const dashboardUrl = port != null ? `http://localhost:${port}` : null;
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              dashboardUrl,
-              dashboardAvailable: port != null,
-              port,
-              sessionId: getSessionId(),
-              instanceId: getInstanceId() ?? null
-            })
-          }
-        ]
-      };
+      return jsonResponse({
+        success: true,
+        dashboardUrl,
+        dashboardAvailable: port != null,
+        port,
+        sessionId: getSessionId(),
+        instanceId: getInstanceId() ?? null
+      });
     }
   );
   server2.tool(
@@ -40565,14 +40730,14 @@ function registerAgentTools(server2) {
       const timestamp2 = Date.now();
       broadcast({ type: "agent:status", agentId, status: "working", timestamp: timestamp2 });
       broadcast({ type: "agent:thinking", agentId, chunk: input.content, timestamp: timestamp2 });
-      return { content: [{ type: "text", text: JSON.stringify({ success: true }) }] };
+      return jsonResponse({ success: true });
     }
   );
   server2.tool(
     "list_agents",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
-      session_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128).optional().describe(
+      session_id: SESSION_ID_SCHEMA.optional().describe(
         "Session ID to scope agent loading. When provided, loads .relay/session-agents-{session_id}.yml (written by /relay:relay Team Composition)."
       )
     },
@@ -40580,42 +40745,28 @@ function registerAgentTools(server2) {
       const agents = getAgents(input.session_id);
       if (agents === null) {
         const relayDir = getRelayDir();
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: false,
-                error: `Session agents file not found: ${relayDir}/session-agents-${input.session_id}.yml \u2014 run team composition first`
-              })
-            }
-          ]
-        };
+        return jsonResponse({
+          success: false,
+          error: `Session agents file not found: ${relayDir}/session-agents-${input.session_id}.yml \u2014 run team composition first`
+        });
       }
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              agents: Object.values(agents).map((a) => ({
-                id: a.id,
-                name: a.name,
-                emoji: a.emoji,
-                description: a.description,
-                tools: a.tools,
-                // Language directive is already injected by buildSystemPromptWithMemory() in loader.ts.
-                // Return the raw systemPrompt here to avoid duplicating the directive.
-                systemPrompt: a.systemPrompt,
-                basePersonaId: a.basePersonaId,
-                // expose for dashboard agent disambiguation
-                validate_prompt: a.validate_prompt,
-                review_checklist: a.review_checklist
-              }))
-            })
-          }
-        ]
-      };
+      return jsonResponse({
+        success: true,
+        agents: Object.values(agents).map((a) => ({
+          id: a.id,
+          name: a.name,
+          emoji: a.emoji,
+          description: a.description,
+          tools: a.tools,
+          // Language directive is injected by injectLanguageDirective() at response time.
+          systemPrompt: injectLanguageDirective(a.systemPrompt, a.language),
+          basePersonaId: a.basePersonaId,
+          // expose for dashboard agent disambiguation
+          validate_prompt: a.validate_prompt,
+          review_checklist: a.review_checklist,
+          language: a.language
+        }))
+      });
     }
   );
   server2.tool(
@@ -40628,36 +40779,23 @@ function registerAgentTools(server2) {
       try {
         agents = getPool();
       } catch (err) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({ success: false, error: err.message })
-            }
-          ]
-        };
+        return jsonResponse({ success: false, error: err.message });
       }
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({
-              success: true,
-              agents: Object.values(agents).map((a) => ({
-                id: a.id,
-                name: a.name,
-                emoji: a.emoji,
-                description: a.description,
-                tags: a.tags,
-                tools: a.tools,
-                validate_prompt: a.validate_prompt,
-                review_checklist: a.review_checklist
-                // systemPrompt intentionally omitted — pool metadata only
-              }))
-            })
-          }
-        ]
-      };
+      return jsonResponse({
+        success: true,
+        agents: Object.values(agents).map((a) => ({
+          id: a.id,
+          name: a.name,
+          emoji: a.emoji,
+          description: a.description,
+          tags: a.tags,
+          tools: a.tools,
+          validate_prompt: a.validate_prompt,
+          review_checklist: a.review_checklist,
+          language: a.language
+          // systemPrompt intentionally omitted — pool metadata only
+        }))
+      });
     }
   );
 }
@@ -40727,7 +40865,7 @@ function registerArtifactTools(server2) {
           timestamp: Date.now()
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -40738,7 +40876,7 @@ function registerArtifactTools(server2) {
     },
     async (input) => {
       const result = await handleGetArtifact(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -40863,7 +41001,7 @@ function registerMemoryTools(server2) {
     },
     async (input) => {
       const result = await handleReadMemory(getRelayDir(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -40882,7 +41020,7 @@ function registerMemoryTools(server2) {
           timestamp: Date.now()
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -40902,7 +41040,7 @@ function registerMemoryTools(server2) {
           timestamp: Date.now()
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -40954,11 +41092,13 @@ function registerMessagingTools(server2) {
       agent_id: AGENT_ID_SCHEMA.describe(
         "ID of the sending agent (e.g. pm, fe, be, qa). Must be alphanumeric, hyphen, or underscore."
       ),
-      to: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64).nullable().optional().describe(
+      to: AGENT_ID_SCHEMA.nullable().optional().describe(
         "ID of the recipient agent. Set to null or omit to broadcast to all agents in the session."
       ),
       content: external_exports3.string().max(65536).describe("Message content (plain text or Markdown)."),
-      thread_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(256).optional().describe("Thread ID to group related messages (e.g. a task ID or review ID). Optional."),
+      thread_id: GENERIC_ID_SCHEMA.optional().describe(
+        "Thread ID to group related messages (e.g. a task ID or review ID). Optional."
+      ),
       metadata: external_exports3.record(external_exports3.string().max(64), external_exports3.string().max(1024)).refine((obj) => Object.keys(obj).length <= 20, { message: "metadata: max 20 keys" }).optional().describe(
         "Optional key-value pairs for structured context (e.g. { task_id: 'abc', severity: 'high' }). Values must be strings."
       )
@@ -40973,7 +41113,7 @@ function registerMessagingTools(server2) {
           timestamp: Date.now()
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -40988,7 +41128,7 @@ function registerMessagingTools(server2) {
     },
     async (input) => {
       const result = await handleGetMessages(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -41057,7 +41197,7 @@ function registerReviewTools(server2) {
       artifact_id: external_exports3.string().max(128).describe(
         "ID of the artifact to be reviewed. Obtain from post_artifact response (artifact_id field)."
       ),
-      reviewer: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64).describe(
+      reviewer: AGENT_ID_SCHEMA.describe(
         "ID of the agent who should perform the review (e.g. qa, be2). They will call submit_review with the returned review_id."
       )
     },
@@ -41075,7 +41215,7 @@ function registerReviewTools(server2) {
           timestamp: Date.now()
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41095,7 +41235,7 @@ function registerReviewTools(server2) {
       if (result.success && result.review) {
         broadcast({ type: "review:updated", review: result.review, timestamp: Date.now() });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -41107,31 +41247,24 @@ function registerSessionTools(server2) {
     "start_session",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
-      session_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128).describe("Session ID to activate (e.g. 2026-03-14-007)")
+      session_id: SESSION_ID_SCHEMA.describe("Session ID to activate (e.g. 2026-03-14-007)")
     },
     async (input) => {
       setSessionId(input.session_id);
       broadcast({ type: "session:started", sessionId: input.session_id, timestamp: Date.now() });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ success: true, session_id: input.session_id })
-          }
-        ]
-      };
+      return jsonResponse({ success: true, session_id: input.session_id });
     }
   );
   server2.tool(
     "save_session_summary",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (typically the orchestrator)"),
-      session_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128).describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
+      session_id: SESSION_ID_SCHEMA.describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
       summary: external_exports3.string().max(131072).describe("Session summary text")
     },
     async (input) => {
       const result = await handleSaveSessionSummary(getRelayDir(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41141,20 +41274,20 @@ function registerSessionTools(server2) {
     },
     async (_input) => {
       const result = await handleListSessions(getRelayDir());
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
     "get_session_summary",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent"),
-      session_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128).describe("ID of the session to retrieve")
+      session_id: SESSION_ID_SCHEMA.describe("ID of the session to retrieve")
     },
     async (input) => {
       const result = await handleGetSessionSummary(getRelayDir(), {
         session_id: input.session_id
       });
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41167,7 +41300,7 @@ function registerSessionTools(server2) {
     },
     async (input) => {
       const result = handleSaveOrchestratorState(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41177,7 +41310,7 @@ function registerSessionTools(server2) {
     },
     async (input) => {
       const result = handleGetOrchestratorState(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -41252,6 +41385,18 @@ async function runHooks(commands, env, cwd, timeoutMs) {
 }
 
 // src/tools/tasks.ts
+function checkUnmetDependencies(task, sessionId) {
+  const deps = task.depends_on ?? [];
+  if (deps.length === 0) return [];
+  const unmetIds = [];
+  for (const depId of deps) {
+    const dep = getTaskById(depId, sessionId);
+    if (!dep || dep.status !== "done") {
+      unmetIds.push(depId);
+    }
+  }
+  return unmetIds;
+}
 function buildHookEnv(agentId, taskId, sessionId) {
   return {
     RELAY_AGENT_ID: agentId,
@@ -41353,14 +41498,8 @@ async function handleUpdateTask(sessionId, input, hooks, projectRoot) {
 async function handleClaimTask(sessionId, input, hooks, projectRoot) {
   try {
     const task = getTaskById(input.task_id, sessionId);
-    if (task && (task.depends_on ?? []).length > 0) {
-      const unmetIds = [];
-      for (const depId of task.depends_on ?? []) {
-        const dep = getTaskById(depId, sessionId);
-        if (!dep || dep.status !== "done") {
-          unmetIds.push(depId);
-        }
-      }
+    if (task) {
+      const unmetIds = checkUnmetDependencies(task, sessionId);
       if (unmetIds.length > 0) {
         return {
           success: true,
@@ -41385,14 +41524,8 @@ async function handleClaimTask(sessionId, input, hooks, projectRoot) {
         };
       }
     }
-    if (task && (task.depends_on ?? []).length > 0) {
-      const unmetIds = [];
-      for (const depId of task.depends_on ?? []) {
-        const dep = getTaskById(depId, sessionId);
-        if (!dep || dep.status !== "done") {
-          unmetIds.push(depId);
-        }
-      }
+    if (task) {
+      const unmetIds = checkUnmetDependencies(task, sessionId);
       if (unmetIds.length > 0) {
         return {
           success: true,
@@ -41434,22 +41567,17 @@ function registerTaskTools(server2) {
       description: external_exports3.string().max(8192).optional().describe(
         "Detailed task description including acceptance criteria and implementation notes. Supports Markdown."
       ),
-      assignee: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64).optional().describe(
+      assignee: AGENT_ID_SCHEMA.optional().describe(
         "ID of the agent to assign. If omitted, the task is unassigned and any agent can claim it."
       ),
       priority: external_exports3.enum(["critical", "high", "medium", "low"]).describe("Task priority. critical=blocking, high=this sprint, medium=next, low=backlog."),
-      depends_on: external_exports3.array(
-        external_exports3.string().regex(
-          /^[a-zA-Z0-9_-]+$/,
-          "depends_on: each task ID must be alphanumeric, hyphen, or underscore"
-        ).max(128, "depends_on: each task ID must be \u2264 128 characters")
-      ).max(32, "depends_on: max 32 dependencies per task").optional().describe(
+      depends_on: external_exports3.array(GENERIC_ID_SCHEMA).max(32, "depends_on: max 32 dependencies per task").optional().describe(
         "Optional list of task IDs that must reach 'done' before this task can be started. Enables dependency chains."
       ),
       idempotency_key: external_exports3.string().max(256).optional().describe(
         "Optional idempotency key. If a task with this key already exists in the session, returns the existing task_id without creating a duplicate. Use to make create_task safe to call again after agent re-spawn."
       ),
-      parent_task_id: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(128).optional().describe(
+      parent_task_id: TASK_ID_SCHEMA.optional().describe(
         "Parent task ID for derived tasks. Max depth 1 (no grandchild tasks). Max 3 siblings per parent."
       ),
       derived_reason: external_exports3.string().max(512).optional().describe("Why this task was derived from its parent task.")
@@ -41462,7 +41590,7 @@ function registerTaskTools(server2) {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41470,11 +41598,15 @@ function registerTaskTools(server2) {
     "Update a task's status or assignee. When setting status to 'done', the agent's after_task hook (if configured) runs; a non-zero exit reverts status to 'in_review' and returns { success: false, hook_failed: true, error } \u2014 fix the issue and retry. A { success: false } without hook_failed means the task was not found.",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the agent performing the update."),
-      task_id: external_exports3.string().max(128).describe("ID of the task to update. Must belong to the current session."),
+      task_id: TASK_ID_SCHEMA.describe(
+        "ID of the task to update. Must belong to the current session."
+      ),
       status: external_exports3.enum(["todo", "in_progress", "in_review", "done"]).optional().describe(
         "New task status. Use 'in_review' before requesting a review, 'done' after work is accepted."
       ),
-      assignee: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64).optional().describe("New assignee agent ID. Use to reassign a task to another agent.")
+      assignee: AGENT_ID_SCHEMA.optional().describe(
+        "New assignee agent ID. Use to reassign a task to another agent."
+      )
     },
     async (input) => {
       const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
@@ -41485,7 +41617,7 @@ function registerTaskTools(server2) {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41495,7 +41627,7 @@ function registerTaskTools(server2) {
       agent_id: AGENT_ID_SCHEMA.describe(
         "ID of the agent claiming the task. The task must be assigned to this agent or unassigned."
       ),
-      task_id: external_exports3.string().max(128).describe(
+      task_id: TASK_ID_SCHEMA.describe(
         "ID of the task to claim. The task must be in 'todo' status. Obtain IDs from get_all_tasks."
       )
     },
@@ -41508,7 +41640,7 @@ function registerTaskTools(server2) {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
   server2.tool(
@@ -41518,7 +41650,7 @@ function registerTaskTools(server2) {
       status: external_exports3.enum(["todo", "in_progress", "in_review", "done"]).optional().describe(
         "Optional status filter. When provided, only tasks with this status are returned. Omit to return all tasks."
       ),
-      assignee: external_exports3.string().regex(/^[a-zA-Z0-9_-]+$/).max(64).optional().describe(
+      assignee: AGENT_ID_SCHEMA.optional().describe(
         "Optional assignee filter. When provided, only tasks assigned to this agent are returned."
       ),
       include_description: external_exports3.boolean().optional().describe(
@@ -41527,7 +41659,7 @@ function registerTaskTools(server2) {
     },
     async (input) => {
       const result = handleGetAllTasks(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }
@@ -41584,134 +41716,9 @@ if (process.stdin.isTTY) {
   );
   process.exit(1);
 }
-function parseArgs(argv) {
-  const result = {};
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === "--port" && argv[i + 1]) {
-      const p = Number(argv[i + 1]);
-      if (!Number.isNaN(p)) result.port = p;
-      i++;
-    } else if (argv[i] === "--instance" && argv[i + 1]) {
-      result.instance = argv[i + 1];
-      i++;
-    }
-  }
-  return result;
-}
 var cliArgs = parseArgs(process.argv.slice(2));
-if (cliArgs.instance && !/^[a-zA-Z0-9_-]+$/.test(cliArgs.instance)) {
-  console.error("[relay] invalid --instance value; use alphanumeric, hyphen, underscore only");
-  process.exit(1);
-}
-if (cliArgs.instance) {
-  process.env.RELAY_INSTANCE = cliArgs.instance;
-}
-if (process.env.RELAY_INSTANCE && !/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_INSTANCE)) {
-  console.error("[relay] invalid RELAY_INSTANCE value; use alphanumeric, hyphen, underscore only");
-  process.exit(1);
-}
-var PORT_AUTO_START = 3456;
-var PORT_AUTO_END = 3465;
-function isPortAvailable(port) {
-  return new Promise((resolve2) => {
-    const server2 = createServer();
-    server2.once("error", () => resolve2(false));
-    server2.once("listening", () => {
-      server2.close(() => resolve2(true));
-    });
-    server2.listen(port);
-  });
-}
-async function findAvailablePort(start, end) {
-  for (let port = start; port <= end; port++) {
-    if (await isPortAvailable(port)) return port;
-  }
-  return null;
-}
-async function resolvePort() {
-  if (cliArgs.port) return cliArgs.port;
-  if (process.env.DASHBOARD_PORT) {
-    const p = Number(process.env.DASHBOARD_PORT);
-    if (!Number.isNaN(p) && p > 0 && p <= 65535) return p;
-    console.error(
-      `[relay] invalid DASHBOARD_PORT "${process.env.DASHBOARD_PORT}" \u2014 falling back to auto-select`
-    );
-  }
-  const found = await findAvailablePort(PORT_AUTO_START, PORT_AUTO_END);
-  if (found === null) {
-    console.error(
-      `[relay] no available port found in range ${PORT_AUTO_START}-${PORT_AUTO_END} \u2014 falling back to ${PORT_AUTO_START}`
-    );
-    return PORT_AUTO_START;
-  }
-  return found;
-}
-var initialPort = await resolvePort();
-function buildSessionSnapshot(port) {
-  const sessionId = getSessionId();
-  let agentMeta = [];
-  try {
-    const sessionAgents = getAgents(getSessionId());
-    if (sessionAgents && Object.keys(sessionAgents).length > 0) {
-      agentMeta = Object.values(sessionAgents).map((a) => ({
-        id: a.id,
-        name: a.name,
-        emoji: a.emoji
-      }));
-    } else {
-      const agents = loadPool();
-      agentMeta = Object.values(agents).map((a) => ({
-        id: a.id,
-        name: a.name,
-        emoji: a.emoji
-      }));
-    }
-  } catch {
-  }
-  const snapshot = {
-    type: "session:snapshot",
-    sessionId,
-    tasks: getAllTasks(sessionId).map(taskToPayload),
-    messages: getAllMessages(sessionId).map(({ session_id: _s, seq: _q, ...m }) => ({
-      ...m,
-      metadata: m.metadata ?? null
-    })),
-    artifacts: getAllArtifacts(sessionId).map(
-      ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
-    ),
-    instanceId: process.env.RELAY_INSTANCE,
-    port,
-    agents: agentMeta,
-    timestamp: Date.now()
-  };
-  return JSON.stringify(snapshot);
-}
-async function tryServe(port) {
-  return new Promise((resolve2) => {
-    const srv = serve({ fetch: app.fetch, port });
-    srv.once("error", async (err) => {
-      srv.close();
-      if (err.code === "EADDRINUSE") {
-        const next = await findAvailablePort(port + 1, PORT_AUTO_END);
-        if (next !== null) {
-          resolve2(await tryServe(next));
-        } else {
-          console.error(
-            `[relay] no available port in ${PORT_AUTO_START}-${PORT_AUTO_END} \u2014 dashboard unavailable, MCP server will still start.`
-          );
-          resolve2(null);
-        }
-      } else {
-        console.error("[relay] dashboard server error:", err);
-        resolve2(null);
-      }
-    });
-    srv.once("listening", () => {
-      console.error(`[relay] dashboard: http://localhost:${port}`);
-      resolve2({ server: srv, port });
-    });
-  });
-}
+applyCliArgs(cliArgs);
+var initialPort = await resolvePort(cliArgs);
 var dashResult = await tryServe(initialPort);
 if (dashResult) {
   const { server: dashboardServer, port: confirmedPort } = dashResult;

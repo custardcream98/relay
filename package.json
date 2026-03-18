@@ -30,7 +30,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx,json,css}": "biome check --write"
+    "!(packages/server/dist/**)*.{ts,tsx,js,jsx,json,css}": "biome check --write"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.6",

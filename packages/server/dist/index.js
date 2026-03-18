@@ -16697,6 +16697,9 @@ function updateReviewStatus(id, sessionId, status, comments) {
 function getReviewById(id, sessionId) {
   return reviews.find((r) => r.id === id && r.session_id === sessionId) ?? null;
 }
+function getAllReviews(sessionId) {
+  return reviews.filter((r) => r.session_id === sessionId);
+}
 function insertEvent(sessionId, eventPayload, type2, agentId, timestampMs) {
   const sessionCount = eventCountBySession.get(sessionId) ?? 0;
   if (sessionCount >= MAX_EVENTS_PER_SESSION) {
@@ -16804,6 +16807,39 @@ function taskToPayload(task) {
 
 // src/dashboard/hook-endpoint.ts
 init_esm_shims();
+
+// src/dashboard/status-debounce.ts
+init_esm_shims();
+var lastStatusBroadcast = /* @__PURE__ */ new Map();
+var STATUS_DEBOUNCE_MS = 5e3;
+var MAX_DEBOUNCE_ENTRIES = 1e3;
+var STALE_THRESHOLD_MS = 6e4;
+function evictIfNeeded() {
+  if (lastStatusBroadcast.size <= MAX_DEBOUNCE_ENTRIES) return;
+  const now = Date.now();
+  for (const [key, entry] of lastStatusBroadcast) {
+    if (now - entry.at > STALE_THRESHOLD_MS) {
+      lastStatusBroadcast.delete(key);
+    }
+  }
+  if (lastStatusBroadcast.size > MAX_DEBOUNCE_ENTRIES) {
+    const sorted = [...lastStatusBroadcast.entries()].sort((a, b) => a[1].at - b[1].at);
+    const toRemove = sorted.length - MAX_DEBOUNCE_ENTRIES;
+    for (let i = 0; i < toRemove; i++) {
+      lastStatusBroadcast.delete(sorted[i][0]);
+    }
+  }
+}
+function shouldBroadcastStatus(agentId, status) {
+  const last = lastStatusBroadcast.get(agentId);
+  const now = Date.now();
+  if (!last || last.status !== status || now - last.at > STATUS_DEBOUNCE_MS) {
+    lastStatusBroadcast.set(agentId, { status, at: now });
+    evictIfNeeded();
+    return true;
+  }
+  return false;
+}
 
 // src/dashboard/utils.ts
 init_esm_shims();
@@ -16933,12 +16969,14 @@ function registerHookEndpoint(app2) {
         });
       }
     }
-    broadcast({
-      type: "agent:status",
-      agentId: markAsAgentId(agentId),
-      status: "working",
-      timestamp: now
-    });
+    if (shouldBroadcastStatus(agentId, "working")) {
+      broadcast({
+        type: "agent:status",
+        agentId: markAsAgentId(agentId),
+        status: "working",
+        timestamp: now
+      });
+    }
     return c.json({ ok: true });
   });
 }
@@ -17151,8 +17189,9 @@ function buildSessionSnapshot(port) {
       metadata: m.metadata ?? null
     })),
     artifacts: getAllArtifacts(sessionId).map(
-      ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
+      ({ session_id: _s, content: _c, task_id: _t, ...a }) => a
     ),
+    reviews: getAllReviews(sessionId).map(({ session_id: _s, ...r }) => r),
     instanceId: process.env.RELAY_INSTANCE,
     port,
     agents: agentMeta,
@@ -40728,7 +40767,9 @@ function registerAgentTools(server2) {
     async (input) => {
       const agentId = markAsAgentId(input.agent_id);
       const timestamp2 = Date.now();
-      broadcast({ type: "agent:status", agentId, status: "working", timestamp: timestamp2 });
+      if (shouldBroadcastStatus(input.agent_id, "working")) {
+        broadcast({ type: "agent:status", agentId, status: "working", timestamp: timestamp2 });
+      }
       broadcast({ type: "agent:thinking", agentId, chunk: input.content, timestamp: timestamp2 });
       return jsonResponse({ success: true });
     }

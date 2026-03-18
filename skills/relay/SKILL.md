@@ -602,6 +602,7 @@ Go directly to pool selection below.
 
 1. Identify the PM/coordinator agent from the selected team — agent whose `name` or `description` mentions "coordinator", "manager", or "PM"; or alphabetically first if ambiguous.
 2. Spawn the PM agent alone with a restricted tool set: `create_task`, `post_artifact`, `send_message`, `broadcast_thinking`, `get_all_tasks`, `get_server_info`.
+   - **Language**: Check the PM agent's `language` field by calling `list_agents(agent_id: "orchestrator", session_id: "{session_id}")`. If `language` is set (e.g. "Korean"), write the PM's spawn context blocks in that language. This is the same approach as Session Startup Step 2's `sessionLanguage` detection, but applied earlier since Planning Phase precedes Session Startup.
 3. The PM's sole goal in this phase:
    - Analyze the user's request deeply
    - Post a `session-brief` artifact via `post_artifact` (fields: goal, success_criteria, constraints, task_breakdown)
@@ -635,6 +636,45 @@ If the returned state is non-null, parse it and restore:
 - `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_seq`, `agent_last_seen`, `base_agents`
 - Skip re-spawning agents already in `done_agents` — they have finished work
 - Use the restored `base_agents` list as the authoritative count for the while condition
+
+**Language detection:**
+After calling `list_agents`, determine the session language:
+- Collect all non-null `language` values from the agent list.
+- If all non-null `language` values are the same (e.g. all set to "Korean") → use that as `sessionLanguage`. If they differ, default to English.
+- If all agents have null language → use English (default).
+- When `sessionLanguage` is set, write ALL context blocks below in that language.
+  Do NOT machine-translate — rewrite as if originally written in the target language.
+  Technical terms (file paths, commands, tool names) stay in original form.
+- Per-agent language overrides are already handled server-side via `injectLanguageDirective`
+  in the systemPrompt — the skill only needs to adapt the **surrounding context blocks**
+  (Session Start, Task Board Discipline, Visibility, Mandatory Communication Protocol, etc.).
+
+Below is a Korean example for reference; apply the same approach for any language.
+
+**Task Board Discipline (Korean):**
+```
+## 태스크 보드 규율
+- 작업 시작 전 반드시 claim_task를 호출합니다 (원자적으로 in_progress 마킹).
+- 작업 완료 후 즉시 update_task(status: "done")를 호출합니다.
+- end:_done 또는 end:waiting 선언 전, get_all_tasks(assignee: your_agent_id)를 호출해 열린 태스크가 없는지 확인합니다.
+```
+
+**Visibility (Korean):**
+```
+## 가시성
+- 주요 작업 전 broadcast_thinking(content: "수행할 작업")을 호출합니다.
+  이를 통해 대시보드에서 팀이 현재 작업 상황을 확인할 수 있습니다.
+```
+
+**Mandatory Communication Protocol (Korean):**
+```
+## 필수 커뮤니케이션 프로토콜
+중요한 시점에 반드시 send_message를 호출해야 합니다:
+- 주요 작업 완료 후: send_message(to: null, content: "완료: {요약}")
+- 블로커 발생 시: send_message(to: null, content: "블로커: {에이전트}의 {태스크} 대기 중")
+- 종료 선언: send_message(to: null, content: "end:waiting | {이유}") 또는 send_message(to: null, content: "end:_done | {요약}")
+  반드시 send_message로 전송합니다. 이를 건너뛰면 오케스트레이터가 상태를 감지하지 못합니다.
+```
 
 Spawn all base agents simultaneously. For each agent:
 1. Load persona from the cached `list_agents` result.
@@ -742,6 +782,7 @@ iteration_counter = 0      # incremented each loop iteration; persisted to orche
 while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
   # 1. Re-spawn dormant agents that have actionable conditions
+  # **Language**: All inline re-spawn context messages (1a–1c and 2a below) should be written in `sessionLanguage` when set.
   all_tasks = get_all_tasks(agent_id: "orchestrator")
   for each dormant_agent, reason in dormant_agents.items():
 
@@ -880,9 +921,11 @@ When re-spawning a dormant agent:
 
 1. Rebuild the system prompt:
    - Start with the cached persona `systemPrompt` from `list_agents`.
+     (The server already injects the `## Language` directive into systemPrompt via `injectLanguageDirective`,
+     so the persona prompt already contains the language instruction.)
    - Load personal memory: `read_memory(agent_id: "{agentId}")` and prepend it.
    - Re-inject the Task Board Discipline, Visibility, Mandatory Communication Protocol, and (if present) validate_prompt
-     blocks from Session Startup step 2.
+     blocks from Session Startup step 2. **Write these blocks in `sessionLanguage`** (detected in Step 2).
    - (project.md is intentionally skipped — it was already injected at initial spawn.
      Mid-session project.md updates are communicated via messages to reduce re-spawn context load.)
 2. Fetch all messages: `all_msgs = get_messages(agent_id: "{agentId}")`.
@@ -956,8 +999,9 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
    [1-2 sentence overall assessment]
    ```
 
-4. Allowed tools: same as the base persona's tools array.
-5. Collect their `end:` declaration and track in spawned_reviewers.
+4. **Language**: Write the Reviewer Role and Review Checklist blocks in `sessionLanguage` (detected in Session Startup Step 2).
+5. Allowed tools: same as the base persona's tools array.
+6. Collect their `end:` declaration and track in spawned_reviewers.
 
 **Note for teams without explicit reviewer agents:**
 Agents can review each other's work by naming any active agent as reviewer.

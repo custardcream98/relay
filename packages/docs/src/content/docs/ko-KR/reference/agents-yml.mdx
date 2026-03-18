@@ -3,16 +3,16 @@ title: agents.pool.yml 스키마
 description: agents.pool.yml 전체 스키마 레퍼런스. 에이전트 페르소나, 툴, 시스템 프롬프트, 태그, extends 상속 패턴을 설명합니다.
 ---
 
-`.relay/agents.pool.yml`은 동적 팀 구성에 사용되는 에이전트 풀을 정의합니다.
+`.relay/agents.pool.yml`은 동적 팀 구성에 쓰이는 에이전트 풀을 정의합니다.
 `/relay:relay` 세션은 매번 이 풀에서 태스크에 맞는 팀을 선택합니다.
 
 ## 최상위 구조
 
 ```yaml
-language: string          # 선택 사항 — 전체 에이전트 기본 언어
-shared_blocks:            # 선택 사항 — 재사용 가능한 텍스트 블록
+language: string          # 선택 — 모든 에이전트의 기본 언어
+shared_blocks:            # 선택 — 재사용 가능한 텍스트 블록
   {block_name}: string
-review_checklist: string  # 선택 사항 — 전체 에이전트 기본 리뷰 체크리스트
+review_checklist: string  # 선택 — 모든 에이전트에 적용되는 기본 리뷰 체크리스트
 agents:
   {agentId}:
     # 에이전트 설정
@@ -27,19 +27,19 @@ agents:
     name: string           # 표시 이름 (예: "Frontend Engineer")
     emoji: string          # 이모지 아이콘 (예: "💻")
     description: string    # 짧은 역할 설명 (팀 선택 화면에 표시)
-    tags: [string]         # 선택 사항 — 팀 자동 추천에 사용
-    disabled: boolean      # true이면 풀에서 제외 (기본값: false)
+    tags: [string]         # 선택 — 팀 자동 추천에 활용
+    disabled: boolean      # true면 풀에서 제외 (기본값: false)
     extends: string        # 상속할 에이전트 ID
-    tools:                 # 허용된 MCP 툴 목록
+    tools:                 # 허용할 MCP 툴 목록
       - tool_name
-    systemPrompt: string   # 에이전트 시스템 프롬프트 (멀티라인)
-    language: string       # 선택 사항 — 이 에이전트의 언어 개별 설정
-    hooks:                 # 선택 사항 — 태스크 라이프사이클 훅 (아래 참조)
+    systemPrompt: string   # 에이전트 시스템 프롬프트 (여러 줄 가능)
+    language: string       # 선택 — 이 에이전트의 언어를 개별 지정
+    hooks:                 # 선택 — 태스크 라이프사이클 훅 (아래 참조)
       before_task: string | [string]
       after_task:  string | [string]
-    # hooks: false         # 상속된 훅을 명시적으로 비활성화 (extends 에이전트 전용)
-    validate_prompt: string  # 선택 사항 — 태스크 완료 전에 주입되는 검증 기준
-    review_checklist: string # 선택 사항 — 전역 리뷰 체크리스트를 이 에이전트에서 오버라이드
+    # hooks: false         # 상속된 훅을 명시적으로 끄기 (extends 에이전트 전용)
+    validate_prompt: string  # 선택 — 태스크 완료 전 주입되는 검증 기준
+    review_checklist: string # 선택 — 전역 리뷰 체크리스트를 이 에이전트만 오버라이드
 ```
 
 ## 사용 가능한 툴
@@ -72,9 +72,9 @@ broadcast_thinking
 
 ## shared_blocks
 
-최상위에 재사용 가능한 텍스트 블록을 정의하고, 에이전트의 `systemPrompt`에서 `{{block_name}}`으로 참조할 수 있습니다. 여러 에이전트가 공통 지침을 공유할 때 프롬프트 중복을 제거해 줍니다.
+최상위에 재사용 가능한 텍스트 블록을 정의하고, 에이전트의 `systemPrompt`에서 `{{block_name}}`으로 참조합니다. 여러 에이전트가 같은 지침을 공유할 때 프롬프트 중복을 없앨 수 있습니다.
 
-블록 내에서 `{agent_id}`는 로드 시점에 실제 에이전트 ID로 자동 치환됩니다.
+블록 안의 `{agent_id}`는 로드 시점에 실제 에이전트 ID로 자동 치환됩니다.
 
 `systemPrompt`에서 정의되지 않은 블록을 참조하면 (예: `{{nonexistent}}`), 풀 로더가 로드 타임 에러를 발생시킵니다.
 
@@ -100,9 +100,9 @@ agents:
 
 피어 리뷰를 위한 구조화된 리뷰 기준입니다. 최상위에 `review_checklist`를 설정하면 모든 에이전트에 기본 기준이 적용됩니다. 개별 에이전트는 자체 `review_checklist` 필드로 오버라이드할 수 있습니다.
 
-`extends` 기반 에이전트의 상속 우선순위: 에이전트 자체 값 > base 에이전트 값 > 전역 기본값. `review_checklist`를 설정하지 않은 extends 에이전트는 base 에이전트의 값을 먼저 상속하고, 없으면 전역 기본값으로 폴백합니다.
+`extends` 기반 에이전트의 상속 우선순위: 에이전트 자체 값 > base 에이전트 값 > 전역 기본값. `review_checklist`를 따로 설정하지 않은 extends 에이전트는 base 에이전트의 값을 먼저 상속하고, 없으면 전역 기본값을 사용합니다.
 
-리뷰 체크리스트는 **Fix-First** 프레임워크를 따릅니다: 리뷰어는 승인 전에 각 기준을 검증하고, 충족되지 않은 항목은 수정을 요청해야 합니다.
+리뷰 체크리스트는 **Fix-First** 프레임워크를 따릅니다. 리뷰어는 승인 전에 각 기준을 검증하고, 충족하지 못한 항목은 수정을 요청해야 합니다.
 
 ```yaml
 review_checklist: |
@@ -120,13 +120,13 @@ agents:
 
 ## hooks 필드
 
-MCP 서버가 태스크 라이프사이클 이벤트 전후에 자동으로 실행하는 git-hook 방식의 셸 명령어입니다.
-명령어는 프로젝트 루트에서 실행되며, 0이 아닌 종료 코드는 해당 작업을 차단합니다.
+MCP 서버가 태스크 라이프사이클 이벤트 전후에 자동 실행하는 git-hook 방식의 셸 명령어입니다.
+프로젝트 루트에서 실행되며, 0이 아닌 종료 코드는 해당 작업을 차단합니다.
 
 ### `before_task`
 
 `claim_task`가 태스크를 원자적으로 클레임하기 **전에** 실행됩니다.
-0이 아닌 종료 코드는 `claimed: false`를 반환하며, 태스크는 `todo` 상태로 유지됩니다 (유령 `in_progress` 없음).
+0이 아닌 종료 코드는 `claimed: false`를 반환하며, 태스크는 `todo` 상태로 남습니다 (유령 `in_progress` 없음).
 
 ```yaml
 fe:
@@ -136,7 +136,7 @@ fe:
 
 ### `after_task`
 
-`update_task(status: "done")`이 스토어에 쓴 **후에** 실행됩니다.
+`update_task(status: "done")` 스토어 기록 **후에** 실행됩니다.
 0이 아닌 종료 코드는 태스크 상태를 `in_review`로 되돌리고 `success: false`를 반환합니다.
 
 ```yaml
@@ -182,8 +182,8 @@ agents:
 
 ## extends 패턴
 
-`extends`를 사용하면 동일한 풀 페르소나의 여러 인스턴스를 다른 ID로 생성할 수 있습니다.
-`/relay:relay`가 세션 파일 작성 시 `fe`, `fe2`, `fe3` 등을 구성할 때 이 패턴을 사용합니다:
+`extends`로 같은 페르소나의 여러 인스턴스를 다른 ID로 만들 수 있습니다.
+`/relay:relay`가 세션 파일을 작성할 때 `fe`, `fe2`, `fe3` 등을 구성하는 데 이 패턴을 사용합니다:
 
 ```yaml
 # .relay/session-agents-2026-03-14-001-a3f7.yml
@@ -198,7 +198,7 @@ agents:
 
 ## tags 필드
 
-`tags`는 `/relay:relay`가 팀을 자동 추천할 때 사용됩니다.
+`tags`는 `/relay:relay`가 팀을 자동 추천할 때 활용합니다.
 태스크 유형에 맞는 태그를 지정해 두면 스킬이 적합한 에이전트를 제안합니다:
 
 ```yaml
@@ -272,7 +272,7 @@ agents:
 ## 파일 위치
 
 풀 파일은 우선순위 순으로 검색됩니다:
-1. `.relay/agents.pool.yml` — 프로젝트 레벨 (우선순위 높음, git 추적)
+1. `.relay/agents.pool.yml` — 프로젝트 레벨 (우선, git 추적)
 2. `agents.pool.yml` — 프로젝트 루트 폴백
 
 파일이 없으면 relay가 다음 오류를 반환합니다:

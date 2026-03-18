@@ -103,22 +103,22 @@ function resolveSharedBlocks(
 }
 
 /**
- * Validate that an agent's systemPrompt contains required sections.
- * Throws on missing sections — agents without proper structure lose context between spawns.
- * Called by loadPool() to enforce prompt quality at pool load time.
+ * Validate that a pool agent's raw systemPrompt references required shared_blocks.
+ * Throws on missing references — agents without these blocks lose context between spawns.
+ * Called by loadPool() BEFORE shared_blocks resolution to enforce prompt structure.
  */
-export function validatePromptSections(agentId: string, systemPrompt: string): void {
-  const requiredSections = [
-    { header: "### On Each Spawn", label: "On Each Spawn" },
-    { header: "### Declaring End", label: "Declaring End" },
-    { header: "## Rules", label: "Rules" },
+export function validatePromptSections(agentId: string, rawSystemPrompt: string): void {
+  const requiredRefs = [
+    { ref: "{{on_each_spawn}}", label: "on_each_spawn" },
+    { ref: "{{declaring_end}}", label: "declaring_end" },
+    { ref: "{{core_rules}}", label: "core_rules" },
   ];
 
-  const missing = requiredSections.filter(({ header }) => !systemPrompt.includes(header));
+  const missing = requiredRefs.filter(({ ref }) => !rawSystemPrompt.includes(ref));
   if (missing.length > 0) {
     throw new Error(
-      `agent "${agentId}" systemPrompt is missing required sections: ${missing.map((s) => `"${s.label}"`).join(", ")}. ` +
-        `Every agent must include "### On Each Spawn", "### Declaring End", and "## Rules".`
+      `agent "${agentId}" systemPrompt is missing required block references: ${missing.map((s) => s.ref).join(", ")}. ` +
+        `Every pool agent must reference {{on_each_spawn}}, {{declaring_end}}, and {{core_rules}}.`
     );
   }
 }
@@ -315,13 +315,14 @@ export function loadAgents(
  */
 export function loadPool(override?: AgentsFile): Record<string, AgentPersona> {
   if (override) {
-    // When an explicit override is provided, load it as agents directly
-    const agents = loadAgents(override);
-    // Pool agents must have proper prompt structure — validate and throw on missing sections
-    for (const [id, persona] of Object.entries(agents)) {
-      validatePromptSections(id, persona.systemPrompt);
+    // Validate raw templates BEFORE shared_blocks resolution
+    for (const [id, config] of Object.entries(override.agents)) {
+      if (config.disabled || config.extends) continue;
+      if (config.systemPrompt) {
+        validatePromptSections(id, config.systemPrompt);
+      }
     }
-    return agents;
+    return loadAgents(override);
   }
 
   // Try .relay/agents.pool.yml, then root-level agents.pool.yml

@@ -3,9 +3,9 @@ import { describe, expect, test } from "bun:test";
 import { loadAgents, loadPool, validatePromptSections } from "./loader";
 import type { AgentsFile } from "./types";
 
-/** Wraps a short description with required prompt sections for pool validation. */
+/** Wraps a short description with required block references for pool validation. */
 const poolPrompt = (desc: string) =>
-  `${desc}\n### On Each Spawn\nCheck messages.\n### Declaring End\nDeclare end.\n## Rules\nFollow rules.`;
+  `${desc}\n{{on_each_spawn}}\n{{declaring_end}}\n{{core_rules}}`;
 
 describe("loadAgents", () => {
   test("loads successfully with explicit agent file", () => {
@@ -413,18 +413,18 @@ describe("loadPool", () => {
     expect(pool.inactive).toBeUndefined();
   });
 
-  test("throws when pool agent is missing required prompt sections", () => {
+  test("throws when pool agent is missing required block references", () => {
     const poolFile: AgentsFile = {
       agents: {
         bad: {
           name: "Bad Agent",
           emoji: "🚫",
           tools: ["send_message"],
-          systemPrompt: "No required sections here.",
+          systemPrompt: "No required block references here.",
         },
       },
     };
-    expect(() => loadPool(poolFile)).toThrow(/missing required sections/);
+    expect(() => loadPool(poolFile)).toThrow(/missing required block references/);
   });
 
   test("session agents can extend pool agents when poolAgents is provided", () => {
@@ -570,25 +570,22 @@ describe("loadPool — no filesystem pool", () => {
 });
 
 describe("validatePromptSections", () => {
-  test("does not throw when all sections present", () => {
+  test("does not throw when all block references present", () => {
     expect(() =>
-      validatePromptSections(
-        "test",
-        "### On Each Spawn\nstuff\n### Declaring End\nstuff\n## Rules\nstuff"
-      )
+      validatePromptSections("test", "stuff\n{{on_each_spawn}}\n{{declaring_end}}\n{{core_rules}}")
     ).not.toThrow();
   });
 
-  test("throws for missing sections", () => {
+  test("throws for missing block references", () => {
     expect(() => validatePromptSections("test", "Just a simple prompt.")).toThrow(
-      /missing required sections.*On Each Spawn.*Declaring End.*Rules/
+      /missing required block references.*on_each_spawn.*declaring_end.*core_rules/
     );
   });
 
-  test("throws naming the specific missing section", () => {
+  test("throws naming the specific missing block reference", () => {
     expect(() =>
-      validatePromptSections("fe", "### On Each Spawn\nstuff\n### Declaring End\nstuff")
-    ).toThrow(/agent "fe".*missing required sections.*"Rules"/);
+      validatePromptSections("fe", "stuff\n{{on_each_spawn}}\n{{declaring_end}}")
+    ).toThrow(/agent "fe".*missing required block references.*core_rules/);
   });
 });
 
@@ -596,15 +593,14 @@ describe("shared_blocks — loadAgents integration", () => {
   test("resolves shared_blocks in base agent systemPrompts", () => {
     const custom: AgentsFile = {
       shared_blocks: {
-        rules: '## Rules\nAlways set agent_id to "{agent_id}".',
+        rules: 'Always set agent_id to "{agent_id}".',
       },
       agents: {
         fe: {
           name: "Frontend",
           emoji: "💻",
           tools: ["send_message"],
-          systemPrompt:
-            "You are FE.\n### On Each Spawn\nCheck messages.\n### Declaring End\nDone.\n{{rules}}",
+          systemPrompt: "You are FE.\n{{rules}}",
         },
       },
     };
@@ -623,14 +619,12 @@ describe("shared_blocks — loadAgents integration", () => {
           name: "Base",
           emoji: "🔵",
           tools: ["send_message"],
-          systemPrompt:
-            "Base prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{core}}",
+          systemPrompt: "Base prompt.\n{{core}}",
         },
         derived: {
           extends: "base",
           name: "Derived",
-          systemPrompt:
-            "Derived prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{core}}",
+          systemPrompt: "Derived prompt.\n{{core}}",
         },
       },
     };
@@ -649,7 +643,7 @@ describe("shared_blocks — loadAgents integration", () => {
           name: "Base",
           emoji: "🔵",
           tools: ["send_message"],
-          systemPrompt: "### On Each Spawn\n...\n### Declaring End\n...\n## Rules\n{{tag}}",
+          systemPrompt: "Base prompt.\n{{tag}}",
         },
         copy: {
           extends: "base",
@@ -682,7 +676,7 @@ describe("shared_blocks — loadAgents integration", () => {
   test("shared_blocks + review_checklist work together in extends chain", () => {
     const custom: AgentsFile = {
       shared_blocks: {
-        rules: '## Rules\nAlways set agent_id to "{agent_id}".',
+        rules: 'Always set agent_id to "{agent_id}".',
       },
       review_checklist: "Global checklist",
       agents: {
@@ -690,7 +684,7 @@ describe("shared_blocks — loadAgents integration", () => {
           name: "FE",
           emoji: "💻",
           tools: ["send_message"],
-          systemPrompt: "FE prompt.\n### On Each Spawn\n...\n### Declaring End\n...\n{{rules}}",
+          systemPrompt: "FE prompt.\n{{rules}}",
           review_checklist: "FE checklist",
         },
         fe2: {

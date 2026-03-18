@@ -8,6 +8,7 @@ import { z } from "zod";
 import { getAgents, getPool } from "../agents/cache.js";
 import { injectLanguageDirective } from "../agents/loader.js";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config.js";
+import { shouldBroadcastStatus } from "../dashboard/status-debounce.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA, SESSION_ID_SCHEMA } from "../schemas.js";
 import { jsonResponse } from "../utils/mcp-response.js";
@@ -54,8 +55,10 @@ export function registerAgentTools(server: McpServer): void {
     async (input) => {
       const agentId = markAsAgentId(input.agent_id);
       const timestamp = Date.now();
-      // Emit agent:status=working so the dashboard marks the agent as active immediately
-      broadcast({ type: "agent:status", agentId, status: "working", timestamp });
+      // Emit agent:status=working so the dashboard marks the agent as active immediately (debounced)
+      if (shouldBroadcastStatus(input.agent_id, "working")) {
+        broadcast({ type: "agent:status", agentId, status: "working", timestamp });
+      }
       broadcast({ type: "agent:thinking", agentId, chunk: input.content, timestamp });
       return jsonResponse({ success: true });
     }

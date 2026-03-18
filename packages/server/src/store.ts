@@ -303,6 +303,10 @@ export function getReviewById(id: string, sessionId: string): ReviewRow | null {
   return reviews.find((r) => r.id === id && r.session_id === sessionId) ?? null;
 }
 
+export function getAllReviews(sessionId: string): ReviewRow[] {
+  return reviews.filter((r) => r.session_id === sessionId);
+}
+
 // --- Events ---
 
 export function insertEvent(

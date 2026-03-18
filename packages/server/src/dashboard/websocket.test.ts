@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { markAsAgentId } from "relay-shared";
 import { _resetSessionId } from "../config.ts";
 import { _resetStore } from "../store.ts";
+import { _resetStatusDebounce } from "./status-debounce.ts";
 import { addClient, broadcast, removeClient } from "./websocket";
 
 // Minimal WebSocket stub — tracks sent messages and can simulate a broken connection.
@@ -28,6 +29,7 @@ describe("websocket broadcast", () => {
   beforeEach(() => {
     savedSessionId = process.env.RELAY_SESSION_ID;
     _resetStore();
+    _resetStatusDebounce();
     // Use a fixed session ID so insertEvent does not rely on getSessionId auto-generate
     process.env.RELAY_SESSION_ID = "ws-test-session";
   });

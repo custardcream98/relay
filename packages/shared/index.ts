@@ -125,6 +125,18 @@ export type RelayEvent =
         name: string;
         type: string;
         created_by: string;
+        /** Unix seconds — artifact creation timestamp */
+        created_at: number;
+      }>;
+      reviews?: Array<{
+        id: string;
+        artifact_id: string;
+        reviewer: string;
+        requester: string;
+        status: string;
+        comments: string | null;
+        created_at: number;
+        updated_at: number;
       }>;
       /** RELAY_INSTANCE env var — undefined when single-server mode */
       instanceId?: string;

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { _resetSessionId, setSessionId } from "../config";
 import { _resetStore, insertTask } from "../store";
 import { app } from "./hono";
+import { _resetStatusDebounce } from "./status-debounce";
 
 describe("GET /api/session", () => {
   beforeEach(() => {
@@ -103,6 +104,7 @@ describe("GET /api/session", () => {
 describe("POST /api/hook/tool-use", () => {
   beforeEach(() => {
     _resetStore();
+    _resetStatusDebounce();
     setSessionId("hook-session");
   });
 
@@ -447,6 +449,7 @@ describe("GET /api/sessions/:id/completion-check", () => {
 describe("POST /api/hook/tool-use agent:joined emission", () => {
   beforeEach(() => {
     _resetStore();
+    _resetStatusDebounce();
     setSessionId("joined-session");
   });
 

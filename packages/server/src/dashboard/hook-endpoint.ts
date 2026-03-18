@@ -6,6 +6,7 @@ import { markAsAgentId } from "relay-shared";
 import { getAgents } from "../agents/cache.js";
 import { getSessionId } from "../config.js";
 import { isValidId } from "../utils/validate.js";
+import { shouldBroadcastStatus } from "./status-debounce.js";
 import { isLocalhostOrigin } from "./utils.js";
 import { broadcast } from "./websocket.js";
 
@@ -95,12 +96,14 @@ export function registerHookEndpoint(app: Hono): void {
       }
     }
 
-    broadcast({
-      type: "agent:status",
-      agentId: markAsAgentId(agentId),
-      status: "working",
-      timestamp: now,
-    });
+    if (shouldBroadcastStatus(agentId, "working")) {
+      broadcast({
+        type: "agent:status",
+        agentId: markAsAgentId(agentId),
+        status: "working",
+        timestamp: now,
+      });
+    }
     return c.json({ ok: true });
   });
 }

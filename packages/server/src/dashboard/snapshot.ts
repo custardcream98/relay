@@ -5,7 +5,7 @@ import type { AgentId, RelayEvent } from "relay-shared";
 import { getAgents } from "../agents/cache.js";
 import { loadPool } from "../agents/loader.js";
 import { getSessionId } from "../config.js";
-import { getAllArtifacts, getAllMessages, getAllTasks } from "../store.js";
+import { getAllArtifacts, getAllMessages, getAllReviews, getAllTasks } from "../store.js";
 import { taskToPayload } from "../utils/broadcast.js";
 
 /**
@@ -49,8 +49,9 @@ export function buildSessionSnapshot(port: number): string {
       metadata: m.metadata ?? null,
     })),
     artifacts: getAllArtifacts(sessionId).map(
-      ({ session_id: _s, content: _c, task_id: _t, created_at: _ca, ...a }) => a
+      ({ session_id: _s, content: _c, task_id: _t, ...a }) => a
     ),
+    reviews: getAllReviews(sessionId).map(({ session_id: _s, ...r }) => r),
     instanceId: process.env.RELAY_INSTANCE,
     port,
     agents: agentMeta,

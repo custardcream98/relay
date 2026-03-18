@@ -39,11 +39,11 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/.bun/tsup@8.5.1+56827fd7746d73aa/node_modules/tsup/assets/esm_shims.js
+// ../../node_modules/.bun/tsup@8.5.1+2366f3208ff907a0/node_modules/tsup/assets/esm_shims.js
 import path from "path";
 import { fileURLToPath } from "url";
 var init_esm_shims = __esm({
-  "../../node_modules/.bun/tsup@8.5.1+56827fd7746d73aa/node_modules/tsup/assets/esm_shims.js"() {
+  "../../node_modules/.bun/tsup@8.5.1+2366f3208ff907a0/node_modules/tsup/assets/esm_shims.js"() {
     "use strict";
   }
 });

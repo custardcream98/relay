@@ -1,6 +1,6 @@
 {
   "name": "relay",
-  "version": "0.18.2",
+  "version": "0.19.0",
   "description": "Domain-agnostic multi-agent collaboration framework for Claude Code. Assemble any team from your agent pool and let them collaborate event-driven.",
   "author": {
     "name": "relay contributors"

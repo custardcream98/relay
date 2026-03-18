@@ -28,6 +28,8 @@ interface DashboardState {
   sessionTeam: AgentMeta[];
   // The session ID of the live session currently shown (from session:snapshot or session:started)
   liveSessionId: string | null;
+  // Incremented on session:started — triggers agent list re-fetch so newly created pool is picked up
+  sessionStartCount: number;
   // Monotonic counter for stable timeline entry IDs — prevents returning the same state reference from reducer
   _seq: number;
 }
@@ -48,6 +50,7 @@ const initialState: DashboardState = {
   instancePort: undefined,
   sessionTeam: [],
   liveSessionId: null,
+  sessionStartCount: 0,
   _seq: 0,
 };
 
@@ -292,7 +295,12 @@ function reducer(state: DashboardState, action: Action): DashboardState {
               ? state.sessionTeam
               : [
                   ...state.sessionTeam,
-                  { id: event.agentId, name: event.agentId, emoji: "🤖", joinedAt: Date.now() },
+                  {
+                    id: event.agentId,
+                    name: event.name ?? event.agentId,
+                    emoji: event.emoji ?? "🤖",
+                    joinedAt: Date.now(),
+                  },
                 ],
           };
         }
@@ -308,6 +316,7 @@ function reducer(state: DashboardState, action: Action): DashboardState {
             timeline: [],
             sessionTeam: [],
             liveSessionId: event.sessionId,
+            sessionStartCount: state.sessionStartCount + 1,
           };
         default:
           return { ...state, ...baseUpdates };
@@ -358,6 +367,7 @@ export default function App() {
     instancePort,
     sessionTeam,
     liveSessionId,
+    sessionStartCount,
   } = state;
 
   // Fetch agent list — passed to AgentArena via AgentsContext
@@ -365,9 +375,9 @@ export default function App() {
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [agentsError, setAgentsError] = useState(false);
 
-  // Re-fetch agent list when the active server changes.
-  // Initial state already has agentsLoading=true, so no synchronous setState needed here.
-  // On server switch the previous agent list stays visible until the new fetch resolves.
+  // Re-fetch agent list when the active server changes or a new relay session starts.
+  // sessionStartCount triggers re-fetch so a newly auto-generated pool is picked up.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionStartCount intentionally triggers re-fetch on session:started
   useEffect(() => {
     const controller = new AbortController();
     const base = normalizeUrl(activeServer);
@@ -394,7 +404,7 @@ export default function App() {
         setAgentsLoading(false);
       });
     return () => controller.abort();
-  }, [activeServer]);
+  }, [activeServer, sessionStartCount]);
 
   // Fetch server list — BE will add GET /api/servers; graceful fallback to empty array
   const [servers, setServers] = useState<ServerEntry[]>([]);

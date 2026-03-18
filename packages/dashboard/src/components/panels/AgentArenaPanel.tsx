@@ -2,6 +2,7 @@
 // Left panel wrapper: grid-animated content + always-visible 32px toggle rail (right side).
 // Data is sourced from context hooks; resize state comes from PanelResizeContext.
 
+import { useMemo } from "react";
 import { useAgents } from "../../context/AgentsContext";
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
@@ -10,8 +11,22 @@ import { AgentArena } from "../AgentArena";
 export function AgentArenaPanel() {
   const { arenaWidth, arenaCollapsed, isDraggingArena, onToggleCollapse } = usePanelLayout();
   const { agents, agentsLoading, agentsError } = useAgents();
-  const { agentStatuses, thinkingChunks, tasks, messages, selectedAgent, onSelectAgent } =
-    useSession();
+  const {
+    agentStatuses,
+    thinkingChunks,
+    tasks,
+    messages,
+    selectedAgent,
+    onSelectAgent,
+    sessionTeam,
+  } = useSession();
+
+  // Merge pool agents with session-only agents (e.g. writer2, writer3 via extends)
+  const mergedAgents = useMemo(() => {
+    const poolIds = new Set(agents.map((a) => a.id));
+    const sessionOnly = sessionTeam.filter((a) => !poolIds.has(a.id));
+    return [...agents, ...sessionOnly];
+  }, [agents, sessionTeam]);
 
   const contentWidth = arenaWidth - 32;
 
@@ -27,7 +42,7 @@ export function AgentArenaPanel() {
       >
         <div style={{ width: contentWidth, height: "100%" }}>
           <AgentArena
-            agents={agents}
+            agents={mergedAgents}
             agentsLoading={agentsLoading}
             agentsError={agentsError}
             statuses={agentStatuses}

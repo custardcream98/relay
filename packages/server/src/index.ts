@@ -4,6 +4,7 @@ import { createServer } from "node:net";
 import { serve } from "@hono/node-server";
 import type { AgentId, RelayEvent } from "relay-shared";
 import { WebSocketServer } from "ws";
+import { getAgents } from "./agents/cache";
 import { loadPool } from "./agents/loader";
 import { getSessionId, setPort } from "./config";
 import { app } from "./dashboard/hono";
@@ -125,12 +126,23 @@ function buildSessionSnapshot(port: number): string {
   // Load agent metadata for SessionTeamBadge hydration
   let agentMeta: Array<{ id: AgentId; name: string; emoji: string }> = [];
   try {
-    const agents = loadPool();
-    agentMeta = Object.values(agents).map((a) => ({
-      id: a.id,
-      name: a.name,
-      emoji: a.emoji,
-    }));
+    // Prefer session agents (includes extends-resolved agents, scoped to current team)
+    const sessionAgents = getAgents(getSessionId());
+    if (sessionAgents && Object.keys(sessionAgents).length > 0) {
+      agentMeta = Object.values(sessionAgents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji,
+      }));
+    } else {
+      // Fallback to pool when session file doesn't exist yet
+      const agents = loadPool();
+      agentMeta = Object.values(agents).map((a) => ({
+        id: a.id,
+        name: a.name,
+        emoji: a.emoji,
+      }));
+    }
   } catch {
     // Agent loading failure should not block snapshot delivery
   }

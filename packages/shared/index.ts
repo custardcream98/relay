@@ -145,6 +145,10 @@ export type RelayEvent =
       // Lets the dashboard show a "joined" notification and hydrate agent cards reactively.
       type: "agent:joined";
       agentId: AgentId;
+      /** Agent display name — resolved from session/pool agents when available */
+      name?: string;
+      /** Agent emoji — resolved from session/pool agents when available */
+      emoji?: string;
       sessionId: string;
       timestamp: number;
     };

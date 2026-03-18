@@ -7,7 +7,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { markAsAgentId } from "relay-shared";
-import { getPool } from "../agents/cache";
+import { getAgents, getPool } from "../agents/cache";
 import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
 import {
   getAllArtifacts,
@@ -259,9 +259,23 @@ app.post("/api/hook/tool-use", async (c) => {
     }
     if (!seenInSession.has(agentId)) {
       seenInSession.add(agentId);
+      let agentName = agentId;
+      let agentEmoji = "🤖";
+      try {
+        const sessionAgents = getAgents(getSessionId());
+        const match = sessionAgents?.[agentId];
+        if (match) {
+          agentName = match.name;
+          agentEmoji = match.emoji;
+        }
+      } catch {
+        /* fallback to defaults */
+      }
       broadcast({
         type: "agent:joined",
         agentId: markAsAgentId(agentId),
+        name: agentName,
+        emoji: agentEmoji,
         sessionId: currentSessionId,
         timestamp: now,
       });
@@ -276,6 +290,9 @@ app.post("/api/hook/tool-use", async (c) => {
   });
   return c.json({ ok: true });
 });
+
+// Serve favicon from dashboard dist (must be before SPA fallback)
+app.use("/favicon.svg", serveStatic({ root: DASHBOARD_DIST }));
 
 // SPA fallback: serve index.html for all routes so React Router works.
 // If the dashboard has not been built yet, return a helpful message.

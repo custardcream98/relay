@@ -41,9 +41,9 @@ react to messages and tasks organically, like a Slack-first team.
    ```bash
    RELAY_SESSION_ID="<the composed session ID from step 3b>"
    DASHBOARD_PORT=<port from get_server_info>
-   mkdir -p .relay/sessions
-   cat > ".relay/sessions/${CLAUDE_SESSION_ID}.json" <<EOF_STATE
-   {"type":"orchestrator","relay_session_id":"${RELAY_SESSION_ID}","dashboard_port":${DASHBOARD_PORT},"iteration":0,"created_at":$(date -u +%s)}
+   mkdir -p "${RELAY_DIR:-.relay}"
+   cat > "${RELAY_DIR:-.relay}/orchestrator-${RELAY_SESSION_ID}.json" <<EOF_STATE
+   {"relay_session_id":"${RELAY_SESSION_ID}","dashboard_port":${DASHBOARD_PORT},"iteration":0,"created_at":$(date -u +%s)}
    EOF_STATE
    ```
    The `$(date -u +%s)` subshell call is evaluated by bash to produce the current Unix epoch timestamp.
@@ -179,35 +179,35 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
    - Example (Korean): "당신은 대시보드 프론트엔드 엔지니어입니다. `packages/dashboard/src/`를 담당합니다."
    - When `chosen_language` is null, write prompts in English (default).
 
-7. **Mandatory Prompt Sections**: Every systemPrompt MUST include these four sections.
-   Omitting any section produces agents that lose context between spawns and fail to communicate.
+7. **Mandatory Prompt Structure**: Every systemPrompt MUST reference these three shared blocks and include a domain workflow section.
+   Omitting any block produces agents that lose context between spawns and fail to communicate.
 
    ```
    ## How You Work
-   ### On Each Spawn          ← deterministic startup ritual (EVERY agent, EVERY spawn)
-   ### {Domain Workflow}       ← role-specific step-by-step process with tool call examples
-   ### Declaring End           ← exact end:waiting / end:_done protocol with send_message syntax
-   ## Rules                    ← hard constraints: agent_id, claim_task, scope fences
+   {{on_each_spawn}}           ← deterministic startup ritual (EVERY agent, EVERY spawn)
+   ### {Domain Workflow}        ← role-specific step-by-step process with tool call examples
+   {{declaring_end}}            ← exact end:waiting / end:_done protocol with send_message syntax
+   {{core_rules}}               ← hard constraints: agent_id, claim_task, scope fences
    ```
 
-   The **On Each Spawn** section is the single most important addition. Without it, agents
-   skip checking messages/tasks when re-spawned and lose all team context. Every agent must have:
+   The **on_each_spawn** block is the single most important — without it, agents
+   skip checking messages/tasks when re-spawned and lose all team context. Its content:
    ```
-   ### On Each Spawn
    1. Call get_messages() to read all team messages.
    2. Call get_all_tasks(assignee: "{agent_id}") to see your current tasks.
    3. Call get_all_tasks() to understand overall team progress.
    ```
 
-   The **Declaring End** section must show exact send_message syntax:
+   The **declaring_end** block must contain exact send_message syntax:
    ```
-   ### Declaring End
    Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
    - Open tasks remain →
      send_message(to: null, content: "end:waiting | {role-appropriate reason}")
    - All tasks done →
      send_message(to: null, content: "end:_done | {brief summary}")
    ```
+
+   Shared blocks should NOT include redundant headers (e.g. `### On Each Spawn`) — the block name already identifies the content.
 
 8. **Artifact Naming Conventions**: Define what artifacts each agent produces and consumes.
    Use consistent naming: `{feature}-{agent_id}-{type}` (e.g. `login-fe-pr`, `login-qa-report`).
@@ -384,12 +384,12 @@ This is a hard gate — do not write the file until every agent passes.
 
 For each agent, confirm:
 - [ ] `## How You Work` header exists
-- [ ] `### On Each Spawn` with `get_messages()` + `get_all_tasks(assignee: "{id}")` + `get_all_tasks()` calls
+- [ ] `{{on_each_spawn}}` reference present (startup ritual with `get_messages()` + `get_all_tasks()` calls)
 - [ ] A domain workflow section (e.g. `### Implementing`, `### Testing Workflow`, `### First Spawn`)
-- [ ] `### Declaring End` with exact `send_message` syntax for both `end:waiting` and `end:_done`
-- [ ] `## Rules` with `agent_id` constraint and `claim_task` requirement
+- [ ] `{{declaring_end}}` reference present (exact `send_message` syntax for `end:waiting` and `end:_done`)
+- [ ] `{{core_rules}}` reference present (`agent_id` constraint and `claim_task` requirement)
 - [ ] `shared_blocks` section defined with at least `on_each_spawn`, `declaring_end`, `core_rules`
-- [ ] Each agent uses `{{on_each_spawn}}`, `{{declaring_end}}`, `{{core_rules}}` references
+- [ ] Shared blocks do NOT include redundant headers (block name = section identity)
 - [ ] Behavioral blocks (`self_regulation`, `communication_standards`, `evidence_before_action`) assigned selectively per role type
 
 If any agent is missing a section, add it before proceeding.
@@ -975,7 +975,7 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
 1b. Delete orchestrator session state file (disables the Stop hook for this session):
    ```bash
-   rm -f ".relay/sessions/${CLAUDE_SESSION_ID}.json"
+   rm -f "${RELAY_DIR:-.relay}/orchestrator-${RELAY_SESSION_ID}.json"
    ```
 1c. If `.relay/memory/project.md` does not exist:
     The PM/coordinator writes project.md summarizing what the team

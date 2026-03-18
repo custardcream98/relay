@@ -1,16 +1,28 @@
 #!/usr/bin/env bash
-# SessionEnd hook: clean up the orchestrator state file when a Claude Code session ends.
+# SessionEnd hook: clean up stale orchestrator state files.
+# Normal cleanup happens in SKILL.md wrap-up. This is a safety net for abnormal exits.
 # Runs asynchronously — failure is silently ignored.
 
 PAYLOAD=$(cat -)
-SESSION_ID=$(echo "$PAYLOAD" | jq -r '.session_id // empty' 2>/dev/null || true)
-[ -z "$SESSION_ID" ] && exit 0
+RELAY_DIR="${RELAY_DIR:-.relay}"
 
-# Validate session_id to prevent path traversal (must be alphanumeric, dash, underscore only)
-if ! echo "$SESSION_ID" | grep -qE '^[a-zA-Z0-9_-]+$'; then
-  exit 0
-fi
+# Subagent session ending — do NOT delete orchestrator state
+TRANSCRIPT=$(echo "$PAYLOAD" | jq -r '.transcript_path // empty' 2>/dev/null || true)
+case "$TRANSCRIPT" in
+  */subagents/*) exit 0 ;;
+esac
 
-STATE_FILE=".relay/sessions/${SESSION_ID}.json"
-[ -f "$STATE_FILE" ] && rm -f "$STATE_FILE" 2>/dev/null || true
+# Clean up stale orchestrator files (older than 6 hours)
+NOW=$(date +%s)
+for STATE_FILE in "${RELAY_DIR}"/orchestrator-*.json; do
+  [ ! -f "$STATE_FILE" ] && continue
+  CREATED_AT=$(jq -r '.created_at // 0' "$STATE_FILE" 2>/dev/null || echo "0")
+  if ! echo "$CREATED_AT" | grep -qE '^[0-9]{1,10}$'; then
+    CREATED_AT="0"
+  fi
+  if [ "$CREATED_AT" -gt 0 ]; then
+    AGE=$((NOW - CREATED_AT))
+    [ "$AGE" -gt 21600 ] && rm -f "$STATE_FILE"
+  fi
+done
 exit 0

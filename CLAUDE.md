@@ -141,9 +141,13 @@ skills/                   # Claude Code Plugin skill files
 
 hooks/
 └── hooks.json            # Plugin-level hooks: PostToolUse (MCP tool call → dashboard state update),
-                          #   PreToolUse (Edit|Write|MultiEdit → relay-edit-guard.sh),
+                          #   PreToolUse (Edit|Write|MultiEdit → relay-edit-guard.sh — blocks orchestrator, allows subagents via transcript_path),
                           #   Stop → relay-orchestrator-stop.sh,
                           #   SessionEnd (async) → relay-session-cleanup.sh
+
+scripts/
+├── sync-plugin-version.js  # bun run bump <patch|minor|major> — version bump + build + commit
+└── relay-*.sh              # Hook scripts (edit guard, stop hook, session cleanup)
 
 .claude-plugin/
 ├── plugin.json           # plugin manifest
@@ -197,6 +201,12 @@ hooks:
 
 ## Dashboard Requirements
 
+### Agent Arena
+- Renders pool agents + session-only agents (merged via `AgentArenaPanel`)
+- `agent:joined` WebSocket event includes `name` and `emoji` resolved from session agent cache
+- `session:snapshot` prefers session agents over pool for accurate team display
+- `session:started` triggers agent list re-fetch (picks up auto-generated pool)
+
 ### Three panels
 1. **Task Board (Kanban)**: updates instantly on task state changes
 2. **Message Feed**: displays inter-agent messages as Slack-style threads
@@ -214,6 +224,7 @@ type RelayEvent =
   | { type: "artifact:posted"; artifact: Artifact }
   | { type: "review:requested"; review: ReviewRequest }
   | { type: "memory:updated"; agentId: string }
+  | { type: "agent:joined"; agentId: string; name?: string; emoji?: string }
 ```
 
 ### History replay
@@ -229,17 +240,20 @@ bun run build:release    # build dashboard + server → dist/
 bun test                 # run tests
 bun run dashboard:dev    # frontend dev server
 bun run dashboard:build  # frontend build
+bun run bump patch       # version bump + build + commit (patch/minor/major)
 ```
 
 ## Release
 
 Distributed as a Claude Code plugin via git — no npm publishing.
-CI automatically rebuilds `packages/server/dist/` on push to main and commits the result if changed.
+Version source of truth: `.claude-plugin/plugin.json`.
 
 ```bash
-# Local build (for testing)
-bun run build:release
+bun run bump patch   # bumps version, builds release, commits — push when ready
 ```
+
+Pre-commit hook runs `biome check` + `tsc --noEmit` + `bun test` on every commit.
+No CI/CD for build/test — all quality checks are local. Only `deploy-docs.yml` remains for GitHub Pages.
 
 ## Notes
 

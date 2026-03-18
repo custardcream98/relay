@@ -1,4 +1,4 @@
-import { getArtifactById, getReviewById, insertReview, updateReviewStatus } from "../store";
+import { getArtifactById, getReviewById, insertReview, updateReviewStatus } from "../store.js";
 
 export function handleRequestReview(
   sessionId: string,

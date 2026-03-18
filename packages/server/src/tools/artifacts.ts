@@ -1,4 +1,4 @@
-import { getArtifactByName, insertArtifact } from "../store";
+import { getArtifactByName, insertArtifact } from "../store.js";
 
 export function handlePostArtifact(
   sessionId: string,

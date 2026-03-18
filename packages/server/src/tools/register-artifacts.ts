@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import { handleGetArtifact, handlePostArtifact } from "./artifacts.js";
 
 export function registerArtifactTools(server: McpServer): void {
@@ -48,7 +49,7 @@ export function registerArtifactTools(server: McpServer): void {
           timestamp: Date.now(),
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -64,7 +65,7 @@ export function registerArtifactTools(server: McpServer): void {
     },
     async (input) => {
       const result = await handleGetArtifact(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

@@ -5,6 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import yaml from "js-yaml";
 import { getRelayDir } from "../config.js";
+import { isValidId } from "../utils/validate.js";
 import { loadAgents, loadPool } from "./loader.js";
 import type { AgentPersona } from "./types.js";
 
@@ -32,7 +33,7 @@ let poolCachedAt = 0;
 export function getAgents(sessionId?: string): Record<string, AgentPersona> | null {
   // Validate sessionId to prevent path traversal and cache key poisoning.
   // Return null so list_agents surfaces an error rather than silently returning an empty team.
-  if (sessionId && !/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (sessionId && !isValidId(sessionId)) {
     return null;
   }
 

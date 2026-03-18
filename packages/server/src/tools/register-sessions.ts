@@ -6,7 +6,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getRelayDir, getSessionId, setSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
-import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { AGENT_ID_SCHEMA, SESSION_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import {
   handleGetOrchestratorState,
   handleGetSessionSummary,
@@ -24,23 +25,12 @@ export function registerSessionTools(server: McpServer): void {
     "start_session",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (for tracking)"),
-      session_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(128)
-        .describe("Session ID to activate (e.g. 2026-03-14-007)"),
+      session_id: SESSION_ID_SCHEMA.describe("Session ID to activate (e.g. 2026-03-14-007)"),
     },
     async (input) => {
       setSessionId(input.session_id);
       broadcast({ type: "session:started", sessionId: input.session_id, timestamp: Date.now() });
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify({ success: true, session_id: input.session_id }),
-          },
-        ],
-      };
+      return jsonResponse({ success: true, session_id: input.session_id });
     }
   );
 
@@ -49,16 +39,12 @@ export function registerSessionTools(server: McpServer): void {
     "save_session_summary",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent (typically the orchestrator)"),
-      session_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(128)
-        .describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
+      session_id: SESSION_ID_SCHEMA.describe("Session ID (YYYY-MM-DD-NNN-XXXX format)"),
       summary: z.string().max(131072).describe("Session summary text"),
     },
     async (input) => {
       const result = await handleSaveSessionSummary(getRelayDir(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -70,7 +56,7 @@ export function registerSessionTools(server: McpServer): void {
     },
     async (_input) => {
       const result = await handleListSessions(getRelayDir());
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -79,17 +65,13 @@ export function registerSessionTools(server: McpServer): void {
     "get_session_summary",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the calling agent"),
-      session_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(128)
-        .describe("ID of the session to retrieve"),
+      session_id: SESSION_ID_SCHEMA.describe("ID of the session to retrieve"),
     },
     async (input) => {
       const result = await handleGetSessionSummary(getRelayDir(), {
         session_id: input.session_id,
       });
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -107,7 +89,7 @@ export function registerSessionTools(server: McpServer): void {
     },
     async (input) => {
       const result = handleSaveOrchestratorState(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -119,7 +101,7 @@ export function registerSessionTools(server: McpServer): void {
     },
     async (input) => {
       const result = handleGetOrchestratorState(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

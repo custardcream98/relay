@@ -6,20 +6,20 @@ import { fileURLToPath } from "node:url";
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { markAsAgentId } from "relay-shared";
-import { getAgents, getPool } from "../agents/cache";
-import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config";
+import { getPool } from "../agents/cache.js";
+import { getInstanceId, getPort, getRelayDir, getSessionId } from "../config.js";
 import {
   getAllArtifacts,
   getAllMessages,
   getAllSessions,
   getAllTasks,
   getArtifactById,
-} from "../store";
-import { handleGetSessionSummary, handleListSessions } from "../tools/sessions";
-import { taskToPayload } from "../utils/broadcast";
-import { isLocalhostOrigin } from "./utils";
-import { broadcast } from "./websocket";
+} from "../store.js";
+import { handleGetSessionSummary, handleListSessions } from "../tools/sessions.js";
+import { taskToPayload } from "../utils/broadcast.js";
+import { isValidId } from "../utils/validate.js";
+import { registerHookEndpoint } from "./hook-endpoint.js";
+import { isLocalhostOrigin } from "./utils.js";
 
 // Bundled: resolve dashboard/ relative to this file's location
 // Dev: override with RELAY_DASHBOARD_DIR env var (e.g. packages/dashboard/dist)
@@ -128,7 +128,7 @@ app.get("/api/session", (c) => {
 // API: fetch a single artifact with full content by ID
 app.get("/api/artifacts/:id", (c) => {
   const artifactId = c.req.param("id");
-  if (!/^[a-zA-Z0-9_-]+$/.test(artifactId)) {
+  if (!isValidId(artifactId)) {
     return c.json({ success: false, error: "Invalid artifact ID" }, 400);
   }
   const sessionId = getSessionId();
@@ -164,7 +164,7 @@ app.get("/api/sessions", async (c) => {
 // Registered before /api/sessions/:id to prevent Hono matching "completion-check" as a session ID.
 app.get("/api/sessions/:id/completion-check", (c) => {
   const sessionId = c.req.param("id");
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (!isValidId(sessionId)) {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   try {
@@ -192,7 +192,7 @@ app.get("/api/sessions/:id/completion-check", (c) => {
 app.get("/api/sessions/:id", async (c) => {
   const sessionId = c.req.param("id");
   // Validate session_id to prevent path traversal (consistent with /events and /snapshot)
-  if (!/^[a-zA-Z0-9_-]+$/.test(sessionId)) {
+  if (!isValidId(sessionId)) {
     return c.json({ error: "Invalid session ID" }, 400);
   }
   const result = await handleGetSessionSummary(getRelayDir(), { session_id: sessionId });
@@ -200,96 +200,8 @@ app.get("/api/sessions/:id", async (c) => {
   return c.json(result);
 });
 
-// Tracks agent IDs seen per session to emit agent:joined once per agent per session.
-// Keyed by session ID so that when setSessionId() advances the session (e.g. a second
-// /relay:relay invocation within the same process), agents re-emit agent:joined for the new session.
-// Capped at MAX_SEEN_SESSIONS entries to prevent unbounded growth in long-running processes
-// that run many relay sessions sequentially.
-const MAX_SEEN_SESSIONS = 10;
-const seenAgentIdsBySession = new Map<string, Set<string>>();
-
-// Called by the PostToolUse hook — broadcasts agent:status events to the dashboard
-app.post("/api/hook/tool-use", async (c) => {
-  // Only accept requests from localhost origins (or same-origin with no Origin header).
-  // This prevents cross-origin POST abuse since the hook endpoint is unauthenticated.
-  const origin = c.req.header("origin");
-  // Reject cross-origin POST requests. isLocalhostOrigin() returns false for malformed
-  // or non-localhost origins, so a single check covers all rejection cases.
-  if (origin && !isLocalhostOrigin(origin)) {
-    return c.json({ error: "forbidden" }, 403);
-  }
-
-  // Reject oversized payloads — hook bodies only need agent_id, tool_name; 64 KB is generous.
-  const contentLength = Number(c.req.header("content-length") ?? 0);
-  if (contentLength > 65_536) {
-    return c.json({ error: "payload too large" }, 413);
-  }
-
-  // Claude Code delivers a payload via stdin with the structure:
-  // { tool_name: "mcp__relay__send_message", tool_input: { agent_id: "pm", ... }, ... }
-  let body: { tool_input?: { agent_id?: string } };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: "invalid JSON payload" }, 400);
-  }
-  const rawAgentId = body?.tool_input?.agent_id;
-  const agentId =
-    typeof rawAgentId === "string" && /^[a-zA-Z0-9_-]+$/.test(rawAgentId) && rawAgentId.length <= 64
-      ? rawAgentId
-      : "unknown";
-
-  const now = Date.now();
-  const currentSessionId = getSessionId();
-
-  // Emit agent:joined the first time this agent ID appears in the current session.
-  // Using a per-session set ensures agents re-emit agent:joined when a new session starts
-  // within the same server process (e.g. after setSessionId() is called).
-  if (agentId !== "unknown") {
-    let seenInSession = seenAgentIdsBySession.get(currentSessionId);
-    if (!seenInSession) {
-      seenInSession = new Set<string>();
-      seenAgentIdsBySession.set(currentSessionId, seenInSession);
-      // Evict the oldest session entry once the cap is exceeded to prevent unbounded growth.
-      // Map iteration order is insertion order, so the first entry is always the oldest.
-      if (seenAgentIdsBySession.size > MAX_SEEN_SESSIONS) {
-        const oldestKey = seenAgentIdsBySession.keys().next().value;
-        if (oldestKey !== undefined) seenAgentIdsBySession.delete(oldestKey);
-      }
-    }
-    if (!seenInSession.has(agentId)) {
-      seenInSession.add(agentId);
-      let agentName = agentId;
-      let agentEmoji = "🤖";
-      try {
-        const sessionAgents = getAgents(getSessionId());
-        const match = sessionAgents?.[agentId];
-        if (match) {
-          agentName = match.name;
-          agentEmoji = match.emoji;
-        }
-      } catch {
-        /* fallback to defaults */
-      }
-      broadcast({
-        type: "agent:joined",
-        agentId: markAsAgentId(agentId),
-        name: agentName,
-        emoji: agentEmoji,
-        sessionId: currentSessionId,
-        timestamp: now,
-      });
-    }
-  }
-
-  broadcast({
-    type: "agent:status",
-    agentId: markAsAgentId(agentId),
-    status: "working",
-    timestamp: now,
-  });
-  return c.json({ ok: true });
-});
+// Hook endpoint: POST /api/hook/tool-use (agent-joined tracking + agent:status broadcast)
+registerHookEndpoint(app);
 
 // Serve favicon from dashboard dist (must be before SPA fallback)
 app.use("/favicon.svg", serveStatic({ root: DASHBOARD_DIST }));

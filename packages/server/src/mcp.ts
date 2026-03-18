@@ -3,14 +3,14 @@
 import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { setProjectRoot, uriToPath } from "./config";
-import { registerAgentTools } from "./tools/register-agents";
-import { registerArtifactTools } from "./tools/register-artifacts";
-import { registerMemoryTools } from "./tools/register-memory";
-import { registerMessagingTools } from "./tools/register-messaging";
-import { registerReviewTools } from "./tools/register-review";
-import { registerSessionTools } from "./tools/register-sessions";
-import { registerTaskTools } from "./tools/register-tasks";
+import { setProjectRoot, uriToPath } from "./config.js";
+import { registerAgentTools } from "./tools/register-agents.js";
+import { registerArtifactTools } from "./tools/register-artifacts.js";
+import { registerMemoryTools } from "./tools/register-memory.js";
+import { registerMessagingTools } from "./tools/register-messaging.js";
+import { registerReviewTools } from "./tools/register-review.js";
+import { registerSessionTools } from "./tools/register-sessions.js";
+import { registerTaskTools } from "./tools/register-tasks.js";
 
 const _require = createRequire(import.meta.url);
 const { version: SERVER_VERSION } = _require("../package.json") as { version: string };

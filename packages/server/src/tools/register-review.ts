@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import { handleRequestReview, handleSubmitReview } from "./review.js";
 
 export function registerReviewTools(server: McpServer): void {
@@ -21,13 +22,9 @@ export function registerReviewTools(server: McpServer): void {
         .describe(
           "ID of the artifact to be reviewed. Obtain from post_artifact response (artifact_id field)."
         ),
-      reviewer: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(64)
-        .describe(
-          "ID of the agent who should perform the review (e.g. qa, be2). They will call submit_review with the returned review_id."
-        ),
+      reviewer: AGENT_ID_SCHEMA.describe(
+        "ID of the agent who should perform the review (e.g. qa, be2). They will call submit_review with the returned review_id."
+      ),
     },
     async (input) => {
       const result = await handleRequestReview(getSessionId(), input);
@@ -43,7 +40,7 @@ export function registerReviewTools(server: McpServer): void {
           timestamp: Date.now(),
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -72,7 +69,7 @@ export function registerReviewTools(server: McpServer): void {
       if (result.success && result.review) {
         broadcast({ type: "review:updated", review: result.review, timestamp: Date.now() });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

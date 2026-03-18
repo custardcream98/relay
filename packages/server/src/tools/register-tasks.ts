@@ -6,9 +6,10 @@ import { z } from "zod";
 import { getAgents } from "../agents/cache.js";
 import { getProjectRoot, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
-import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { AGENT_ID_SCHEMA, GENERIC_ID_SCHEMA, TASK_ID_SCHEMA } from "../schemas.js";
 import { getTaskById } from "../store.js";
 import { taskToPayload } from "../utils/broadcast.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import { handleClaimTask, handleCreateTask, handleGetAllTasks, handleUpdateTask } from "./tasks.js";
 
 export function registerTaskTools(server: McpServer): void {
@@ -25,27 +26,14 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Detailed task description including acceptance criteria and implementation notes. Supports Markdown."
         ),
-      assignee: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(64)
-        .optional()
-        .describe(
-          "ID of the agent to assign. If omitted, the task is unassigned and any agent can claim it."
-        ),
+      assignee: AGENT_ID_SCHEMA.optional().describe(
+        "ID of the agent to assign. If omitted, the task is unassigned and any agent can claim it."
+      ),
       priority: z
         .enum(["critical", "high", "medium", "low"])
         .describe("Task priority. critical=blocking, high=this sprint, medium=next, low=backlog."),
       depends_on: z
-        .array(
-          z
-            .string()
-            .regex(
-              /^[a-zA-Z0-9_-]+$/,
-              "depends_on: each task ID must be alphanumeric, hyphen, or underscore"
-            )
-            .max(128, "depends_on: each task ID must be ≤ 128 characters")
-        )
+        .array(GENERIC_ID_SCHEMA)
         .max(32, "depends_on: max 32 dependencies per task")
         .optional()
         .describe(
@@ -58,14 +46,9 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Optional idempotency key. If a task with this key already exists in the session, returns the existing task_id without creating a duplicate. Use to make create_task safe to call again after agent re-spawn."
         ),
-      parent_task_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(128)
-        .optional()
-        .describe(
-          "Parent task ID for derived tasks. Max depth 1 (no grandchild tasks). Max 3 siblings per parent."
-        ),
+      parent_task_id: TASK_ID_SCHEMA.optional().describe(
+        "Parent task ID for derived tasks. Max depth 1 (no grandchild tasks). Max 3 siblings per parent."
+      ),
       derived_reason: z
         .string()
         .max(512)
@@ -82,7 +65,7 @@ export function registerTaskTools(server: McpServer): void {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -95,22 +78,18 @@ export function registerTaskTools(server: McpServer): void {
     "Update a task's status or assignee. When setting status to 'done', the agent's after_task hook (if configured) runs; a non-zero exit reverts status to 'in_review' and returns { success: false, hook_failed: true, error } — fix the issue and retry. A { success: false } without hook_failed means the task was not found.",
     {
       agent_id: AGENT_ID_SCHEMA.describe("ID of the agent performing the update."),
-      task_id: z
-        .string()
-        .max(128)
-        .describe("ID of the task to update. Must belong to the current session."),
+      task_id: TASK_ID_SCHEMA.describe(
+        "ID of the task to update. Must belong to the current session."
+      ),
       status: z
         .enum(["todo", "in_progress", "in_review", "done"])
         .optional()
         .describe(
           "New task status. Use 'in_review' before requesting a review, 'done' after work is accepted."
         ),
-      assignee: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(64)
-        .optional()
-        .describe("New assignee agent ID. Use to reassign a task to another agent."),
+      assignee: AGENT_ID_SCHEMA.optional().describe(
+        "New assignee agent ID. Use to reassign a task to another agent."
+      ),
     },
     async (input) => {
       const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
@@ -123,7 +102,7 @@ export function registerTaskTools(server: McpServer): void {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -138,12 +117,9 @@ export function registerTaskTools(server: McpServer): void {
       agent_id: AGENT_ID_SCHEMA.describe(
         "ID of the agent claiming the task. The task must be assigned to this agent or unassigned."
       ),
-      task_id: z
-        .string()
-        .max(128)
-        .describe(
-          "ID of the task to claim. The task must be in 'todo' status. Obtain IDs from get_all_tasks."
-        ),
+      task_id: TASK_ID_SCHEMA.describe(
+        "ID of the task to claim. The task must be in 'todo' status. Obtain IDs from get_all_tasks."
+      ),
     },
     async (input) => {
       const agentHooks = getAgents(getSessionId())?.[input.agent_id]?.hooks;
@@ -154,7 +130,7 @@ export function registerTaskTools(server: McpServer): void {
           broadcast({ type: "task:updated", task: taskToPayload(task), timestamp: Date.now() });
         }
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -170,14 +146,9 @@ export function registerTaskTools(server: McpServer): void {
         .describe(
           "Optional status filter. When provided, only tasks with this status are returned. Omit to return all tasks."
         ),
-      assignee: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(64)
-        .optional()
-        .describe(
-          "Optional assignee filter. When provided, only tasks assigned to this agent are returned."
-        ),
+      assignee: AGENT_ID_SCHEMA.optional().describe(
+        "Optional assignee filter. When provided, only tasks assigned to this agent are returned."
+      ),
       include_description: z
         .boolean()
         .optional()
@@ -187,7 +158,7 @@ export function registerTaskTools(server: McpServer): void {
     },
     async (input) => {
       const result = handleGetAllTasks(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

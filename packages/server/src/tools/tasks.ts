@@ -1,5 +1,5 @@
 import type { TaskPriority, TaskStatus } from "relay-shared";
-import type { ResolvedAgentHooks } from "../agents/types";
+import type { ResolvedAgentHooks } from "../agents/types.js";
 import {
   claimTask,
   countDerivedSiblings,
@@ -11,8 +11,24 @@ import {
   MAX_TASK_DEPTH,
   type TaskRow,
   updateTask,
-} from "../store";
-import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner";
+} from "../store.js";
+import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner.js";
+
+// Returns IDs of unmet dependencies (not in 'done' state) for the given task.
+// Returns an empty array when all dependencies are satisfied.
+// Used in handleClaimTask() both before and after the before_task hook to close the TOCTOU window.
+function checkUnmetDependencies(task: TaskRow, sessionId: string): string[] {
+  const deps = task.depends_on ?? [];
+  if (deps.length === 0) return [];
+  const unmetIds: string[] = [];
+  for (const depId of deps) {
+    const dep = getTaskById(depId, sessionId);
+    if (!dep || dep.status !== "done") {
+      unmetIds.push(depId);
+    }
+  }
+  return unmetIds;
+}
 
 // Build the env vars injected into before_task and after_task hooks.
 // Centralised here to avoid duplicating the same object literal in claim and update flows.
@@ -177,14 +193,8 @@ export async function handleClaimTask(
   try {
     // Check depends_on before attempting the atomic claim
     const task = getTaskById(input.task_id, sessionId);
-    if (task && (task.depends_on ?? []).length > 0) {
-      const unmetIds: string[] = [];
-      for (const depId of task.depends_on ?? []) {
-        const dep = getTaskById(depId, sessionId);
-        if (!dep || dep.status !== "done") {
-          unmetIds.push(depId);
-        }
-      }
+    if (task) {
+      const unmetIds = checkUnmetDependencies(task, sessionId);
       if (unmetIds.length > 0) {
         return {
           success: true,
@@ -215,14 +225,8 @@ export async function handleClaimTask(
     // Re-check depends_on after the hook completes to close the TOCTOU window.
     // The before_task hook can take up to 30s, during which a dependency may have been
     // reverted from "done" back to "in_review" (e.g. via after_task hook failure).
-    if (task && (task.depends_on ?? []).length > 0) {
-      const unmetIds: string[] = [];
-      for (const depId of task.depends_on ?? []) {
-        const dep = getTaskById(depId, sessionId);
-        if (!dep || dep.status !== "done") {
-          unmetIds.push(depId);
-        }
-      }
+    if (task) {
+      const unmetIds = checkUnmetDependencies(task, sessionId);
       if (unmetIds.length > 0) {
         return {
           success: true,

@@ -1,4 +1,4 @@
-import { getMessagesForAgent, insertMessage } from "../store";
+import { getMessagesForAgent, insertMessage } from "../store.js";
 
 interface SendMessageInput {
   agent_id: string;

@@ -5,7 +5,8 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
-import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { AGENT_ID_SCHEMA, GENERIC_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import { handleGetMessages, handleSendMessage } from "./messaging.js";
 
 export function registerMessagingTools(server: McpServer): void {
@@ -16,22 +17,15 @@ export function registerMessagingTools(server: McpServer): void {
       agent_id: AGENT_ID_SCHEMA.describe(
         "ID of the sending agent (e.g. pm, fe, be, qa). Must be alphanumeric, hyphen, or underscore."
       ),
-      to: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(64)
-        .nullable()
+      to: AGENT_ID_SCHEMA.nullable()
         .optional()
         .describe(
           "ID of the recipient agent. Set to null or omit to broadcast to all agents in the session."
         ),
       content: z.string().max(65536).describe("Message content (plain text or Markdown)."),
-      thread_id: z
-        .string()
-        .regex(/^[a-zA-Z0-9_-]+$/)
-        .max(256)
-        .optional()
-        .describe("Thread ID to group related messages (e.g. a task ID or review ID). Optional."),
+      thread_id: GENERIC_ID_SCHEMA.optional().describe(
+        "Thread ID to group related messages (e.g. a task ID or review ID). Optional."
+      ),
       metadata: z
         .record(z.string().max(64), z.string().max(1024))
         .refine((obj) => Object.keys(obj).length <= 20, { message: "metadata: max 20 keys" })
@@ -52,7 +46,7 @@ export function registerMessagingTools(server: McpServer): void {
           timestamp: Date.now(),
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -73,7 +67,7 @@ export function registerMessagingTools(server: McpServer): void {
     },
     async (input) => {
       const result = await handleGetMessages(getSessionId(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

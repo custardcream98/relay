@@ -7,6 +7,7 @@ import { z } from "zod";
 import { getRelayDir } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";
+import { jsonResponse } from "../utils/mcp-response.js";
 import { handleAppendMemory, handleReadMemory, handleWriteMemory } from "./memory.js";
 
 export function registerMemoryTools(server: McpServer): void {
@@ -18,7 +19,7 @@ export function registerMemoryTools(server: McpServer): void {
     },
     async (input) => {
       const result = await handleReadMemory(getRelayDir(), input);
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -44,7 +45,7 @@ export function registerMemoryTools(server: McpServer): void {
           timestamp: Date.now(),
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 
@@ -66,7 +67,7 @@ export function registerMemoryTools(server: McpServer): void {
           timestamp: Date.now(),
         });
       }
-      return { content: [{ type: "text", text: JSON.stringify(result) }] };
+      return jsonResponse(result);
     }
   );
 }

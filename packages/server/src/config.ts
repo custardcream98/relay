@@ -3,6 +3,7 @@
 
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { isValidId } from "./utils/validate.js";
 
 // Project root received via MCP roots/list — set by setProjectRoot() after startMcpServer()
 let _projectRoot: string | null = null;
@@ -73,7 +74,7 @@ let _sessionId: string | null = null;
 export function getSessionId(): string {
   if (_sessionId !== null) return _sessionId;
   if (process.env.RELAY_SESSION_ID) {
-    if (!/^[a-zA-Z0-9_-]+$/.test(process.env.RELAY_SESSION_ID)) {
+    if (!isValidId(process.env.RELAY_SESSION_ID)) {
       console.error(
         "[relay] invalid RELAY_SESSION_ID value; use alphanumeric, hyphen, underscore only"
       );
@@ -107,7 +108,7 @@ export function getSessionId(): string {
 export function setSessionId(id: string): void {
   // Defense-in-depth: validate even though the start_session MCP tool already validates via Zod.
   // Prevents unexpected values from slipping in during tests or direct programmatic calls.
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+  if (!isValidId(id)) {
     throw new Error(`setSessionId: invalid session ID format: "${id}"`);
   }
   _sessionId = id;

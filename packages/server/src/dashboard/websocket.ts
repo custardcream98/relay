@@ -1,8 +1,8 @@
 // packages/server/src/dashboard/websocket.ts
 import type { WebSocket } from "ws";
-import { getSessionId } from "../config";
-import { insertEvent } from "../store";
-import type { RelayEvent } from "./events";
+import { getSessionId } from "../config.js";
+import { insertEvent } from "../store.js";
+import type { RelayEvent } from "./events.js";
 
 // Set of currently connected WebSocket clients
 const clients = new Set<WebSocket>();

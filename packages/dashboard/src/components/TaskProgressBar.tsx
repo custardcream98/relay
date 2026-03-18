@@ -3,23 +3,8 @@
 // Rendered at the top of the TaskBoard panel.
 
 import { memo, useMemo } from "react";
+import { STATUS_COLORS, STATUS_LABELS, STATUS_ORDER } from "../constants/status";
 import type { Task } from "../types";
-
-const STATUS_COLORS: Record<string, string> = {
-  todo: "var(--color-text-disabled)",
-  in_progress: "var(--color-column-in-progress)",
-  in_review: "var(--color-column-in-review)",
-  done: "var(--color-column-done)",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  todo: "todo",
-  in_progress: "in progress",
-  in_review: "review",
-  done: "done",
-};
-
-const STATUS_ORDER = ["todo", "in_progress", "in_review", "done"] as const;
 
 interface Props {
   tasks: Task[];

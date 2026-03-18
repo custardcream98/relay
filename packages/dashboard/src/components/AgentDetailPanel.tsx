@@ -4,6 +4,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_AGENT_ACCENT, getAgentAccent } from "../constants/agents";
+import { STATUS_HEX_COLORS, STATUS_HEX_FALLBACK } from "../constants/status";
 import { cn } from "../lib/cn";
 import type { AgentId, Message, Task } from "../types";
 import { formatTime } from "../utils/time";
@@ -18,18 +19,6 @@ interface Props {
 }
 
 type Tab = "thoughts" | "messages" | "tasks";
-
-// Status colors — hex values only so that alpha suffix (e.g. `${COLOR}18`) is valid CSS.
-// All values must be hex strings; CSS vars cannot be used here because appending "18"
-// to a CSS var produces invalid CSS like `var(--foo)18`.
-const STATUS_COLOR: Record<string, string> = {
-  todo: "#6b7280",
-  in_progress: "#60a5fa",
-  in_review: "#fbbf24",
-  done: "#818cf8",
-};
-// Fallback hex used when task.status is not in STATUS_COLOR
-const STATUS_COLOR_FALLBACK = "#6b7280";
 
 export function AgentDetailPanel({ agentId, status, thinkingChunk, messages, tasks }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("thoughts");
@@ -257,7 +246,7 @@ function TasksTab({ tasks }: { tasks: Task[] }) {
       {tasks.map((task) => {
         const isDone = task.status === "done";
         // Use hex fallback (not a CSS var) so appending "18" for alpha is always valid CSS
-        const statusColor = STATUS_COLOR[task.status] ?? STATUS_COLOR_FALLBACK;
+        const statusColor = STATUS_HEX_COLORS[task.status] ?? STATUS_HEX_FALLBACK;
 
         return (
           <div

@@ -2,7 +2,8 @@
 // Emoji stack pill in AppHeader — shows current session team at a glance.
 // Renders null when agents array is empty (zero cost for no-team sessions).
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { usePopover } from "../hooks/usePopover";
 import { cn } from "../lib/cn";
 import type { AgentMeta } from "../types";
 
@@ -15,27 +16,10 @@ interface Props {
 export function SessionTeamBadge({ agents }: Props) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const handleClose = useCallback(() => setOpen(false), []);
 
   // Close popover on outside click or Escape
-  useEffect(() => {
-    if (!open) return;
-
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("keydown", handleKey);
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [open]);
+  usePopover(containerRef, handleClose, { enabled: open });
 
   if (agents.length === 0) return null;
 

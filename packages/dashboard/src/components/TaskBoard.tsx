@@ -1,33 +1,18 @@
 // packages/dashboard/src/components/TaskBoard.tsx
 import { memo, useCallback, useMemo, useState } from "react";
 import { getAgentAccent } from "../constants/agents";
+import { COLUMN_ACCENT, PRIORITY_BAR_COLOR, STATUS_ORDER } from "../constants/status";
 import { cn } from "../lib/cn";
 import type { Task } from "../types";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { TaskProgressBar } from "./TaskProgressBar";
 
-const COLUMNS = ["todo", "in_progress", "in_review", "done"] as const;
+const COLUMNS = STATUS_ORDER;
 const COLUMN_LABELS: Record<string, string> = {
   todo: "Todo",
   in_progress: "In Progress",
   in_review: "In Review",
   done: "Done",
-};
-
-// Top accent bar color per column (excluding todo) — references CSS variables
-const COLUMN_ACCENT: Record<string, string | undefined> = {
-  todo: undefined,
-  in_progress: "var(--color-column-in-progress)",
-  in_review: "var(--color-column-in-review)",
-  done: "var(--color-column-done)",
-};
-
-// Left accent bar color per priority
-const PRIORITY_BAR_COLOR: Record<string, string> = {
-  critical: "var(--color-priority-critical)",
-  high: "var(--color-priority-high)",
-  medium: "var(--color-priority-medium)",
-  low: "transparent",
 };
 
 // ─── TaskCard ────────────────────────────────────────────────────────────────

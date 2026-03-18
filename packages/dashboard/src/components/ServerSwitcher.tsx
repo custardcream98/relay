@@ -2,7 +2,8 @@
 // Server selector for multi-instance relay setups.
 // Renders null when only one server is present — zero UI cost for single-server users.
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { usePopover } from "../hooks/usePopover";
 import { cn } from "../lib/cn";
 import type { ServerEntry } from "../types";
 
@@ -49,27 +50,24 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
   const [addInput, setAddInput] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const handleClose = useCallback(() => setOpen(false), []);
+
+  const handleAddSubmit = useCallback(() => {
+    if (!addInput.trim()) return;
+    const raw = addInput.trim();
+    const url = raw.startsWith("http") ? raw : `http://${raw}`;
+    if (!isLocalhostUrl(url)) {
+      setAddError("Only localhost or 127.0.0.1 is allowed.");
+      return;
+    }
+    onAdd(url);
+    setAddInput("");
+    setAddError(null);
+    setOpen(false);
+  }, [addInput, onAdd]);
 
   // Close on outside click or Escape
-  useEffect(() => {
-    if (!open) return;
-
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-
-    document.addEventListener("keydown", handleKey);
-    document.addEventListener("mousedown", handleClick);
-    return () => {
-      document.removeEventListener("keydown", handleKey);
-      document.removeEventListener("mousedown", handleClick);
-    };
-  }, [open]);
+  usePopover(containerRef, handleClose, { enabled: open });
 
   // Renders null for single-server setups — zero UI cost for current users
   if (servers.length <= 1) return null;
@@ -186,18 +184,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 }}
                 placeholder="localhost:3457"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && addInput.trim()) {
-                    const raw = addInput.trim();
-                    const url = raw.startsWith("http") ? raw : `http://${raw}`;
-                    if (!isLocalhostUrl(url)) {
-                      setAddError("Only localhost or 127.0.0.1 is allowed.");
-                      return;
-                    }
-                    onAdd(url);
-                    setAddInput("");
-                    setAddError(null);
-                    setOpen(false);
-                  }
+                  if (e.key === "Enter") handleAddSubmit();
                 }}
                 className={cn(
                   "flex-1 px-2 py-1 rounded border bg-(--color-surface-overlay) text-(--color-text-primary) font-mono text-[11px] outline-none",
@@ -206,20 +193,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
               />
               <button
                 type="button"
-                onClick={() => {
-                  if (addInput.trim()) {
-                    const raw = addInput.trim();
-                    const url = raw.startsWith("http") ? raw : `http://${raw}`;
-                    if (!isLocalhostUrl(url)) {
-                      setAddError("Only localhost or 127.0.0.1 is allowed.");
-                      return;
-                    }
-                    onAdd(url);
-                    setAddInput("");
-                    setAddError(null);
-                    setOpen(false);
-                  }
-                }}
+                onClick={handleAddSubmit}
                 className="px-[10px] py-1 rounded border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) font-mono text-[11px] cursor-pointer"
               >
                 +

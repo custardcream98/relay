@@ -27,7 +27,10 @@ interface Props {
   joinedAt: number | null;
 }
 
-// Status badge colors — hex so we can append alpha suffix (e.g. ${COLOR}18)
+// Agent status badge colors — hex so we can append alpha suffix (e.g. ${COLOR}18).
+// Intentionally NOT shared with task status constants (constants/status.ts) because
+// these map agent lifecycle states (working/waiting/done/idle), not task statuses
+// (todo/in_progress/in_review/done). The domains and color palettes are different.
 const STATUS_BADGE_COLOR: Record<string, string> = {
   working: "#34d399",
   waiting: "#fbbf24",

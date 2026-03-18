@@ -21,6 +21,9 @@ packages/docs/.astro/
 # Git worktrees
 .worktrees/
 
+# Local Claude Code settings (blocks project-level .mcp.json relay server during dev)
+.claude/settings.local.json
+
 # Environment variables
 .env
 .env.local

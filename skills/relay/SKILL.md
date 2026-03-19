@@ -603,12 +603,38 @@ Go directly to pool selection below.
 1. Identify the PM/coordinator agent from the selected team — agent whose `name` or `description` mentions "coordinator", "manager", or "PM"; or alphabetically first if ambiguous.
 2. Spawn the PM agent alone with a restricted tool set: `create_task`, `post_artifact`, `send_message`, `broadcast_thinking`, `get_all_tasks`, `get_server_info`.
    - **Language**: Check the PM agent's `language` field by calling `list_agents(agent_id: "orchestrator", session_id: "{session_id}")`. If `language` is set (e.g. "Korean"), write the PM's spawn context blocks in that language. This is the same approach as Session Startup Step 2's `sessionLanguage` detection, but applied earlier since Planning Phase precedes Session Startup.
+
+### Ambiguity Gate (before task creation)
+
+Before creating tasks, the PM evaluates the user's request clarity on 3 dimensions:
+
+1. **Goal Clarity** — Is the goal specific? (e.g. "fix timer bug in SessionProgress.tsx" = clear; "improve the dashboard" = vague)
+2. **Constraint Clarity** — Are limitations defined? (tech stack, files, scope boundaries)
+3. **Success Criteria** — Are outcomes measurable? (e.g. "timer stops when session ends" = measurable; "make it better" = not)
+
+**Decision:**
+- **Clear request** (specific files/features/bugs mentioned, OR a plan file provided) → proceed directly to task creation.
+- **Ambiguous request** (vague goal, no constraints, no success criteria) → PM posts a `session-brief` artifact with:
+  - What IS clear from the request
+  - What is AMBIGUOUS (list 2-3 specific unknowns)
+  - Suggested clarifying questions (2-3 max)
+  Then declares `end:waiting | ambiguity: clarification needed`
+
+The orchestrator detects this special `ambiguity:` prefix in the end:waiting reason and:
+1. Reads the `session-brief` artifact to extract the PM's questions
+2. Asks the user using AskUserQuestion with the PM's suggested questions
+3. Re-spawns the PM with the user's answers appended to the context
+
+This is **opt-in** — PMs should skip the gate for requests that include implementation plans,
+specific bug reports, or concrete file/feature references.
+
 3. The PM's sole goal in this phase:
    - Analyze the user's request deeply
    - Post a `session-brief` artifact via `post_artifact` (fields: goal, success_criteria, constraints, task_breakdown)
    - Pre-create ALL tasks via `create_task` with: descriptive titles, detailed descriptions, correct `assignee`, `depends_on` for dependency chains, `idempotency_key` for re-spawn safety. **Create prerequisite tasks before tasks that reference them in `depends_on`** — IDs must exist at creation time.
    - Declare `end:waiting | planning complete`
-4. Wait for the PM's `end:waiting | planning complete` declaration before proceeding.
+4. Wait for the PM's `end:waiting | planning complete` or `end:waiting | ambiguity: ...` declaration before proceeding.
+   - If the PM declared `end:waiting | ambiguity: ...`, handle via the Ambiguity Gate above before continuing to step 5.
 5. Proceed to Session Startup. Non-PM agents receive this modified initial message:
    ```
    ## Session Start
@@ -633,7 +659,7 @@ Separate agents into:
 **State restore check (re-entry guard):**
 Before building system prompts, call `get_orchestrator_state(agent_id: "orchestrator")`.
 If the returned state is non-null, parse it and restore:
-- `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_seq`, `agent_last_seen`, `base_agents`
+- `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_seq`, `agent_last_seen`, `base_agents`, `generation`
 - Skip re-spawning agents already in `done_agents` — they have finished work
 - Use the restored `base_agents` list as the authoritative count for the while condition
 
@@ -743,6 +769,34 @@ the orchestrator cannot detect your completion and the team loses visibility int
   send_message(to: null, content: "end:_done | {summary}")    ← when all your tasks are complete
   NEVER skip these. The orchestrator detects your state ONLY through these messages.
   Skipping them causes the session to stall or your work to be silently lost.
+
+**Confidence scoring (on end:_done only):**
+  When all your tasks are truly complete, include a confidence score:
+  send_message(to: null, content: "end:_done | confidence:0.9 | {summary}")
+
+  Score guide:
+  - 1.0: Trivial change, 100% certain (typo fix, config change)
+  - 0.8-0.9: Standard implementation, tested and verified
+  - 0.6-0.7: Complex change, some uncertainty about edge cases
+  - <0.6: Significant uncertainty, definitely needs review
+
+  Be honest — inflated scores waste everyone's time, low scores trigger helpful review.
+```
+
+**QA agents** (agents whose `name`, `description`, or `tags` include "QA", "quality", or "test") additionally receive this evaluation protocol appended to their system prompt:
+```
+## Semantic Evaluation (Stage 2)
+After Stage 1 mechanical checks (build, test, lint) pass, perform semantic verification:
+1. Call get_all_tasks(include_description: true) to load all tasks with their acceptance criteria.
+2. For each task with status "done":
+   - Extract the acceptance criteria from the task description
+   - Read the relevant changed files or run `git diff` to see actual code changes
+   - Verify each acceptance criterion is met by the actual implementation
+3. If any criterion is NOT met:
+   - send_message to the responsible agent with specifics
+   - create_task for the fix (assignee: original implementer, priority based on severity)
+4. If all criteria are met:
+   - Include in your QA report: "Semantic verification: N/N acceptance criteria met"
 ```
 
 ### Step 3: Collect first-round declarations
@@ -778,11 +832,12 @@ spawned_reviewers = []     # reviewer agent IDs spawned on demand
 last_seen_seq = None    # tracks last processed message to avoid reprocessing
 agent_last_seen = {}       # agentId → last message ID seen at their last spawn
 iteration_counter = 0      # incremented each loop iteration; persisted to orchestrator state
+generation = 1             # evolution cycle counter; incremented when QA finds issues
 
 while len(done_agents) < len(base_agents) + len(spawned_reviewers):
 
   # 1. Re-spawn dormant agents that have actionable conditions
-  # **Language**: All inline re-spawn context messages (1a–1c and 2a below) should be written in `sessionLanguage` when set.
+  # **Language**: All inline re-spawn context messages (1a–1c, 1b-ambiguity, and 2a below) should be written in `sessionLanguage` when set.
   all_tasks = get_all_tasks(agent_id: "orchestrator")
   for each dormant_agent, reason in dormant_agents.items():
 
@@ -810,6 +865,24 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
         "Your previous run ended with: '{reason}'.
          Yes — proceed with the implementation. Do not ask for further confirmation.
          Check get_messages() for full context, then complete your work."
+      remove dormant_agent from dormant_agents
+      continue
+
+    # 1b-ambiguity. PM declared "ambiguity: ..." — user clarification needed
+    # Triggered when the PM's Ambiguity Gate (Planning Phase) flags a vague request.
+    if reason.startswith("ambiguity:"):
+      # 1. Read the session-brief artifact the PM posted with the ambiguity details
+      brief = get_artifact(agent_id: "orchestrator", name: "session-brief")
+      # 2. Extract suggested questions from the brief and ask the user
+      user_answer = AskUserQuestion(brief.content)  # present PM's questions to user
+      # 3. Re-spawn the PM with the user's clarification appended to context
+      re-spawn dormant_agent with context:
+        "Your previous run flagged the request as ambiguous. The user has now provided clarification:
+         ---
+         {user_answer}
+         ---
+         Use these answers to proceed with task creation. Do not re-ask — create tasks based on
+         the clarified requirements and declare end:waiting | planning complete when done."
       remove dormant_agent from dormant_agents
       continue
 
@@ -857,6 +930,21 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
         # Do NOT add to done_agents yet
       else:
         done_agents[msg.from_agent] = extract summary after "|"
+
+        # 2a-confidence. Auto-review trigger for low confidence
+        confidence_match = regex match r"confidence:(\d+\.?\d*)" in msg.content
+        if confidence_match:
+          confidence = float(confidence_match.group(1))
+          if confidence < 0.7:
+            # Find a suitable reviewer: another agent in the same domain
+            # (e.g., if fe declares low confidence, look for fe2 or architect)
+            # If no suitable reviewer exists, log it for the user but don't block
+            suitable_reviewer = find_reviewer(msg.from_agent, base_agents, done_agents)
+            if suitable_reviewer and suitable_reviewer not in spawned_reviewers:
+              spawn_reviewer(suitable_reviewer, msg.from_agent, all_agents_cache)
+              spawned_reviewers.append(suitable_reviewer)
+              # Note: the agent IS added to done_agents — the reviewer works independently
+
     elif msg.content starts with "end:failed":
       report failure to user: "{msg.from_agent} failed: {reason}"
       ask user: abort or continue without this agent?
@@ -911,9 +999,39 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     last_seen_seq: last_seen_seq,
     agent_last_seen: agent_last_seen,
     iteration: iteration_counter,
-    spawned_reviewers: spawned_reviewers
+    spawned_reviewers: spawned_reviewers,
+    generation: generation          # starts at 1, incremented on each evolution cycle
   }))
 ```
+
+## Evolution Check (after QA completion)
+
+When the QA agent declares `end:_done`, check for evolution triggers before proceeding to wrap-up:
+
+1. Parse the QA's completion message for issue indicators:
+   - QA created new fix tasks (check `get_all_tasks` for todo tasks created by QA)
+   - QA's message contains "issues found", "criteria not met", or "changes_requested"
+
+2. **No issues** → proceed to Session Wrap-up normally.
+
+3. **Issues found** → enter next generation:
+   a. Increment `generation` counter in orchestrator state
+   b. Check generation cap: if `generation > 3`, warn user and ask whether to continue or wrap up
+   c. Log: `"Evolution: Generation {N} → {N+1}. QA found {count} issues."`
+   d. The stranded todo check (step 4) will automatically detect the new fix tasks
+      and re-spawn the responsible agents. No special logic needed —
+      the existing event loop handles it.
+   e. When those agents complete and QA has new todo tasks from the fix cycle,
+      re-spawn QA for the next verification round.
+
+The evolution loop terminates when:
+- QA passes with no new issues (natural convergence)
+- Generation cap (3) is reached
+- User manually stops
+
+This is NOT a separate loop — it piggybacks on the existing Main Event Loop.
+The key insight: QA creating fix tasks → stranded todo check catches them →
+agents get re-spawned → QA gets re-spawned → repeat until clean.
 
 ## Re-spawn Pattern
 
@@ -1008,6 +1126,23 @@ Agents can review each other's work by naming any active agent as reviewer.
 Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
   send_message(to: null, "Review requested: researcher_b please review paper artifact {id}")
 
+### Reviewer Selection for Low Confidence
+
+When an agent declares `end:_done` with confidence < 0.7, the orchestrator selects a reviewer:
+
+1. **Same-role peer**: If `fe` has low confidence, check for `fe2`, `fe3` (multi-instance same role)
+2. **Architect**: If no same-role peer, check for `architect` agent
+3. **Cross-role**: If no architect, pick another implementer agent (e.g., `be` reviews `fe`)
+4. **Skip**: If only one agent + no architect, log warning and proceed without auto-review
+
+The reviewer is spawned using the existing Reviewer Spawn Pattern with additional context:
+```
+## Low-Confidence Review
+Agent {agentId} completed with confidence {score}.
+Their stated concern: {extract any text after confidence score}
+Focus your review on edge cases and areas of uncertainty.
+```
+
 ## Session Wrap-up
 
 When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
@@ -1017,6 +1152,9 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
 > to dormant_agents, keeping the while condition true until all work is genuinely done.
 
 1. Archive: `save_session_summary(agent_id: "orchestrator", session_id: "{session_id}", summary: "{overall summary}")`.
+   - Include `Generations: {generation}` in the summary.
+   - If `generation > 1`, note which issues were found and fixed in each generation
+     (extract from QA reports and fix task history).
 1b. Delete orchestrator session state file (disables the Stop hook for this session):
    ```bash
    rm -f "${RELAY_DIR:-.relay}/orchestrator-${RELAY_SESSION_ID}.json"

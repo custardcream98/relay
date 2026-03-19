@@ -45,6 +45,8 @@ export function ActivityFeed({
   const [focusedIndex, setFocusedIndex] = useState(-1);
   // Track expanded entries (for Enter toggle)
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
+  // Track which collapsed groups have been user-expanded (by group index)
+  const [expandedGroups, setExpandedGroups] = useState<Set<number>>(new Set());
 
   // Artifact detail modal state
   const { activeServer } = useServer();
@@ -119,6 +121,30 @@ export function ActivityFeed({
     [thinkingChunks, focusAgent, agentStatuses]
   );
 
+  // Compute set of visible flat indices (entries not hidden inside collapsed groups)
+  const visibleIndices = useMemo(() => {
+    const visible = new Set<number>();
+    for (let gi = 0; gi < groups.length; gi++) {
+      const group = groups[gi];
+      const offset = groupOffsets[gi];
+      if (group.collapsed && !expandedGroups.has(gi)) {
+        // Only first and last are visible in a collapsed group
+        visible.add(offset);
+        visible.add(offset + group.entries.length - 1);
+      } else {
+        // All entries visible
+        for (let i = 0; i < group.entries.length; i++) {
+          visible.add(offset + i);
+        }
+      }
+    }
+    // Also include live thinking card indices
+    for (let i = 0; i < thinkingAgents.length; i++) {
+      visible.add(filtered.length + i);
+    }
+    return visible;
+  }, [groups, groupOffsets, expandedGroups, thinkingAgents.length, filtered.length]);
+
   // Auto-scroll to bottom on new entries, unless user has scrolled up
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on entry count / thinking change
   useEffect(() => {
@@ -174,10 +200,11 @@ export function ActivityFeed({
   // Total navigable items: filtered entries + live thinking cards
   const navigableCount = filtered.length + thinkingAgents.length;
 
-  // Reset focused index when filtered list changes
+  // Reset focused index and expanded groups when filtered list changes
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset on list change
   useEffect(() => {
     setFocusedIndex(-1);
+    setExpandedGroups(new Set());
   }, [filtered.length, thinkingAgents.length]);
 
   // Auto-scroll focused entry into view
@@ -194,16 +221,38 @@ export function ActivityFeed({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      // Find next visible index in the given direction
+      const findNextVisible = (from: number, direction: 1 | -1): number => {
+        let idx = from + direction;
+        while (idx >= 0 && idx < navigableCount) {
+          if (visibleIndices.has(idx)) return idx;
+          idx += direction;
+        }
+        return from; // Stay at current if no visible index found
+      };
+
       switch (e.key) {
         case "j":
         case "ArrowDown":
           e.preventDefault();
-          setFocusedIndex((prev) => (prev < navigableCount - 1 ? prev + 1 : prev));
+          setFocusedIndex((prev) => {
+            if (prev < 0) {
+              // First press — find first visible entry
+              for (let i = 0; i < navigableCount; i++) {
+                if (visibleIndices.has(i)) return i;
+              }
+              return prev;
+            }
+            return findNextVisible(prev, 1);
+          });
           break;
         case "k":
         case "ArrowUp":
           e.preventDefault();
-          setFocusedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+          setFocusedIndex((prev) => {
+            if (prev < 0) return prev;
+            return findNextVisible(prev, -1);
+          });
           break;
         case "Enter": {
           e.preventDefault();
@@ -226,7 +275,7 @@ export function ActivityFeed({
           break;
       }
     },
-    [navigableCount, focusedIndex, filtered]
+    [navigableCount, focusedIndex, filtered, visibleIndices]
   );
 
   return (
@@ -297,6 +346,15 @@ export function ActivityFeed({
                     focusedIndex={focusedIndex}
                     globalOffset={groupOffset}
                     expandedEntries={expandedEntries}
+                    expanded={expandedGroups.has(gi)}
+                    onToggleExpand={() => {
+                      setExpandedGroups((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(gi)) next.delete(gi);
+                        else next.add(gi);
+                        return next;
+                      });
+                    }}
                     onClickArtifact={handleClickArtifact}
                   />
                 ) : (

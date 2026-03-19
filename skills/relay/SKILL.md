@@ -916,6 +916,7 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
     if msg.content starts with "end:waiting":
       dormant_agents[msg.from_agent] = extract reason after "|"
     elif msg.content starts with "end:_done":
+      # Note: If this agent is QA, see "Evolution Check" section below for generation advancement logic.
       # Verify the agent's tasks are actually complete before accepting the declaration
       all_tasks = get_all_tasks(agent_id: "orchestrator")
       my_open_tasks = [t for t in all_tasks
@@ -939,6 +940,7 @@ while len(done_agents) < len(base_agents) + len(spawned_reviewers):
             # Find a suitable reviewer: another agent in the same domain
             # (e.g., if fe declares low confidence, look for fe2 or architect)
             # If no suitable reviewer exists, log it for the user but don't block
+            # find_reviewer: see "Reviewer Selection for Low Confidence" section below
             suitable_reviewer = find_reviewer(msg.from_agent, base_agents, done_agents)
             if suitable_reviewer and suitable_reviewer not in spawned_reviewers:
               spawn_reviewer(suitable_reviewer, msg.from_agent, all_agents_cache)

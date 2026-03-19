@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/CollapsedGroup.tsx
 // Renders a group of consecutive same-type entries, collapsing when >= 3 entries.
 
-import { memo, useState } from "react";
+import { memo } from "react";
 import type { TimelineEntry } from "../../types";
 import { EntryRenderer } from "./EntryRenderer";
 
@@ -41,6 +41,8 @@ export const CollapsedGroup = memo(function CollapsedGroup({
   focusedIndex,
   globalOffset,
   expandedEntries,
+  expanded,
+  onToggleExpand,
   onClickArtifact,
 }: {
   group: EntryGroup;
@@ -49,10 +51,12 @@ export const CollapsedGroup = memo(function CollapsedGroup({
   /** Offset of this group's first entry in the full filtered list */
   globalOffset: number;
   expandedEntries: Set<string>;
+  /** Whether this collapsed group has been expanded by the user */
+  expanded: boolean;
+  /** Toggle expanded state for this group */
+  onToggleExpand: () => void;
   onClickArtifact?: (artifactId: string, rect: DOMRect) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-
   // Not collapsed or user expanded — render all entries
   if (!group.collapsed || expanded) {
     return (
@@ -85,7 +89,7 @@ export const CollapsedGroup = memo(function CollapsedGroup({
       />
       <button
         type="button"
-        onClick={() => setExpanded(true)}
+        onClick={onToggleExpand}
         className="text-xs text-(--color-text-secondary) pl-10 py-0.5 hover:underline cursor-pointer"
       >
         +{group.entries.length - 2} more

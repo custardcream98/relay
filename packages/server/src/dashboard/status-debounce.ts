@@ -67,4 +67,8 @@ export const _internals = {
   get size(): number {
     return lastStatusBroadcast.size;
   },
+  /** Direct access to the debounce map — for test assertions and timestamp manipulation. */
+  get map(): Map<string, { status: string; at: number }> {
+    return lastStatusBroadcast;
+  },
 } as const;

@@ -5,7 +5,7 @@
 
 import type { AgentId } from "relay-shared";
 import { getEndDeclarationType } from "../components/activity/helpers";
-import type { AgentMeta, DashboardEvent, Task, TimelineEntry } from "../types";
+import type { AgentMeta, DashboardEvent, Message, Task, TimelineEntry } from "../types";
 import { applySnapshot } from "./snapshotHandler";
 import { eventToTimelineEntry, insertSorted } from "./timelineUtils";
 
@@ -16,7 +16,7 @@ export { eventToTimelineEntry, insertSorted } from "./timelineUtils";
 // Global dashboard state
 export interface DashboardState {
   tasks: Task[];
-  messages: import("../types").Message[];
+  messages: Message[];
   agentStatuses: Partial<Record<AgentId, "idle" | "working" | "waiting" | "done">>;
   thinkingChunks: Partial<Record<AgentId, string>>;
   selectedAgent: AgentId | null;

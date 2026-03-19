@@ -5,6 +5,7 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getRelayDir, getSessionId, setSessionId } from "../config.js";
+import { _resetStatusDebounce } from "../dashboard/status-debounce.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA, SESSION_ID_SCHEMA } from "../schemas.js";
 import { jsonResponse } from "../utils/mcp-response.js";
@@ -29,6 +30,7 @@ export function registerSessionTools(server: McpServer): void {
     },
     async (input) => {
       setSessionId(input.session_id);
+      _resetStatusDebounce();
       broadcast({ type: "session:started", sessionId: input.session_id, timestamp: Date.now() });
       return jsonResponse({ success: true, session_id: input.session_id });
     }

@@ -16840,6 +16840,9 @@ function shouldBroadcastStatus(agentId, status) {
   }
   return false;
 }
+function _resetStatusDebounce() {
+  lastStatusBroadcast.clear();
+}
 
 // src/dashboard/utils.ts
 init_esm_shims();
@@ -41292,6 +41295,7 @@ function registerSessionTools(server2) {
     },
     async (input) => {
       setSessionId(input.session_id);
+      _resetStatusDebounce();
       broadcast({ type: "session:started", sessionId: input.session_id, timestamp: Date.now() });
       return jsonResponse({ success: true, session_id: input.session_id });
     }

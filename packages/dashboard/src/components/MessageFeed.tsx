@@ -7,8 +7,8 @@
 // - Copy-to-clipboard button on hover for message content
 // - Timestamp: relative time by default, full datetime on hover (title tooltip)
 // - Search/filter by agent name (in-memory, no API call)
-
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { getAgentAccent } from "../constants/agents";
 import { cn } from "../lib/cn";
 import type { Message } from "../types";
@@ -71,7 +71,7 @@ function CopyButton({ text }: { text: string }) {
       title={label}
       aria-label={label}
       className={cn(
-        "flex items-center justify-center w-[22px] h-[22px] rounded p-0 border-none cursor-pointer shrink-0 text-[11px] transition-[background,color] duration-100",
+        "flex h-[22px] w-[22px] shrink-0 cursor-pointer items-center justify-center rounded border-none p-0 text-[11px] transition-[background,color] duration-100",
         copyState === "copied"
           ? "bg-(--color-surface-overlay) text-(--color-text-secondary)"
           : copyState === "error"
@@ -99,7 +99,7 @@ function Timestamp({ createdAtSecs }: { createdAtSecs: number }) {
 
   return (
     <span
-      className="font-mono text-[10px] text-(--color-text-disabled) cursor-default shrink-0"
+      className="shrink-0 cursor-default font-mono text-[10px] text-(--color-text-disabled)"
       title={full}
     >
       {relativeTime(ms)}
@@ -124,20 +124,19 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
   );
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: hover/focus interaction for copy button visibility
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={() => setFocused(false)}
-      className="flex gap-[10px] px-4 py-[10px] border-b border-(--color-border-subtle) transition-[background] duration-80 relative"
+      className="relative flex gap-[10px] border-b border-(--color-border-subtle) px-4 py-[10px] transition-[background] duration-80"
       style={containerStyle}
     >
       <AgentAvatar agentId={msg.from_agent} size={30} />
 
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {/* Header row */}
-        <div className="flex items-center gap-1.5 mb-1">
+        <div className="mb-1 flex items-center gap-1.5">
           <AgentChip agentId={msg.from_agent} />
 
           {isDirect && msg.to_agent ? (
@@ -146,7 +145,7 @@ const MessageRow = memo(function MessageRow({ msg }: { msg: Message }) {
               <AgentChip agentId={msg.to_agent} />
             </>
           ) : (
-            <span className="font-mono text-[10px] text-(--color-text-disabled) bg-(--color-surface-overlay) px-[5px] py-px rounded-[3px]">
+            <span className="rounded-[3px] bg-(--color-surface-overlay) px-[5px] py-px font-mono text-[10px] text-(--color-text-disabled)">
               broadcast
             </span>
           )}
@@ -206,7 +205,7 @@ const ThreadGroup = memo(function ThreadGroup({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex items-center gap-1.5 w-full px-4 py-[5px] border-b border-(--color-border-subtle) bg-transparent border-t-0 border-l-0 border-r-0 cursor-pointer text-left text-[11px] text-(--color-text-disabled) font-mono transition-colors duration-100 hover:text-(--color-text-secondary)"
+          className="flex w-full cursor-pointer items-center gap-1.5 border-t-0 border-r-0 border-b border-l-0 border-(--color-border-subtle) bg-transparent px-4 py-[5px] text-left font-mono text-[11px] text-(--color-text-disabled) transition-colors duration-100 hover:text-(--color-text-secondary)"
         >
           {expanded ? (
             <>
@@ -308,27 +307,27 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
   }, []);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Search bar + unread badge */}
-      <div className="flex items-center gap-2 px-3 py-[5px] border-b border-(--color-border-subtle) bg-(--color-surface-base) shrink-0">
+      <div className="flex shrink-0 items-center gap-2 border-b border-(--color-border-subtle) bg-(--color-surface-base) px-3 py-[5px]">
         <input
           type="search"
           placeholder="Filter by agent…"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           aria-label="Filter messages by agent name"
-          className="flex-1 h-6 px-2 rounded border border-(--color-border-subtle) bg-(--color-surface-inset) text-(--color-text-primary) text-[11px] font-mono outline-none min-w-0 transition-[border-color] duration-100 focus:border-(--color-border-default)"
+          className="h-6 min-w-0 flex-1 rounded border border-(--color-border-subtle) bg-(--color-surface-inset) px-2 font-mono text-[11px] text-(--color-text-primary) transition-[border-color] duration-100 outline-none focus:border-(--color-border-default)"
         />
 
         {/* Message count badge */}
-        <span className="font-mono text-[10px] bg-(--color-surface-overlay) text-(--color-text-tertiary) px-1.5 py-px rounded-full shrink-0">
+        <span className="shrink-0 rounded-full bg-(--color-surface-overlay) px-1.5 py-px font-mono text-[10px] text-(--color-text-tertiary)">
           {filtered.length}
         </span>
       </div>
 
       {/* Empty state */}
       {groups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-[10px]">
+        <div className="flex flex-1 flex-col items-center justify-center gap-[10px]">
           <span className="text-[28px] opacity-20">💬</span>
           <span className="text-[13px] font-medium text-(--color-text-secondary)">
             {searchQuery ? "No messages match filter" : "No messages yet"}
@@ -340,7 +339,7 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
           </span>
         </div>
       ) : (
-        <div ref={containerRef} className="flex-1 overflow-y-auto relative" onScroll={handleScroll}>
+        <div ref={containerRef} className="relative flex-1 overflow-y-auto" onScroll={handleScroll}>
           {groups.map((group) => (
             <ThreadGroup key={group.key} threadId={group.threadId} msgs={group.msgs} />
           ))}
@@ -353,9 +352,9 @@ export const MessageFeed = memo(function MessageFeed({ messages }: Props) {
               type="button"
               onClick={scrollToBottom}
               aria-label={`${unreadCount} new message${unreadCount !== 1 ? "s" : ""} — scroll to bottom`}
-              className="sticky bottom-[10px] flex items-center gap-1.5 ml-auto mr-4 text-[10px] text-(--color-text-secondary) bg-(--color-surface-overlay) border border-(--color-border-default) rounded px-[10px] py-[3px] cursor-pointer font-mono shadow-(--shadow-card)"
+              className="sticky bottom-[10px] mr-4 ml-auto flex cursor-pointer items-center gap-1.5 rounded border border-(--color-border-default) bg-(--color-surface-overlay) px-[10px] py-[3px] font-mono text-[10px] text-(--color-text-secondary) shadow-(--shadow-card)"
             >
-              <span className="bg-(--color-connection-dead) text-white text-[9px] rounded-full px-[5px] font-bold">
+              <span className="rounded-full bg-(--color-connection-dead) px-[5px] text-[9px] font-bold text-white">
                 {unreadCount}
               </span>
               ↓ new

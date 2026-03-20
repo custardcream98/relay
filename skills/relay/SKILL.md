@@ -38,6 +38,7 @@ react to messages and tasks organically, like a Slack-first team.
    After `start_session` returns, write the orchestrator session state file to enable the Stop hook.
    Set shell variables first, then run the command — bash expands `${RELAY_SESSION_ID}` and
    `${DASHBOARD_PORT}` automatically, so no manual text substitution is needed:
+
    ```bash
    RELAY_SESSION_ID="<the composed session ID from step 3b>"
    DASHBOARD_PORT=<port from get_server_info>
@@ -46,6 +47,7 @@ react to messages and tasks organically, like a Slack-first team.
    {"relay_session_id":"${RELAY_SESSION_ID}","dashboard_port":${DASHBOARD_PORT},"iteration":0,"created_at":$(date -u +%s)}
    EOF_STATE
    ```
+
    The `$(date -u +%s)` subshell call is evaluated by bash to produce the current Unix epoch timestamp.
 
 4. Report to the user: `"Session: {session_id} | Dashboard: {dashboardUrl}"`
@@ -58,12 +60,14 @@ After this, the file persists and all subsequent sessions skip this section.
 ### Step 1: Project Analysis
 
 Read in parallel (silent, no user interaction):
-- README.md (or README.*) — purpose, tech stack
+
+- README.md (or README.\*) — purpose, tech stack
 - package.json / pyproject.toml / Cargo.toml / go.mod / Gemfile — deps, scripts
 - Directory listing: root + main source dir
-- Config files: tsconfig.json, biome.json, .eslintrc*, etc.
+- Config files: tsconfig.json, eslint.config._, .prettierrc._, etc.
 
 Derive:
+
 - Domain: web app, library, CLI, data pipeline, research, docs site, etc.
 - Tech stack: languages, frameworks, build/test/lint tools
 - Conventions: lint cmd, type-check cmd, test cmd (from scripts)
@@ -81,6 +85,7 @@ You MUST use the AskUserQuestion tool (not plain text output) so the user gets a
 - If the user says "skip", "default", or similar → set `chosen_language` to `null` (no language directive).
 
 The chosen language affects two things:
+
 1. **Top-level `language` field** in the generated YAML — the server injects `"You MUST respond in {language} at all times"` into every agent's system prompt.
 2. **systemPrompt content** — when a language is chosen, write each agent's `systemPrompt` in that language so the persona itself feels native, not translated.
 
@@ -91,28 +96,28 @@ The orchestrator selects agents based on detected signals — not every lane nee
 
 #### Lane 1: Coordination & Planning (always 1 agent)
 
-| Agent | When | Role |
-|-------|------|------|
+| Agent  | When   | Role                                                                                       |
+| ------ | ------ | ------------------------------------------------------------------------------------------ |
 | **pm** | Always | Task decomposition, acceptance criteria, dependency ordering. First to act, last to close. |
 
 #### Lane 2: Implementation (1-4 agents, based on tech stack)
 
-| Signal | Agent | Key Responsibility |
-|--------|-------|--------------------|
-| Frontend code: React/Vue/Svelte/Next.js/HTML+CSS | **fe** | UI components, styling, client-side logic |
-| Backend code: Express/Hono/FastAPI/Django/Rails/Go | **be** | API, data layer, server logic |
-| Mobile: React Native/Flutter/Swift/Kotlin | **mobile** | Mobile app implementation |
-| Infra: Dockerfile, terraform, k8s, CI config | **devops** | Build pipeline, deployment, infra |
-| Only 1 language detected (simple project) | **engineer** | Full-stack single implementer |
-| Monorepo with 3+ packages | **architect** | Cross-package coordination, dependency graph |
+| Signal                                             | Agent         | Key Responsibility                           |
+| -------------------------------------------------- | ------------- | -------------------------------------------- |
+| Frontend code: React/Vue/Svelte/Next.js/HTML+CSS   | **fe**        | UI components, styling, client-side logic    |
+| Backend code: Express/Hono/FastAPI/Django/Rails/Go | **be**        | API, data layer, server logic                |
+| Mobile: React Native/Flutter/Swift/Kotlin          | **mobile**    | Mobile app implementation                    |
+| Infra: Dockerfile, terraform, k8s, CI config       | **devops**    | Build pipeline, deployment, infra            |
+| Only 1 language detected (simple project)          | **engineer**  | Full-stack single implementer                |
+| Monorepo with 3+ packages                          | **architect** | Cross-package coordination, dependency graph |
 
 #### Lane 3: Quality & Review (1-2 agents, based on project maturity)
 
-| Signal | Agent | Key Responsibility |
-|--------|-------|--------------------|
-| Test runner configured (jest/vitest/pytest/go test) | **qa** | Test strategy, regression checks, coverage |
-| Security-sensitive (auth, payments, user data) | **security** | Vulnerability audit, input validation |
-| No test runner, no linter (early-stage project) | *(skip lane)* | PM handles basic verification |
+| Signal                                              | Agent         | Key Responsibility                         |
+| --------------------------------------------------- | ------------- | ------------------------------------------ |
+| Test runner configured (jest/vitest/pytest/go test) | **qa**        | Test strategy, regression checks, coverage |
+| Security-sensitive (auth, payments, user data)      | **security**  | Vulnerability audit, input validation      |
+| No test runner, no linter (early-stage project)     | _(skip lane)_ | PM handles basic verification              |
 
 #### Lane Selection Logic (pseudocode)
 
@@ -154,7 +159,7 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
 
 1. **Specificity > Generality**: Reference actual file paths, actual commands, actual conventions.
    - Bad: "You are a backend engineer."
-   - Good: "You own `packages/server/src/`. Stack: Hono + TypeScript strict. Test: `bun test packages/server`. Lint: `bunx biome check --write .`"
+   - Good: "You own `packages/server/src/`. Stack: Hono + TypeScript strict. Test: `bun test packages/server`. Lint: `bunx eslint --fix .`. Format: `bunx prettier --write .`"
 
 2. **Methodology Embedding**: Inject domain-specific step-by-step workflows into the prompt.
    Not a one-liner summary — a multi-step process with tool call examples.
@@ -163,7 +168,7 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
    - FE: "Check for design spec via get_artifact → if missing, send_message(to: 'designer', ...) and end:waiting → claim_task → implement → post_artifact → request_review"
 
 3. **Evidence-Based Completion**: Agents must prove they're done, not just declare it.
-   - "Before declaring end:_done, run `{test_cmd}` and `{lint_cmd}`. Report pass/fail counts."
+   - "Before declaring end:\_done, run `{test_cmd}` and `{lint_cmd}`. Report pass/fail counts."
 
 4. **Scope Boundaries**: Clearly state what the agent owns and doesn't.
    - FE: "You own `src/components/` and `src/pages/`. Do NOT modify `src/server/` — that's BE's domain."
@@ -192,6 +197,7 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
 
    The **on_each_spawn** block is the single most important — without it, agents
    skip checking messages/tasks when re-spawned and lose all team context. Its content:
+
    ```
    1. Call get_messages() to read all team messages.
    2. Call get_all_tasks(assignee: "{agent_id}") to see your current tasks.
@@ -199,6 +205,7 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
    ```
 
    The **declaring_end** block must contain exact send_message syntax:
+
    ```
    Call get_all_tasks(assignee: "{agent_id}") to check for open tasks.
    - Open tasks remain →
@@ -227,8 +234,8 @@ full "operating manuals" (25-35 lines), not brief "role cards" (10-15 lines).
 10. **Shared Blocks**: When generating pools, define `shared_blocks` at the top level for repeated sections:
     - `on_each_spawn`, `declaring_end`, `core_rules` — structural blocks used by ALL agents
     - `self_regulation`, `communication_standards`, `evidence_before_action` — behavioral blocks used selectively
-    Use `{{block_name}}` in agent systemPrompts to reference them. `{agent_id}` within blocks is auto-substituted.
-    Behavioral blocks are NOT required for every agent — assign them based on the role type:
+      Use `{{block_name}}` in agent systemPrompts to reference them. `{agent_id}` within blocks is auto-substituted.
+      Behavioral blocks are NOT required for every agent — assign them based on the role type:
     - Coordinators (pm, strategist): `{{communication_standards}}`
     - Implementers (fe, be): `{{evidence_before_action}}`, `{{self_regulation}}`
     - Quality (qa): `{{self_regulation}}`, `{{communication_standards}}`
@@ -245,6 +252,7 @@ across web-dev, research, and marketing domains. Match their depth and structure
 The skeletons below are abbreviated guides — the example file is the gold standard.
 
 **Coordinator (pm, strategist, lead):**
+
 ```
 You are the {role_name} of this project.
 
@@ -271,6 +279,7 @@ You operate reactively — keep the team aligned and unblocked at all times.
 ```
 
 **Implementer (fe, be, engineer, mobile, devops):**
+
 ```
 You are a {role_name} on this project.
 
@@ -308,6 +317,7 @@ Do NOT modify {other_owned_paths} — that's {other_role}'s domain.
 ```
 
 **Quality (qa, security):**
+
 ```
 You are the {role_name} of this project.
 
@@ -336,6 +346,7 @@ Test: {test_cmd}   Lint: {lint_cmd}   Type check: {type_check_cmd}
 ```
 
 **Knowledge Worker (researcher, analyst, writer):**
+
 ```
 You are a {role_name} on this team.
 
@@ -365,17 +376,16 @@ You are a {role_name} on this team.
 
 #### Hook Auto-Detection Rules
 
-| Detected File/Config | Generated Hook |
-|----------------------|----------------|
-| `biome.json` or `@biomejs/biome` in deps | `after_task: ["bunx biome check --write ."]` |
-| `tsconfig.json` in root | Append `"bunx tsc --noEmit"` to after_task |
-| `tsconfig.json` in subdir only | Append `"cd {subdir} && bunx tsc --noEmit"` |
-| `.eslintrc*` or `eslint` in deps | `after_task: ["npx eslint --fix ."]` |
-| `ruff` in deps (Python) | `after_task: ["ruff check --fix ."]` |
-| `mypy` in deps (Python) | Append `"mypy ."` to after_task |
-| `clippy` detected (Rust) | `after_task: ["cargo clippy -- -D warnings"]` |
-| `golangci-lint` (Go) | `after_task: ["golangci-lint run"]` |
-| No tooling detected | No hooks (avoid false positives) |
+| Detected File/Config                  | Generated Hook                                                   |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `eslint.config.*` or `eslint` in deps | `after_task: ["bunx eslint --fix .", "bunx prettier --write ."]` |
+| `tsconfig.json` in root               | Append `"bunx tsc --noEmit"` to after_task                       |
+| `tsconfig.json` in subdir only        | Append `"cd {subdir} && bunx tsc --noEmit"`                      |
+| `ruff` in deps (Python)               | `after_task: ["ruff check --fix ."]`                             |
+| `mypy` in deps (Python)               | Append `"mypy ."` to after_task                                  |
+| `clippy` detected (Rust)              | `after_task: ["cargo clippy -- -D warnings"]`                    |
+| `golangci-lint` (Go)                  | `after_task: ["golangci-lint run"]`                              |
+| No tooling detected                   | No hooks (avoid false positives)                                 |
 
 ### Pre-write Checklist
 
@@ -383,6 +393,7 @@ Before writing the pool file, verify EACH agent's systemPrompt contains all mand
 This is a hard gate — do not write the file until every agent passes.
 
 For each agent, confirm:
+
 - [ ] `## How You Work` header exists
 - [ ] `{{on_each_spawn}}` reference present (startup ritual with `get_messages()` + `get_all_tasks()` calls)
 - [ ] A domain workflow section (e.g. `### Implementing`, `### Testing Workflow`, `### First Spawn`)
@@ -401,25 +412,28 @@ across web-dev, research, and marketing domains. Match their depth and structure
 
 Write to `.relay/agents.pool.yml` using the Write tool (`mkdir -p .relay` via Bash first).
 Include a header comment and the top-level language field (if chosen):
+
 ```yaml
 # Auto-generated by relay on {date}. Customize freely.
 # Project: {domain} ({tech stack summary})
 # To regenerate: delete this file and run /relay:relay again.
 
-language: "{chosen_language}"   # omit this line entirely when chosen_language is null
+language: "{chosen_language}" # omit this line entirely when chosen_language is null
 ```
 
 The `language` field sets a global default for all agents. Individual agents can override it:
+
 ```yaml
-language: "Korean"        # global default
+language: "Korean" # global default
 agents:
   pm:
     # ...uses Korean (inherits global)
   be:
-    language: "English"   # this agent responds in English instead
+    language: "English" # this agent responds in English instead
 ```
 
 Add shared blocks for reusable prompt sections and an optional review checklist:
+
 ```yaml
 shared_blocks:
   on_each_spawn: |
@@ -442,6 +456,7 @@ review_checklist: |
 ### Step 4: Report and Continue
 
 Show brief summary:
+
 ```
 Auto-generated agent pool for your {domain} project:
   pm — Product Manager
@@ -470,67 +485,70 @@ Go directly to pool selection below.
    - If it returns 0 entries and auto-pool was not just generated, this is an error — stop.
 
 2. Ask the user using the **AskUserQuestion** tool:
+
    > "What kind of task is this? (e.g. 'build a web feature', 'conduct market research',
    > 'write a legal contract review')"
 
 3. **Pool Gap Analysis** — check if the pool covers the task before suggesting a team:
 
    a. Compare the task description/intent against each pool agent's `tags` and `description`.
-      Assess coverage:
-      - **Sufficient**: 2+ pool agents clearly match the task domain → skip to step 4.
-      - **Insufficient**: Fewer than 2 pool agents match the task domain (e.g. "market research"
-        but pool only has fe/be/qa, or "brainstorm product ideas" but pool has no research/strategy agents).
+   Assess coverage:
+   - **Sufficient**: 2+ pool agents clearly match the task domain → skip to step 4.
+   - **Insufficient**: Fewer than 2 pool agents match the task domain (e.g. "market research"
+     but pool only has fe/be/qa, or "brainstorm product ideas" but pool has no research/strategy agents).
 
    b. If coverage is **insufficient**, suggest pool expansion to the user:
-      ```
-      Your current pool doesn't have agents well-suited for this task.
-      Want to add these agents to the pool?
 
-      + 🔬 researcher — Research Analyst (source gathering, competitive analysis, synthesis)
-      + 💡 strategist — Strategist (idea synthesis, action plans)
+   ```
+   Your current pool doesn't have agents well-suited for this task.
+   Want to add these agents to the pool?
 
-      [Add to pool permanently] / [Use for this session only] / [Proceed with current pool] / [Edit manually]
-      ```
-      (Present this message in the user's conversation language, not necessarily English.)
+   + 🔬 researcher — Research Analyst (source gathering, competitive analysis, synthesis)
+   + 💡 strategist — Strategist (idea synthesis, action plans)
 
-      Generate suggestions by:
-      - Analyzing what role types the task requires (research, writing, design, analysis, strategy, etc.)
-      - Checking which of those role types are missing from the current pool
-      - Proposing 1-3 new agents with names, emojis, descriptions, tags, tools, and full systemPrompts
-      - Following **ALL Agent Prompt Design Principles** for new agents — especially mandatory
-        prompt sections (On Each Spawn, Domain Workflow, Declaring End, Rules)
-      - Use the **Knowledge Worker** role-type template for non-implementation roles
+   [Add to pool permanently] / [Use for this session only] / [Proceed with current pool] / [Edit manually]
+   ```
+
+   (Present this message in the user's conversation language, not necessarily English.)
+
+   Generate suggestions by:
+   - Analyzing what role types the task requires (research, writing, design, analysis, strategy, etc.)
+   - Checking which of those role types are missing from the current pool
+   - Proposing 1-3 new agents with names, emojis, descriptions, tags, tools, and full systemPrompts
+   - Following **ALL Agent Prompt Design Principles** for new agents — especially mandatory
+     prompt sections (On Each Spawn, Domain Workflow, Declaring End, Rules)
+   - Use the **Knowledge Worker** role-type template for non-implementation roles
 
    c. Use the **Common Role Catalog** below to quickly identify suggestions:
 
-      | Task Domain | Suggested Agents | Key Tags |
-      |-------------|-----------------|----------|
-      | Research / Analysis | researcher, data-scientist, technical-writer | research, synthesis, evidence |
-      | Marketing / Growth | strategist, copywriter, growth-analyst | marketing, campaigns, content |
-      | Content / Documentation | technical-writer, editor | writing, documentation |
-      | Design / UX | designer, ux-researcher | design, ux, ui |
-      | DevOps / Infrastructure | devops, sre | infra, deployment, ci-cd |
-      | Security Audit | security, penetration-tester | security, audit, compliance |
-      | Strategy / Planning | strategist, analyst | strategy, planning, ideation |
-      | Legal / Compliance | legal-analyst, compliance-reviewer | legal, compliance, regulation |
+   | Task Domain             | Suggested Agents                             | Key Tags                      |
+   | ----------------------- | -------------------------------------------- | ----------------------------- |
+   | Research / Analysis     | researcher, data-scientist, technical-writer | research, synthesis, evidence |
+   | Marketing / Growth      | strategist, copywriter, growth-analyst       | marketing, campaigns, content |
+   | Content / Documentation | technical-writer, editor                     | writing, documentation        |
+   | Design / UX             | designer, ux-researcher                      | design, ux, ui                |
+   | DevOps / Infrastructure | devops, sre                                  | infra, deployment, ci-cd      |
+   | Security Audit          | security, penetration-tester                 | security, audit, compliance   |
+   | Strategy / Planning     | strategist, analyst                          | strategy, planning, ideation  |
+   | Legal / Compliance      | legal-analyst, compliance-reviewer           | legal, compliance, regulation |
 
-      For roles not in this table, generate from scratch following the Knowledge Worker template.
+   For roles not in this table, generate from scratch following the Knowledge Worker template.
 
    d. If user chooses **"Add to pool permanently"**:
-      - Generate full agent entries following the Role-Type Prompt Structure Reference
-      - Respect `language` setting — write systemPrompts in the pool's configured language
-      - Append the new agents to `.relay/agents.pool.yml` (under the existing `agents:` block)
-        with a comment: `# Added for: {brief task description}`
-      - **Keep the generated agent definitions in memory** — when writing the session-agents file
-        in step 6, include these agents directly rather than relying on `list_pool_agents`
-        (the server may cache pool data and not reflect the just-appended entries)
-      - Continue to step 4 with the expanded pool
+   - Generate full agent entries following the Role-Type Prompt Structure Reference
+   - Respect `language` setting — write systemPrompts in the pool's configured language
+   - Append the new agents to `.relay/agents.pool.yml` (under the existing `agents:` block)
+     with a comment: `# Added for: {brief task description}`
+   - **Keep the generated agent definitions in memory** — when writing the session-agents file
+     in step 6, include these agents directly rather than relying on `list_pool_agents`
+     (the server may cache pool data and not reflect the just-appended entries)
+   - Continue to step 4 with the expanded pool
 
    d2. If user chooses **"Use for this session only"**:
-      - Generate full agent entries (same quality as permanent additions)
-      - Do NOT append to `.relay/agents.pool.yml` — keep definitions only in memory
-      - Write them directly into the session-agents file in step 6
-      - Continue to step 4
+   - Generate full agent entries (same quality as permanent additions)
+   - Do NOT append to `.relay/agents.pool.yml` — keep definitions only in memory
+   - Write them directly into the session-agents file in step 6
+   - Continue to step 4
 
    e. If user declines: continue with the existing pool.
 
@@ -613,14 +631,16 @@ Before creating tasks, the PM evaluates the user's request clarity on 3 dimensio
 3. **Success Criteria** — Are outcomes measurable? (e.g. "timer stops when session ends" = measurable; "make it better" = not)
 
 **Decision:**
+
 - **Clear request** (specific files/features/bugs mentioned, OR a plan file provided) → proceed directly to task creation.
 - **Ambiguous request** (vague goal, no constraints, no success criteria) → PM posts a `session-brief` artifact with:
   - What IS clear from the request
   - What is AMBIGUOUS (list 2-3 specific unknowns)
   - Suggested clarifying questions (2-3 max)
-  Then declares `end:waiting | ambiguity: clarification needed`
+    Then declares `end:waiting | ambiguity: clarification needed`
 
 The orchestrator detects this special `ambiguity:` prefix in the end:waiting reason and:
+
 1. Reads the `session-brief` artifact to extract the PM's questions
 2. Asks the user using AskUserQuestion with the PM's suggested questions
 3. Re-spawns the PM with the user's answers appended to the context
@@ -651,6 +671,7 @@ Call `list_agents(agent_id: "orchestrator", session_id: "{session_id}")` to get 
 Cache the result — it will be referenced throughout.
 
 Separate agents into:
+
 - **Base agents**: all agents returned by list_agents
 - **Reviewer agents**: spawned on demand when a "Review requested: {id}" broadcast is detected
 
@@ -659,12 +680,14 @@ Separate agents into:
 **State restore check (re-entry guard):**
 Before building system prompts, call `get_orchestrator_state(agent_id: "orchestrator")`.
 If the returned state is non-null, parse it and restore:
+
 - `dormant_agents`, `done_agents`, `spawned_reviewers`, `last_seen_seq`, `agent_last_seen`, `base_agents`, `generation`
 - Skip re-spawning agents already in `done_agents` — they have finished work
 - Use the restored `base_agents` list as the authoritative count for the while condition
 
 **Language detection:**
 After calling `list_agents`, determine the session language:
+
 - Collect all non-null `language` values from the agent list.
 - If all non-null `language` values are the same (e.g. all set to "Korean") → use that as `sessionLanguage`. If they differ, default to English.
 - If all agents have null language → use English (default).
@@ -678,6 +701,7 @@ After calling `list_agents`, determine the session language:
 Below is a Korean example for reference; apply the same approach for any language.
 
 **Task Board Discipline (Korean):**
+
 ```
 ## 태스크 보드 규율
 - 작업 시작 전 반드시 claim_task를 호출합니다 (원자적으로 in_progress 마킹).
@@ -686,6 +710,7 @@ Below is a Korean example for reference; apply the same approach for any languag
 ```
 
 **Visibility (Korean):**
+
 ```
 ## 가시성
 - 주요 작업 전 broadcast_thinking(content: "수행할 작업")을 호출합니다.
@@ -693,6 +718,7 @@ Below is a Korean example for reference; apply the same approach for any languag
 ```
 
 **Mandatory Communication Protocol (Korean):**
+
 ```
 ## 필수 커뮤니케이션 프로토콜
 중요한 시점에 반드시 send_message를 호출해야 합니다:
@@ -703,6 +729,7 @@ Below is a Korean example for reference; apply the same approach for any languag
 ```
 
 Spawn all base agents simultaneously. For each agent:
+
 1. Load persona from the cached `list_agents` result.
 2. Load memory: `read_memory(agent_id: "{agentId}")` (personal memory) + `read_memory()` (project.md).
    - For recent session history, call `list_sessions` then `get_session_summary` on the last 1–2 sessions only when the task requires historical context (e.g. "continue from last session").
@@ -724,12 +751,14 @@ Spawn all base agents simultaneously. For each agent:
    ```
 
 **The agent whose name or description suggests a coordinator/PM role** receives the user's original request appended to its system prompt:
+
 ```
 ## Current Task
 {user's original request}
 ```
 
 **All other agents** receive:
+
 ```
 ## Session Start
 Session {session_id} has begun. The coordinator is analyzing requirements and will broadcast tasks shortly.
@@ -740,6 +769,7 @@ to see if tasks have already been created.
 If no clear coordinator exists, prepend the task to the first agent alphabetically.
 
 **All agents** also receive this discipline note appended to their system prompt:
+
 ```
 ## Task Board Discipline
 - Always claim_task before starting work on a task (marks it in_progress atomically).
@@ -784,6 +814,7 @@ the orchestrator cannot detect your completion and the team loses visibility int
 ```
 
 **QA agents** (agents whose `name`, `description`, or `tags` include "QA", "quality", or "test") additionally receive this evaluation protocol appended to their system prompt:
+
 ```
 ## Semantic Evaluation (Stage 2)
 After Stage 1 mechanical checks (build, test, lint) pass, perform semantic verification:
@@ -804,6 +835,7 @@ After Stage 1 mechanical checks (build, test, lint) pass, perform semantic verif
 After all agent spawns return, **immediately** call `get_messages(agent_id: "orchestrator")`.
 
 For each base agent, determine their state:
+
 - Message starts with `end:waiting` → add to `dormant_agents` with reason
 - Message starts with `end:_done` → add to `done_agents` with summary
 - Message starts with `end:failed` → report failure to user
@@ -815,6 +847,7 @@ Then immediately enter the Main Event Loop below.
 ## Orchestrator Role Boundaries — CRITICAL
 
 The orchestrator is a **pure coordinator**. It MUST NOT:
+
 - Use Edit, Write, or any file-modification tool
 - Use Bash to run implementation commands
 - Fix bugs, write code, or implement tasks directly — even simple ones
@@ -1021,12 +1054,13 @@ When the QA agent declares `end:_done`, check for evolution triggers before proc
    b. Check generation cap: if `generation > 3`, warn user and ask whether to continue or wrap up
    c. Log: `"Evolution: Generation {N} → {N+1}. QA found {count} issues."`
    d. The stranded todo check (step 4) will automatically detect the new fix tasks
-      and re-spawn the responsible agents. No special logic needed —
-      the existing event loop handles it.
+   and re-spawn the responsible agents. No special logic needed —
+   the existing event loop handles it.
    e. When those agents complete and QA has new todo tasks from the fix cycle,
-      re-spawn QA for the next verification round.
+   re-spawn QA for the next verification round.
 
 The evolution loop terminates when:
+
 - QA passes with no new issues (natural convergence)
 - Generation cap (3) is reached
 - User manually stops
@@ -1055,6 +1089,7 @@ When re-spawning a dormant agent:
 4. Fetch current task state for the Re-spawn Context block:
    - `my_tasks = get_all_tasks(agent_id: "orchestrator", assignee: "{agentId}")`
 5. Inject re-spawn context into their system prompt:
+
 ```
 ## Re-spawn Context
 You were waiting. Here is what has happened since your last run:
@@ -1067,6 +1102,7 @@ Your current tasks:
 
 Resume your work. Call get_messages() first to read the full history.
 ```
+
 6. Spawn with their allowed tools.
 7. Collect their new `end:` declaration.
 
@@ -1080,6 +1116,7 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
      This handles the common pattern where a reviewer inherits the implementer's persona.
 
 2. Inject reviewer context into the system prompt:
+
    ```
    ## Reviewer Role
    You are acting as a peer reviewer (agent_id: {reviewerId}).
@@ -1093,6 +1130,7 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
 
 3. If the reviewee (the agent whose code is being reviewed) has a `review_checklist` field in the `list_agents` cache,
    append to the reviewer's system prompt:
+
    ```
    ## Review Checklist (Fix-First Framework)
    Apply this checklist to the code under review:
@@ -1126,7 +1164,7 @@ Triggered when any agent broadcasts "Review requested: {reviewerId}".
 **Note for teams without explicit reviewer agents:**
 Agents can review each other's work by naming any active agent as reviewer.
 Example: a research team where `researcher_b` reviews `researcher_a`'s paper:
-  send_message(to: null, "Review requested: researcher_b please review paper artifact {id}")
+send_message(to: null, "Review requested: researcher_b please review paper artifact {id}")
 
 ### Reviewer Selection for Low Confidence
 
@@ -1138,6 +1176,7 @@ When an agent declares `end:_done` with confidence < 0.7, the orchestrator selec
 4. **Skip**: If only one agent + no architect, log warning and proceed without auto-review
 
 The reviewer is spawned using the existing Reviewer Spawn Pattern with additional context:
+
 ```
 ## Low-Confidence Review
 Agent {agentId} completed with confidence {score}.
@@ -1157,13 +1196,13 @@ When `len(done_agents) == len(base_agents) + len(spawned_reviewers)`:
    - Include `Generations: {generation}` in the summary.
    - If `generation > 1`, note which issues were found and fixed in each generation
      (extract from QA reports and fix task history).
-1b. Delete orchestrator session state file (disables the Stop hook for this session):
+     1b. Delete orchestrator session state file (disables the Stop hook for this session):
    ```bash
    rm -f "${RELAY_DIR:-.relay}/orchestrator-${RELAY_SESSION_ID}.json"
    ```
-1c. If `.relay/memory/project.md` does not exist:
-    The PM/coordinator writes project.md summarizing what the team
-    learned (via `write_memory` with no `agent_id`, or direct file write).
+   1c. If `.relay/memory/project.md` does not exist:
+   The PM/coordinator writes project.md summarizing what the team
+   learned (via `write_memory` with no `agent_id`, or direct file write).
 2. Clean up: delete `.relay/session-agents-{session_id}.yml` — it is ephemeral and gitignored.
 3. Report results to the user.
 
@@ -1179,6 +1218,7 @@ When running multiple relay servers simultaneously (e.g. two projects in separat
   two relay MCP servers registered, use the correct one's skill invocation.
 
 Example `.mcp.json` for two instances:
+
 ```json
 {
   "mcpServers": {

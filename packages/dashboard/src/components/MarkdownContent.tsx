@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/MarkdownContent.tsx
 // Lightweight dependency-free markdown renderer
-
 import type { ReactNode } from "react";
 import { memo } from "react";
+
 import { cn } from "../lib/cn";
 
 // Inline element parser: **bold**, *italic*, `code`
@@ -20,7 +20,7 @@ function renderInline(text: string): ReactNode[] {
       return (
         <code
           key={i}
-          className="font-mono text-[11px] bg-(--color-surface-overlay) text-(--color-text-primary) px-1 rounded-[3px]"
+          className="rounded-[3px] bg-(--color-surface-overlay) px-1 font-mono text-[11px] text-(--color-text-primary)"
         >
           {part.slice(1, -1)}
         </code>
@@ -28,7 +28,7 @@ function renderInline(text: string): ReactNode[] {
     }
     if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
       return (
-        <em key={i} className="italic text-(--color-text-secondary)">
+        <em key={i} className="text-(--color-text-secondary) italic">
           {part.slice(1, -1)}
         </em>
       );
@@ -59,10 +59,10 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       nodes.push(
         <pre
           key={`block-${index++}`}
-          className="my-2 overflow-x-auto bg-(--color-surface-inset) border border-(--color-border-subtle) rounded p-[8px_12px]"
+          className="my-2 overflow-x-auto rounded border border-(--color-border-subtle) bg-(--color-surface-inset) p-[8px_12px]"
         >
           {lang && (
-            <div className="font-mono uppercase text-[10px] text-(--color-text-disabled) mb-1.5 tracking-[0.05em]">
+            <div className="mb-1.5 font-mono text-[10px] tracking-[0.05em] text-(--color-text-disabled) uppercase">
               {lang}
             </div>
           )}
@@ -95,7 +95,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       nodes.push(
         <p
           key={`block-${index++}`}
-          className="mt-1.5 mb-0.5 text-xs font-semibold uppercase tracking-wide text-(--color-text-secondary)"
+          className="mt-1.5 mb-0.5 text-xs font-semibold tracking-wide text-(--color-text-secondary) uppercase"
         >
           {renderInline(line.slice(depth))}
         </p>
@@ -120,7 +120,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
       }
       nodes.push(
         <div key={`block-${index++}`} className="my-1.5 overflow-x-auto">
-          <table className="text-xs w-full border-collapse">
+          <table className="w-full border-collapse text-xs">
             <tbody>
               {rows.map((row, ri) => (
                 <tr key={ri} className={ri === 0 ? "border-b border-(--color-border-subtle)" : ""}>
@@ -130,7 +130,7 @@ export const MarkdownContent = memo(function MarkdownContent({ text }: { text: s
                       className={cn(
                         "py-1 pr-4",
                         ri === 0
-                          ? "text-(--color-text-secondary) font-medium"
+                          ? "font-medium text-(--color-text-secondary)"
                           : "text-(--color-text-primary)"
                       )}
                     >

@@ -1,7 +1,12 @@
 // packages/server/src/store.test.ts
 // Tests for store.ts edge cases not covered by the existing db/queries/* tests.
 import { beforeEach, describe, expect, test } from "bun:test";
+
 import {
+  MAX_ARTIFACTS_PER_SESSION,
+  MAX_MESSAGES_PER_SESSION,
+  MAX_REVIEWS_PER_SESSION,
+  MAX_TASKS_PER_SESSION,
   _resetStore,
   getAllSessions,
   getArtifactByName,
@@ -11,10 +16,6 @@ import {
   insertMessage,
   insertReview,
   insertTask,
-  MAX_ARTIFACTS_PER_SESSION,
-  MAX_MESSAGES_PER_SESSION,
-  MAX_REVIEWS_PER_SESSION,
-  MAX_TASKS_PER_SESSION,
 } from "./store";
 
 beforeEach(() => {

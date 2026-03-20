@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/CollapsedGroup.tsx
 // Renders a group of consecutive same-type entries, collapsing when >= 3 entries.
-
 import { memo } from "react";
+
 import type { TimelineEntry } from "../../types";
 import { EntryRenderer } from "./EntryRenderer";
 
@@ -90,7 +90,7 @@ export const CollapsedGroup = memo(function CollapsedGroup({
       <button
         type="button"
         onClick={onToggleExpand}
-        className="text-xs text-(--color-text-secondary) pl-10 py-0.5 hover:underline cursor-pointer"
+        className="cursor-pointer py-0.5 pl-10 text-xs text-(--color-text-secondary) hover:underline"
       >
         +{group.entries.length - 2} more
       </button>

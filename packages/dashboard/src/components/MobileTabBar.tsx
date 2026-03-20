@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/MobileTabBar.tsx
 // Bottom tab bar for mobile layout — switches between Agents, Activity, and Tasks panels.
-
 import type React from "react";
 import { memo } from "react";
+
 import { cn } from "../lib/cn";
 
 export type MobileTab = "agents" | "activity" | "tasks";
@@ -71,7 +71,7 @@ interface Props {
 export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange, badges }: Props) {
   return (
     <nav
-      className="flex items-center justify-around h-12 shrink-0 border-t border-(--color-border-default) bg-(--color-surface-base)"
+      className="flex h-12 shrink-0 items-center justify-around border-t border-(--color-border-default) bg-(--color-surface-base)"
       style={{
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
       }}
@@ -85,7 +85,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             type="button"
             onClick={() => onTabChange(tab.id)}
             className={cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full border-none bg-transparent cursor-pointer transition-colors duration-100",
+              "flex h-full flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 border-none bg-transparent transition-colors duration-100",
               isActive ? "text-(--color-accent)" : "text-(--color-text-disabled)"
             )}
             aria-label={tab.label}
@@ -94,7 +94,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             <div className="relative">
               {tab.icon}
               {badge !== undefined && badge > 0 && (
-                <span className="absolute -top-1 -right-2 min-w-[14px] h-[14px] flex items-center justify-center text-[8px] font-mono font-bold text-white bg-(--color-accent) rounded-full px-[3px] leading-none">
+                <span className="absolute -top-1 -right-2 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-(--color-accent) px-[3px] font-mono text-[8px] leading-none font-bold text-white">
                   {badge > 99 ? "99+" : badge}
                 </span>
               )}
@@ -102,7 +102,7 @@ export const MobileTabBar = memo(function MobileTabBar({ activeTab, onTabChange,
             <span className="text-[10px] font-medium tracking-[0.02em]">{tab.label}</span>
             {/* Active indicator — bottom bar */}
             {isActive && (
-              <span className="absolute bottom-0 w-8 h-[2px] rounded-full bg-(--color-accent)" />
+              <span className="absolute bottom-0 h-[2px] w-8 rounded-full bg-(--color-accent)" />
             )}
           </button>
         );

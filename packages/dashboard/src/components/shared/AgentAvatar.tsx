@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/shared/AgentAvatar.tsx
 // Shared agent avatar — circular chip with accent color and first 2 chars of agent_id.
 // aria-hidden="true" because the surrounding AgentChip provides the accessible label.
-
 import { useMemo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 
 interface Props {
@@ -29,7 +29,7 @@ export function AgentAvatar({ agentId, size = 28 }: Props) {
   return (
     <div
       aria-hidden="true"
-      className="rounded-full flex items-center justify-center font-bold shrink-0 select-none font-mono tracking-[-0.02em]"
+      className="flex shrink-0 items-center justify-center rounded-full font-mono font-bold tracking-[-0.02em] select-none"
       style={style}
     >
       {agentId.slice(0, 2).toUpperCase()}

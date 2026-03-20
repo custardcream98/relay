@@ -1,8 +1,8 @@
 // packages/server/src/tools/register-messaging.ts
 // Registers send_message and get_messages MCP tools on the server.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import { getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA, GENERIC_ID_SCHEMA } from "../schemas.js";

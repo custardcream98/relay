@@ -1,6 +1,5 @@
 // packages/dashboard/src/components/activity/TimeSeparator.tsx
 // Compact horizontal divider inserted when >60s gap between consecutive timeline entries.
-
 import { memo } from "react";
 
 /** Format timestamp as HH:MM (absolute time — more useful in a timeline than "3 mins ago") */

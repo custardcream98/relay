@@ -1,8 +1,8 @@
 // packages/server/src/config.ts
 // Shared config module that resolves the project root from the MCP client (Claude Code).
-
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
 import { isValidId } from "./utils/validate.js";
 
 // Project root received via MCP roots/list — set by setProjectRoot() after startMcpServer()

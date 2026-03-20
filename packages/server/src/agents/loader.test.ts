@@ -1,5 +1,6 @@
 // packages/server/src/agents/loader.test.ts
 import { describe, expect, test } from "bun:test";
+
 import { injectLanguageDirective, loadAgents, loadPool, validatePromptSections } from "./loader";
 import type { AgentsFile } from "./types";
 

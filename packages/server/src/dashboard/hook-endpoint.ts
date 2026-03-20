@@ -1,8 +1,8 @@
 // packages/server/src/dashboard/hook-endpoint.ts
 // Extracted from hono.ts — handles the PostToolUse hook endpoint and agent-joined tracking.
-
 import type { Hono } from "hono";
 import { markAsAgentId } from "relay-shared";
+
 import { getAgents } from "../agents/cache.js";
 import { getSessionId } from "../config.js";
 import { isValidId } from "../utils/validate.js";

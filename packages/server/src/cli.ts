@@ -1,6 +1,5 @@
 // packages/server/src/cli.ts
 // CLI argument parsing and validation (no external deps).
-
 import { isValidId } from "./utils/validate.js";
 
 export interface CliArgs {

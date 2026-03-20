@@ -26,16 +26,19 @@ The MCP server handles all inter-agent communication infrastructure.
 ## Architecture Principles
 
 ### MCP server is the communication infrastructure
+
 - The relay MCP server never calls the Claude API directly
 - The server acts only as a message bus, task board, artifact store, and memory layer
 - All AI processing is handled by Claude Code's Agent tool
 
 ### Agents communicate only through MCP tools
+
 - No direct agent-to-agent calls
 - All communication must go through MCP tools: `send_message`, `create_task`, etc.
 - Peer-to-peer — no orchestrator
 
 ### Dual memory structure
+
 - **Session memory**: in-memory store (messages, tasks, artifacts) — ephemeral within a process
 - **Project memory**: `.relay/memory/` Markdown files — persisted across sessions
 - Memory is injected into each agent's system prompt at session start
@@ -43,6 +46,7 @@ The MCP server handles all inter-agent communication infrastructure.
 - **Orchestrator state** (`save_orchestrator_state` / `get_orchestrator_state`): also in-memory — survives context compaction within the same process but is lost on MCP server restart. If the server restarts mid-session, orchestrator state cannot be recovered; agents should start a fresh session.
 
 ### Personas are configured in YAML (pool-only)
+
 - Team composition happens per-session from the pool. Every `/relay:relay` invocation selects a task-optimised team.
 - `agents.pool.example.yml`: 12+ diverse agent personas across web-dev, research, and marketing domains. Reference for building your own pool.
 - `.relay/agents.pool.yml`: project-level pool (takes priority). Copy from `agents.pool.example.yml` and customise.
@@ -56,25 +60,30 @@ The MCP server handles all inter-agent communication infrastructure.
 - `review_checklist` at pool top level: default review criteria for all agents; per-agent override via `review_checklist` field in agent config. Exposed in `list_agents` and `list_pool_agents` API responses.
 
 ### Install modes (global / local)
+
 - Global (user scope): `/plugin install relay@relay`
 - Local (project scope): `/plugin install relay@relay --scope project`
 - Local overrides global
 
 ### Multi-server support
+
 Run multiple relay instances simultaneously without port or session data conflicts.
 
 Environment variables:
+
 - `DASHBOARD_PORT`: HTTP/WebSocket port (default: auto-selected from 3456–3465)
 - `RELAY_INSTANCE`: instance name (e.g. `project-a`). When set, the DB file becomes `.relay/relay-{instance}.db`. The SKILL.md orchestrator prefixes session IDs with the instance name (`project-a-2026-03-14-007-a3f7`).
 - `RELAY_SESSION_ID`: session identifier (default: auto-generated `YYYY-MM-DD-HHmmss-XXXX` in UTC on first call, where `XXXX` is 4 random hex digits).
 
 CLI args (alternative to env vars):
+
 - `relay --port 3457` — set dashboard port
 - `relay --instance project-b` — set instance name (equivalent to RELAY_INSTANCE)
 
 Auto port selection: if `DASHBOARD_PORT` is not set and 3456 is occupied, the server tries 3457–3465 before falling back.
 
 Example `.mcp.json` for two instances (plugin sets this automatically via `${CLAUDE_PLUGIN_ROOT}`):
+
 ```json
 {
   "mcpServers": {
@@ -173,9 +182,10 @@ Git-hook style shell commands declared per-agent in the pool YAML. The MCP serve
 
 ```yaml
 hooks:
-  before_task: "echo before"          # string or list of strings
+  before_task: "echo before" # string or list of strings
   after_task:
-    - bunx biome check --write
+    - bunx eslint --fix .
+    - bunx prettier --write .
     - bun tsc --noEmit
 ```
 
@@ -193,6 +203,7 @@ hooks:
 3. At session end, agents update memory and archive the session
 
 ### Event-driven collaboration model
+
 - All agents start at the same time (no phases)
 - Agents use `claim_task` to atomically pick up work (race-condition safe)
 - Agents broadcast `end:waiting` or `end:_done` when they have no more work
@@ -202,17 +213,20 @@ hooks:
 ## Dashboard Requirements
 
 ### Agent Arena
+
 - Renders pool agents + session-only agents (merged via `AgentArenaPanel`)
 - `agent:joined` WebSocket event includes `name` and `emoji` resolved from session agent cache
 - `session:snapshot` prefers session agents over pool for accurate team display
 - `session:started` triggers agent list re-fetch (picks up auto-generated pool)
 
 ### Three panels
+
 1. **Task Board (Kanban)**: updates instantly on task state changes
 2. **Message Feed**: displays inter-agent messages as Slack-style threads
 3. **Agent Thoughts**: streams the selected agent's reasoning (text before tool calls) in realtime
 
 ### WebSocket event types
+
 All events follow `{ type, payload, timestamp, agentId }` structure.
 
 ```typescript
@@ -224,10 +238,11 @@ type RelayEvent =
   | { type: "artifact:posted"; artifact: Artifact }
   | { type: "review:requested"; review: ReviewRequest }
   | { type: "memory:updated"; agentId: string }
-  | { type: "agent:joined"; agentId: string; name?: string; emoji?: string }
+  | { type: "agent:joined"; agentId: string; name?: string; emoji?: string };
 ```
 
 ### History replay
+
 - All events are stored in-memory with timestamps during the session
 - The dashboard supports selecting a session and replaying the entire process
 
@@ -252,7 +267,7 @@ Version source of truth: `.claude-plugin/plugin.json`.
 bun run bump patch   # bumps version → builds release → commits → tags → pushes → creates GitHub Release
 ```
 
-Pre-commit hook runs `biome check` + `tsc --noEmit` + `bun test` on every commit.
+Pre-commit hook runs `eslint` + `prettier` + `tsc --noEmit` + `bun test` on every commit.
 No CI/CD for build/test — all quality checks are local. Only `deploy-docs.yml` remains for GitHub Pages.
 
 ## Notes

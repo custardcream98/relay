@@ -1,9 +1,9 @@
 // packages/server/src/tools/register-sessions.ts
 // Registers save_session_summary, list_sessions, get_session_summary, start_session,
 // save_orchestrator_state, and get_orchestrator_state MCP tools on the server.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import { getRelayDir, getSessionId, setSessionId } from "../config.js";
 import { _resetStatusDebounce } from "../dashboard/status-debounce.js";
 import { broadcast } from "../dashboard/websocket.js";

@@ -1,6 +1,7 @@
 // packages/server/src/agents/cache.ts tests
 // Tests for getAgents path-traversal guard.
 import { beforeEach, describe, expect, test } from "bun:test";
+
 import { _invalidateCache, getAgents } from "./cache";
 
 beforeEach(() => {

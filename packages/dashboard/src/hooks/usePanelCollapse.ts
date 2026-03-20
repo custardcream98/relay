@@ -1,7 +1,6 @@
 // packages/dashboard/src/hooks/usePanelCollapse.ts
 // Manages collapse/expand state for the two collapsible panels (AgentArena + TaskBoard).
 // Intentionally separate from usePanelResize — collapse has no relationship to drag/resize logic.
-
 import { useCallback, useState } from "react";
 
 export interface PanelCollapseState {

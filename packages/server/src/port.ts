@@ -1,7 +1,7 @@
 // packages/server/src/port.ts
 // Dashboard port resolution with auto-selection.
-
 import { createServer } from "node:net";
+
 import type { CliArgs } from "./cli.js";
 
 export const PORT_AUTO_START = 3456;

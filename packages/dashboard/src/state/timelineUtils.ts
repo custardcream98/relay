@@ -1,6 +1,5 @@
 // packages/dashboard/src/state/timelineUtils.ts
 // Timeline entry helpers extracted from dashboardReducer.ts for modularity.
-
 import type { DashboardEvent, TimelineEntry } from "../types";
 
 /**

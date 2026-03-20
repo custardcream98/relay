@@ -1,8 +1,8 @@
 // packages/server/src/dashboard/serve.ts
 // Dashboard HTTP server bootstrap with EADDRINUSE retry.
-
 import { serve } from "@hono/node-server";
-import { findAvailablePort, PORT_AUTO_END, PORT_AUTO_START } from "../port.js";
+
+import { PORT_AUTO_END, PORT_AUTO_START, findAvailablePort } from "../port.js";
 import { app } from "./hono.js";
 
 export type DashboardResult = { server: ReturnType<typeof serve>; port: number } | null;

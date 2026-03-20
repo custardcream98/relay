@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/EndDeclarationEntry.tsx
 // [G] End declaration — compact card with avatar for clear agent attribution
-
 import { memo, useMemo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 import { cn } from "../../lib/cn";
 import { relativeTime } from "../../utils/time";
@@ -38,7 +38,7 @@ export const EndDeclarationEntry = memo(function EndDeclarationEntry({
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-4 py-1.5 border-b border-(--color-border-subtle)",
+        "flex items-center gap-2 border-b border-(--color-border-subtle) px-4 py-1.5",
         SLIDE_IN
       )}
       style={containerStyle}
@@ -55,7 +55,7 @@ export const EndDeclarationEntry = memo(function EndDeclarationEntry({
             ? "work complete"
             : "work failed"}
       </span>
-      <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
+      <span className="ml-auto font-mono text-[10px] text-(--color-text-disabled)">
         {relativeTime(timestamp)}
       </span>
     </div>

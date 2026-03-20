@@ -1,6 +1,5 @@
 // packages/dashboard/src/components/activity/EntryRenderer.tsx
 // Route an entry to the correct renderer
-
 import type { TimelineEntry } from "../../types";
 import { ArtifactEntry } from "./ArtifactEntry";
 import { MessageBroadcastEntry } from "./MessageBroadcastEntry";

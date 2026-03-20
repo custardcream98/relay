@@ -1,9 +1,9 @@
 // packages/server/src/tools/register-memory.ts
 // Registers read_memory, write_memory, and append_memory MCP tools on the server.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { markAsAgentId } from "relay-shared";
 import { z } from "zod";
+
 import { getRelayDir } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";

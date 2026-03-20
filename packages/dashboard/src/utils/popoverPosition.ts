@@ -1,7 +1,6 @@
 // packages/dashboard/src/utils/popoverPosition.ts
 // Shared popover positioning logic — used by TaskDetailModal and ArtifactDetailModal.
 // Handles mobile bottom-sheet and desktop anchored positioning.
-
 import type React from "react";
 
 interface PopoverPositionOptions {

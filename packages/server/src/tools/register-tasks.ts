@@ -1,8 +1,8 @@
 // packages/server/src/tools/register-tasks.ts
 // Registers create_task, update_task, claim_task, and get_all_tasks MCP tools on the server.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import { getAgents } from "../agents/cache.js";
 import { getProjectRoot, getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";

@@ -1,7 +1,7 @@
 // packages/dashboard/src/state/snapshotHandler.ts
 // Snapshot application logic extracted from dashboardReducer.ts for modularity.
-
 import type { AgentId } from "relay-shared";
+
 import { getEndDeclarationType } from "../components/activity/helpers";
 import type { AgentMeta, DashboardEvent, Message, Task, TimelineEntry } from "../types";
 import type { DashboardState } from "./dashboardReducer";

@@ -1,6 +1,5 @@
 // packages/dashboard/src/hooks/useTheme.ts
 // Theme preference hook — persists to localStorage, applies data-theme to <html>
-
 import { useCallback, useEffect, useState } from "react";
 
 type Theme = "dark" | "light";

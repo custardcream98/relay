@@ -1,6 +1,8 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+
 import { handleAppendMemory, handleReadMemory, handleWriteMemory } from "./memory";
 
 const TEST_DIR = join(import.meta.dir, "../../.relay-test");

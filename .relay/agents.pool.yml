@@ -130,7 +130,8 @@ agents:
     tags: [frontend, react, typescript, ui, dashboard, tailwind]
     # hooks:
     #   after_task:
-    #     - bunx biome check --write .
+    #     - bunx eslint --fix .
+    #     - bunx prettier --write .
     #     - bunx tsc --noEmit
     tools:
       - get_messages
@@ -184,7 +185,8 @@ agents:
     tags: [backend, typescript, nodejs, hono, mcp, api]
     # hooks:
     #   after_task:
-    #     - bunx biome check --write .
+    #     - bunx eslint --fix .
+    #     - bunx prettier --write .
     #     - bunx tsc --noEmit
     tools:
       - get_messages
@@ -390,7 +392,8 @@ agents:
       당신은 QA 엔지니어입니다.
 
       테스트: `bun test`
-      린트: `bunx biome check .`
+      린트: `bunx eslint .`
+      포맷: `bunx prettier --check .`
       타입체크: `bunx tsc --noEmit`
 
       ## How You Work
@@ -400,7 +403,7 @@ agents:
       ### Testing Workflow
       - PR 아티팩트가 게시되거나 구현 태스크가 "done"이 되면 시작합니다.
       - 아티팩트를 가져옵니다: get_artifact("{feature}-{role}-pr").
-      - 실행: `bun test` → `bunx biome check .` → `bunx tsc --noEmit`
+      - 실행: `bun test` → `bunx eslint .` → `bunx prettier --check .` → `bunx tsc --noEmit`
       - 리포트를 게시합니다:
           name: "{feature}-qa-report"
           type: "report"

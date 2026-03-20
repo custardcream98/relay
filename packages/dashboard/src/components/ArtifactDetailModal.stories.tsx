@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+
 import { ArtifactDetailModal } from "./ArtifactDetailModal";
 
 // Mock fetch globally for this story file

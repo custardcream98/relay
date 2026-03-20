@@ -1,3 +1,5 @@
+import { exec } from "node:child_process";
+
 // packages/server/src/tools/hook-runner.ts
 // Git-hook style shell command executor for before_task / after_task hooks.
 // Never rejects — always resolves with a HookResult.
@@ -15,9 +17,7 @@
 //   DO NOT sanitize or escape hook command strings. Shell operators (pipes, &&, ||,
 //   semicolons) appearing in hook commands are intentional — they follow the same
 //   convention as package.json "scripts" where the developer is in full control.
-
 import type { ChildProcess } from "node:child_process";
-import { exec } from "node:child_process";
 
 const MAX_OUTPUT_CHARS = 2000;
 export const DEFAULT_BEFORE_TIMEOUT_MS = 30_000;

@@ -1,7 +1,7 @@
 // packages/server/src/dashboard/snapshot.ts
 // Builds the session:snapshot payload for initial WebSocket hydration.
-
 import type { AgentId, RelayEvent } from "relay-shared";
+
 import { getAgents } from "../agents/cache.js";
 import { loadPool } from "../agents/loader.js";
 import { getSessionId } from "../config.js";

@@ -2,8 +2,8 @@
 // Pure layout shell — manages panel geometry only.
 // Desktop: 3 panels side-by-side with resize dividers.
 // Mobile (<768px): panels stack vertically, no drag-to-resize.
-
 import { useCallback, useMemo, useState } from "react";
+
 import { usePanelLayout } from "../context/PanelResizeContext";
 import { useSession } from "../context/SessionContext";
 import { cn } from "../lib/cn";
@@ -28,7 +28,7 @@ function Divider({
   const dots = [0, 1, 2].map((i) => (
     <span
       key={i}
-      className="w-[3px] h-[3px] rounded-full bg-(--color-border-default) shrink-0 transition-colors duration-150 group-hover:bg-(--color-text-disabled)"
+      className="h-[3px] w-[3px] shrink-0 rounded-full bg-(--color-border-default) transition-colors duration-150 group-hover:bg-(--color-text-disabled)"
     />
   ));
 
@@ -37,11 +37,11 @@ function Divider({
       onMouseDown={onMouseDown}
       title="Drag to resize panels"
       className={cn(
-        "group shrink-0 items-center justify-center gap-[3px] hidden md:flex",
+        "group hidden shrink-0 items-center justify-center gap-[3px] md:flex",
         "bg-(--color-border-subtle) transition-colors duration-150 hover:bg-(--color-border-default)",
         isH
-          ? "w-[6px] self-stretch flex-col cursor-col-resize"
-          : "h-[6px] flex-row cursor-row-resize"
+          ? "w-[6px] cursor-col-resize flex-col self-stretch"
+          : "h-[6px] cursor-row-resize flex-row"
       )}
     >
       {dots}
@@ -59,17 +59,17 @@ export function AppLayout() {
   } = usePanelLayout();
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-(--color-surface-root) text-(--color-text-primary)">
+    <div className="flex h-screen flex-col overflow-hidden bg-(--color-surface-root) text-(--color-text-primary)">
       <AppHeader />
       <OfflineBanner />
 
       {/* Desktop layout: horizontal panels with resize dividers */}
-      <div className="hidden md:flex flex-1 overflow-hidden">
+      <div className="hidden flex-1 overflow-hidden md:flex">
         <AgentArenaPanel />
 
         {!arenaCollapsed && <Divider orientation="horizontal" onMouseDown={onHDividerMouseDown} />}
 
-        <div ref={activityRef} className="flex flex-col flex-1 overflow-hidden">
+        <div ref={activityRef} className="flex flex-1 flex-col overflow-hidden">
           <ActivityPanel />
 
           {!taskBoardCollapsed && (
@@ -107,9 +107,9 @@ function MobileLayout() {
   }, [agentStatuses, tasks]);
 
   return (
-    <div className="flex md:hidden flex-col flex-1 overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden md:hidden">
       {/* Active panel — only one rendered at a time */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {activeTab === "agents" && <AgentArenaPanel />}
         {activeTab === "activity" && <ActivityPanel />}
         {activeTab === "tasks" && <BottomPanel />}

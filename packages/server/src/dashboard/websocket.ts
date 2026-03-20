@@ -1,5 +1,6 @@
 // packages/server/src/dashboard/websocket.ts
 import type { WebSocket } from "ws";
+
 import { getSessionId } from "../config.js";
 import { insertEvent } from "../store.js";
 import type { RelayEvent } from "./events.js";

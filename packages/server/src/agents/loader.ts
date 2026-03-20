@@ -2,8 +2,10 @@
 // Loads agent personas from an explicit AgentsFile override or from the pool file.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import yaml from "js-yaml";
 import { markAsAgentId } from "relay-shared";
+
 import { getProjectRoot, getRelayDir } from "../config.js";
 import { isValidId } from "../utils/validate.js";
 import type { AgentHooks, AgentPersona, AgentsFile, ResolvedAgentHooks } from "./types.js";
@@ -231,8 +233,9 @@ function resolveExtendsAgents(
     const base = merged[config.extends] ?? poolAgents?.[config.extends];
     if (!base) {
       throw new Error(
-        `extends target "${config.extends}" not found or is disabled` +
-          (poolAgents ? " (searched current file and pool)" : "")
+        `extends target "${config.extends}" not found or is disabled${
+          poolAgents ? " (searched current file and pool)" : ""
+        }`
       );
     }
 

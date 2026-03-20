@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/TaskInlineEntry.tsx
 // [D] Task status change — inline pill, minimal visual weight
-
 import { memo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 import { cn } from "../../lib/cn";
 import type { TimelineEntry } from "../../types";
@@ -26,10 +26,10 @@ export const TaskInlineEntry = memo(function TaskInlineEntry({ entry }: { entry:
           {entry.agentId}
         </span>
       )}
-      <span className="text-[11px] text-(--color-text-tertiary) flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+      <span className="min-w-0 flex-1 overflow-hidden text-[11px] text-ellipsis whitespace-nowrap text-(--color-text-tertiary)">
         {entry.description}
       </span>
-      <span className="font-mono text-[10px] text-(--color-text-disabled) shrink-0">
+      <span className="shrink-0 font-mono text-[10px] text-(--color-text-disabled)">
         {relativeTime(entry.timestamp)}
       </span>
     </div>

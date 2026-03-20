@@ -1,7 +1,6 @@
 // packages/server/build.ts
 // Build script for relay server
 // Usage: bun run build.ts (called from root build:server script)
-
 import { execSync } from "node:child_process";
 import { chmod, cp } from "node:fs/promises";
 import { dirname, join } from "node:path";

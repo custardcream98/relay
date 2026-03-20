@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/ServerSwitcher.tsx
 // Server selector for multi-instance relay setups.
 // Renders null when only one server is present — zero UI cost for single-server users.
-
 import { useCallback, useRef, useState } from "react";
+
 import { usePopover } from "../hooks/usePopover";
 import { cn } from "../lib/cn";
 import type { ServerEntry } from "../types";
@@ -24,7 +24,7 @@ function StatusDot({ status }: { status: ServerEntry["status"] }) {
 
   return (
     <span
-      className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
+      className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
       style={{
         background: color,
         animation: status === "connecting" ? "server-connecting 1s step-end infinite" : undefined,
@@ -81,7 +81,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex items-center gap-[5px] px-2 py-[3px] rounded bg-(--color-surface-overlay) cursor-pointer font-mono text-[11px] text-(--color-text-secondary) transition-[border-color] duration-150",
+          "flex cursor-pointer items-center gap-[5px] rounded bg-(--color-surface-overlay) px-2 py-[3px] font-mono text-[11px] text-(--color-text-secondary) transition-[border-color] duration-150",
           open
             ? "border border-(--color-border-default)"
             : "border border-(--color-border-subtle) hover:border-(--color-border-default)"
@@ -103,10 +103,10 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
         <div
           role="listbox"
           aria-label="Select relay server"
-          className="absolute top-[calc(100%+6px)] left-0 w-[280px] bg-(--color-surface-raised) border border-(--color-border-default) rounded-lg shadow-(--shadow-dropdown) z-100 p-2"
+          className="absolute top-[calc(100%+6px)] left-0 z-100 w-[280px] rounded-lg border border-(--color-border-default) bg-(--color-surface-raised) p-2 shadow-(--shadow-dropdown)"
         >
           {/* Section label */}
-          <div className="text-[10px] font-mono text-(--color-text-disabled) uppercase tracking-[0.07em] px-1 pt-[2px] pb-1.5">
+          <div className="px-1 pt-[2px] pb-1.5 font-mono text-[10px] tracking-[0.07em] text-(--color-text-disabled) uppercase">
             Connected servers
           </div>
 
@@ -127,16 +127,16 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 setOpen(false);
               }}
               className={cn(
-                "flex items-center gap-2 w-full px-2 py-[7px] rounded-[6px] border text-left transition-[background] duration-100",
+                "flex w-full items-center gap-2 rounded-[6px] border px-2 py-[7px] text-left transition-[background] duration-100",
                 server.isActive
-                  ? "bg-(--color-accent-glow) border-(--color-accent) cursor-default"
-                  : "bg-transparent border-transparent cursor-pointer hover:bg-(--color-surface-overlay)"
+                  ? "cursor-default border-(--color-accent) bg-(--color-accent-glow)"
+                  : "cursor-pointer border-transparent bg-transparent hover:bg-(--color-surface-overlay)"
               )}
             >
               <StatusDot status={server.status} />
               <span
                 className={cn(
-                  "flex-1 text-[13px] overflow-hidden text-ellipsis whitespace-nowrap",
+                  "flex-1 overflow-hidden text-[13px] text-ellipsis whitespace-nowrap",
                   server.status === "offline"
                     ? "text-(--color-text-disabled)"
                     : "text-(--color-text-primary)"
@@ -144,7 +144,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
               >
                 {server.label}
               </span>
-              <span className="text-[11px] font-mono text-(--color-text-tertiary) shrink-0">
+              <span className="shrink-0 font-mono text-[11px] text-(--color-text-tertiary)">
                 {(() => {
                   try {
                     return new URL(server.url).port || "80";
@@ -154,7 +154,7 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                 })()}
               </span>
               {server.isActive && (
-                <span className="text-[9px] font-mono text-(--color-accent) bg-(--color-accent-glow) border border-(--color-accent) px-[5px] py-px rounded-full tracking-[0.05em] shrink-0">
+                <span className="shrink-0 rounded-full border border-(--color-accent) bg-(--color-accent-glow) px-[5px] py-px font-mono text-[9px] tracking-[0.05em] text-(--color-accent)">
                   active
                 </span>
               )}
@@ -162,15 +162,15 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
           ))}
 
           {/* Divider */}
-          <div className="h-px bg-(--color-border-subtle) my-1.5" />
+          <div className="my-1.5 h-px bg-(--color-border-subtle)" />
 
           {/* Add server inline input */}
           <div className="px-1 py-[2px]">
-            <div className="text-[10px] font-mono text-(--color-text-disabled) uppercase tracking-[0.07em] mb-1">
+            <div className="mb-1 font-mono text-[10px] tracking-[0.07em] text-(--color-text-disabled) uppercase">
               Add server
             </div>
             {addError && (
-              <div className="text-[10px] font-mono text-(--color-server-dead) mb-1" role="alert">
+              <div className="mb-1 font-mono text-[10px] text-(--color-server-dead)" role="alert">
                 {addError}
               </div>
             )}
@@ -187,14 +187,14 @@ export function ServerSwitcher({ servers, activeServer, onSwitch, onAdd }: Props
                   if (e.key === "Enter") handleAddSubmit();
                 }}
                 className={cn(
-                  "flex-1 px-2 py-1 rounded border bg-(--color-surface-overlay) text-(--color-text-primary) font-mono text-[11px] outline-none",
+                  "flex-1 rounded border bg-(--color-surface-overlay) px-2 py-1 font-mono text-[11px] text-(--color-text-primary) outline-none",
                   addError ? "border-(--color-server-dead)" : "border-(--color-border-subtle)"
                 )}
               />
               <button
                 type="button"
                 onClick={handleAddSubmit}
-                className="px-[10px] py-1 rounded border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) font-mono text-[11px] cursor-pointer"
+                className="cursor-pointer rounded border border-(--color-border-default) bg-(--color-surface-overlay) px-[10px] py-1 font-mono text-[11px] text-(--color-text-secondary)"
               >
                 +
               </button>

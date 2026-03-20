@@ -1,8 +1,8 @@
 // packages/server/src/tools/register-artifacts.ts
 // Registers post_artifact and get_artifact MCP tools on the server.
-
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
+
 import { getSessionId } from "../config.js";
 import { broadcast } from "../dashboard/websocket.js";
 import { AGENT_ID_SCHEMA } from "../schemas.js";

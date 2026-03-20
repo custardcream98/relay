@@ -1,5 +1,4 @@
 // packages/dashboard/src/hooks/useRelaySocket.ts
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RelayEvent } from "relay-shared";
 

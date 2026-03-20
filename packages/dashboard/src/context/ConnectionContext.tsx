@@ -1,6 +1,5 @@
 // packages/dashboard/src/context/ConnectionContext.tsx
 // WebSocket connection state: status, reconnect attempt info, and manual retry handler.
-
 import { createContext, useContext } from "react";
 
 export interface ConnectionContextValue {

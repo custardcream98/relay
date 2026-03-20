@@ -1,6 +1,5 @@
 // packages/dashboard/src/components/activity/helpers.ts
 // Helper functions for ActivityFeed
-
 import type { FilterableType } from "./constants";
 import { FILTER_DEFS, FILTER_STORAGE_KEY, VALID_FILTER_TYPES } from "./constants";
 

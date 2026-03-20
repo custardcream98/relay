@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/FilterBar.tsx
 // Filter bar component extracted from ActivityFeed.tsx for modularity.
-
 import { memo, useRef, useState } from "react";
+
 import { usePopover } from "../../hooks/usePopover";
 import { cn } from "../../lib/cn";
 import type { FilterableType } from "./constants";
@@ -32,7 +32,7 @@ export const FilterBar = memo(function FilterBar({
   return (
     <div
       ref={filterBarRef}
-      className="flex items-center gap-1 px-3 py-[5px] border-b border-(--color-border-subtle) bg-(--color-surface-base) shrink-0 flex-nowrap overflow-x-auto"
+      className="flex shrink-0 flex-nowrap items-center gap-1 overflow-x-auto border-b border-(--color-border-subtle) bg-(--color-surface-base) px-3 py-[5px]"
     >
       {/* Filter toggle button */}
       <button
@@ -40,7 +40,7 @@ export const FilterBar = memo(function FilterBar({
         onClick={() => setFilterOpen((v) => !v)}
         title="Toggle filter panel"
         className={cn(
-          "flex items-center gap-1 px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
+          "flex shrink-0 cursor-pointer items-center gap-1 rounded px-[7px] py-[2px] text-[10px] font-medium transition-[background,border-color,color] duration-100",
           isFiltered
             ? "text-(--color-accent-fe)"
             : "border border-(--color-border-subtle) bg-transparent text-(--color-text-tertiary)"
@@ -57,7 +57,7 @@ export const FilterBar = memo(function FilterBar({
         <span className="text-[11px]">⚙</span>
         Filter
         {isFiltered && (
-          <span className="text-[9px] bg-(--color-accent-fe) text-white rounded-full px-1 font-semibold">
+          <span className="rounded-full bg-(--color-accent-fe) px-1 text-[9px] font-semibold text-white">
             {FILTER_DEFS.length - activeFilters.size} off
           </span>
         )}
@@ -69,7 +69,7 @@ export const FilterBar = memo(function FilterBar({
           <button
             type="button"
             onClick={onToggleAll}
-            className="px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer border border-(--color-border-default) bg-transparent text-(--color-text-tertiary) shrink-0"
+            className="shrink-0 cursor-pointer rounded border border-(--color-border-default) bg-transparent px-[7px] py-[2px] text-[10px] font-medium text-(--color-text-tertiary)"
           >
             {allOn ? "All off" : "All on"}
           </button>
@@ -84,7 +84,7 @@ export const FilterBar = memo(function FilterBar({
                 onClick={() => onToggleFilter(def.type)}
                 title={`${def.label}${count > 0 ? ` (${count})` : ""}`}
                 className={cn(
-                  "flex items-center gap-[3px] px-[7px] py-[2px] rounded text-[10px] font-medium cursor-pointer shrink-0 transition-[background,border-color,color] duration-100",
+                  "flex shrink-0 cursor-pointer items-center gap-[3px] rounded px-[7px] py-[2px] text-[10px] font-medium transition-[background,border-color,color] duration-100",
                   isActive
                     ? "border border-(--color-border-default) bg-(--color-surface-overlay) text-(--color-text-secondary) opacity-100"
                     : "border border-(--color-border-subtle) bg-transparent text-(--color-text-disabled) opacity-50"
@@ -95,7 +95,7 @@ export const FilterBar = memo(function FilterBar({
                 {count > 0 && (
                   <span
                     className={cn(
-                      "font-mono text-[9px] px-[3px] rounded-[3px]",
+                      "rounded-[3px] px-[3px] font-mono text-[9px]",
                       isActive
                         ? "bg-(--color-surface-raised) text-(--color-text-tertiary)"
                         : "bg-transparent text-(--color-text-disabled)"

@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/panels/AgentArenaPanel.tsx
 // Left panel wrapper: grid-animated content + always-visible 32px toggle rail (right side).
 // Data is sourced from context hooks; resize state comes from PanelResizeContext.
-
 import { useMemo } from "react";
+
 import { useAgents } from "../../context/AgentsContext";
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
@@ -34,7 +34,7 @@ export function AgentArenaPanel() {
     <div className="flex shrink-0">
       {/* Width-animated content — collapses to 0 when hidden */}
       <div
-        className="overflow-hidden shrink-0"
+        className="shrink-0 overflow-hidden"
         style={{
           width: arenaCollapsed ? 0 : contentWidth,
           transition: isDraggingArena ? "none" : "width 200ms ease",
@@ -56,12 +56,12 @@ export function AgentArenaPanel() {
       </div>
 
       {/* Always-visible toggle rail — right side of panel */}
-      <div className="w-8 shrink-0 border-r border-(--color-border-subtle) bg-(--color-surface-base) flex flex-col items-center">
+      <div className="flex w-8 shrink-0 flex-col items-center border-r border-(--color-border-subtle) bg-(--color-surface-base)">
         <button
           type="button"
           onClick={onToggleCollapse}
           title={arenaCollapsed ? "Expand panel" : "Collapse panel"}
-          className="mt-2 w-6 h-6 flex items-center justify-center rounded bg-none border-none cursor-pointer text-(--color-text-disabled) shrink-0"
+          className="mt-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-none text-(--color-text-disabled)"
         >
           <svg
             width="14"

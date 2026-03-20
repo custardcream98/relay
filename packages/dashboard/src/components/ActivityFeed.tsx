@@ -2,23 +2,23 @@
 // Chat-style unified activity feed — replaces EventTimeline + MessageFeed.
 // Renders all relay events in chronological order (latest at bottom),
 // with event-type-specific visual treatment per designer spec.
-
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { useServer } from "../context/ServerContext";
 import type { AgentId, TimelineEntry } from "../types";
-import { ArtifactDetailModal } from "./ArtifactDetailModal";
 import type { FilterableType } from "./activity";
 import {
-  buildDefaultFilters,
   CollapsedGroup,
   EntryRenderer,
   FILTER_DEFS,
   FILTER_STORAGE_KEY,
   FilterBar,
-  groupConsecutive,
   ThinkingEntry,
   TimeSeparator,
+  buildDefaultFilters,
+  groupConsecutive,
 } from "./activity";
+import { ArtifactDetailModal } from "./ArtifactDetailModal";
 
 interface Props {
   entries: TimelineEntry[];
@@ -146,7 +146,6 @@ export function ActivityFeed({
   }, [groups, groupOffsets, expandedGroups, thinkingAgents.length, filtered.length]);
 
   // Auto-scroll to bottom on new entries, unless user has scrolled up
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on entry count / thinking change
   useEffect(() => {
     if (!isUserScrollingRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -201,14 +200,12 @@ export function ActivityFeed({
   const navigableCount = filtered.length + thinkingAgents.length;
 
   // Reset focused index and expanded groups when filtered list changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on list change
   useEffect(() => {
     setFocusedIndex(-1);
     setExpandedGroups(new Set());
   }, [filtered.length, thinkingAgents.length]);
 
   // Auto-scroll focused entry into view
-  // biome-ignore lint/correctness/useExhaustiveDependencies: scroll on focus change
   useEffect(() => {
     if (focusedIndex < 0) return;
     const entryId =
@@ -279,7 +276,7 @@ export function ActivityFeed({
   );
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* Filter bar */}
       <FilterBar
         activeFilters={activeFilters}
@@ -290,7 +287,7 @@ export function ActivityFeed({
 
       {/* Entry list */}
       {isEmpty ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-[10px]">
+        <div className="flex flex-1 flex-col items-center justify-center gap-[10px]">
           <span className="text-[28px] opacity-20">📡</span>
           <span className="text-sm font-medium text-(--color-text-secondary)">
             {focusAgent
@@ -310,7 +307,7 @@ export function ActivityFeed({
       ) : (
         <div
           ref={containerRef}
-          className="flex-1 overflow-y-auto pt-1 pb-1 relative outline-none"
+          className="relative flex-1 overflow-y-auto pt-1 pb-1 outline-none"
           onScroll={handleScroll}
           onKeyDown={handleKeyDown}
           tabIndex={0}
@@ -325,7 +322,7 @@ export function ActivityFeed({
           }
         >
           {totalEventCount > entries.length && (
-            <div className="text-center px-4 py-1.5 text-[10px] text-(--color-text-tertiary) font-mono border-b border-(--color-border-secondary)">
+            <div className="border-b border-(--color-border-secondary) px-4 py-1.5 text-center font-mono text-[10px] text-(--color-text-tertiary)">
               {totalEventCount - entries.length} earlier events omitted
             </div>
           )}
@@ -390,7 +387,7 @@ export function ActivityFeed({
             <button
               type="button"
               onClick={scrollToBottom}
-              className="sticky bottom-[10px] block ml-auto mr-4 text-[10px] text-(--color-text-secondary) bg-(--color-surface-overlay) border border-(--color-border-default) rounded px-[10px] py-[3px] cursor-pointer font-mono"
+              className="sticky bottom-[10px] mr-4 ml-auto block cursor-pointer rounded border border-(--color-border-default) bg-(--color-surface-overlay) px-[10px] py-[3px] font-mono text-[10px] text-(--color-text-secondary)"
             >
               ↓ New activity
             </button>

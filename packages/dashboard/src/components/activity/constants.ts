@@ -1,6 +1,5 @@
 // packages/dashboard/src/components/activity/constants.ts
 // Shared constants for ActivityFeed sub-components
-
 import type { TimelineEntry } from "../../types";
 
 // Filterable event types — agent:status excluded by default (noise)

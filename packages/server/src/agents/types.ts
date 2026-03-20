@@ -1,6 +1,5 @@
 // packages/server/src/agents/types.ts
 // Agent persona type definitions
-
 import type { AgentId } from "relay-shared";
 
 /**

@@ -1,7 +1,6 @@
 // packages/dashboard/src/hooks/usePanelResize.ts
 // Custom hook encapsulating panel resize state and drag handlers.
 // Collapse state is handled separately by usePanelCollapse.
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const ARENA_DEFAULT_WIDTH = 320;

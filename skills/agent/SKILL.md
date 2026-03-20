@@ -40,12 +40,14 @@ Example: `/relay:agent fe "Refactor the CartItem component"`
 ## Unknown agent handling
 
 If the specified agent ID is not found in `list_pool_agents` results:
+
 - Show the user the list of available agents.
 - Ask the user to select an agent again.
 
 ## Memory load pattern
 
 In step 3, load memory in two passes:
+
 1. `read_memory(agent_id: "{agentId}")` — the agent's personal memory
 2. `read_memory()` (omit agent_id) — project.md (shared project state)
 

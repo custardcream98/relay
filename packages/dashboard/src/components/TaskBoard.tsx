@@ -1,5 +1,6 @@
 // packages/dashboard/src/components/TaskBoard.tsx
 import { memo, useCallback, useMemo, useState } from "react";
+
 import { getAgentAccent } from "../constants/agents";
 import { COLUMN_ACCENT, PRIORITY_BAR_COLOR, STATUS_ORDER } from "../constants/status";
 import { cn } from "../lib/cn";
@@ -42,13 +43,13 @@ const TaskCard = memo(function TaskCard({
     <button
       type="button"
       className={cn(
-        "task-card relative overflow-hidden w-full text-left shrink-0 rounded-[6px] cursor-pointer transition-[background,border-color,box-shadow] duration-100",
-        "pl-[14px] pr-[10px] py-2 font-[inherit] text-inherit",
+        "task-card relative w-full shrink-0 cursor-pointer overflow-hidden rounded-[6px] text-left transition-[background,border-color,box-shadow] duration-100",
+        "py-2 pr-[10px] pl-[14px] font-[inherit] text-inherit",
         isDone && "opacity-[0.45]",
-        isBlocked && !isDone && "opacity-60 border-dashed",
+        isBlocked && !isDone && "border-dashed opacity-60",
         isSelected
-          ? "bg-(--color-surface-overlay) border border-(--color-border-default) shadow-(--shadow-card-hover)"
-          : "bg-(--color-surface-raised) border border-(--color-border-subtle) shadow-(--shadow-card)"
+          ? "border border-(--color-border-default) bg-(--color-surface-overlay) shadow-(--shadow-card-hover)"
+          : "border border-(--color-border-subtle) bg-(--color-surface-raised) shadow-(--shadow-card)"
       )}
       aria-label={`Task: ${task.title}. Click to view details.`}
       aria-expanded={isSelected}
@@ -56,14 +57,14 @@ const TaskCard = memo(function TaskCard({
     >
       {/* Left priority accent bar */}
       <span
-        className="absolute left-0 top-1 bottom-1 w-[2px] rounded-[1px]"
+        className="absolute top-1 bottom-1 left-0 w-[2px] rounded-[1px]"
         style={{ background: priorityBarColor }}
       />
 
       {/* Task title */}
       <span
         className={cn(
-          "text-[13px] font-normal leading-[1.45] block",
+          "block text-[13px] leading-[1.45] font-normal",
           isDone ? "text-(--color-text-tertiary) line-through" : "text-(--color-text-primary)"
         )}
       >
@@ -73,7 +74,7 @@ const TaskCard = memo(function TaskCard({
       {/* Description preview — 2-line clamp */}
       {task.description && (
         <p
-          className="text-[11px] leading-normal text-(--color-text-tertiary) mt-1 overflow-hidden wrap-break-word"
+          className="mt-1 overflow-hidden text-[11px] leading-normal wrap-break-word text-(--color-text-tertiary)"
           style={{
             display: "-webkit-box",
             WebkitLineClamp: 2,
@@ -86,11 +87,11 @@ const TaskCard = memo(function TaskCard({
 
       {/* Meta row — assignee chip + priority label */}
       {(task.assignee || showPriorityLabel) && (
-        <div className="mt-1.5 flex flex-row gap-1.5 items-center">
+        <div className="mt-1.5 flex flex-row items-center gap-1.5">
           {/* Assignee chip */}
           {task.assignee && accentHex && (
             <span
-              className="font-mono text-[11px] font-medium px-1.5 py-px rounded-[3px]"
+              className="rounded-[3px] px-1.5 py-px font-mono text-[11px] font-medium"
               style={{
                 color: accentHex,
                 background: `${accentHex}1a`,
@@ -112,12 +113,12 @@ const TaskCard = memo(function TaskCard({
       {(blockedByCount > 0 || blocksCount > 0) && (
         <div className="mt-1.5 flex flex-col gap-0.5">
           {blockedByCount > 0 && (
-            <span className="text-[10px] font-mono font-medium px-1.5 py-px rounded-[3px] text-(--color-end-waiting) bg-(--color-status-in-review-bg)">
+            <span className="rounded-[3px] bg-(--color-status-in-review-bg) px-1.5 py-px font-mono text-[10px] font-medium text-(--color-end-waiting)">
               Blocked by {blockedByCount}
             </span>
           )}
           {blocksCount > 0 && (
-            <span className="text-[10px] font-mono text-(--color-text-disabled)">
+            <span className="font-mono text-[10px] text-(--color-text-disabled)">
               Blocks {blocksCount} {blocksCount === 1 ? "task" : "tasks"}
             </span>
           )}
@@ -149,26 +150,26 @@ const TaskColumn = memo(function TaskColumn({
   const accentColor = COLUMN_ACCENT[col];
 
   return (
-    <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-r border-(--color-border-subtle)">
+    <div className="flex min-w-0 flex-1 flex-col overflow-hidden border-r border-(--color-border-subtle)">
       {/* Column header — 36px, includes top accent bar */}
       <div
-        className="h-9 shrink-0 flex items-center gap-2 px-3 border-b border-(--color-border-subtle)"
+        className="flex h-9 shrink-0 items-center gap-2 border-b border-(--color-border-subtle) px-3"
         style={{ borderTop: accentColor ? `2px solid ${accentColor}` : undefined }}
       >
-        <span className="text-[11px] font-medium text-(--color-text-secondary) uppercase tracking-[0.07em] font-sans">
+        <span className="font-sans text-[11px] font-medium tracking-[0.07em] text-(--color-text-secondary) uppercase">
           {COLUMN_LABELS[col]}
         </span>
         {/* Count badge — always visible (including 0) */}
-        <span className="font-mono text-[11px] bg-(--color-surface-overlay) text-(--color-text-secondary) rounded-[3px] px-[5px] py-px">
+        <span className="rounded-[3px] bg-(--color-surface-overlay) px-[5px] py-px font-mono text-[11px] text-(--color-text-secondary)">
           {tasks.length}
         </span>
       </div>
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto flex flex-col p-2 gap-1">
+      <div className="flex flex-1 flex-col gap-1 overflow-y-auto p-2">
         {tasks.length === 0 ? (
           // Empty column state
-          <div className="flex-1 flex flex-col items-center justify-center gap-1.5 p-4 opacity-45">
+          <div className="flex flex-1 flex-col items-center justify-center gap-1.5 p-4 opacity-45">
             <svg
               width="20"
               height="20"
@@ -188,7 +189,7 @@ const TaskColumn = memo(function TaskColumn({
                 strokeDasharray="3 2"
               />
             </svg>
-            <span className="text-[11px] text-(--color-text-disabled) text-center leading-[1.4]">
+            <span className="text-center text-[11px] leading-[1.4] text-(--color-text-disabled)">
               No tasks yet
             </span>
           </div>
@@ -272,9 +273,9 @@ export const TaskBoard = memo(function TaskBoard({ tasks }: { tasks: Task[] }) {
   }, []);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <TaskProgressBar tasks={tasks} />
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1">
         {COLUMNS.map((col) => (
           <TaskColumn
             key={col}

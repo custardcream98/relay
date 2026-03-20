@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Pre-commit: lint-staged (biome auto-fix + re-stage), type check, tests
+# Pre-commit: lint-staged (eslint + prettier auto-fix + re-stage), type check, tests
 bunx lint-staged
 bunx tsc --noEmit -p packages/server/tsconfig.json
 bun test

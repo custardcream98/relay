@@ -140,7 +140,7 @@ agents:
       You are a researcher. Investigate topics and post findings as artifacts...
 
   researcher2:
-    extends: researcher   # 전체 페르소나 상속, 에이전트 ID만 다르게
+    extends: researcher # 전체 페르소나 상속, 에이전트 ID만 다르게
     name: Senior Researcher
     emoji: "🔭"
 ```
@@ -160,6 +160,7 @@ agents:
 **파생 태스크** — `create_task`는 `parent_task_id`(최대 깊이 1)와 `derived_reason`을 지원해서 서브태스크의 출처를 추적할 수 있어요. 서킷 브레이커가 깊이를 1단계, 부모당 최대 3개 형제로 제한해요.
 
 **`hooks`** — MCP 서버가 태스크 라이프사이클 이벤트 전후에 실행하는 git-hook 방식의 셸 명령어:
+
 - `before_task`: `claim_task` 전에 실행. 0이 아닌 종료 코드는 클레임 차단 (유령 `in_progress` 없음)
 - `after_task`: `update_task(status: "done")` 후 실행. 0이 아닌 종료 코드는 `in_review`로 되돌림
 - 단일 문자열 또는 문자열 배열 허용 (순차 실행). `hooks: false`로 상속된 훅 비활성화 가능.

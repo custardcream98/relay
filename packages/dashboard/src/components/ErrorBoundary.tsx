@@ -1,6 +1,5 @@
 // packages/dashboard/src/components/ErrorBoundary.tsx
 // React error boundary — catches uncaught render errors and shows a fallback UI.
-
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface Props {
@@ -26,15 +25,15 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex flex-col items-center justify-center h-screen gap-4 bg-(--color-surface-root) text-(--color-text-primary)">
+        <div className="flex h-screen flex-col items-center justify-center gap-4 bg-(--color-surface-root) text-(--color-text-primary)">
           <h1 className="text-xl font-semibold">Something went wrong</h1>
-          <p className="text-sm text-(--color-text-secondary) max-w-md text-center">
+          <p className="max-w-md text-center text-sm text-(--color-text-secondary)">
             {this.state.error?.message ?? "An unexpected error occurred."}
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="px-4 py-2 text-sm font-medium rounded border border-(--color-border-default) bg-(--color-surface-raised) text-(--color-text-primary) cursor-pointer hover:bg-(--color-surface-overlay) transition-colors"
+            className="cursor-pointer rounded border border-(--color-border-default) bg-(--color-surface-raised) px-4 py-2 text-sm font-medium text-(--color-text-primary) transition-colors hover:bg-(--color-surface-overlay)"
           >
             Reload
           </button>

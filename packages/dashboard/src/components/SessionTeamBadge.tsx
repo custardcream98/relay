@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/SessionTeamBadge.tsx
 // Emoji stack pill in AppHeader — shows current session team at a glance.
 // Renders null when agents array is empty (zero cost for no-team sessions).
-
 import { useCallback, useRef, useState } from "react";
+
 import { usePopover } from "../hooks/usePopover";
 import { cn } from "../lib/cn";
 import type { AgentMeta } from "../types";
@@ -35,7 +35,7 @@ export function SessionTeamBadge({ agents }: Props) {
         aria-haspopup="true"
         aria-expanded={open}
         className={cn(
-          "flex items-center px-2 py-[3px] rounded-full bg-(--color-surface-overlay) cursor-pointer select-none transition-[border-color] duration-150",
+          "flex cursor-pointer items-center rounded-full bg-(--color-surface-overlay) px-2 py-[3px] transition-[border-color] duration-150 select-none",
           open
             ? "border border-(--color-border-default)"
             : "border border-(--color-border-subtle) hover:border-(--color-border-default)"
@@ -46,14 +46,14 @@ export function SessionTeamBadge({ agents }: Props) {
           <span
             key={agent.id}
             title={agent.name}
-            className="text-[13px] inline-block relative"
+            className="relative inline-block text-[13px]"
             style={{ marginLeft: i === 0 ? 0 : -4, zIndex: MAX_VISIBLE - i }}
           >
             {agent.emoji}
           </span>
         ))}
         {overflow > 0 && (
-          <span className="text-[10px] font-mono text-(--color-text-tertiary) ml-1">
+          <span className="ml-1 font-mono text-[10px] text-(--color-text-tertiary)">
             +{overflow}
           </span>
         )}
@@ -63,11 +63,11 @@ export function SessionTeamBadge({ agents }: Props) {
       {open && (
         <div
           role="tooltip"
-          className="absolute top-[calc(100%+6px)] right-0 w-[240px] bg-(--color-surface-raised) border border-(--color-border-default) rounded-lg shadow-(--shadow-dropdown) z-100 overflow-hidden"
+          className="absolute top-[calc(100%+6px)] right-0 z-100 w-[240px] overflow-hidden rounded-lg border border-(--color-border-default) bg-(--color-surface-raised) shadow-(--shadow-dropdown)"
         >
           {/* Header */}
-          <div className="px-3 pt-2 pb-1.5 border-b border-(--color-border-subtle)">
-            <span className="text-[10px] font-mono text-(--color-text-disabled) uppercase tracking-[0.07em]">
+          <div className="border-b border-(--color-border-subtle) px-3 pt-2 pb-1.5">
+            <span className="font-mono text-[10px] tracking-[0.07em] text-(--color-text-disabled) uppercase">
               Session team
             </span>
           </div>
@@ -75,12 +75,12 @@ export function SessionTeamBadge({ agents }: Props) {
           {/* Agent rows */}
           <div className="py-1">
             {agents.map((agent) => (
-              <div key={agent.id} className="flex items-center gap-2 h-9 px-3">
-                <span className="text-[15px] shrink-0">{agent.emoji}</span>
-                <span className="text-xs text-(--color-text-primary) flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+              <div key={agent.id} className="flex h-9 items-center gap-2 px-3">
+                <span className="shrink-0 text-[15px]">{agent.emoji}</span>
+                <span className="flex-1 overflow-hidden text-xs text-ellipsis whitespace-nowrap text-(--color-text-primary)">
                   {agent.name}
                 </span>
-                <span className="text-[10px] font-mono text-(--color-text-disabled)">
+                <span className="font-mono text-[10px] text-(--color-text-disabled)">
                   {agent.id}
                 </span>
               </div>

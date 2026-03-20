@@ -1,6 +1,7 @@
 // packages/dashboard/src/components/ArtifactDetailModal.tsx
 // Artifact detail popover — fetches and displays artifact content on demand
 import { useEffect, useRef, useState } from "react";
+
 import { getAgentAccent } from "../constants/agents";
 import { usePopover } from "../hooks/usePopover";
 import { computePopoverStyle } from "../utils/popoverPosition";
@@ -73,10 +74,10 @@ export function ArtifactDetailModal({
       aria-label="Artifact detail"
     >
       {/* Header */}
-      <div className="flex items-start gap-2 mb-1">
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="mb-1 flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <span className="text-sm">📄</span>
-          <span className="flex-1 text-[13px] font-medium font-mono leading-[1.45] text-(--color-text-primary) overflow-hidden text-ellipsis whitespace-nowrap">
+          <span className="flex-1 overflow-hidden font-mono text-[13px] leading-[1.45] font-medium text-ellipsis whitespace-nowrap text-(--color-text-primary)">
             {artifact?.name ?? artifactId}
           </span>
         </div>
@@ -84,7 +85,7 @@ export function ArtifactDetailModal({
           type="button"
           onClick={onClose}
           aria-label="Close artifact detail"
-          className="close-btn shrink-0 w-5 h-5 flex items-center justify-center rounded border-none bg-transparent text-(--color-text-disabled) cursor-pointer text-sm leading-none"
+          className="close-btn flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-sm leading-none text-(--color-text-disabled)"
         >
           ×
         </button>
@@ -92,13 +93,13 @@ export function ArtifactDetailModal({
 
       {/* Meta chips */}
       {artifact && (
-        <div className="flex gap-1.5 items-center mb-3 flex-wrap">
-          <span className="text-[10px] font-mono font-medium px-[7px] py-[2px] rounded-full uppercase tracking-[0.06em] bg-(--color-surface-overlay) text-(--color-text-tertiary) border border-(--color-border-subtle)">
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full border border-(--color-border-subtle) bg-(--color-surface-overlay) px-[7px] py-[2px] font-mono text-[10px] font-medium tracking-[0.06em] text-(--color-text-tertiary) uppercase">
             {artifact.type}
           </span>
           {artifact.created_by && accentHex && (
             <span
-              className="font-mono text-[10px] font-medium px-[7px] py-[2px] rounded-full"
+              className="rounded-full px-[7px] py-[2px] font-mono text-[10px] font-medium"
               style={{
                 color: accentHex,
                 background: `${accentHex}1a`,
@@ -108,7 +109,7 @@ export function ArtifactDetailModal({
               {artifact.created_by}
             </span>
           )}
-          <span className="text-[10px] font-mono text-(--color-text-disabled)">
+          <span className="font-mono text-[10px] text-(--color-text-disabled)">
             {new Date(artifact.created_at * 1000).toLocaleString()}
           </span>
         </div>
@@ -118,7 +119,7 @@ export function ArtifactDetailModal({
       {loading && <p className="text-xs text-(--color-text-disabled) italic">Loading...</p>}
       {error && <p className="text-xs text-(--color-priority-critical) italic">{error}</p>}
       {artifact?.content && (
-        <div className="bg-(--color-surface-inset) border border-(--color-border-subtle) rounded-[6px] p-[10px_12px] max-h-[340px] overflow-y-auto">
+        <div className="max-h-[340px] overflow-y-auto rounded-[6px] border border-(--color-border-subtle) bg-(--color-surface-inset) p-[10px_12px]">
           <MarkdownContent text={artifact.content} />
         </div>
       )}

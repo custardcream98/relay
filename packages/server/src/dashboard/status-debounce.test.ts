@@ -1,6 +1,7 @@
 // packages/server/src/dashboard/status-debounce.test.ts
 // Tests for status debounce: cap enforcement, stale cleanup, and reset.
 import { beforeEach, describe, expect, test } from "bun:test";
+
 import { _internals, _resetStatusDebounce, shouldBroadcastStatus } from "./status-debounce";
 
 describe("status-debounce", () => {

@@ -3,7 +3,9 @@
 // Extracted to resolve the dual-cache problem (same data cached twice) and make cache state testable.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+
 import yaml from "js-yaml";
+
 import { getRelayDir } from "../config.js";
 import { isValidId } from "../utils/validate.js";
 import { loadAgents, loadPool } from "./loader.js";
@@ -38,7 +40,6 @@ export function getAgents(sessionId?: string): Record<string, AgentPersona> | nu
   }
 
   const cacheKey = sessionId ?? "__default__";
-  // biome-ignore lint/style/noNonNullAssertion: get() is safe after has() check
   if (agentsCache.has(cacheKey)) return agentsCache.get(cacheKey)!;
 
   let result: Record<string, AgentPersona>;

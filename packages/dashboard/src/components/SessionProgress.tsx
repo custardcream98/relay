@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/SessionProgress.tsx
 // Session health summary widget — task completion, active agents, elapsed time.
 // Placed in the AppHeader between the left brand and right controls.
-
 import { useEffect, useMemo, useState } from "react";
+
 import { useSession } from "../context/SessionContext";
 import type { AgentId } from "../types";
 
@@ -85,7 +85,7 @@ export function SessionProgress() {
 
   return (
     <div
-      className="flex items-center gap-3 px-3 py-[3px] rounded-full font-mono text-[11px] shrink-0"
+      className="flex shrink-0 items-center gap-3 rounded-full px-3 py-[3px] font-mono text-[11px]"
       style={{
         background: "var(--color-surface-overlay)",
         border: "1px solid var(--color-border-subtle)",
@@ -104,7 +104,7 @@ export function SessionProgress() {
           </span>
           <span className="text-(--color-text-disabled)">tasks</span>
           <span
-            className="text-[10px] font-medium tabular-nums px-[5px] py-px rounded-[3px]"
+            className="rounded-[3px] px-[5px] py-px text-[10px] font-medium tabular-nums"
             style={{
               color: pct === 100 ? "var(--color-status-done-text)" : "var(--color-text-tertiary)",
               background:
@@ -118,14 +118,14 @@ export function SessionProgress() {
 
       {/* Separator */}
       {totalCount > 0 && activeAgentCount > 0 && (
-        <span className="w-px h-3 bg-(--color-border-subtle)" />
+        <span className="h-3 w-px bg-(--color-border-subtle)" />
       )}
 
       {/* Active agents */}
       {activeAgentCount > 0 && (
         <span className="flex items-center gap-1 text-(--color-text-secondary)">
           <span
-            className="w-[6px] h-[6px] rounded-full inline-block shrink-0"
+            className="inline-block h-[6px] w-[6px] shrink-0 rounded-full"
             style={{
               background: "var(--color-status-working)",
               boxShadow: "0 0 0 2px rgba(52, 211, 153, 0.2)",
@@ -138,7 +138,7 @@ export function SessionProgress() {
 
       {/* Separator */}
       {elapsedLabel && (totalCount > 0 || activeAgentCount > 0) && (
-        <span className="w-px h-3 bg-(--color-border-subtle)" />
+        <span className="h-3 w-px bg-(--color-border-subtle)" />
       )}
 
       {/* Elapsed time */}

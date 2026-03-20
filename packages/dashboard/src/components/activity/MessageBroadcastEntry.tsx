@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/MessageBroadcastEntry.tsx
 // [A] Broadcast message card
-
 import { memo } from "react";
+
 import { cn } from "../../lib/cn";
 import type { TimelineEntry } from "../../types";
 import { relativeTime } from "../../utils/time";
@@ -28,13 +28,13 @@ export const MessageBroadcastEntry = memo(function MessageBroadcastEntry({
   return (
     <div className={cn(ROW_BASE, SLIDE_IN)}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-1.5">
           <AgentChip agentId={entry.agentId} />
-          <span className="font-mono text-[10px] text-(--color-text-disabled) bg-(--color-surface-overlay) px-[5px] py-px rounded-[3px]">
+          <span className="rounded-[3px] bg-(--color-surface-overlay) px-[5px] py-px font-mono text-[10px] text-(--color-text-disabled)">
             broadcast
           </span>
-          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
+          <span className="ml-auto font-mono text-[10px] text-(--color-text-disabled)">
             {relativeTime(entry.timestamp)}
           </span>
         </div>

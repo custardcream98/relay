@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
+
 import type { AgentId } from "../types";
 import { AgentCard } from "./AgentCard";
 

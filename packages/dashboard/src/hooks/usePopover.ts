@@ -1,6 +1,5 @@
 // packages/dashboard/src/hooks/usePopover.ts
 // Shared popover behavior — Escape close, outside-click close, optional focus trap.
-
 import { type RefObject, useEffect, useRef } from "react";
 
 // CSS selector for all natively focusable elements

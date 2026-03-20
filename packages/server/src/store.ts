@@ -1,9 +1,7 @@
 // packages/server/src/store.ts
 // In-memory store replacing SQLite — session data is ephemeral (lives in process memory).
 // All CRUD functions are synchronous, mirroring the former SQL query interface.
-
 // --- Types ---
-
 import type { TaskPriority, TaskStatus } from "relay-shared";
 
 interface MessageRow {

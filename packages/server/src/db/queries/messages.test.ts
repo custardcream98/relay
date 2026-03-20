@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from "bun:test";
+
 import { _resetStore, getMessagesForAgent, insertMessage } from "../../store";
 
 describe("message queries", () => {

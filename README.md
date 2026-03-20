@@ -140,7 +140,7 @@ agents:
       You are a researcher. Investigate topics and post findings as artifacts...
 
   researcher2:
-    extends: researcher   # inherit full persona, different agent ID
+    extends: researcher # inherit full persona, different agent ID
     name: Senior Researcher
     emoji: "🔭"
 ```
@@ -160,6 +160,7 @@ Required fields: `name`, `emoji`, `tools`, `systemPrompt`. Optional: `descriptio
 **Derived tasks** — `create_task` supports `parent_task_id` (max depth 1) and `derived_reason` to track where sub-tasks came from. A circuit breaker limits depth to 1 level and max 3 siblings per parent.
 
 **`hooks`** — git-hook style shell commands run by the MCP server before/after task lifecycle events:
+
 - `before_task`: runs before `claim_task`; non-zero exit blocks claiming (no phantom `in_progress`)
 - `after_task`: runs after `update_task(status: "done")`; non-zero exit reverts to `in_review`
 - Accepts a single string or array of strings (run sequentially). `hooks: false` opts out of inherited hooks.

@@ -1,8 +1,9 @@
 // packages/server/src/mcp.ts
-
 import { createRequire } from "node:module";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
 import { setProjectRoot, uriToPath } from "./config.js";
 import { registerAgentTools } from "./tools/register-agents.js";
 import { registerArtifactTools } from "./tools/register-artifacts.js";

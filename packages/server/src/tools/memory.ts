@@ -3,6 +3,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { appendFile, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+
 import { isValidId } from "../utils/validate.js";
 
 // Validate memory section key — newlines would corrupt section headers; '#' prefix would create

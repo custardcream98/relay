@@ -1,15 +1,16 @@
 import type { TaskPriority, TaskStatus } from "relay-shared";
+
 import type { ResolvedAgentHooks } from "../agents/types.js";
 import {
+  MAX_DERIVED_SIBLINGS,
+  MAX_TASK_DEPTH,
+  type TaskRow,
   claimTask,
   countDerivedSiblings,
   getAllTasks,
   getTaskByExternalId,
   getTaskById,
   insertTask,
-  MAX_DERIVED_SIBLINGS,
-  MAX_TASK_DEPTH,
-  type TaskRow,
   updateTask,
 } from "../store.js";
 import { DEFAULT_AFTER_TIMEOUT_MS, DEFAULT_BEFORE_TIMEOUT_MS, runHooks } from "./hook-runner.js";

@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/SystemEntry.tsx
 // System / status / memory events — tiny inline annotation
-
 import { memo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 import { cn } from "../../lib/cn";
 import type { TimelineEntry } from "../../types";

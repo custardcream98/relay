@@ -1,6 +1,7 @@
 // packages/dashboard/src/components/TaskDetailModal.tsx
 // Task detail popover — shows full title, description, and metadata
 import { useMemo, useRef } from "react";
+
 import { getAgentAccent } from "../constants/agents";
 import {
   PRIORITY_BADGE_COLOR,
@@ -63,15 +64,15 @@ export function TaskDetailModal({
       aria-label={task.title}
     >
       {/* Header row — title + close */}
-      <div className="flex items-start gap-2 mb-1">
-        <span className="flex-1 text-[13px] font-medium leading-[1.45] text-(--color-text-primary)">
+      <div className="mb-1 flex items-start gap-2">
+        <span className="flex-1 text-[13px] leading-[1.45] font-medium text-(--color-text-primary)">
           {task.title}
         </span>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close task detail"
-          className="close-btn shrink-0 w-5 h-5 flex items-center justify-center rounded border-none bg-transparent text-(--color-text-disabled) cursor-pointer text-sm leading-none"
+          className="close-btn flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-sm leading-none text-(--color-text-disabled)"
         >
           ×
         </button>
@@ -79,16 +80,16 @@ export function TaskDetailModal({
 
       {/* Task ID — muted reference */}
       <div className="mb-2">
-        <span className="text-[9px] font-mono text-(--color-text-disabled) select-all">
+        <span className="font-mono text-[9px] text-(--color-text-disabled) select-all">
           {task.id}
         </span>
       </div>
 
       {/* Meta chips row */}
-      <div className="flex gap-1.5 items-center mb-3 flex-wrap">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
         {/* Priority badge */}
         <span
-          className="text-[10px] font-mono font-medium px-[7px] py-[2px] rounded-full uppercase tracking-[0.06em]"
+          className="rounded-full px-[7px] py-[2px] font-mono text-[10px] font-medium tracking-[0.06em] uppercase"
           style={{
             background: priorityColors.bg,
             color: priorityColors.text,
@@ -100,7 +101,7 @@ export function TaskDetailModal({
 
         {/* Status badge */}
         <span
-          className="text-[10px] font-mono px-[7px] py-[2px] rounded-full uppercase tracking-[0.06em]"
+          className="rounded-full px-[7px] py-[2px] font-mono text-[10px] tracking-[0.06em] uppercase"
           style={{
             background: statusColors.bg,
             color: statusColors.text,
@@ -113,7 +114,7 @@ export function TaskDetailModal({
         {/* Assignee chip */}
         {task.assignee && accentHex && (
           <span
-            className="font-mono text-[10px] font-medium px-[7px] py-[2px] rounded-full"
+            className="rounded-full px-[7px] py-[2px] font-mono text-[10px] font-medium"
             style={{
               color: accentHex,
               background: `${accentHex}1a`,
@@ -127,7 +128,7 @@ export function TaskDetailModal({
 
       {/* Full description — rendered as markdown */}
       {task.description ? (
-        <div className="bg-(--color-surface-inset) border border-(--color-border-subtle) rounded-[6px] p-[10px_12px] max-h-[200px] overflow-y-auto">
+        <div className="max-h-[200px] overflow-y-auto rounded-[6px] border border-(--color-border-subtle) bg-(--color-surface-inset) p-[10px_12px]">
           <MarkdownContent text={task.description} />
         </div>
       ) : (
@@ -137,7 +138,7 @@ export function TaskDetailModal({
       {/* Depends on section */}
       {dependsOnTasks.length > 0 && (
         <div className="mt-3">
-          <span className="text-[10px] font-medium text-(--color-text-disabled) uppercase tracking-[0.06em] mb-1.5 block">
+          <span className="mb-1.5 block text-[10px] font-medium tracking-[0.06em] text-(--color-text-disabled) uppercase">
             Depends on
           </span>
           <div className="flex flex-col gap-1">
@@ -147,11 +148,11 @@ export function TaskDetailModal({
                 <button
                   key={dep.id}
                   type="button"
-                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-(--color-surface-overlay) border border-(--color-border-subtle) text-left cursor-pointer hover:border-(--color-border-default) transition-[border-color] duration-100"
+                  className="flex cursor-pointer items-center gap-1.5 rounded border border-(--color-border-subtle) bg-(--color-surface-overlay) px-2 py-1 text-left transition-[border-color] duration-100 hover:border-(--color-border-default)"
                   onClick={() => onSelectTask?.(dep)}
                 >
                   <span
-                    className="text-[9px] font-mono font-medium px-[5px] py-px rounded-full uppercase tracking-[0.05em] shrink-0"
+                    className="shrink-0 rounded-full px-[5px] py-px font-mono text-[9px] font-medium tracking-[0.05em] uppercase"
                     style={{
                       background: depStatusColors.bg,
                       color: depStatusColors.text,
@@ -160,7 +161,7 @@ export function TaskDetailModal({
                   >
                     {dep.status.replace(/_/g, " ")}
                   </span>
-                  <span className="text-[11px] text-(--color-text-secondary) overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                  <span className="min-w-0 overflow-hidden text-[11px] text-ellipsis whitespace-nowrap text-(--color-text-secondary)">
                     {dep.title}
                   </span>
                 </button>
@@ -173,7 +174,7 @@ export function TaskDetailModal({
       {/* Derived tasks section */}
       {derivedTasks.length > 0 && (
         <div className="mt-3">
-          <span className="text-[10px] font-medium text-(--color-text-disabled) uppercase tracking-[0.06em] mb-1.5 block">
+          <span className="mb-1.5 block text-[10px] font-medium tracking-[0.06em] text-(--color-text-disabled) uppercase">
             Derived tasks
           </span>
           <div className="flex flex-col gap-1">
@@ -183,11 +184,11 @@ export function TaskDetailModal({
                 <button
                   key={child.id}
                   type="button"
-                  className="flex items-center gap-1.5 px-2 py-1 rounded bg-(--color-surface-overlay) border border-(--color-border-subtle) text-left cursor-pointer hover:border-(--color-border-default) transition-[border-color] duration-100"
+                  className="flex cursor-pointer items-center gap-1.5 rounded border border-(--color-border-subtle) bg-(--color-surface-overlay) px-2 py-1 text-left transition-[border-color] duration-100 hover:border-(--color-border-default)"
                   onClick={() => onSelectTask?.(child)}
                 >
                   <span
-                    className="text-[9px] font-mono font-medium px-[5px] py-px rounded-full uppercase tracking-[0.05em] shrink-0"
+                    className="shrink-0 rounded-full px-[5px] py-px font-mono text-[9px] font-medium tracking-[0.05em] uppercase"
                     style={{
                       background: childStatusColors.bg,
                       color: childStatusColors.text,
@@ -196,7 +197,7 @@ export function TaskDetailModal({
                   >
                     {child.status.replace(/_/g, " ")}
                   </span>
-                  <span className="text-[11px] text-(--color-text-secondary) overflow-hidden text-ellipsis whitespace-nowrap min-w-0">
+                  <span className="min-w-0 overflow-hidden text-[11px] text-ellipsis whitespace-nowrap text-(--color-text-secondary)">
                     {child.title}
                   </span>
                 </button>
@@ -208,14 +209,14 @@ export function TaskDetailModal({
 
       {/* Timestamps */}
       {(task.created_at || task.updated_at) && (
-        <div className="mt-3 flex gap-3 flex-wrap">
+        <div className="mt-3 flex flex-wrap gap-3">
           {task.created_at && (
-            <span className="text-[10px] font-mono text-(--color-text-disabled)">
+            <span className="font-mono text-[10px] text-(--color-text-disabled)">
               created {new Date(task.created_at * 1000).toLocaleString()}
             </span>
           )}
           {task.updated_at && task.updated_at !== task.created_at && (
-            <span className="text-[10px] font-mono text-(--color-text-disabled)">
+            <span className="font-mono text-[10px] text-(--color-text-disabled)">
               updated {new Date(task.updated_at * 1000).toLocaleString()}
             </span>
           )}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import type { AgentId, RelayEvent } from "relay-shared";
+
 import { AppLayout } from "./components/AppLayout";
 import { AgentsContext } from "./context/AgentsContext";
 import { ConnectionContext } from "./context/ConnectionContext";
@@ -51,7 +52,6 @@ export default function App() {
 
   // Re-fetch agent list when the active server changes or a new relay session starts.
   // sessionStartCount triggers re-fetch so a newly auto-generated pool is picked up.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionStartCount intentionally triggers re-fetch on session:started
   useEffect(() => {
     const controller = new AbortController();
     const base = normalizeUrl(activeServer);

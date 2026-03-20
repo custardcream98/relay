@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/activity/MessageDirectEntry.tsx
 // [B] Direct message card — left accent bar, tinted background
-
 import { memo, useMemo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 import { cn } from "../../lib/cn";
 import type { TimelineEntry } from "../../types";
@@ -34,12 +34,12 @@ export const MessageDirectEntry = memo(function MessageDirectEntry({
   return (
     <div className={cn(ROW_BASE, SLIDE_IN)} style={containerStyle}>
       <AgentAvatar agentId={entry.agentId} size={30} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-1.5">
           <AgentChip agentId={entry.agentId} />
           <span className="text-[10px] text-(--color-text-disabled)">→</span>
           <AgentChip agentId={toAgent} />
-          <span className="font-mono text-[10px] text-(--color-text-disabled) ml-auto">
+          <span className="ml-auto font-mono text-[10px] text-(--color-text-disabled)">
             {relativeTime(entry.timestamp)}
           </span>
         </div>

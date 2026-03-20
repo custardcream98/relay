@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/shared/AgentChip.tsx
 // Shared agent name chip — colored mono text badge.
-
 import { useMemo } from "react";
+
 import { getAgentAccent } from "../../constants/agents";
 
 interface Props {
@@ -22,7 +22,7 @@ export function AgentChip({ agentId }: Props) {
 
   return (
     <span
-      className="font-mono text-[11px] font-semibold px-[5px] py-px rounded-[3px] shrink-0"
+      className="shrink-0 rounded-[3px] px-[5px] py-px font-mono text-[11px] font-semibold"
       style={style}
     >
       {agentId}

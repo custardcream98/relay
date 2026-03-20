@@ -9,7 +9,6 @@
 //
 // Source of truth: .claude-plugin/plugin.json
 // Syncs to:        .claude-plugin/marketplace.json
-
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -49,7 +48,7 @@ for (const p of marketplace.plugins ?? []) {
 writeFileSync(marketplacePath, `${JSON.stringify(marketplace, null, 2)}\n`);
 
 // Format
-execSync(`bunx biome format --write "${pluginPath}" "${marketplacePath}"`, {
+execSync(`bunx prettier --write "${pluginPath}" "${marketplacePath}"`, {
   stdio: "ignore",
 });
 

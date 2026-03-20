@@ -2,8 +2,8 @@
 // Extracted from App.tsx — pure state management for the dashboard.
 // Large helpers (applySnapshot, insertSorted, eventToTimelineEntry) live in
 // sibling modules; this file re-exports them for backward compatibility.
-
 import type { AgentId } from "relay-shared";
+
 import { getEndDeclarationType } from "../components/activity/helpers";
 import type { AgentMeta, DashboardEvent, Message, Task, TimelineEntry } from "../types";
 import { applySnapshot } from "./snapshotHandler";

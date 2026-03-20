@@ -1,8 +1,8 @@
 // packages/dashboard/src/components/panels/ActivityPanel.tsx
 // Top-right activity area: tab-switched panel — Activity feed or Message feed.
 // Data is sourced from SessionContext; sizing state comes from PanelResizeContext.
-
 import { useCallback, useState } from "react";
+
 import { usePanelLayout } from "../../context/PanelResizeContext";
 import { useSession } from "../../context/SessionContext";
 import { cn } from "../../lib/cn";
@@ -22,7 +22,7 @@ export function ActivityPanel() {
   return (
     <div
       className={cn(
-        "min-h-0 overflow-hidden flex flex-col",
+        "flex min-h-0 flex-col overflow-hidden",
         !isDraggingTimeline && "transition-[flex] duration-200 ease-[ease]"
       )}
       style={{
@@ -30,7 +30,7 @@ export function ActivityPanel() {
       }}
     >
       {/* Panel header — tab switcher */}
-      <div className="flex items-center shrink-0 h-9 border-b border-(--color-border-subtle) bg-(--color-surface-base) pl-3 pr-2 gap-0.5">
+      <div className="flex h-9 shrink-0 items-center gap-0.5 border-b border-(--color-border-subtle) bg-(--color-surface-base) pr-2 pl-3">
         {(
           [
             { id: "activity" as PanelTab, label: "Activity", count: timeline.length },
@@ -42,7 +42,7 @@ export function ActivityPanel() {
             type="button"
             onClick={() => handleTabClick(tab.id)}
             className={cn(
-              "flex items-center gap-[5px] px-[9px] py-[3px] rounded text-[11px] font-medium cursor-pointer border-none transition-[background,color] duration-100 uppercase tracking-[0.06em]",
+              "flex cursor-pointer items-center gap-[5px] rounded border-none px-[9px] py-[3px] text-[11px] font-medium tracking-[0.06em] uppercase transition-[background,color] duration-100",
               activeTab === tab.id
                 ? "bg-(--color-surface-overlay) text-(--color-text-secondary)"
                 : "bg-transparent text-(--color-text-disabled)"
@@ -51,7 +51,7 @@ export function ActivityPanel() {
             {tab.label}
             <span
               className={cn(
-                "font-mono text-[10px] px-1 py-0 rounded-[3px]",
+                "rounded-[3px] px-1 py-0 font-mono text-[10px]",
                 activeTab === tab.id
                   ? "bg-(--color-surface-raised) text-(--color-text-secondary)"
                   : "bg-(--color-surface-overlay) text-(--color-text-disabled)"

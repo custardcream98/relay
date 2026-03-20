@@ -1,7 +1,7 @@
 // packages/server/src/index.ts
 // Entry point: orchestrates MCP stdio server + dashboard HTTP/WebSocket server.
-
 import { WebSocketServer } from "ws";
+
 import { applyCliArgs, parseArgs } from "./cli.js";
 import { setPort } from "./config.js";
 import { tryServe } from "./dashboard/serve.js";

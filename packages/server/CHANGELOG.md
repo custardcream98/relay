@@ -5,27 +5,22 @@
 ### Minor Changes
 
 - 9afee85: ### Branding consistency
-
   - Dashboard: favicon, relay star icon in AppHeader, title "relay dashboard", wordmark letter-spacing unified to -0.02em
   - Docs: Starlight sidebar logo (light/dark SVG variants), favicon icon in landing Nav and Footer
 
   ### Port binding fix
-
   - `isPortAvailable` now binds on all interfaces (matching `serve()` behavior) to prevent IPv4/IPv6 mismatch
   - New `tryServe()` retries with the next port on EADDRINUSE instead of silently failing
 
   ### Session selector removal
-
   - Removed SessionSelector UI — redundant now that each server process gets its own dashboard port
 
   ### Artifact detail modal
-
   - Click artifact cards in the Activity Feed to view full content in a popover modal
   - New `GET /api/artifacts/:id` REST endpoint returns artifact with full content
   - Storybook stories added for ArtifactDetailModal, ActivityFeed, and AppLayout
 
 - 8a124fb: feat: add shared_blocks template system and review_checklist to pool YAML
-
   - Add `shared_blocks` top-level field: define reusable text blocks referenced as `{{block_name}}` in agent systemPrompts. `{agent_id}` within blocks is auto-substituted at load time. Undefined references throw.
   - Add `review_checklist` top-level + per-agent field: structured review criteria with 3-tier inheritance (per-agent > base agent > global). Exposed in `list_agents` and `list_pool_agents` API responses.
   - Add `validatePromptSections()`: enforces `### On Each Spawn`, `### Declaring End`, `## Rules` in pool agent prompts (throws on missing sections).
@@ -37,7 +32,6 @@
 ### Minor Changes
 
 - 65d4c34: feat(skill): improve auto-pool prompt quality and add pool gap analysis
-
   - Expand Agent Prompt Design Principles from 6 to 9 (mandatory sections, artifact naming, inter-agent communication)
   - Add 4 role-type prompt structure templates (Coordinator, Implementer, Quality, Knowledge Worker)
   - Add Pre-write Checklist as a hard gate before pool file generation
@@ -47,7 +41,6 @@
   - Fix message cursor tracking: m.id → m.seq throughout event loop pseudocode
 
 - 42e85dc: feat: add shared_blocks template system and review_checklist to pool YAML
-
   - Add `shared_blocks` top-level field: define reusable text blocks referenced as `{{block_name}}` in agent systemPrompts. `{agent_id}` within blocks is auto-substituted at load time. Undefined references throw.
   - Add `review_checklist` top-level + per-agent field: structured review criteria with 3-tier inheritance (per-agent > base agent > global). Exposed in `list_agents` and `list_pool_agents` API responses.
   - Add `validatePromptSections()`: enforces `### On Each Spawn`, `### Declaring End`, `## Rules` in pool agent prompts (throws on missing sections).
@@ -70,7 +63,6 @@
   When `/relay:relay` runs with no `.relay/agents.pool.yml`, it now auto-analyzes the project and generates a tailored agent pool (4-8 agents across 3 functional lanes: Coordination, Implementation, Quality). Existing pools are unaffected.
 
   **Auto-Pool Generation:**
-
   - Project analysis: reads README, package manifests, config files, directory structure
   - 3-lane agent architecture: PM (always), Implementation (fe/be/mobile/devops/engineer/architect based on tech stack), Quality (qa/security based on project maturity)
   - Hook auto-detection: biome, tsconfig, eslint, ruff, mypy, clippy, golangci-lint
@@ -78,7 +70,6 @@
   - First-session memory bootstrapping: agents discover and persist project knowledge
 
   **Dashboard UX improvements:**
-
   - Error boundary: catches uncaught render errors with fallback UI and reload button
   - WebSocket max-retries UI: persistent "Unable to connect" banner after 5 failed reconnect attempts
   - New agent highlight: 3-second glow animation when agents join mid-session
@@ -91,7 +82,6 @@
 - e3afbd8: Reliability features and API cleanup (27→23 tools)
 
   **New features:**
-
   - Derived task provenance with circuit breaker (`parent_task_id`, `depth`, max depth 1, max 3 siblings)
   - Orchestrator state persistence (`save_orchestrator_state` / `get_orchestrator_state`)
   - `validate_prompt` per-agent field for declarative completion validation
@@ -100,14 +90,12 @@
   - Optional Planning Phase in relay skill (PM pre-populates task board)
 
   **API cleanup — removed 4 redundant tools:**
-
   - `get_my_tasks` → use `get_all_tasks(assignee: agent_id)` instead
   - `get_team_status` → derive from `get_all_tasks` results
   - `get_ready_tasks` → filter `get_all_tasks` by dependency status
   - `get_workflow` → unused, removed
 
   **Bug fix:**
-
   - Review workflow now correctly calls `request_review` before `submit_review`
 
 ## 0.13.1
@@ -119,7 +107,6 @@
   ### Server (`relay-server`)
 
   **Remove redundant `db/queries/` pass-through layer**
-
   - Deleted `db/queries/` (artifacts, events, messages, reviews, sessions, tasks), `db/client.ts`, `db/schema.ts`, and `db/types.ts` — these were zero-value wrappers after the SQLite → in-memory store migration
   - All tools, hono routes, and WebSocket handlers now import directly from `store.ts`
   - Tests migrated from per-test SQLite instances to `_resetStore()` — faster, no native bindings required
@@ -129,11 +116,9 @@
   ### Dashboard (`relay-dashboard`, internal)
 
   **Introduce `cn()` utility (clsx + tailwind-merge)**
-
   - `src/lib/cn.ts`: `cn(...inputs)` helper for safe, conflict-free Tailwind class composition
 
   **Maximize Tailwind CSS usage — 84% reduction in inline styles (262 → 41)**
-
   - All color tokens expressed via CSS-variable arbitrary values (`bg-[var(--color-surface-raised)]`)
   - Animations via arbitrary animation classes (`animate-[blink_1.1s_step-end_infinite]`)
   - Conditional classes composed with `cn()`, replacing JS hover state handlers
@@ -151,7 +136,6 @@
   ### Server (`relay-server`)
 
   **Architecture**
-
   - `mcp.ts` decomposed from 845 lines into a 61-line thin orchestrator + 7 `registerXxxTools()` files under `src/tools/`
   - `agents/cache.ts` introduced as the single source of truth for agent and pool caching — eliminates the dual-cache bug between `mcp.ts` and `hono.ts`
   - `src/schemas.ts`: `AGENT_ID_SCHEMA` centralizes the Zod agent-id validation that was copy-pasted 18+ times
@@ -159,16 +143,13 @@
   - `src/utils/broadcast.ts`: `taskToPayload()` eliminates 3 duplicate task broadcast payload constructions
 
   **Performance**
-
   - `getTeamStatus`: O(5n) multi-filter replaced with O(n) single-pass accumulator
 
   **Type Safety**
-
   - `TaskRow.status` and `TaskRow.priority` now typed as `TaskStatus`/`TaskPriority` union types
   - `buildSessionSnapshot` return value typed as `Extract<RelayEvent, { type: "session:snapshot" }>`
 
   **Cleanup**
-
   - Dead `_db: SqliteDatabase` parameter removed from all 17 `db/queries/*.ts` functions (YAGNI)
   - `now()` renamed to `nowSeconds()` for naming clarity
   - `loader.ts` decomposed into `resolveBaseAgents()` + `resolveExtendsAgents()` + `validateAgentId()`
@@ -179,7 +160,6 @@
   - Hook trust boundary documented in `hook-runner.ts`
 
   **Tests**
-
   - 176 → 180 passing tests
   - New: `get_messages` self-exclusion filter, `get_all_tasks` status filter, `update_task` no-valid-fields guard
   - Strengthened: weak assertions, env isolation, schema reset coverage
@@ -187,26 +167,22 @@
   ### Dashboard (`relay-dashboard`)
 
   **React Best Practices**
-
   - All 4 `Context.Provider` values wrapped in `useMemo` (prevents consumers re-rendering on unrelated App state changes)
   - Both fetch effects (`/api/agents`, `/api/servers`) use `AbortController` with cleanup
   - `PanelResizeContext` value stabilized with `useMemo`
 
   **Component Architecture**
-
   - `TaskBoard.tsx`: 605 → 237 lines; `TaskDetailModal`, `TaskCard`, `TaskColumn` extracted
   - `AgentAvatar` and `AgentChip` extracted to `components/shared/` (were duplicated in `ActivityFeed` and `MessageFeed`)
   - `usePanelCollapse` hook extracted from `usePanelResize` (SRP)
   - `applySnapshot()` and `normalizeUrl()` extracted as pure module-level helpers
 
   **Performance**
-
   - `React.memo` on 6 sub-components in `ActivityFeed`
   - `useMemo` for `filtered` and `thinkingAgents` computations
   - Inline JSX style objects replaced with stable `useMemo` references in `AgentCard`, `ActivityFeed`
 
   **Bug Fixes**
-
   - pm accent color `#a78bfa` → `#c084fc` (was out of sync with CSS `--color-accent-pm`)
   - `AgentAvatar` missing `aria-hidden="true"` (accessibility)
   - `onMouseEnter/Leave` DOM style mutation replaced with CSS `:hover` (React anti-pattern)
@@ -214,7 +190,6 @@
   - `rgba()` magic strings replaced with CSS custom properties throughout
 
   ### Shared (`relay-shared`)
-
   - `TaskStatus` and `TaskPriority` exported as proper union types (previously `string`)
 
 ## 0.12.0
@@ -224,7 +199,6 @@
 - 22a5664: Add git-hook style task lifecycle hooks for agents
 
   **Server**
-
   - New `hooks` field on agent pool entries: `before_task` and `after_task` shell commands
   - `before_task` runs before `claim_task` — non-zero exit blocks claiming (no phantom `in_progress`)
   - `after_task` runs after `update_task(status: "done")` — non-zero exit reverts status to `in_review`
@@ -241,7 +215,6 @@
   - Fix: SIGKILL escalation timer now guards against killing a recycled PID via `child.exitCode` check
 
   **New files**
-
   - `tools/hook-runner.ts` — `runHook()` / `runHooks()` utilities
   - `tools/hook-runner.test.ts` — 11 tests (truncation, env var injection, empty command guard)
   - New hook tests in `tools/tasks.test.ts` and `agents/loader.test.ts` (including `hook_failed` discriminator assertion and after-revert retry path)
@@ -249,7 +222,6 @@
 - d7f5879: Dashboard UX improvements and server feature additions
 
   **Dashboard**
-
   - Multi-instance agent disambiguation: AgentCard now shows a monospace ID badge on every card and an `↳ {base}` subtitle for agents created via `extends` (e.g. fe2 extending fe)
   - Task board: empty column states, task detail modal on card click (full description, status/priority/assignee badges, timestamps, Markdown rendering)
   - Message feed: new Slack-style panel with agent avatars, DM/broadcast distinction, thread collapsing, unread badge, copy-to-clipboard, and search
@@ -258,7 +230,6 @@
   - Layout: wider divider grab area with gripper dots, responsive min-width constraint
 
   **Server**
-
   - Tasks: optional `depends_on` field — `claim_task` enforces all dependencies are `done` before allowing a claim
   - Messages: optional `metadata` field (`Record<string, string>`) for structured context
   - Agents: `basePersonaId` preserved through loader and exposed in `/api/agents` and `list_agents` for extends-based agents
@@ -269,7 +240,6 @@
   - Improved descriptions on all 18 MCP tools for better LLM discoverability
 
   **Shared types**
-
   - Add `agent:joined` event to `RelayEvent` union
   - Add `metadata` to `message:new` event payload
   - Add `depends_on` to `task:updated` event payload
@@ -291,7 +261,6 @@
 ### Patch Changes
 
 - c2d0f19: Fix session-agents.yml loading and several session isolation bugs
-
   - `getAgents()`: session file not found no longer permanently caches `{}` — returns without caching so the next call can retry after the file is written
   - `getAgents()`: load errors no longer permanently cache `{}` — error path returns without caching
   - `getPool()`: update `poolCachedAt` on load failure to prevent retry spam on every call
@@ -306,7 +275,6 @@
 - feat: dashboard improvements, security hardening, and orchestrator robustness
 
   ## Dashboard
-
   - Task Board collapsible panel (toggle button, same as left AgentArena panel)
   - Session switcher: load any historical session snapshot from the header
   - Dark/light mode toggle
@@ -316,7 +284,6 @@
   - Removed dead files: EventTimeline.tsx, MessageFeed.tsx
 
   ## Bug Fixes
-
   - Port conflict: `EADDRINUSE` now clears the port so `get_server_info` returns `dashboardUrl: null` + `dashboardAvailable: false` instead of pointing agents at the wrong instance's dashboard
   - `session:snapshot` WebSocket event now includes `sessionId` for multi-server disambiguation
   - `shared/index.ts`: `task:updated` and `session:snapshot` task types now include `created_at`/`updated_at` fields
@@ -325,14 +292,12 @@
   - API fetches correctly use `activeServer`-prefixed URLs (no more hardcoded relative paths)
 
   ## Security
-
   - CORS middleware on all Hono routes (localhost-only)
   - WebSocket origin validation (`socket.destroy()` for non-localhost origins)
   - Content length limits: `send_message` 64KB, `post_artifact` 512KB, memory writes 128KB
   - ServerSwitcher SSRF: `isLocalhostUrl()` validation before connecting
 
   ## MCP / Server
-
   - `get_server_info` returns `dashboardAvailable: boolean`
   - `broadcast_thinking` added to pool agent tool lists (be, fe, qa, designer, etc.)
   - `try/catch` added to all MCP tool handlers (was missing system-wide)
@@ -340,13 +305,11 @@
   - `loader.ts`: two-pass extends resolution bug fixed; per-agent language support
 
   ## Skills
-
   - `/relay:relay`: orchestrator now detects question-type `end:waiting` (e.g. "should I proceed?") and re-spawns immediately with a "yes, proceed" answer — prevents agents silently dropping without completing their work
   - `/relay:relay`: agents that complete without broadcasting `end:` are treated as implicit `end:waiting` and re-spawned with a nudge
   - `/relay:agent`: now calls `start_session` before spawning (fixes stale session ID scoping)
 
   ## Tests
-
   - 76 → 129 tests (+53): hono.test.ts (new, 14 tests), sessions.test.ts (+7), review.test.ts (+4), loader.test.ts (+3), config.test.ts (+18), websocket.test.ts (new), sessions isolation tests (+11)
 
 ### Patch Changes
@@ -367,7 +330,6 @@
 ### Minor Changes
 
 - 1bc8a19: Add `start_session` MCP tool and fix session ID isolation
-
   - Add `start_session` MCP tool: sets the active session ID on the server and broadcasts `session:started` to reset the live dashboard view
   - Fix frozen `SESSION_ID` bug: all server modules now call `getSessionId()` lazily so `start_session` takes effect
   - Add `session:started` to `RelayEvent` union; dashboard clears stale state on receipt
@@ -379,7 +341,6 @@
 ### Minor Changes
 
 - Migrate to pool-only architecture with branded AgentId type
-
   - Remove `agents.default.yml`, `agents.example.yml`, and legacy `agents.yml` concept
   - All team composition now goes through `agents.pool.yml` (pool-only workflow)
   - Introduce branded `AgentId` type (`Brand<string, "AgentId">`) with `markAsAgentId()` helper in shared package
@@ -393,7 +354,6 @@
 ### Minor Changes
 
 - 740dadf: Concurrent session isolation, session switcher, and dashboard improvements
-
   - **Concurrent session isolation**: `list_agents` now accepts an optional `session_id` parameter. The server uses a per-session `Map` cache instead of a global singleton, so two relay sessions running simultaneously no longer overwrite each other's agent configuration.
   - **Session switcher**: The dashboard header now shows a session dropdown. Select any past session to freeze the Task Board and Message Feed to that session's snapshot; a LIVE badge indicates you're viewing the current session.
   - **`GET /api/sessions/:id/snapshot`**: New endpoint returning `{ session_id, tasks, messages, artifacts }` for a given session.
@@ -406,7 +366,6 @@
 ### Patch Changes
 
 - 11e54b3: Fix dashboard agent card activity display and add broadcast_thinking MCP tool
-
   - Agent cards now show task title as fallback when agent has no messages yet (fixes "No activity yet")
   - Add `broadcast_thinking` MCP tool — emits `agent:thinking` WebSocket events to fill the Thoughts panel
   - Orchestrator now verifies open tasks before accepting `end:_done` to keep task board accurate
@@ -417,7 +376,6 @@
 ### Minor Changes
 
 - 2b9f81c: feat: dashboard enhancement — message feed, session replay, event filter, reconnect UI, auto session ID
-
   - Add MessageFeed panel with Slack-style thread view (TaskBoard ↔ Messages tab)
   - Add session replay UI with playback controls (GET /api/sessions)
   - Add EventTimeline type filter (7 toggles: messages/tasks/artifacts/thinking/status/memory/review)
@@ -434,7 +392,6 @@
 ### Minor Changes
 
 - ba4b65c: Add dynamic agent composition and multi-server support.
-
   - `loadPool()` function and `list_pool_agents` MCP tool for agent pool browsing
   - `RELAY_SESSION_AGENTS_FILE` env var for per-session team override
   - Auto port selection (3456–3465) when default port is occupied
@@ -471,7 +428,6 @@
 ### Patch Changes
 
 - 3e5228d: fix: lazy-load agents in list_agents tool and use getRelayDir() in hono
-
   - list_agents MCP tool now lazy-loads agents on first call instead of at
     createMcpServer() time — fixes the timing bug where agents were loaded
     before setProjectRoot() was called (always returned empty list)
@@ -483,7 +439,6 @@
 ### Patch Changes
 
 - a6c8440: fix: discover project root via MCP roots/list protocol
-
   - Introduce shared config module (config.ts) with getProjectRoot() / getRelayDir()
   - On MCP server start, call server.listRoots() to receive the workspace root from
     the MCP client (Claude Code) — resolves the bunx CWD=/tmp problem without
@@ -496,7 +451,6 @@
 ### Patch Changes
 
 - ad89b4a: fix: resolve /api/agents 500 error and move DB to .relay directory
-
   - Add try/catch to /api/agents endpoint to return JSON error instead of generic 500
   - Change default DB path from relay.db (CWD-relative) to .relay/relay.db (RELAY_DIR-relative)
   - Auto-create RELAY_DIR if it doesn't exist when initializing the DB
@@ -514,7 +468,6 @@
 ### Patch Changes
 
 - 4381349: fix: prevent manual server execution and handle port conflicts gracefully
-
   - Add TTY guard that blocks direct terminal runs with a helpful error message — relay-server must be started via Claude Code MCP (stdio), not directly
   - Wrap dashboard `Bun.serve()` in try-catch so that port 3456 conflicts no longer crash the MCP process; the MCP stdio server will still start even if the dashboard port is already in use
 
@@ -525,11 +478,9 @@
 - 1d1429b: Event-driven agent collaboration and generic agent system
 
   ## Breaking Changes
-
   - `agents.default.yml` now ships empty (`agents: {}`). The built-in web-dev team (pm, designer, da, fe, be, qa, deployer) has been moved to `agents.example.yml`. Users who relied on the default team must copy `agents.example.yml` to `agents.yml` in their project root, or define their own team.
 
   ## New Features
-
   - **Event-driven orchestration**: All agents spawn simultaneously and react to messages/tasks. Replaces the previous waterfall/sequential model.
   - **Atomic task claiming**: New `claim_task` MCP tool uses SQLite conditional UPDATE to prevent race conditions when multiple agents compete for the same task.
   - **Team status**: New `get_team_status` MCP tool returns aggregate task counts and a `has_pending_work` flag for orchestrator decision-making.
@@ -550,7 +501,6 @@
 ### Minor Changes
 
 - a31b752: Add per-agent language config, dashboard redesign, and agents.yml JSON schema
-
   - `language` field in `agents.yml`: set response language globally or per-agent
   - Dashboard: minimal redesign with IBM Plex fonts, resizable panels, markdown renderer
   - `agents.schema.json`: IDE autocompletion and validation for `agents.yml`

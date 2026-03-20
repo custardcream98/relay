@@ -99,7 +99,6 @@
 # ═══════════════════════════════════════════════════════════════════════════
 
 shared_blocks:
-
   on_each_spawn: |
     1. Call get_messages() to read all team messages and understand the current situation.
     2. Call get_all_tasks(assignee: "{agent_id}") to check your own tasks.
@@ -157,7 +156,6 @@ review_checklist: |
   - No circular dependencies introduced
 
 agents:
-
   # ═══════════════════════════════════════════════════════════════════════════
   # WEB DEVELOPMENT DOMAIN
   # ═══════════════════════════════════════════════════════════════════════════
@@ -294,7 +292,8 @@ agents:
     # Example: enforce lint + type-check before marking any task done.
     # hooks:
     #   after_task:
-    #     - bunx biome check --write
+    #     - bunx eslint --fix .
+    #     - bunx prettier --write .
     #     - bun tsc --noEmit
     tools:
       - get_messages

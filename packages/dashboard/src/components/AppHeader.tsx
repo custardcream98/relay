@@ -1,7 +1,6 @@
 // packages/dashboard/src/components/AppHeader.tsx
 // App top header — shows instance info, session team badge, server switcher, and theme toggle.
 // Reads all data from context hooks directly; no props.
-
 import { useAgents } from "../context/AgentsContext";
 import { useConnection } from "../context/ConnectionContext";
 import { useServer } from "../context/ServerContext";
@@ -53,7 +52,7 @@ export function AppHeader() {
 
   return (
     <div
-      className="flex items-center justify-between px-5 h-[52px] shrink-0 sticky top-0 z-50 border-b border-(--color-border-default)"
+      className="sticky top-0 z-50 flex h-[52px] shrink-0 items-center justify-between border-b border-(--color-border-default) px-5"
       style={{
         background: "color-mix(in srgb, var(--color-surface-root) 88%, transparent)",
         backdropFilter: "blur(12px) saturate(1.2)",
@@ -64,9 +63,9 @@ export function AppHeader() {
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-[5px]">
           <RelayStarIcon theme={theme} />
-          <span className="text-[15px] font-medium tracking-[-0.02em] font-mono text-(--color-text-primary) flex items-baseline">
+          <span className="flex items-baseline font-mono text-[15px] font-medium tracking-[-0.02em] text-(--color-text-primary)">
             relay
-            <span className="text-(--color-accent) font-normal animate-[blink_1.1s_step-end_infinite]">
+            <span className="animate-[blink_1.1s_step-end_infinite] font-normal text-(--color-accent)">
               _
             </span>
           </span>
@@ -74,7 +73,7 @@ export function AppHeader() {
 
         {servers.length > 1 ? (
           <>
-            <span className="text-[13px] text-(--color-text-disabled) mx-0.5 self-center">/</span>
+            <span className="mx-0.5 self-center text-[13px] text-(--color-text-disabled)">/</span>
             <ServerSwitcher
               servers={servers}
               activeServer={activeServer}
@@ -83,12 +82,12 @@ export function AppHeader() {
             />
           </>
         ) : (
-          <span className="text-[11px] font-mono text-(--color-text-disabled) tracking-[0.02em] self-center">
+          <span className="self-center font-mono text-[11px] tracking-[0.02em] text-(--color-text-disabled)">
             {instanceLabel}
           </span>
         )}
 
-        <span className="text-[10px] font-mono bg-(--color-accent-glow) text-(--color-accent) border border-(--color-accent) px-2 py-[2px] rounded-full uppercase tracking-[0.08em] font-medium opacity-90">
+        <span className="rounded-full border border-(--color-accent) bg-(--color-accent-glow) px-2 py-[2px] font-mono text-[10px] font-medium tracking-[0.08em] text-(--color-accent) uppercase opacity-90">
           dashboard
         </span>
       </div>
@@ -97,14 +96,14 @@ export function AppHeader() {
       <div className="flex items-center gap-3">
         <SessionProgress />
         {selectedAgent && (
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-(--color-accent-glow) border border-(--color-accent)">
-            <span className="text-[11px] font-medium font-mono text-(--color-accent) tracking-[0.02em]">
+          <div className="flex items-center gap-2 rounded-full border border-(--color-accent) bg-(--color-accent-glow) px-3 py-1">
+            <span className="font-mono text-[11px] font-medium tracking-[0.02em] text-(--color-accent)">
               focus: {selectedAgent}
             </span>
             <button
               type="button"
               onClick={() => onSelectAgent(null)}
-              className="text-sm text-(--color-text-tertiary) bg-none border-none cursor-pointer px-[2px] leading-none"
+              className="cursor-pointer border-none bg-none px-[2px] text-sm leading-none text-(--color-text-tertiary)"
               aria-label="Exit Focus Mode"
             >
               ×
@@ -118,7 +117,7 @@ export function AppHeader() {
         <SessionTeamBadge agents={sessionTeam} />
 
         {agents.length > 0 && (
-          <span className="text-[11px] font-mono text-(--color-text-tertiary) tracking-[0.04em]">
+          <span className="font-mono text-[11px] tracking-[0.04em] text-(--color-text-tertiary)">
             {agents.length} agents
           </span>
         )}
@@ -128,12 +127,11 @@ export function AppHeader() {
           onClick={toggleTheme}
           title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
           aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          className="flex items-center justify-center w-7 h-7 rounded-md border border-(--color-border-default) bg-transparent text-(--color-text-tertiary) cursor-pointer text-sm shrink-0 transition-[background,border-color,color] duration-100 hover:bg-(--color-surface-overlay) hover:text-(--color-text-secondary)"
+          className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-md border border-(--color-border-default) bg-transparent text-sm text-(--color-text-tertiary) transition-[background,border-color,color] duration-100 hover:bg-(--color-surface-overlay) hover:text-(--color-text-secondary)"
         >
           {theme === "dark" ? "☀" : "☾"}
         </button>
 
-        {/* biome-ignore lint/a11y/useSemanticElements: div layout required */}
         <div
           className="flex items-center gap-1.5"
           role="status"
@@ -141,7 +139,7 @@ export function AppHeader() {
         >
           <span
             className={cn(
-              "w-1.5 h-1.5 rounded-full inline-block shrink-0",
+              "inline-block h-1.5 w-1.5 shrink-0 rounded-full",
               connected
                 ? "bg-(--color-connection-live) shadow-[0_0_0_2px_rgba(52,211,153,0.25)]"
                 : "bg-(--color-connection-dead)"
@@ -149,7 +147,7 @@ export function AppHeader() {
           />
           <span
             className={cn(
-              "text-[11px] text-(--color-text-disabled) font-mono tracking-[0.04em]",
+              "font-mono text-[11px] tracking-[0.04em] text-(--color-text-disabled)",
               reconnecting && !connected && "animate-[blink_1.2s_step-end_infinite]"
             )}
           >

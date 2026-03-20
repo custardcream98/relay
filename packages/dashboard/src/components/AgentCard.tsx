@@ -1,7 +1,7 @@
 // packages/dashboard/src/components/AgentCard.tsx
 // Agent card — avatar, status badge, activity preview, task count
-
 import { memo, useCallback, useMemo } from "react";
+
 import { getAgentAccent } from "../constants/agents";
 import { cn } from "../lib/cn";
 import type { AgentId } from "../types";
@@ -128,7 +128,6 @@ export const AgentCard = memo(function AgentCard({
         : null;
 
   return (
-    // biome-ignore lint/a11y/useSemanticElements: div used to preserve card styling
     <div
       role="button"
       tabIndex={0}
@@ -136,9 +135,9 @@ export const AgentCard = memo(function AgentCard({
       onClick={onClick}
       onKeyDown={onKeyDown}
       className={cn(
-        "relative flex flex-row items-start gap-3 p-3 mb-1 rounded-lg cursor-pointer",
+        "relative mb-1 flex cursor-pointer flex-row items-start gap-3 rounded-lg p-3",
         "transition-[background,border-color,box-shadow] duration-120 outline-none",
-        !isSelected && "hover:bg-(--color-surface-raised) hover:border-(--color-border-default)!",
+        !isSelected && "hover:border-(--color-border-default)! hover:bg-(--color-surface-raised)",
         isNewlyJoined && "animate-[agent-join-glow_3s_ease-out_forwards]"
       )}
       style={cardStyle}
@@ -146,25 +145,25 @@ export const AgentCard = memo(function AgentCard({
       {/* Avatar — agent emoji + color ring */}
       <div className="relative shrink-0">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-[20px] transition-shadow duration-300"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-[20px] transition-shadow duration-300"
           style={avatarStyle}
         >
           {emoji}
         </div>
         {/* Status dot — bottom right */}
         <span
-          className="absolute bottom-0 right-0 w-[10px] h-[10px] rounded-full block shrink-0 border-2 border-(--color-surface-base)"
+          className="absolute right-0 bottom-0 block h-[10px] w-[10px] shrink-0 rounded-full border-2 border-(--color-surface-base)"
           style={{ background: STATUS_BADGE_COLOR[status] }}
         />
       </div>
 
       {/* Content column */}
-      <div className="flex-1 min-w-0">
+      <div className="min-w-0 flex-1">
         {/* Header row: name + status badge + task count */}
-        <div className="flex items-center gap-1.5 mb-1">
+        <div className="mb-1 flex items-center gap-1.5">
           {/* Agent name */}
           <span
-            className="text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap min-w-0"
+            className="min-w-0 overflow-hidden text-[13px] font-semibold text-ellipsis whitespace-nowrap"
             style={{
               color: isSelected ? accentColor : "var(--color-text-primary)",
             }}
@@ -173,13 +172,13 @@ export const AgentCard = memo(function AgentCard({
           </span>
 
           {/* Agent ID badge */}
-          <span className="font-mono text-[10px] text-(--color-text-disabled) bg-(--color-surface-overlay) px-[5px] py-px rounded-full shrink-0">
+          <span className="shrink-0 rounded-full bg-(--color-surface-overlay) px-[5px] py-px font-mono text-[10px] text-(--color-text-disabled)">
             {id}
           </span>
 
           {/* Status badge */}
           <span
-            className="font-mono text-[10px] font-medium px-[5px] py-px rounded-[3px] uppercase tracking-[0.05em] shrink-0"
+            className="shrink-0 rounded-[3px] px-[5px] py-px font-mono text-[10px] font-medium tracking-[0.05em] uppercase"
             style={statusBadgeStyle}
           >
             {status}
@@ -187,7 +186,7 @@ export const AgentCard = memo(function AgentCard({
 
           {/* Last active timestamp */}
           {!isWorking && lastActivityTs !== null && lastActivityTs > 0 && (
-            <span className="font-mono text-[9px] text-(--color-text-disabled) ml-auto shrink-0">
+            <span className="ml-auto shrink-0 font-mono text-[9px] text-(--color-text-disabled)">
               {relativeTime(lastActivityTs)}
             </span>
           )}
@@ -195,7 +194,7 @@ export const AgentCard = memo(function AgentCard({
           {/* In-progress task count */}
           {inProgressCount > 0 && (
             <span
-              className="font-mono text-[10px] px-1.5 py-px rounded-full shrink-0"
+              className="shrink-0 rounded-full px-1.5 py-px font-mono text-[10px]"
               style={taskCountStyle}
             >
               {inProgressCount} {inProgressCount === 1 ? "task" : "tasks"}
@@ -206,7 +205,7 @@ export const AgentCard = memo(function AgentCard({
         {/* Base persona subtitle — only for extends agents */}
         {basePersonaId && (
           <div
-            className="text-[11px] text-(--color-text-disabled) italic mb-[2px]"
+            className="mb-[2px] text-[11px] text-(--color-text-disabled) italic"
             title={`Extends ${basePersonaId}`}
           >
             ↳ {basePersonaId}
@@ -217,7 +216,7 @@ export const AgentCard = memo(function AgentCard({
         {isWorking && thinkingChunk ? (
           // Thinking bubble — chat bubble style with blinking cursor
           <div
-            className="text-xs leading-[1.55] text-(--color-text-secondary) rounded-[6px] p-[4px_8px] font-mono overflow-hidden"
+            className="overflow-hidden rounded-[6px] p-[4px_8px] font-mono text-xs leading-[1.55] text-(--color-text-secondary)"
             style={{
               ...thinkingBubbleStyle,
               display: "-webkit-box",
@@ -228,7 +227,7 @@ export const AgentCard = memo(function AgentCard({
             {activityText}
             {/* Blinking cursor — reuses blink keyframe from index.css */}
             <span
-              className="inline-block w-1.5 h-[11px] ml-[2px] align-text-bottom opacity-80"
+              className="ml-[2px] inline-block h-[11px] w-1.5 align-text-bottom opacity-80"
               style={{
                 animation: "blink 1.1s step-end infinite",
                 background: accentColor,
@@ -237,7 +236,7 @@ export const AgentCard = memo(function AgentCard({
           </div>
         ) : activityText ? (
           <p
-            className="text-xs leading-normal text-(--color-text-tertiary) m-0 overflow-hidden font-sans"
+            className="m-0 overflow-hidden font-sans text-xs leading-normal text-(--color-text-tertiary)"
             style={{
               display: "-webkit-box",
               WebkitLineClamp: 2,
@@ -247,7 +246,7 @@ export const AgentCard = memo(function AgentCard({
             {activityText}
           </p>
         ) : (
-          <p className="text-xs text-(--color-text-disabled) m-0 italic">
+          <p className="m-0 text-xs text-(--color-text-disabled) italic">
             {status === "waiting"
               ? "Waiting for work…"
               : status === "done"
@@ -259,7 +258,7 @@ export const AgentCard = memo(function AgentCard({
         {/* Task completion mini-bar */}
         {taskTotalCount > 0 && (
           <div
-            className="mt-2 h-[3px] rounded-full overflow-hidden"
+            className="mt-2 h-[3px] overflow-hidden rounded-full"
             style={{ background: `${accentColor}15` }}
             title={`${taskDoneCount} of ${taskTotalCount} tasks done`}
           >

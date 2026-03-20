@@ -11,12 +11,12 @@ Place actual relay dashboard screenshots here.
 
 ## File naming convention
 
-| File | Description |
-|---|---|
-| `dashboard.png` | Full 3-panel dashboard view |
-| `task-board.png` | Task Board (Kanban) panel only |
-| `agent-thoughts.png` | Agent Thoughts panel only |
-| `messages.png` | Message Feed panel only |
+| File                 | Description                    |
+| -------------------- | ------------------------------ |
+| `dashboard.png`      | Full 3-panel dashboard view    |
+| `task-board.png`     | Task Board (Kanban) panel only |
+| `agent-thoughts.png` | Agent Thoughts panel only      |
+| `messages.png`       | Message Feed panel only        |
 
 ## Current placeholder
 

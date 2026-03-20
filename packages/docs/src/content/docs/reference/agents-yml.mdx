@@ -9,12 +9,12 @@ Every `/relay:relay` session picks a task-specific team from this pool.
 ## Top-level structure
 
 ```yaml
-language: string          # optional — default language for all agents
-shared_blocks:            # optional — reusable text blocks
-  {block_name}: string
-review_checklist: string  # optional — default review checklist for all agents
+language: string # optional — default language for all agents
+shared_blocks: # optional — reusable text blocks
+  { block_name }: string
+review_checklist: string # optional — default review checklist for all agents
 agents:
-  {agentId}:
+  { agentId }:
     # agent configuration
     ...
 ```
@@ -23,22 +23,22 @@ agents:
 
 ```yaml
 agents:
-  {agentId}:
-    name: string           # display name (e.g. "Frontend Engineer")
-    emoji: string          # emoji icon (e.g. "💻")
-    description: string    # short role description (shown during team selection)
-    tags: [string]         # optional — used for smart team suggestions
-    disabled: boolean      # exclude from pool when true (default: false)
-    extends: string        # agent ID to inherit from
-    tools:                 # list of allowed MCP tools
+  { agentId }:
+    name: string # display name (e.g. "Frontend Engineer")
+    emoji: string # emoji icon (e.g. "💻")
+    description: string # short role description (shown during team selection)
+    tags: [string] # optional — used for smart team suggestions
+    disabled: boolean # exclude from pool when true (default: false)
+    extends: string # agent ID to inherit from
+    tools: # list of allowed MCP tools
       - tool_name
-    systemPrompt: string   # agent system prompt (multiline)
-    language: string       # optional — override global language for this agent
-    hooks:                 # optional — lifecycle hooks (see below)
+    systemPrompt: string # agent system prompt (multiline)
+    language: string # optional — override global language for this agent
+    hooks: # optional — lifecycle hooks (see below)
       before_task: string | [string]
-      after_task:  string | [string]
+      after_task: string | [string]
     # hooks: false         # opt out of inherited hooks (for extends-based agents)
-    validate_prompt: string  # optional — validation criteria injected before task completion
+    validate_prompt: string # optional — validation criteria injected before task completion
     review_checklist: string # optional — override global review checklist for this agent
 ```
 
@@ -143,24 +143,25 @@ Non-zero exit reverts the task status back to `in_review` and returns `success: 
 fe:
   hooks:
     after_task:
-      - bunx biome check --write
+      - bunx eslint --fix .
+      - bunx prettier --write .
       - bun tsc --noEmit
 ```
 
 ### Env vars injected into hooks
 
-| Variable | Value |
-|---|---|
-| `RELAY_AGENT_ID` | ID of the agent running the hook |
-| `RELAY_TASK_ID` | ID of the task being claimed / completed |
-| `RELAY_SESSION_ID` | Current session ID |
+| Variable           | Value                                    |
+| ------------------ | ---------------------------------------- |
+| `RELAY_AGENT_ID`   | ID of the agent running the hook         |
+| `RELAY_TASK_ID`    | ID of the task being claimed / completed |
+| `RELAY_SESSION_ID` | Current session ID                       |
 
 ### Timeouts
 
-| Hook | Default |
-|---|---|
-| `before_task` | 30 s |
-| `after_task` | 120 s |
+| Hook          | Default |
+| ------------- | ------- |
+| `before_task` | 30 s    |
+| `after_task`  | 120 s   |
 
 On timeout: `SIGTERM` → 5 s → `SIGKILL`.
 
@@ -177,7 +178,7 @@ agents:
   fe2:
     extends: fe
     name: "Frontend Engineer 2"
-    hooks: false   # fe2 inherits everything from fe except hooks
+    hooks: false # fe2 inherits everything from fe except hooks
 ```
 
 ## extends pattern
@@ -189,7 +190,7 @@ The session file written by `/relay:relay` uses this to spin up `fe`, `fe2`, `fe
 # .relay/session-agents-2026-03-14-001-a3f7.yml
 agents:
   fe:
-    extends: fe   # inherits systemPrompt + tools from pool
+    extends: fe # inherits systemPrompt + tools from pool
     name: "Frontend Engineer 1"
   fe2:
     extends: fe
@@ -272,10 +273,12 @@ agents:
 ## File locations
 
 Pool files are searched in priority order:
+
 1. `.relay/agents.pool.yml` — project-level (takes priority, git-tracked)
 2. `agents.pool.yml` — project root fallback
 
 If neither file exists, relay throws:
+
 ```
 No agent pool configured. Create .relay/agents.pool.yml (see agents.pool.example.yml) or run /relay:relay to auto-generate one.
 ```

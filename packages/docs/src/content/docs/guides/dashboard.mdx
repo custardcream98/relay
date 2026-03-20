@@ -22,6 +22,7 @@ http://localhost:3456
 The header displays the relay brand, a **session progress widget**, and session controls.
 
 **Session Progress** — a pill-shaped widget in the center of the header that provides at-a-glance session health:
+
 - Task completion ratio and percentage (e.g. "3/8 tasks 37%")
 - Active agent count (agents currently in `working` status)
 - Elapsed time since session start (auto-updates)
@@ -43,12 +44,12 @@ Hidden when no session data exists. Monospace numbers for stable layout.
 
 **Keyboard navigation** — power users and screen-reader users can navigate the feed without a mouse:
 
-| Key | Action |
-|-----|--------|
-| `j` / `↓` | Move focus to next entry |
-| `k` / `↑` | Move focus to previous entry |
-| `Enter` | Expand/collapse thinking entry |
-| `Escape` | Clear focus |
+| Key       | Action                         |
+| --------- | ------------------------------ |
+| `j` / `↓` | Move focus to next entry       |
+| `k` / `↑` | Move focus to previous entry   |
+| `Enter`   | Expand/collapse thinking entry |
+| `Escape`  | Clear focus                    |
 
 Keyboard navigation is automatically disabled when the filter input is focused. The focused entry auto-scrolls into view and is highlighted with an accent ring.
 
@@ -61,6 +62,7 @@ Keyboard navigation is automatically disabled when the filter input is focused. 
 **Progress bar** — a color-coded stacked bar at the top of the Task Board showing the proportion of tasks in each status. Segments use the same colors as the Kanban columns (grey for todo, blue for in_progress, amber for in_review, green for done). Smooth transitions on status changes. Count labels shown below the bar.
 
 **Dependency indicators** — task cards display dependency chain information:
+
 - **Blocked badge**: when a task has unresolved `depends_on` dependencies, it shows an amber "Blocked by N" badge and a subtle visual de-emphasis (dashed border, reduced opacity)
 - **Blocks indicator**: when other tasks depend on this task, it shows "Blocks N tasks" in muted text
 - Badges disappear automatically when dependencies resolve (status → done)
@@ -68,6 +70,7 @@ Keyboard navigation is automatically disabled when the filter input is focused. 
 ### Task detail modal
 
 Click any task card to open the detail modal with:
+
 - Task title, assignee, priority (with colored top border matching priority)
 - Full description in Markdown
 - Task ID for reference
@@ -79,6 +82,7 @@ Click any task card to open the detail modal with:
 ### Artifact detail modal
 
 Click any artifact card in the Activity Feed to view the full content:
+
 - Artifact name, type badge, author, and creation timestamp
 - Full content rendered as Markdown
 - Same popover behavior as the task detail modal (Escape to close, outside click, bottom sheet on mobile)

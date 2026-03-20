@@ -4,6 +4,7 @@ description: relay turns Claude Code into a collaborating team of AI agents. Def
 ---
 
 import { Aside } from "@astrojs/starlight/components";
+
 import DashboardPreviewDocs from "../../../components/DashboardPreviewDocs.astro";
 
 You describe a feature. A full team of AI agents figures out how to build it together.
@@ -59,7 +60,7 @@ agents:
       You are a researcher. Investigate topics and post findings as artifacts.
 
   researcher2:
-    extends: researcher  # inherit persona, override fields
+    extends: researcher # inherit persona, override fields
     name: Senior Researcher
     emoji: "🔭"
 ```
@@ -72,14 +73,15 @@ relay is a **Claude Code plugin**. It requires [Claude Code](https://claude.ai/d
 
 relay has three layers:
 
-| Layer | What it does |
-|---|---|
-| **MCP server** | Message bus, task board, artifact store, and memory layer. No Claude API calls — pure infrastructure. |
-| **Skills** | `.md` files that tell Claude Code how to orchestrate agents. Change behavior by editing text, not code. |
-| **Hooks** | `PostToolUse` (dashboard push), `PreToolUse` (edit guard), `Stop` (orchestrator cleanup), `SessionEnd` (async session cleanup). |
+| Layer          | What it does                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **MCP server** | Message bus, task board, artifact store, and memory layer. No Claude API calls — pure infrastructure.                           |
+| **Skills**     | `.md` files that tell Claude Code how to orchestrate agents. Change behavior by editing text, not code.                         |
+| **Hooks**      | `PostToolUse` (dashboard push), `PreToolUse` (edit guard), `Stop` (orchestrator cleanup), `SessionEnd` (async session cleanup). |
 
 <Aside type="tip">
-relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token costs beyond your existing Claude Code subscription.
+  relay uses only Claude Code's built-in Agent tool. No direct Claude API calls, no additional token
+  costs beyond your existing Claude Code subscription.
 </Aside>
 
 ## What you get

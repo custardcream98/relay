@@ -14,6 +14,7 @@ All tools respond with a flat object: `{ success: boolean, ...fields }` on succe
 Returns the active dashboard URL and server metadata. Call this during pre-flight to discover the auto-selected port.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID
@@ -21,6 +22,7 @@ Returns the active dashboard URL and server metadata. Call this during pre-fligh
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -39,14 +41,16 @@ Returns the active dashboard URL and server metadata. Call this during pre-fligh
 Declares the active session ID for this relay run. Call once at the start of each `/relay:relay` invocation — before any other tools. Also broadcasts a `session:started` event to reset the live dashboard view.
 
 **Parameters:**
+
 ```typescript
 {
-  agent_id: string;   // calling agent ID
+  agent_id: string; // calling agent ID
   session_id: string; // session ID to activate (e.g. 2026-03-14-007)
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -63,6 +67,7 @@ Declares the active session ID for this relay run. Call once at the start of eac
 Send a message between agents.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;         // sending agent ID
@@ -73,6 +78,7 @@ Send a message between agents.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -87,6 +93,7 @@ Send a message between agents.
 Fetch received messages (direct messages + broadcasts).
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // agent ID to fetch messages for
@@ -94,6 +101,7 @@ Fetch received messages (direct messages + broadcasts).
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -117,6 +125,7 @@ Fetch received messages (direct messages + broadcasts).
 Create a new issue/task.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;        // creating agent ID
@@ -132,6 +141,7 @@ Create a new issue/task.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -140,6 +150,7 @@ Create a new issue/task.
 ```
 
 Returns `{ success: false, error: string }` in these cases:
+
 - Circuit breaker triggered (depth > 1 or > 3 siblings per parent)
 - `depends_on` contains unknown task IDs (IDs must exist in the current session at creation time)
 - `parent_task_id` does not exist in the current session
@@ -151,6 +162,7 @@ Returns `{ success: false, error: string }` in these cases:
 Change a task's status or assignee.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;    // calling agent ID
@@ -161,6 +173,7 @@ Change a task's status or assignee.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -175,14 +188,16 @@ Atomically claim a task. Succeeds only if the task is in `todo` state and is ass
 Prevents race conditions where two agents try to pick up the same task simultaneously.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // agent ID claiming the task
-  task_id: string;  // task ID to claim
+  task_id: string; // task ID to claim
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -198,6 +213,7 @@ Prevents race conditions where two agents try to pick up the same task simultane
 Returns all tasks in the session. When `assignee` is provided, only tasks assigned to that agent are returned.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;   // calling agent ID
@@ -206,10 +222,17 @@ Returns all tasks in the session. When `assignee` is provided, only tasks assign
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
-  tasks: Array<{ id: string; title: string; status: string; assignee: string | null; priority: string; }>;
+  tasks: Array<{
+    id: string;
+    title: string;
+    status: string;
+    assignee: string | null;
+    priority: string;
+  }>;
 }
 ```
 
@@ -222,6 +245,7 @@ Returns all tasks in the session. When `assignee` is provided, only tasks assign
 Share a deliverable (design spec, PR, report, etc.).
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;  // sharing agent ID
@@ -233,6 +257,7 @@ Share a deliverable (design spec, PR, report, etc.).
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -247,18 +272,27 @@ Share a deliverable (design spec, PR, report, etc.).
 Retrieve an artifact by name.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID
-  name: string;     // artifact name
+  name: string; // artifact name
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
-  artifact: { id: string; name: string; type: string; content: string; created_by: string; task_id: string | null; };
+  artifact: {
+    id: string;
+    name: string;
+    type: string;
+    content: string;
+    created_by: string;
+    task_id: string | null;
+  }
 }
 // If not found: { success: false, artifact: null, error: "artifact not found" }
 ```
@@ -272,15 +306,17 @@ Retrieve an artifact by name.
 Request a review for an artifact.
 
 **Parameters:**
+
 ```typescript
 {
-  agent_id: string;    // requesting agent ID
+  agent_id: string; // requesting agent ID
   artifact_id: string; // artifact ID to review
-  reviewer: string;    // reviewer agent ID (e.g. fe2, be2)
+  reviewer: string; // reviewer agent ID (e.g. fe2, be2)
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -296,6 +332,7 @@ Submit a review result. Returns permission denied if the calling agent is not th
 Also returns an error if the review is no longer in `pending` state (prevents double-submit).
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;            // reviewer agent ID
@@ -306,6 +343,7 @@ Also returns an error if the review is no longer in `pending` state (prevents do
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -314,7 +352,7 @@ Also returns an error if the review is no longer in `pending` state (prevents do
     status: "approved" | "changes_requested";
     reviewer: string;
     comments: string | null;
-  };
+  }
 }
 ```
 
@@ -327,6 +365,7 @@ Also returns an error if the review is no longer in `pending` state (prevents do
 Read an agent's memory (or project memory).
 
 **Parameters:**
+
 ```typescript
 {
   agent_id?: string; // if omitted, returns project.md only
@@ -334,6 +373,7 @@ Read an agent's memory (or project memory).
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -349,6 +389,7 @@ Update a specific section of an agent's memory. Adds the section if it doesn't e
 Writes to `project.md` when `agent_id` is omitted.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id?: string; // agent ID. writes to project.md if omitted
@@ -358,6 +399,7 @@ Writes to `project.md` when `agent_id` is omitted.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -372,14 +414,16 @@ Append content with a datestamp to an agent's personal memory file.
 `agent_id` is required — use `save_session_summary` for session-level retrospectives.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // agent ID (required)
-  content: string;  // content to append
+  content: string; // content to append
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -396,15 +440,17 @@ At session end, saves the session summary to `.relay/sessions/{session_id}/summa
 Session tasks and messages are stored in-memory and are not persisted to disk — pass a meaningful summary string as this is the durable record of what happened.
 
 **Parameters:**
+
 ```typescript
 {
-  agent_id: string;         // calling agent ID (usually the coordinator)
-  session_id: string;       // session ID (YYYY-MM-DD-NNN-XXXX format)
-  summary: string;          // session summary text
+  agent_id: string; // calling agent ID (usually the coordinator)
+  session_id: string; // session ID (YYYY-MM-DD-NNN-XXXX format)
+  summary: string; // session summary text
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -418,6 +464,7 @@ Session tasks and messages are stored in-memory and are not persisted to disk �
 Retrieve past session IDs in reverse chronological order.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID
@@ -425,6 +472,7 @@ Retrieve past session IDs in reverse chronological order.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -439,14 +487,16 @@ Retrieve past session IDs in reverse chronological order.
 Retrieve the summary for a specific session.
 
 **Parameters:**
+
 ```typescript
 {
-  agent_id: string;   // calling agent ID
+  agent_id: string; // calling agent ID
   session_id: string; // session ID
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -462,15 +512,17 @@ Save the orchestrator's event loop state. Stored in-memory, scoped to the curren
 Use this to persist state across context compaction — call `get_orchestrator_state` on the next spawn to resume.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID (typically the orchestrator)
-  state: string;    // JSON-stringified event loop state
-                    // Shape: { base_agents, dormant_agents, done_agents, last_seen_msg_id, agent_last_seen, iteration, spawned_reviewers }
+  state: string; // JSON-stringified event loop state
+  // Shape: { base_agents, dormant_agents, done_agents, last_seen_msg_id, agent_last_seen, iteration, spawned_reviewers }
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -485,6 +537,7 @@ Retrieve the orchestrator's previously saved event loop state for the current se
 Returns `{ success: true, state: null }` if no state has been saved yet.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID (typically the orchestrator)
@@ -492,6 +545,7 @@ Returns `{ success: true, state: null }` if no state has been saved yet.
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -509,6 +563,7 @@ Retrieve the list of agents for the given session (loaded from `.relay/session-a
 Returns `{ success: false, error: "..." }` when a `session_id` is provided but the corresponding file does not exist.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string;      // calling agent ID
@@ -518,6 +573,7 @@ Returns `{ success: false, error: "..." }` when a `session_id` is provided but t
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -539,6 +595,7 @@ Returns `{ success: false, error: "..." }` when a `session_id` is provided but t
 Retrieve all available pool agents for team selection. Returns metadata only — `systemPrompt` is intentionally omitted. Used during pre-flight before a session is started.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID
@@ -546,6 +603,7 @@ Retrieve all available pool agents for team selection. Returns metadata only —
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;
@@ -571,14 +629,16 @@ Fire-and-forget — does not write to the database.
 Add this to your agent's `tools` list and call it before each significant operation.
 
 **Parameters:**
+
 ```typescript
 {
   agent_id: string; // calling agent ID
-  content: string;  // what the agent is about to do or thinking about
+  content: string; // what the agent is about to do or thinking about
 }
 ```
 
 **Returns:**
+
 ```typescript
 {
   success: true;

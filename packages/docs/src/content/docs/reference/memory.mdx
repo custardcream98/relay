@@ -29,6 +29,7 @@ my-project/
 ## Session memory (in-memory)
 
 Within-session data lives in the MCP server process memory:
+
 - Messages
 - Tasks
 - Artifacts
@@ -46,6 +47,7 @@ Memory that persists across sessions is stored as Markdown files in `.relay/memo
 ### project.md
 
 The project-wide summary written at the end of the first `/relay:relay` session:
+
 - Domain and key features
 - Architecture overview
 - Team conventions
@@ -53,6 +55,7 @@ The project-wide summary written at the end of the first `/relay:relay` session:
 ### agents/&#123;agentId&#125;.md
 
 Each agent's personal memory:
+
 - Role-specific important code patterns
 - Conventions discovered in previous sessions
 - Cautions for specific areas
@@ -63,11 +66,11 @@ Each agent's personal memory:
 
 ```typescript
 // Read an agent's personal memory
-read_memory({ agent_id: "fe" })
+read_memory({ agent_id: "fe" });
 // → returns .relay/memory/agents/fe.md
 
 // Read project memory (omit agent_id)
-read_memory({})
+read_memory({});
 // → returns project.md
 ```
 
@@ -78,15 +81,15 @@ read_memory({})
 write_memory({
   agent_id: "fe",
   key: "component-patterns",
-  content: "Button components always use shadcn/ui as the base..."
-})
+  content: "Button components always use shadcn/ui as the base...",
+});
 // replaces the ## component-patterns section in .relay/memory/agents/fe.md
 
 // Write to project memory (omit agent_id)
 write_memory({
   key: "architecture",
-  content: "Monorepo with packages/server, packages/dashboard, packages/shared"
-})
+  content: "Monorepo with packages/server, packages/dashboard, packages/shared",
+});
 // replaces the ## architecture section in .relay/memory/project.md
 ```
 
@@ -96,8 +99,8 @@ write_memory({
 // Append to an agent's personal memory (agent_id is required)
 append_memory({
   agent_id: "qa",
-  content: "2026-03-13: found missing empty-email case in login flow"
-})
+  content: "2026-03-13: found missing empty-email case in login flow",
+});
 ```
 
 ## Session lifecycle
@@ -105,6 +108,7 @@ append_memory({
 ### On session start
 
 Automatically injected into each agent's system prompt:
+
 1. `project.md` (project memory)
 2. `agents/{agentId}.md` (personal memory)
 

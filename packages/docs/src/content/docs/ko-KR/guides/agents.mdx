@@ -39,17 +39,17 @@ agents:
 
 ## 지원 필드
 
-| 필드 | 필수 | 설명 |
-|---|---|---|
-| `name` | 예 | 에이전트 표시 이름 |
-| `emoji` | 예 | 대시보드와 메시지에 표시할 이모지 |
-| `tools` | 예 | 에이전트가 호출할 수 있는 MCP 도구 목록 |
-| `systemPrompt` | 예 | 에이전트의 기본 시스템 프롬프트 |
-| `description` | 아니오 | 팀 구성 제안에 쓰이는 짧은 설명 |
-| `tags` | 아니오 | `/relay:relay`의 스마트 팀 매칭에 쓰이는 분류 태그 |
-| `language` | 아니오 | 응답 언어 강제 (예: `"Korean"`, `"English"`) |
-| `disabled` | 아니오 | `true`로 설정하면 레지스트리에서 제외 |
-| `extends` | 아니오 | 다른 풀 에이전트의 모든 필드를 상속하고, 다른 점만 오버라이드 |
+| 필드              | 필수   | 설명                                                                                                                           |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------ |
+| `name`            | 예     | 에이전트 표시 이름                                                                                                             |
+| `emoji`           | 예     | 대시보드와 메시지에 표시할 이모지                                                                                              |
+| `tools`           | 예     | 에이전트가 호출할 수 있는 MCP 도구 목록                                                                                        |
+| `systemPrompt`    | 예     | 에이전트의 기본 시스템 프롬프트                                                                                                |
+| `description`     | 아니오 | 팀 구성 제안에 쓰이는 짧은 설명                                                                                                |
+| `tags`            | 아니오 | `/relay:relay`의 스마트 팀 매칭에 쓰이는 분류 태그                                                                             |
+| `language`        | 아니오 | 응답 언어 강제 (예: `"Korean"`, `"English"`)                                                                                   |
+| `disabled`        | 아니오 | `true`로 설정하면 레지스트리에서 제외                                                                                          |
+| `extends`         | 아니오 | 다른 풀 에이전트의 모든 필드를 상속하고, 다른 점만 오버라이드                                                                  |
 | `validate_prompt` | 아니오 | 태스크 완료 전 시스템 프롬프트에 주입하는 검증 기준. 에이전트가 `update_task(status: "done")` 호출 전에 모든 기준을 확인합니다 |
 
 에이전트 ID에는 영문자, 숫자, 하이픈, 언더스코어(`[a-zA-Z0-9_-]`)만 사용할 수 있습니다.
@@ -59,7 +59,7 @@ agents:
 풀 전체의 기본 응답 언어를 설정합니다:
 
 ```yaml
-language: "Korean"   # 에이전트별로 오버라이드하지 않으면 모두 한국어로 응답
+language: "Korean" # 에이전트별로 오버라이드하지 않으면 모두 한국어로 응답
 
 agents:
   fe:
@@ -67,7 +67,7 @@ agents:
     # ... language: "Korean" 상속
   pm:
     name: "Product Manager"
-    language: "English"   # 이 에이전트만 영어로 오버라이드
+    language: "English" # 이 에이전트만 영어로 오버라이드
     # ...
 ```
 
@@ -87,7 +87,7 @@ agents:
       ...
 
   fe2:
-    extends: fe          # fe 페르소나를 상속
+    extends: fe # fe 페르소나를 상속
     name: "Frontend Engineer (Reviewer)"
     emoji: "🔍"
 ```
@@ -130,7 +130,7 @@ tools:
   - create_task
   - update_task
   - claim_task
-  - get_all_tasks      # optional assignee 필터 지원
+  - get_all_tasks # optional assignee 필터 지원
   # 아티팩트
   - post_artifact
   - get_artifact

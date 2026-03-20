@@ -14,6 +14,7 @@ The main command. Describe a goal — relay assembles a team, and they work in p
 ```
 
 Examples:
+
 ```
 /relay:relay "Add a shopping cart feature"
 /relay:relay "Improve the user profile page"
@@ -34,7 +35,7 @@ When you run `/relay:relay` on a project without `.relay/agents.pool.yml`, relay
 The generated prompts reference actual file paths, commands, and conventions from your project. After generation, relay proceeds directly to team composition.
 
 <Aside type="tip">
-To regenerate the pool: delete `.relay/agents.pool.yml` and run `/relay:relay` again.
+  To regenerate the pool: delete `.relay/agents.pool.yml` and run `/relay:relay` again.
 </Aside>
 
 ## What happens when you run it
@@ -54,6 +55,7 @@ If the task is complex, you can ask relay to run a lightweight PM-only pre-spawn
 Every agent on the team starts at the same time. The coordinator receives your original request and begins breaking it down. All other agents check for messages and tasks immediately — no waiting in line.
 
 Each agent works with:
+
 - Its role persona from `agents.pool.yml`
 - Personal memory from previous sessions (`read_memory`)
 - Shared project context (`project.md`)
@@ -80,7 +82,8 @@ When all agents finish their work, the session is archived and results are repor
 The orchestrator saves its event loop state after each iteration using `save_orchestrator_state`. On re-spawn (e.g. after context compaction), it calls `get_orchestrator_state` to restore the full loop state — `dormant_agents`, `done_agents`, `last_seen_msg_id`, and more — and resumes exactly where it left off without replaying all messages from scratch.
 
 <Aside type="tip">
-Watch it happen in real time at the dashboard URL printed at session start. See [Dashboard](/relay/guides/dashboard) for details.
+  Watch it happen in real time at the dashboard URL printed at session start. See
+  [Dashboard](/relay/guides/dashboard) for details.
 </Aside>
 
 ## Running multiple instances
@@ -90,7 +93,7 @@ You can run several relay instances in parallel without conflicts — useful for
 ```json
 {
   "mcpServers": {
-    "relay":   { "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" } },
+    "relay": { "env": { "DASHBOARD_PORT": "3456", "RELAY_INSTANCE": "project-a" } },
     "relay-b": { "env": { "DASHBOARD_PORT": "3457", "RELAY_INSTANCE": "project-b" } }
   }
 }

@@ -29,6 +29,7 @@ my-project/
 ## 세션 메모리 (in-memory)
 
 세션 내 데이터는 MCP 서버 프로세스 메모리에 저장합니다:
+
 - 메시지
 - 태스크
 - 아티팩트
@@ -46,6 +47,7 @@ my-project/
 ### project.md
 
 첫 `/relay:relay` 세션이 끝날 때 코디네이터가 작성하는 프로젝트 전체 요약입니다:
+
 - 도메인 및 핵심 기능
 - 아키텍처 개요
 - 팀 컨벤션
@@ -53,6 +55,7 @@ my-project/
 ### agents/&#123;agentId&#125;.md
 
 각 에이전트의 개인 메모리입니다:
+
 - 역할별 주요 코드 패턴
 - 이전 세션에서 발견한 컨벤션
 - 특정 영역에 대한 주의사항
@@ -63,11 +66,11 @@ my-project/
 
 ```typescript
 // 에이전트 개인 메모리 읽기
-read_memory({ agent_id: "fe" })
+read_memory({ agent_id: "fe" });
 // → .relay/memory/agents/fe.md 반환
 
 // 프로젝트 메모리 읽기 (agent_id 생략)
-read_memory({})
+read_memory({});
 // → project.md 반환
 ```
 
@@ -78,15 +81,15 @@ read_memory({})
 write_memory({
   agent_id: "fe",
   key: "component-patterns",
-  content: "Button components always use shadcn/ui as the base..."
-})
+  content: "Button components always use shadcn/ui as the base...",
+});
 // .relay/memory/agents/fe.md의 ## component-patterns 섹션을 교체
 
 // 프로젝트 메모리에 쓰기 (agent_id 생략)
 write_memory({
   key: "architecture",
-  content: "Monorepo with packages/server, packages/dashboard, packages/shared"
-})
+  content: "Monorepo with packages/server, packages/dashboard, packages/shared",
+});
 // .relay/memory/project.md의 ## architecture 섹션을 교체
 ```
 
@@ -96,8 +99,8 @@ write_memory({
 // 에이전트 개인 메모리에 추가 (agent_id 필수)
 append_memory({
   agent_id: "qa",
-  content: "2026-03-13: found missing empty-email case in login flow"
-})
+  content: "2026-03-13: found missing empty-email case in login flow",
+});
 ```
 
 ## 세션 생명주기
@@ -105,6 +108,7 @@ append_memory({
 ### 세션 시작 시
 
 각 에이전트의 시스템 프롬프트에 다음이 자동 주입됩니다:
+
 1. `project.md` (프로젝트 메모리)
 2. `agents/{agentId}.md` (개인 메모리)
 

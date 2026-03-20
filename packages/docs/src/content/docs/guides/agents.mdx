@@ -39,18 +39,18 @@ agents:
 
 ## Supported fields
 
-| Field | Required | Description |
-|---|---|---|
-| `name` | Yes | Display name of the agent |
-| `emoji` | Yes | Emoji shown in the dashboard and messages |
-| `tools` | Yes | List of MCP tools the agent is allowed to call |
-| `systemPrompt` | Yes | The agent's base system prompt |
-| `description` | No | Short summary used for team selection suggestions |
-| `tags` | No | Taxonomy tags for smart team matching in `/relay:relay` |
-| `language` | No | Force response language (e.g. `"Korean"`, `"English"`) |
-| `disabled` | No | When `true`, excludes this agent from the registry |
-| `extends` | No | Inherit all fields from another pool agent; override only what differs |
-| `validate_prompt` | No | Declarative validation criteria injected into the system prompt before task completion — agents verify all criteria before calling `update_task(status: "done")` |
+| Field             | Required | Description                                                                                                                                                      |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`            | Yes      | Display name of the agent                                                                                                                                        |
+| `emoji`           | Yes      | Emoji shown in the dashboard and messages                                                                                                                        |
+| `tools`           | Yes      | List of MCP tools the agent is allowed to call                                                                                                                   |
+| `systemPrompt`    | Yes      | The agent's base system prompt                                                                                                                                   |
+| `description`     | No       | Short summary used for team selection suggestions                                                                                                                |
+| `tags`            | No       | Taxonomy tags for smart team matching in `/relay:relay`                                                                                                          |
+| `language`        | No       | Force response language (e.g. `"Korean"`, `"English"`)                                                                                                           |
+| `disabled`        | No       | When `true`, excludes this agent from the registry                                                                                                               |
+| `extends`         | No       | Inherit all fields from another pool agent; override only what differs                                                                                           |
+| `validate_prompt` | No       | Declarative validation criteria injected into the system prompt before task completion — agents verify all criteria before calling `update_task(status: "done")` |
 
 Agent IDs must use only alphanumeric characters, hyphens, and underscores (`[a-zA-Z0-9_-]`).
 
@@ -59,7 +59,7 @@ Agent IDs must use only alphanumeric characters, hyphens, and underscores (`[a-z
 Set a default response language for all agents in the pool:
 
 ```yaml
-language: "Korean"   # all agents respond in Korean unless overridden per-agent
+language: "Korean" # all agents respond in Korean unless overridden per-agent
 
 agents:
   fe:
@@ -67,7 +67,7 @@ agents:
     # ... inherits language: "Korean"
   pm:
     name: "Product Manager"
-    language: "English"   # overrides the top-level default for this agent only
+    language: "English" # overrides the top-level default for this agent only
     # ...
 ```
 
@@ -87,7 +87,7 @@ agents:
       ...
 
   fe2:
-    extends: fe          # inherit from the fe persona
+    extends: fe # inherit from the fe persona
     name: "Frontend Engineer (Reviewer)"
     emoji: "🔍"
 ```
@@ -130,7 +130,7 @@ tools:
   - create_task
   - update_task
   - claim_task
-  - get_all_tasks      # supports optional assignee filter
+  - get_all_tasks # supports optional assignee filter
   # Artifacts
   - post_artifact
   - get_artifact

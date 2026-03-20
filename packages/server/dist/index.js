@@ -16437,7 +16437,7 @@ function resolveExtendsAgents(entries, merged, globalLanguage, poolAgents, share
     const base = merged[config2.extends] ?? poolAgents?.[config2.extends];
     if (!base) {
       throw new Error(
-        `extends target "${config2.extends}" not found or is disabled` + (poolAgents ? " (searched current file and pool)" : "")
+        `extends target "${config2.extends}" not found or is disabled${poolAgents ? " (searched current file and pool)" : ""}`
       );
     }
     const review_checklist = config2.review_checklist ?? base.review_checklist ?? globalReviewChecklist;

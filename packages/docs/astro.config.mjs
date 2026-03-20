@@ -1,5 +1,4 @@
 // docs-site/astro.config.mjs
-
 import sitemap from "@astrojs/sitemap";
 import starlight from "@astrojs/starlight";
 import tailwindcss from "@tailwindcss/vite";

@@ -2,12 +2,9 @@
 import { type Lang, useTranslations } from "../../i18n/landing";
 
 const { lang = "en" }: { lang?: Lang } = Astro.props;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const t = useTranslations(lang);
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const screenshotSrc =
   lang === "ko-KR" ? "/relay/screenshots/dashboard-ko.png" : "/relay/screenshots/dashboard-en.png";
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const screenshotAlt =
   lang === "ko-KR" ? "relay 대시보드 — 라이브 세션" : "relay dashboard — live session in progress";
 ---

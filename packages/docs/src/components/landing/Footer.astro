@@ -8,7 +8,6 @@ const t = useTranslations(lang);
 const docsSlug =
   lang === "ko-KR" ? "ko-kr/getting-started/introduction" : "getting-started/introduction";
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const links = [
   { label: t("footer.docs"), href: `${base}/${docsSlug}` },
   { label: t("footer.github"), href: "https://github.com/custardcream98/relay", external: true },

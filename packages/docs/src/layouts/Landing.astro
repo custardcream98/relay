@@ -1,6 +1,5 @@
 ---
 // Landing page layout — bypasses Starlight to apply custom Nav, design tokens, and styles
-// biome-ignore lint/correctness/noUnusedImports: used in Astro template
 import Nav from "../components/landing/Nav.astro";
 import type { Lang } from "../i18n/landing";
 
@@ -11,9 +10,7 @@ interface Props {
 }
 
 const { lang = "en" } = Astro.props;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const title = Astro.props.title ?? "relay — Multi-agent framework for Claude Code";
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const description =
   Astro.props.description ??
   (lang === "ko-KR"
@@ -21,14 +18,10 @@ const description =
     : "relay gives you a collaborating team of Claude agents — peer-to-peer, event-driven, no orchestrator code. Pick any team from the pool. No new API keys. No extra billing.");
 
 const BASE = "https://custardcream98.github.io/relay";
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const canonicalUrl = lang === "ko-KR" ? `${BASE}/ko-KR/` : `${BASE}/`;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const ogImageUrl = `${BASE}/og.svg`;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const ogLocale = lang === "ko-KR" ? "ko_KR" : "en_US";
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",

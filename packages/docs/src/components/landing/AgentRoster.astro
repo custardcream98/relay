@@ -2,11 +2,9 @@
 import { type Lang, useTranslations } from "../../i18n/landing";
 
 const { lang = "en" }: { lang?: Lang } = Astro.props;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const t = useTranslations(lang);
 
 // agents.pool.yml example — code snippet showing custom pool definition
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const yamlSnippet = `agents:
   pm:
     name: Project Manager
@@ -24,7 +22,6 @@ const yamlSnippet = `agents:
       Build React components, request reviews.`;
 
 // Example team setup — based on agents.pool.example.yml, noting these are not fixed roles
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const exampleAgents = [
   { id: "pm", label: "PM", color: "#C17F24" },
   { id: "designer", label: "Designer", color: "#A0522D" },

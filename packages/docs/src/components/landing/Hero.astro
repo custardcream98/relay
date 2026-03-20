@@ -1,17 +1,13 @@
 ---
 import { type Lang, useTranslations } from "../../i18n/landing";
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const base = import.meta.env.BASE_URL;
 const { lang = "en" }: { lang?: Lang } = Astro.props;
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const t = useTranslations(lang);
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const docsSlug =
   lang === "ko-KR" ? "ko-kr/getting-started/introduction" : "getting-started/introduction";
 
-// biome-ignore lint/correctness/noUnusedVariables: used in Astro template
 const installCmd = "/plugin marketplace add custardcream98/relay\n/plugin install relay@relay";
 ---
 
